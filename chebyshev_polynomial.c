@@ -23,6 +23,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -50,6 +52,7 @@ void chebyshev_polynomial(double aa, double bb, double c[], int n, double expone
 
   inv_n=1./(double)n;
   f=calloc(n,sizeof(double));/*vector(0,n-1);*/
+  CMALLOC_ERROR_EXIT(f);
   fflush(stdout);
   bma=0.5*(bb-aa);
   bpa=0.5*(bb+aa);
@@ -81,14 +84,20 @@ void QdaggerQ_power(spinor *R_s, spinor *R_c, double *c, int n, spinor *S_s, spi
 {
   int j;
   double fact1, fact2, temp, temp1, temp2, temp3, temp4;
-  spinor *svs_=NULL, *svs=NULL, *ds_=NULL, *ds=NULL, *dds_=NULL, *dds=NULL, 
+
+  /* GG */
+  static spinor *svs_=NULL, *svs=NULL, *ds_=NULL, *ds=NULL, *dds_=NULL, *dds=NULL, 
  *auxs_=NULL, *auxs=NULL, *aux2s_=NULL, *aux2s=NULL, *aux3s_=NULL, *aux3s=NULL;
-  spinor *svc_=NULL, *svc=NULL, *dc_=NULL, *dc=NULL, *ddc_=NULL, 
+  static spinor *svc_=NULL, *svc=NULL, *dc_=NULL, *dc=NULL, *ddc_=NULL, 
   *ddc=NULL, *auxc_=NULL, 
   *auxc=NULL, *aux2c_=NULL, *aux2c=NULL, *aux3c_=NULL, *aux3c=NULL;
+  static int allocated=0;
 
-  
+  /* GG */
+  print_trace();
 
+  if(allocated == 0) {
+    allocated = 1;
 
 #if ( defined SSE || defined SSE2 )
    svs_  = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
@@ -117,30 +126,53 @@ void QdaggerQ_power(spinor *R_s, spinor *R_c, double *c, int n, spinor *S_s, spi
    aux3c = (spinor *)(((unsigned long int)(aux3c_)+ALIGN_BASE)&~ALIGN_BASE);
 #else
    svs_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+   CMALLOC_ERROR_EXIT(svs_);
    svs = svs_;
    ds_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+   CMALLOC_ERROR_EXIT(ds_);
    ds = ds_;
    dds_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+   CMALLOC_ERROR_EXIT(dds_);
    dds = dds_;
    auxs_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+   CMALLOC_ERROR_EXIT(auxs_);
    auxs = auxs_;
    aux2s_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+   CMALLOC_ERROR_EXIT(aux2s_);
    aux2s = aux2s_;
    aux3s_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+   CMALLOC_ERROR_EXIT(aux3s_);
    aux3s = aux3s_;
    svc_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+   CMALLOC_ERROR_EXIT(svc_);
    svc = svc_;
    dc_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+   CMALLOC_ERROR_EXIT(dc_);
    dc = dc_;
    ddc_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+   CMALLOC_ERROR_EXIT(ddc_);
    ddc = ddc_;
    auxc_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+   CMALLOC_ERROR_EXIT(auxc_);
    auxc = auxc_;
    aux2c_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+   CMALLOC_ERROR_EXIT(aux2c_);
    aux2c = aux2c_;
    aux3c_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+   CMALLOC_ERROR_EXIT(aux3c_);
    aux3c = aux3c_;
 #endif
+
+  /* GG */
+  if ( errno == ENOMEM ) {
+    printf(" Not enough memory in QdaggerQ_power ! \n");
+#ifdef MPI
+  MPI_Finalize();
+#endif
+    exit(69);
+  }
+
+  }
  
    cheb_evmax=1.;
 
@@ -210,7 +242,7 @@ void QdaggerQ_power(spinor *R_s, spinor *R_c, double *c, int n, spinor *S_s, spi
 #endif
 */
      
-    
+/* GG
    free(svs_);  
    free(ds_);   
    free(dds_);  
@@ -223,6 +255,7 @@ void QdaggerQ_power(spinor *R_s, spinor *R_c, double *c, int n, spinor *S_s, spi
    free(auxc_); 
    free(aux2c_);
    free(aux3c_);
+*/
    
 }
   
@@ -254,10 +287,12 @@ void degree_of_polynomial(){
   spinor *sc=NULL, *sc_=NULL, *auxc=NULL, *auxc_=NULL, *aux2c=NULL, 
          *aux2c_=NULL, *aux3c=NULL, *aux3c_=NULL;
 
-
+  /* GG */
+  print_trace();
 
   if(ini==0){
     dop_cheby_coef = calloc(N_CHEBYMAX,sizeof(double));
+    CMALLOC_ERROR_EXIT(dop_cheby_coef);
     ini=1;
   }
 
@@ -283,13 +318,21 @@ void degree_of_polynomial(){
    aux3c = (spinor *)(((unsigned long int)(aux3c_)+ALIGN_BASE)&~ALIGN_BASE);
 #else
    ss   =calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(ss);
    auxs =calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(auxs);
    aux2s=calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(aux2s);
    aux3s=calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(aux3s);
    sc   =calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(sc);
    auxc =calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(auxc);
    aux2c=calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(aux2c);
    aux3c=calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(aux3c);
 #endif
 
 chebyshev_polynomial(cheb_evmin, cheb_evmax, dop_cheby_coef, N_CHEBYMAX, 0.25);

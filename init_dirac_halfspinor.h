@@ -21,12 +21,31 @@
 #ifndef _INIT_DIRAC_HALFSPINOR_H
 #define _INIT_DIRAC_HALFSPINOR_H
 
+#if defined MAIN_PROGRAM
+#  define EXTERN
+#else
+#  define EXTERN extern
+#endif
+
 extern halfspinor * HalfSpinor ALIGN;
 extern halfspinor *** NBPointer;
 extern halfspinor32 * HalfSpinor32 ALIGN;
 extern halfspinor32 *** NBPointer32;
 
+/* GG */
+
+EXTERN halfspinor * GalfSpinorSrc ALIGN;
+EXTERN halfspinor * GalfSpinorDst ALIGN;
+
+EXTERN int buf_size;
+EXTERN int ilg_max;
+EXTERN int source_node;
+EXTERN int target_node;
+#undef EXTERN
+
+
 int init_dirac_halfspinor();
 int init_dirac_halfspinor32();
+int init_dirac_halfspinor_tile();
 
 #endif

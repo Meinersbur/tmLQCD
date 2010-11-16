@@ -39,6 +39,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include<stdlib.h>
 #include<stdio.h>
 #include<math.h>
@@ -214,26 +216,38 @@ static void init_gmres(const int _M, const int _V){
     Vo = _V;
     M = _M;
     H = calloc(M+1, sizeof(complex *));
+  CMALLOC_ERROR_EXIT(H);
     V = calloc(M, sizeof(spinor *));
+  CMALLOC_ERROR_EXIT(V);
     Z = calloc(M, sizeof(spinor *));
+  CMALLOC_ERROR_EXIT(Z);
 #if (defined SSE || defined SSE2)
     _h = calloc((M+2)*M, sizeof(complex));
+  CMALLOC_ERROR_EXIT(_h);
     H[0] = (complex *)(((unsigned int)(_h)+ALIGN_BASE)&~ALIGN_BASE); 
     _v = calloc(M*Vo+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(_v);
     V[0] = (spinor *)(((unsigned int)(_v)+ALIGN_BASE)&~ALIGN_BASE);
     _z = calloc(M*Vo+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(_z);
     Z[0] = (spinor *)(((unsigned int)(_z)+ALIGN_BASE)&~ALIGN_BASE);
 #else
     _h = calloc((M+1)*M, sizeof(complex));
+  CMALLOC_ERROR_EXIT(_h);
     H[0] = _h;
     _v = calloc(M*Vo, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(_v);
     V[0] = _v;
     _z = calloc(M*Vo, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(_z);
     Z[0] = _z;
 #endif
     s = calloc(M, sizeof(double));
+  CMALLOC_ERROR_EXIT(s);
     c = calloc(M, sizeof(complex));
+  CMALLOC_ERROR_EXIT(c);
     alpha = calloc(M+1, sizeof(complex));
+  CMALLOC_ERROR_EXIT(alpha);
     for(i = 1; i < M; i++){
       V[i] = V[i-1] + Vo;
       H[i] = H[i-1] + M;

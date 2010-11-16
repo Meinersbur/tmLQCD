@@ -41,6 +41,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -170,10 +172,14 @@ double max_eigenvalues_bi(int * nr_of_eigenvalues, const int operator_flag,
 #else
 
     max_evs_= calloc((VOLUME)/2*(*nr_of_eigenvalues), sizeof(bispinor));
+  CMALLOC_ERROR_EXIT(max_evs_);
     copy_ev_= calloc((VOLUME)/2*(*nr_of_eigenvalues), sizeof(bispinor));
+  CMALLOC_ERROR_EXIT(copy_ev_);
 
     temp_field_ = calloc((VOLUME)/2, sizeof(bispinor));
+  CMALLOC_ERROR_EXIT(temp_filed);
     aux_ = calloc((VOLUME)/2, sizeof(bispinor));
+  CMALLOC_ERROR_EXIT(aux_);
 
     max_evs = max_evs_;
     copy_ev = copy_ev_;
@@ -181,6 +187,7 @@ double max_eigenvalues_bi(int * nr_of_eigenvalues, const int operator_flag,
     aux = aux_;
 #endif
     max_evls = (double*)malloc((*nr_of_eigenvalues)*sizeof(double));
+  CMALLOC_ERROR_EXIT(max_evls);
   }
 
   /* compute maximal eigenvalues */

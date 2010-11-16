@@ -38,6 +38,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <limits.h>
 #include <float.h>
 #include <math.h>
@@ -268,11 +270,14 @@ void pjdher_bi(int n, int lda, double tau, double tol,
   V_ = (complex *)malloc(lda * jmax * sizeof(complex));
   V = V_;
 #endif
-  if(errno == ENOMEM) jderrorhandler(300,"V in pjdher");
+  CMALLOC_ERROR_EXIT(V_);
+  /* if(errno == ENOMEM) jderrorhandler(300,"V in pjdher"); */
   U = (complex *)malloc(jmax * jmax * sizeof(complex));
-  if(errno == ENOMEM) jderrorhandler(300,"U in pjdher");
+  CMALLOC_ERROR_EXIT(U);
+  /* if(errno == ENOMEM) jderrorhandler(300,"U in pjdher"); */
   s = (double *)malloc(jmax * sizeof(double));
-  if(errno == ENOMEM) jderrorhandler(300,"s in pjdher");
+  CMALLOC_ERROR_EXIT(s);
+  /* if(errno == ENOMEM) jderrorhandler(300,"s in pjdher"); */
 #if (defined SSE || defined SSE2 || defined SSE3)
   Res_ = (complex *)malloc((lda * blksize+4) * sizeof(complex));
   Res = (complex*)(((unsigned long int)(Res_)+ALIGN_BASE)&~ALIGN_BASE);
@@ -280,43 +285,58 @@ void pjdher_bi(int n, int lda, double tau, double tol,
   Res_ = (complex *)malloc(lda * blksize * sizeof(complex));
   Res = Res_;
 #endif
-  if(errno == ENOMEM) jderrorhandler(300,"Res in pjdher");
+  CMALLOC_ERROR_EXIT(Res_);
+  /* if(errno == ENOMEM) jderrorhandler(300,"Res in pjdher"); */
   resnrm = (double *)malloc(blksize * sizeof(double));
-  if(errno == ENOMEM) jderrorhandler(300,"resnrm in pjdher");
+  CMALLOC_ERROR_EXIT(resnrm);
+  /* if(errno == ENOMEM) jderrorhandler(300,"resnrm in pjdher"); */
   resnrm_old = (double *)calloc(blksize,sizeof(double));
-  if(errno == ENOMEM) jderrorhandler(300,"resnrm_old in pjdher");
+  CMALLOC_ERROR_EXIT(resnrm_old);
+  /* if(errno == ENOMEM) jderrorhandler(300,"resnrm_old in pjdher"); */
   M = (complex *)malloc(jmax * jmax * sizeof(complex));
-  if(errno == ENOMEM) jderrorhandler(300,"M in pjdher");
+  CMALLOC_ERROR_EXIT(M);
+  /* if(errno == ENOMEM) jderrorhandler(300,"M in pjdher"); */
 #ifdef ESSL
   Z = (complex *)malloc(jmax * jmax * sizeof(complex)); 
-  if(errno == ENOMEM) jderrorhandler(300,"Z in pjdher"); 
+  CMALLOC_ERROR_EXIT(Z);
+  /* if(errno == ENOMEM) jderrorhandler(300,"Z in pjdher");  */
 #endif
   Vtmp = (complex *)malloc(jmax * jmax * sizeof(complex));
-  if(errno == ENOMEM) jderrorhandler(300,"Vtmp in pjdher");
+  CMALLOC_ERROR_EXIT(Vtmp);
+  /* if(errno == ENOMEM) jderrorhandler(300,"Vtmp in pjdher"); */
   p_work = (complex *)malloc(n * sizeof(complex));
-  if(errno == ENOMEM) jderrorhandler(300,"p_work in pjdher");
+  CMALLOC_ERROR_EXIT(p_work);
+  /* if(errno == ENOMEM) jderrorhandler(300,"p_work in pjdher"); */
 
   /* ... */
   idx1 = (int *)malloc(jmax * sizeof(int));
-  if(errno == ENOMEM) jderrorhandler(300,"idx1 in pjdher");
+  CMALLOC_ERROR_EXIT(idx1);
+  /* if(errno == ENOMEM) jderrorhandler(300,"idx1 in pjdher"); */
   idx2 = (int *)malloc(jmax * sizeof(int));
-  if(errno == ENOMEM) jderrorhandler(300,"idx2 in pjdher");
+  CMALLOC_ERROR_EXIT(idx2);
+  /* if(errno == ENOMEM) jderrorhandler(300,"idx2 in pjdher"); */
 
   /* Indices for (non-)converged approximations */
   convind = (int *)malloc(blksize * sizeof(int));
-  if(errno == ENOMEM) jderrorhandler(300,"convind in pjdher");
+  CMALLOC_ERROR_EXIT(convind);
+  /* if(errno == ENOMEM) jderrorhandler(300,"convind in pjdher"); */
   keepind = (int *)malloc(blksize * sizeof(int));
-  if(errno == ENOMEM) jderrorhandler(300,"keepind in pjdher");
+  CMALLOC_ERROR_EXIT(keepind);
+  /* if(errno == ENOMEM) jderrorhandler(300,"keepind in pjdher"); */
   solvestep = (int *)malloc(blksize * sizeof(int));
-  if(errno == ENOMEM) jderrorhandler(300,"solvestep in pjdher");
+  CMALLOC_ERROR_EXIT(solvestep);
+  /* if(errno == ENOMEM) jderrorhandler(300,"solvestep in pjdher"); */
   actcorrits = (int *)malloc(blksize * sizeof(int));
-  if(errno == ENOMEM) jderrorhandler(300,"actcorrits in pjdher");
+  CMALLOC_ERROR_EXIT(actcorrits);
+  /* if(errno == ENOMEM) jderrorhandler(300,"actcorrits in pjdher"); */
 
   rwork = (double *)malloc(3*jmax * sizeof(double));
-  if(errno == ENOMEM) jderrorhandler(300,"rwork in pjdher");
+  CMALLOC_ERROR_EXIT(rwork);
+  /* if(errno == ENOMEM) jderrorhandler(300,"rwork in pjdher"); */
 
   eigwork = (complex *)malloc(eigworklen * sizeof(complex));
-  if(errno == ENOMEM) jderrorhandler(300,"eigwork in pjdher");
+  CMALLOC_ERROR_EXIT(eigwork);
+  /* if(errno == ENOMEM) jderrorhandler(300,"eigwork in pjdher"); */
 
 #if (defined SSE || defined SSE2 || defined SSE3)
   temp1_ = (complex *)malloc((lda+4) * sizeof(complex));
@@ -325,9 +345,11 @@ void pjdher_bi(int n, int lda, double tau, double tol,
   temp1_ = (complex *)malloc(lda * sizeof(complex));
   temp1 = temp1_;
 #endif
-  if(errno == ENOMEM) jderrorhandler(300,"temp1 in pjdher");
+  CMALLOC_ERROR_EXIT(temp1_);
+  /* if(errno == ENOMEM) jderrorhandler(300,"temp1 in pjdher"); */
   dtemp = (double *)malloc(n * sizeof(complex));
-  if(errno == ENOMEM) jderrorhandler(300,"dtemp in pjdher");
+  CMALLOC_ERROR_EXIT(dtemp);
+  /* if(errno == ENOMEM) jderrorhandler(300,"dtemp in pjdher"); */
 
   /* Set variables for Projection routines */
   n2 = 2*n;

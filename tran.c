@@ -1,3 +1,4 @@
+
 /*******************************************************************************
  * $Id$
  *
@@ -45,10 +46,6 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
-
-/* GG */
-#include "global.h"
-
 #include <limits.h>
 #include <float.h>
 #include <stdlib.h>
@@ -229,6 +226,7 @@ void rlxd_init(int level,int seed)
    {
       xbit[k]=i%2;
       i/=2;
+      printf (" k %d i %d \n", k, i);
    }
 
    if ((seed<=0)||(i!=0))
@@ -534,13 +532,11 @@ void rlxd_init(int level,int seed)
    {
       xbit[k]=i%2;
       i/=2;
+      //printf (" seed %d k %d i %d \n", seed, k, i);
    }
 
-   /* GG */
-   if ((seed<=0)||(i!=0)) {
-     printf (" seed %d k %d i %d g_proc_id %d\n", seed, k, i, g_proc_id);
-     error(2);
-   }
+   if ((seed<=0)||(i!=0))
+      error(2);
 
    ibit=0;
    jbit=18;
@@ -678,4 +674,26 @@ void rlxd_reset(int state[])
 }
 
 #endif
+
+void start_ranlux(int level,int seed, int g_nproc)
+{
+  int max_seed,loc_seed, ix;
+
+   max_seed=2147483647/g_nproc;
+
+   for (ix=0; ix<g_nproc; ix++) {
+   loc_seed=seed+ix*max_seed;
+
+   //   rlxs_init(level-1,loc_seed);
+   rlxd_init(level,loc_seed);
+   }
+}
+
+int const rlxdsize = 105;
+
+int main(int argc,char *argv[]) {
+
+  start_ranlux(1, 1, 32*1024);
+
+}
 

@@ -22,7 +22,10 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <stdlib.h>
+#include <errno.h>
 #include <stdio.h>
 #include <math.h>
 #ifdef MPI
@@ -72,6 +75,8 @@ void Ptilde_cheb_coefs(double aa, double bb, double dd[], int n, double exponent
 
   inv_n=1./(double)n;
   f=calloc(n,sizeof(double));/*vector(0,n-1);*/
+  CMALLOC_ERROR_EXIT(f);
+
   if(g_proc_id == g_stdio_proc && g_debug_level > 2){
     printf("PHMC: PTILDE-chebyshev_polynomial\n");
     printf("PHMC: n= %d inv_n=%e \n",n,inv_n);
@@ -110,13 +115,21 @@ void Poly_tilde_ND(spinor *R_s, spinor *R_c, double *dd, int n,
   int j;
   double fact1, fact2, temp1, temp2, temp3, temp4;
 
-  spinor *svs_=NULL, *svs=NULL, *ds_=NULL, *ds=NULL, *dds_=NULL, *dds=NULL, 
+  /* GG */
+  static spinor *svs_=NULL, *svs=NULL, *ds_=NULL, *ds=NULL, *dds_=NULL, *dds=NULL, 
     *auxs_=NULL, *auxs=NULL, *aux2s_=NULL, *aux2s=NULL, *aux3s_=NULL, 
     *aux3s=NULL;
-  spinor *svc_=NULL, *svc=NULL, *dc_=NULL, *dc=NULL, *ddc_=NULL, 
+  static spinor *svc_=NULL, *svc=NULL, *dc_=NULL, *dc=NULL, *ddc_=NULL, 
     *ddc=NULL, *auxc_=NULL, *auxc=NULL, *aux2c_=NULL, *aux2c=NULL, 
     *aux3c_=NULL, *aux3c=NULL;
+  static int allocated=0;
 
+  /* GG */
+/*   print_tracel(__LINE__, __FILE__);  */
+   print_trace(); 
+
+  if(allocated == 0) {
+    allocated = 1;
 
 #if ( defined SSE || defined SSE2 )
   svs_  = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
@@ -145,31 +158,44 @@ void Poly_tilde_ND(spinor *R_s, spinor *R_c, double *dd, int n,
   aux3c = (spinor *)(((unsigned long int)(aux3c_)+ALIGN_BASE)&~ALIGN_BASE);
 #else
   svs_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(svs_);
   svs = svs_;
   ds_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(ds_);
   ds = ds_;
   dds_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(dds_);
   dds = dds_;
   auxs_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(auxs_);
   auxs = auxs_;
   aux2s_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(aux2s_);
   aux2s = aux2s_;
   aux3s_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(aux3s_);
   aux3s = aux3s_;
   svc_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(svc_);
   svc = svc_;
   dc_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(dc_);
   dc = dc_;
   ddc_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(ddc_);
   ddc = ddc_;
   auxc_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(auxc_);
   auxc = auxc_;
   aux2c_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(aux2c_);
   aux2c = aux2c_;
   aux3c_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(aux3c_);
   aux3c = aux3c_;
 #endif
- 
+
+  } 
 
   fact1=4/(phmc_cheb_evmax-phmc_cheb_evmin);
   fact2=-2*(phmc_cheb_evmax+phmc_cheb_evmin)/(phmc_cheb_evmax-phmc_cheb_evmin);
@@ -223,6 +249,7 @@ void Poly_tilde_ND(spinor *R_s, spinor *R_c, double *dd, int n,
   assign(&R_s[0], &auxs[0],VOLUME/2);
   assign(&R_c[0], &auxc[0],VOLUME/2);
      
+  /* GG
   free(svs_);  
   free(ds_);   
   free(dds_);  
@@ -235,6 +262,7 @@ void Poly_tilde_ND(spinor *R_s, spinor *R_c, double *dd, int n,
   free(auxc_); 
   free(aux2c_);
   free(aux3c_);
+  */
    
 }
   
@@ -266,7 +294,8 @@ double chebtilde_eval(int M, double *dd, double s){
  *     Computation of (QdaggerQ)^1/4
  *     by using the chebyshev approximation for the function ()^1/4  
  *
- * Author: Thomas Chiarappa <Thomas.Chiarappa@mib.infn.it> Mai 2006 
+ * Author: Thomas Chiarappa <Thomas.Chiarappa@mib.infn.it> Mai 2006
+ * Deeply modified by Philippe Boucaud (March 2010)
  *
  *****************************************************************************/
 
@@ -279,40 +308,12 @@ void degree_of_Ptilde() {
   
   double sum=0.0;
   
-  spinor *ss=NULL, *ss_=NULL, *sc=NULL, *sc_=NULL;
-  spinor *auxs=NULL, *auxs_=NULL, *auxc=NULL, *auxc_=NULL;
-  spinor *aux2s=NULL, *aux2s_=NULL, *aux2c=NULL, *aux2c_=NULL;
-
   if(ini==0){
     phmc_ptilde_cheby_coef = calloc(phmc_max_ptilde_degree, sizeof(double)); 
+    CMALLOC_ERROR_EXIT(phmc_ptilde_cheby_coef);
     ini=1;
   }   
 
-#if ( defined SSE || defined SSE2 || defined SSE3)
-  ss_   = calloc(VOLUMEPLUSRAND/2+1, sizeof(spinor));
-  auxs_ = calloc(VOLUMEPLUSRAND/2+1, sizeof(spinor));
-  aux2s_= calloc(VOLUMEPLUSRAND/2+1, sizeof(spinor));
-  sc_   = calloc(VOLUMEPLUSRAND/2+1, sizeof(spinor));
-  auxc_ = calloc(VOLUMEPLUSRAND/2+1, sizeof(spinor));
-  aux2c_= calloc(VOLUMEPLUSRAND/2+1, sizeof(spinor));
-
-  ss    = (spinor *)(((unsigned long int)(ss_)+ALIGN_BASE)&~ALIGN_BASE);
-  auxs  = (spinor *)(((unsigned long int)(auxs_)+ALIGN_BASE)&~ALIGN_BASE);
-  aux2s = (spinor *)(((unsigned long int)(aux2s_)+ALIGN_BASE)&~ALIGN_BASE);
-  sc    = (spinor *)(((unsigned long int)(sc_)+ALIGN_BASE)&~ALIGN_BASE);
-  auxc  = (spinor *)(((unsigned long int)(auxc_)+ALIGN_BASE)&~ALIGN_BASE);
-  aux2c = (spinor *)(((unsigned long int)(aux2c_)+ALIGN_BASE)&~ALIGN_BASE);
-
-#else
-  ss   =calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
-  auxs =calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
-  aux2s=calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
-  sc   =calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
-  auxc =calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
-  aux2c=calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
-#endif
-
-      
   Ptilde_cheb_coefs(phmc_cheb_evmin, phmc_cheb_evmax, phmc_ptilde_cheby_coef, phmc_max_ptilde_degree, -1.0); 
 
   if(g_proc_id == g_stdio_proc && g_debug_level > 0){
@@ -322,6 +323,7 @@ void degree_of_Ptilde() {
   }
 
   phmc_ptilde_n_cheby = 2*phmc_dop_n_cheby;
+  /*    phmc_ptilde_n_cheby = 700; */
 
   for(i = 0;i < 100 ; i++) {
      
@@ -342,18 +344,46 @@ void degree_of_Ptilde() {
       sum += fabs(phmc_ptilde_cheby_coef[j]);
     }
 
+    /* PHB
     if((g_proc_id == g_stdio_proc) && (g_debug_level > 0)) {
       printf("NDPOLY Acceptance Polynomial: Sum remaining | d_n | = %e for degree=%d\n", sum, phmc_ptilde_n_cheby);
       printf("NDPOLY Acceptance Polynomial: coef[degree] = %e\n", phmc_ptilde_cheby_coef[phmc_ptilde_n_cheby]);
     }
+    */
+
+#if 0 
     if(sum < g_acc_Ptilde) { 
 /*     if(fabs(phmc_ptilde_cheby_coef[phmc_ptilde_n_cheby]) < g_acc_Ptilde) { */
       printf(" sum %e, coef %e\n", sum, phmc_ptilde_cheby_coef[phmc_ptilde_n_cheby]);
       break;
     }
+#else
+    if(sum < g_acc_Ptilde) {  
+      if(g_proc_id == g_stdio_proc && g_debug_level > 0){
+	printf("PHMC:        Achieved Accuracies for Ptilde :  Stop=%e \n", g_acc_Ptilde);
+	printf("PHMC: Uniform: Sum |d_n|=%e \n", sum);
+	//printf("PHMC: RND:  || (Ptilde P S P Ptilde - 1)X ||^2 / || 2X ||^2 :  UP=%e  DN=%e \n",temp, temp2);
+      }
+
+      temp = chebtilde_eval(phmc_ptilde_n_cheby, phmc_ptilde_cheby_coef, phmc_cheb_evmin);
+      temp *= cheb_eval(phmc_dop_n_cheby, phmc_dop_cheby_coef, phmc_cheb_evmin);
+      temp *= phmc_cheb_evmin;
+      temp *= cheb_eval(phmc_dop_n_cheby, phmc_dop_cheby_coef, phmc_cheb_evmin);
+      temp *= chebtilde_eval(phmc_ptilde_n_cheby, phmc_ptilde_cheby_coef, phmc_cheb_evmin);
+      temp = 0.5*fabs(temp - 1);
+      if(g_proc_id == g_stdio_proc && g_debug_level > 0){
+	printf("PHMC: Delta_IR at s=%f:    | Ptilde P s_low P Ptilde - 1 |/2 = %e \n", phmc_cheb_evmin, temp);
+	printf("PHMC: Latest (TILDE) polynomial degree = %d\n\n", phmc_ptilde_n_cheby);
+      }
+      break;
+    }
+#endif
+
     phmc_ptilde_n_cheby= (int)(phmc_ptilde_n_cheby*1.2);
   }
    
+  /* GG */
+#if 0
   if(g_debug_level > 0) {
     /* Ptilde P S P  Ptilde X - X */
     /* for random spinor X        */
@@ -390,24 +420,12 @@ void degree_of_Ptilde() {
       printf("NDPOLY Acceptance Polynomial: Delta_IR at s=%f: | Ptilde P s_low P Ptilde - 1 |/2 = %e \n", phmc_cheb_evmin, temp);
     }
   }
+#endif
+
   if(g_proc_id == g_stdio_proc) {
     printf("NDPOLY Acceptance Polynomial degree set to %d\n\n", phmc_ptilde_n_cheby);
   }
 
-#if ( defined SSE || defined SSE2 || defined SSE3)
-  free(ss_);   
-  free(auxs_); 
-  free(aux2s_);
-  free(sc_);   
-  free(auxc_); 
-  free(aux2c_);
-#else
-  free(ss);   
-  free(auxs); 
-  free(aux2s);
-  free(sc);   
-  free(auxc); 
-  free(aux2c);
-#endif
+
   return;
 }

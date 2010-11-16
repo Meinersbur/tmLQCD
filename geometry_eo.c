@@ -34,6 +34,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -750,6 +752,7 @@ void geometry(){
   int lsliceS, lsliceL, check_struct_zt;
 
   xeven = malloc(VOLUMEPLUSRAND*sizeof(int));
+  CMALLOC_ERROR_EXIT(xeven);
 
 #if (defined PARALLELT || defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT)
   startvaluet = 1;

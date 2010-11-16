@@ -40,6 +40,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include<stdlib.h>
 #include<stdio.h>
 #include<math.h>
@@ -427,6 +429,7 @@ int gmres_dr(spinor * const P,spinor * const Q,
       _FT(zgels) ("N", &mp1, &_m, &one, H[0], &mp1, alpha, &mp1, &tmp1, &lwork, &info, 1);
       lwork = (int)tmp1.re;
       lswork = (complex*)malloc(lwork*sizeof(complex));
+  CMALLOC_ERROR_EXIT(lwork);
     }
     _FT(zgels) ("N", &mp1, &_m, &one, H[0], &mp1, alpha, &mp1, lswork, &lwork, &info, 1);
     if(g_proc_id == 0 && g_debug_level > 3) {
@@ -508,44 +511,68 @@ static void init_gmres_dr(const int _M, const int _V){
     Vo = _V;
     M = _M;
     H = calloc(M+1, sizeof(complex *));
+  CMALLOC_ERROR_EXIT(H);
     Z = calloc(M+1, sizeof(spinor *));
+  CMALLOC_ERROR_EXIT(Z);
     G = calloc(M+1, sizeof(complex *));
+  CMALLOC_ERROR_EXIT(G);
     V = calloc(M+1, sizeof(spinor *));
+  CMALLOC_ERROR_EXIT(V);
     work = calloc(M+1, sizeof(complex *));
+  CMALLOC_ERROR_EXIT(work);
     work2 = calloc(M+1, sizeof(complex *));
+  CMALLOC_ERROR_EXIT(work2);
 #if (defined SSE || defined SSE2)
     _h = calloc((M+2)*(M+1), sizeof(complex));
+  CMALLOC_ERROR_EXIT(_h);
     H[0] = (complex *)(((unsigned int)(_h)+ALIGN_BASE)&~ALIGN_BASE); 
     _work = calloc((M+2)*(M+1), sizeof(complex));
+  CMALLOC_ERROR_EXIT(_work);
     work[0] = (complex *)(((unsigned int)(_work)+ALIGN_BASE)&~ALIGN_BASE); 
     _work2 = calloc((M+2)*(M+1), sizeof(complex));
+  CMALLOC_ERROR_EXIT(_work2);
     work2[0] = (complex *)(((unsigned int)(_work2)+ALIGN_BASE)&~ALIGN_BASE); 
     _g = calloc((M+2)*(M+1), sizeof(complex));
+  CMALLOC_ERROR_EXIT(_g);
     G[0] = (complex *)(((unsigned int)(_g)+ALIGN_BASE)&~ALIGN_BASE); 
     _v = calloc((M+1)*Vo+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(_v);
     V[0] = (spinor *)(((unsigned int)(_v)+ALIGN_BASE)&~ALIGN_BASE);
     _z = calloc((M+1)*Vo+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(_z);
     Z[0] = (spinor *)(((unsigned int)(_z)+ALIGN_BASE)&~ALIGN_BASE);
 #else
     _h = calloc((M+1)*(M+1), sizeof(complex));
+  CMALLOC_ERROR_EXIT(_h);
     H[0] = _h;
     _work = calloc((M+1)*(M+1), sizeof(complex));
+  CMALLOC_ERROR_EXIT(_work);
     work[0] = _work;
     _work2 = calloc((M+1)*(M+1), sizeof(complex));
+  CMALLOC_ERROR_EXIT(_work2);
     work2[0] = _work2;
     _g = calloc((M+1)*(M+1), sizeof(complex));
+  CMALLOC_ERROR_EXIT(_g);
     G[0] = _g;
     _v = calloc((M+1)*Vo, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(_v);
     V[0] = _v;
     _z = calloc((M+1)*Vo, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(_z);
     Z[0] = _z;
 #endif
     s = calloc(M, sizeof(double));
+  CMALLOC_ERROR_EXIT(s);
     c = calloc(M+1, sizeof(complex));
+  CMALLOC_ERROR_EXIT(c);
     alpha = calloc(M+1, sizeof(complex));
+  CMALLOC_ERROR_EXIT(alpha);
     evalues = calloc(M+1, sizeof(complex));
+  CMALLOC_ERROR_EXIT(evalues);
     sortarray = calloc(M+1, sizeof(double));
+  CMALLOC_ERROR_EXIT(sortarray);
     idx = calloc(M+1, sizeof(int));
+  CMALLOC_ERROR_EXIT(idx);
     for(i = 1; i < M; i++){
       V[i] = V[i-1] + Vo;
       H[i] = H[i-1] + M+1;

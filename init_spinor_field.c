@@ -21,6 +21,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -96,18 +98,27 @@ int init_csg_field(const int V) {
 #else
     sp_csg = (spinor*)calloc(sum*V+1, sizeof(spinor));
 #endif
+  CMALLOC_ERROR_EXIT(sp_csg);
+    /* Wrong ...
     if(errno == ENOMEM) {
       return(1);
     }
+    */
     for(i = 0; i < no_monomials; i++) {
       monomial_list[i].csg_field = malloc((monomial_list[i].csg_N+1)*sizeof(spinor*));
+  CMALLOC_ERROR_EXIT(monomial_list[i].csg_field);
+      /*
       if(errno == ENOMEM) {
 	return(2);
       }
+      */
       monomial_list[i].csg_field2 = malloc(monomial_list[i].csg_N2*sizeof(spinor*));
+  CMALLOC_ERROR_EXIT(monomial_list[i].csg_field2);
+      /*
       if(errno == ENOMEM) {
 	return(2);
       }
+      */
     }
 #if ( defined SSE || defined SSE2 || defined SSE3)
     s = (spinor*)(((unsigned long int)(sp_csg)+ALIGN_BASE)&~ALIGN_BASE);
@@ -132,6 +143,7 @@ int init_csg_field(const int V) {
     }
     
     monomial_list[0].csg_index_array = (int*) malloc(sum*sizeof(int));
+  CMALLOC_ERROR_EXIT(monomial_list[0].csg_index_array);
     for(i = 1; i < no_monomials; i++) {
       monomial_list[i].csg_index_array = monomial_list[i-1].csg_index_array + monomial_list[i-1].csg_N;
     }

@@ -19,6 +19,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include<stdlib.h>
 #include<math.h>
 #include "global.h"
@@ -43,7 +45,9 @@ void LUSolve( const int Nvec, complex * M, const int ldM, complex * b) {
   complex tmp, sum_LU;
 
   b_local = (complex*)malloc(Nvec*sizeof(complex));
+  CMALLOC_ERROR_EXIT(b_local);
   y = (complex*)malloc(Nvec*sizeof(complex));
+  CMALLOC_ERROR_EXIT(y);
   for(i = 0; i < Nvec; i++) {
     b_local[i] = b[i];
   }
@@ -184,9 +188,12 @@ void LUInvert( const int Nvec, complex * const M, const int ldM) {
   cone.im = 0.;
 
   pivot = (int*)malloc(Nvec*sizeof(int));
+  CMALLOC_ERROR_EXIT(pivot);
   y = (complex*)malloc(Nvec*sizeof(complex));
+  CMALLOC_ERROR_EXIT(y);
   if(g_debug_level > 4) {
     A = (complex*)malloc(Nvec*Nvec*sizeof(complex));
+  CMALLOC_ERROR_EXIT(A);
     for(i = 0; i < Nvec; i++) {
       for(j = 0; j < Nvec; j++) {
 	A[i*Nvec + j] = M[i*ldM + j];

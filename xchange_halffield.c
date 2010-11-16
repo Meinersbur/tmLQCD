@@ -48,6 +48,12 @@
 #include "init_dirac_halfspinor.h"
 #include "xchange_halffield.h"
 
+/* GG */
+static int ivisit = 0;
+
+/* GG */
+//extern halfspinor * GalfSpinor ALIGN;
+
 #if (!defined _INDEX_INDEP_GEOM)
 #if (defined _USE_SHMEM && defined _USE_HALFSPINOR)
 # include <mpp/shmem.h>
@@ -235,6 +241,11 @@ void xchange_halffield() {
 
 #  ifdef MPI
 
+  /* GG */
+  //int buf_size, ilg_max = 1000000, ilg;
+  int ilg = -1, g_mon = -1, bufsH = buf_size;
+#define TRANSTST 0
+
   MPI_Request requests[16];
   MPI_Status status[16];
 #  ifdef PARALLELT
@@ -309,11 +320,44 @@ void xchange_halffield() {
 #    if (defined PARALLELXYZT)
   /* send the data to the neighbour on the right in z direction */
   /* recieve the data from the neighbour on the left in z direction */
+
+  /* GG */
+#if TRANSTST
+  if ( ivisit == 7 ) {
+#ifdef ORIG
+    g_mon = 0;
+#else
+    g_mon = source_node;
+#endif
+    if( g_debug_level > 0 && (g_proc_id == g_mon) ) {
+      printf("xchange_halffield ggmonS isend %d g_nb_z_up %d <= g_proc_id %d Word % 23.16e \n", 503, g_nb_z_up, g_proc_id,
+	     (*(HalfSpinor + 4*VOLUME + LX*LY*LZ + T*LY*LZ + T*LX*LZ)).s0.c0.re );
+    }
+    if( g_debug_level > 0 && (g_proc_id == g_mon) ) {
+      printf("xchange_halffield ggmonS isend %d g_nb_z_dn %d <= g_proc_id %d Word % 23.16e \n", 504, g_nb_z_dn, g_proc_id,
+	     (*(HalfSpinor + 4*VOLUME + LX*LY*LZ + T*LY*LZ + T*LX*LZ + T*LX*LY/2)).s0.c0.re );
+      GalfSpinorSrc[0] = HalfSpinor[4*VOLUME + RAND/2 + LX*LY*LZ + T*LY*LZ + T*LX*LZ + T*LX*LY/2];
+    }
+  }
+#endif
+
   MPI_Isend((void*)(HalfSpinor + 4*VOLUME + LX*LY*LZ + T*LY*LZ + T*LX*LZ), 
 	    T*LX*LY*12/2, MPI_DOUBLE, g_nb_z_up, 503, g_cart_grid, &requests[12]); 
 
   MPI_Irecv((void*)(HalfSpinor + 4*VOLUME + RAND/2 + LX*LY*LZ + T*LY*LZ + T*LX*LZ + T*LX*LY/2), 
 	    T*LX*LY*12/2, MPI_DOUBLE, g_nb_z_dn, 503, g_cart_grid, &requests[13]); 
+
+  /* GG */
+#if TRANSTST
+  if ( ivisit == 7 ) {
+    if(g_debug_level > 0 && g_proc_id == g_stdio_proc) {
+      printf("xchange_halffield ggmonA isend %d g_nb_z_up %d <= g_proc_id %d <= g_nb_z_dn %d ivisit %d size %d Y g_nb_y_up %d g_nb_y_dn %d X g_nb_x_up %d g_nb_x_dn %d T g_nb_t_up %d g_nb_t_dn %d\n", 
+	     503, g_nb_z_up, g_proc_id, g_nb_z_dn, ivisit, T*LX*LY*12/2,
+	     g_nb_y_up, g_nb_y_dn, g_nb_x_up, g_nb_x_dn, g_nb_t_up, g_nb_t_dn
+	     );
+    }
+  }
+#endif
 
   /* send the data to the neighbour on the left in z direction */
   /* recieve the data from the neighbour on the right in z direction */
@@ -325,7 +369,68 @@ void xchange_halffield() {
 #    endif
 
   MPI_Waitall(reqcount, requests, status); 
-#  endif /* MPI */
+
+  /* GG */
+#if TRANSTST
+  if ( ivisit == 7 ) {
+#ifdef ORIG
+    g_mon = 0;
+#else
+    g_mon = target_node;
+#endif
+    if( g_debug_level > 0 && (g_proc_id == g_mon) ) {
+      printf("xchange_halffield ggmonR isend %d g_nb_z_dn %d => g_proc_id %d Word % 23.16e \n", 503, g_nb_z_dn, g_proc_id,
+	     (*(HalfSpinor + 4*VOLUME + RAND/2 + LX*LY*LZ + T*LY*LZ + T*LX*LZ + T*LX*LY/2)).s0.c0.re );
+    }
+    if( g_debug_level > 0 && (g_proc_id == g_mon) ) {
+      printf("xchange_halffield ggmonR isend %d g_nb_z_up %d => g_proc_id %d Word % 23.16e \n", 504, g_nb_z_up, g_proc_id,
+	     (*(HalfSpinor + 4*VOLUME + RAND/2 + LX*LY*LZ + T*LY*LZ + T*LX*LZ)).s0.c0.re );
+      GalfSpinorSrc[0] = HalfSpinor[4*VOLUME + RAND/2 + LX*LY*LZ + T*LY*LZ + T*LX*LZ];
+    }
+  }
+  /* Beginning of IB transfer testing loop */
+  /* buf_size, ilg_max, source_node, target_node are
+     input options in the main program (curr.: invert.c)
+     buf_size is a number of halfspinor in input,
+     but the bufsW printed value is in number of MPI_DOUBLE words 
+     while bufsB is in bytes */
+  if ( ivisit == 7 ) {
+    // Filling up the test buffer ...
+    for (ilg=1; ilg<buf_size; ilg++) {
+      //GalfSpinorSrc[ilg] = HalfSpinor[4*VOLUME + RAND/2 + LX*LY*LZ + T*LY*LZ + T*LX*LZ];
+      GalfSpinorSrc[ilg] = GalfSpinorSrc[0];
+    }
+    // Computing the true size in number of MPI_DOUBLE words ...
+    //buf_size = 1024*sizeof(halfspinor)/8;
+    buf_size *= sizeof(halfspinor)/8;
+    // Looping on the source_node side ...
+    if( g_debug_level > 0 && (g_proc_id == source_node ) ) {
+      for (ilg=0; ilg<ilg_max; ilg++) {
+	MPI_Isend((void*)(GalfSpinorSrc), buf_size, MPI_DOUBLE, target_node, 503, g_cart_grid, &requests[12]);
+	MPI_Irecv((void*)(GalfSpinorDst), buf_size, MPI_DOUBLE, target_node, 504, g_cart_grid, &requests[13]);
+	MPI_Waitall(2, &requests[12], status); 
+      }
+      printf("xchange_halffield ggmonL bufsW %d bufsB %d ilgm %d srcn %d tgtn %d isend %d \n", 
+	     buf_size, buf_size*sizeof(MPI_DOUBLE), ilg_max, source_node, target_node, 503); fflush(stdout);
+      //printf("xchange_halffield ggmonSrc Gsrc % 23.16e Gdst % 23.16e isend %d \n", GalfSpinorSrc[0].s0.c0.re, GalfSpinorDst[0].s0.c0.re, 503); fflush(stdout);
+      printf("xchange_halffield ggmonSrc Gsrc % 23.16e Gdst % 23.16e isend %d \n", GalfSpinorSrc[bufsH-1].s1.c2.im, GalfSpinorDst[bufsH-1].s1.c2.im, 503); fflush(stdout);
+    }
+    // Looping on the target_node side ...
+    if( g_debug_level > 0 && (g_proc_id == target_node) ) {
+      for (ilg=0; ilg<ilg_max; ilg++) {
+	MPI_Isend((void*)(GalfSpinorSrc), buf_size, MPI_DOUBLE, source_node, 504, g_cart_grid, &requests[14]);
+	MPI_Irecv((void*)(GalfSpinorDst), buf_size, MPI_DOUBLE, source_node, 503, g_cart_grid, &requests[15]);
+	//printf("xchange_halffield ggmonL ilg %d isend %d \n", ilg, 504); fflush(stdout);
+	MPI_Waitall(2, &requests[14], status); 
+      }
+      //printf("xchange_halffield ggmonDst Gsrc % 23.16e Gdst % 23.16e isend %d \n", GalfSpinorSrc[0].s0.c0.re, GalfSpinorDst[0].s0.c0.re, 504); fflush(stdout);
+      printf("xchange_halffield ggmonDst Gsrc % 23.16e Gdst % 23.16e isend %d \n", GalfSpinorSrc[bufsH-1].s1.c2.im, GalfSpinorDst[bufsH-1].s1.c2.im, 504); fflush(stdout);
+    }
+  }
+    ivisit++;
+#endif
+
+#  endif
   return;
 
 #ifdef _KOJAK_INST

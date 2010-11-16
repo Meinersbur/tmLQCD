@@ -40,7 +40,7 @@ ZT [0-9(10)(11)]
 IDXEX ("-"{DIGIT}+)
 SIGN ("+"|"-")
 FLT {SIGN}?{DIGIT}*+"."{DIGIT}*(e("-"|"+")?{DIGIT}+)?
-FILENAME [a-zA-Z0-9_".""-""/"][a-zA-z0-9"."_"-""/"]+
+FILENAME [a-zA-Z0-9_".""-""/"][a-zA-Z0-9"."_"-""/"]+
 NAME [a-zA-Z0-9_]+
 CSTR \"[a-zA-Z0-9\-\._]+\"
 TYPE [0-9A-Z]+
@@ -141,11 +141,19 @@ inline void rmQuotes(char *str){
   int sub_evs_cg_flag;
   int even_odd_flag;
   int bc_flag;
+  int write_prop_format_flag;
   int online_measurement_flag;
   int online_measurement_freq;
   int reweighting_flag;
   int reweighting_samples;
   int no_samples;
+
+  int gilbert_loop_parameter;
+  int gilbert_poly_parameter; 
+  double gilbert_little_prec;
+  double gilbert_biggle_prec;
+  int gilbert_biggle_loop;
+
 %}
 
 %option never-interactive
@@ -222,6 +230,12 @@ inline void rmQuotes(char *str){
 
 %x REWEIGH
 %x REWSAMPLES
+
+%x GTLOOP
+%x GTPOLY
+%x GTLITP
+%x GTBIGP
+%x GTBIGL
 
 %x INITINTEGRATOR
 %x INTEGRATOR
@@ -320,6 +334,12 @@ inline void rmQuotes(char *str){
 ^SourceType{EQL}                   BEGIN(SOURCETYPE);
 ^NoSamples{EQL}                    BEGIN(NOSAMPLES);
 ^SplittedPropagator{EQL}           BEGIN(PROPSPLIT);
+
+^GilbertGdflssLoop{EQL}          BEGIN(GTLOOP);
+^GilbertGdflssPoly{EQL}          BEGIN(GTPOLY);
+^GilbertLittlePrec{EQL}          BEGIN(GTLITP);
+^GilbertBigglePrec{EQL}          BEGIN(GTBIGP);
+^GilbertBiggleLoop{EQL}          BEGIN(GTBIGL);
 
 ^BeginMeasurement{SPC}+            BEGIN(INITMEASUREMENT);
 
@@ -830,7 +850,7 @@ inline void rmQuotes(char *str){
   }
   {SPC}*MaxPtildeDegree{EQL}{DIGIT}+ {
     sscanf(yytext, " %[a-zA-Z] = %d", name, &a);
-    /* mnl->MaxPtildeDegree = a; */
+    mnl->MaxPtildeDegree = a;
     phmc_max_ptilde_degree = a;
     if(myverbose!=0) printf("  Maximal Degree of Ptilde set to %d line %d monomial %d\n", mnl->MaxPtildeDegree, line_of_file, current_monomial);
   }
@@ -853,6 +873,16 @@ inline void rmQuotes(char *str){
     sscanf(yytext, " %[a-zA-Z] = %d", name, &a);
     g_rec_ev = a;
     if(myverbose!=0) printf("  Frequency for computing EV's set to %d in line %d monomial %d\n", g_rec_ev, line_of_file, current_monomial);
+  }
+  {SPC}*ComputeEVMinNumb{EQL}*{DIGIT}+ {
+    sscanf(yytext, " %[a-zA-Z] = %d", name, &a);
+    g_rec_ev_min = a;
+    if(myverbose!=0) printf("  Compute number of Min EV set to %d line %d monomial %d\n", g_rec_ev_min, line_of_file, current_monomial);
+  }
+  {SPC}*ComputeEVMaxNumb{EQL}*{DIGIT}+ {
+    sscanf(yytext, " %[a-zA-Z] = %d", name, &a);
+    g_rec_ev_max = a;
+    if(myverbose!=0) printf("  Compute number of Max EV set to %d line %d monomial %d\n", g_rec_ev_max, line_of_file, current_monomial);
   }
   {SPC}*ComputeOnlyEVs{EQL}yes {
     phmc_compute_evs=1;
@@ -1351,15 +1381,15 @@ inline void rmQuotes(char *str){
 }
 <BOUNDX>{FLT} {
   X1 = atof(yytext);
-  if(myverbose != 0) printf("X1 for boundary cond. in time set to %e\n", X0);
+  if(myverbose != 0) printf("X1 for boundary cond. in time set to %e\n", X1);
 }
 <BOUNDY>{FLT} {
   X2 = atof(yytext);
-  if(myverbose != 0) printf("X2 for boundary cond. in time set to %e\n", X0);
+  if(myverbose != 0) printf("X2 for boundary cond. in time set to %e\n", X2);
 }
 <BOUNDZ>{FLT} {
   X3 = atof(yytext);
-  if(myverbose != 0) printf("X3 for boundary cond. in time set to %e\n", X0);
+  if(myverbose != 0) printf("X3 for boundary cond. in time set to %e\n", X3);
 }
 <READSOURCE>yes     {
   read_source_flag=1;
@@ -1609,7 +1639,15 @@ int yywrap()
  * read_input returns 2 if the input file did not exist 
  */
 
+  /* GG */
+#define MPIO yes
+#ifndef MPIO
 int read_input(char * conf_file){
+#else
+  /* New read style with filehandle */
+int read_input_fh(FILE * yyinfg){
+yyin = yyinfg;
+#endif
 
   /********************************************
    * Setting default values!
@@ -1630,6 +1668,8 @@ int read_input(char * conf_file){
   g_acc_Ptilde = _default_g_acc_Ptilde;
   g_acc_Hfin = _default_g_acc_Hfin;
   g_rec_ev = _default_g_rec_ev;
+  g_rec_ev_min = _default_g_rec_ev_min;
+  g_rec_ev_max = _default_g_rec_ev_max;
   g_mubar = _default_g_mubar;
   g_epsbar = _default_g_epsbar;
   g_mu = _default_g_mu;
@@ -1690,6 +1730,14 @@ int read_input(char * conf_file){
   use_stout_flag = _default_use_stout_flag;
   stout_rho = _default_stout_rho;
   stout_no_iter = _default_stout_no_iter;
+
+/* GG default values */
+  gilbert_loop_parameter = _default_gilbert_loop_parameter;
+  gilbert_poly_parameter = _default_gilbert_poly_parameter; 
+  gilbert_little_prec = _default_gilbert_little_prec; 
+  gilbert_biggle_prec = _default_gilbert_biggle_prec; 
+  gilbert_biggle_loop = _default_gilbert_biggle_loop; 
+
   /* check for reread ! */ 
   phmc_compute_evs = _default_phmc_compute_evs;
   compute_evs = _default_compute_evs;
@@ -1714,9 +1762,19 @@ int read_input(char * conf_file){
   if(verbose && g_proc_id == 0) {
     myverbose = 1;
   }
+
+/* GG */
+#ifndef MPIO
   if ((yyin = fopen(conf_file, "rt")) == NULL){
     return(2);
   }
+#else
+  /* New read style with filehandle */
+  if (yyin == NULL){
+    return(2);
+  }
+#endif
+
   yyout = fopen("/dev/null", "w");
 
   parse_config();  
@@ -1736,7 +1794,9 @@ int read_input(char * conf_file){
   g_rgi_C0 = 1. - 8.*g_rgi_C1;
 
   fclose(yyout);
+#ifndef MPIO
   fclose(yyin);
+#endif
   return(0);
 }
 
@@ -1753,7 +1813,15 @@ int read_input(char * conf_file){
  * reread_input returns 2 if the input file did not exist 
  */
 
+  /* GG */
+#ifndef MPIO
 int reread_input(char * conf_file){
+#else
+  /* New reread style with filehandle */
+int reread_input_fh(FILE * yyinfg){
+yyin = yyinfg;
+#endif
+
 #ifndef FIXEDVOLUME
   int tt=T, ll=L, lx = LX, ly = LY, lz = LZ, 
       np=N_PROC_X, npy = N_PROC_Y;
@@ -1772,9 +1840,18 @@ int reread_input(char * conf_file){
 
   /********************************************/
 
+/* GG */
+#ifndef MPIO
   if ((yyin = fopen(conf_file, "rt")) == NULL){
     return(2);
   }
+#else
+  /* New reread style with filehandle */
+  if (yyin == NULL){
+    return(2);
+  }
+#endif
+
   yyout = fopen("/dev/null", "w");
 
   parse_config();  

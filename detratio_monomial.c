@@ -54,6 +54,14 @@
 extern int ITER_MAX_BCG;
 extern int ITER_MAX_CG;
 
+/* GG */
+static int ntstore = 0;
+extern int nustore;
+//static int ntstor2 = 0;
+extern int nustor2;
+//static int nustora[2];
+extern int nustora[2];
+
 /* think about chronological solver ! */
 
 void detratio_derivative(const int no) {
@@ -61,6 +69,19 @@ void detratio_derivative(const int no) {
   extern su3 ** g_stout_force_field;
   extern su3 ** g_gauge_field_saved;
   monomial * mnl = &monomial_list[no];
+
+#if 1
+  /* GG */
+  char conft_filename[128];
+  char * xlfmessage = NULL;
+  char * gaugelfn = NULL;
+  char * gaugecksum = NULL;
+  int save_prop_flag = 0;
+  double plaquette_energy = 0.;
+  int dum_gg_dU2 = DUM_MATRIX + 11;
+  int dum_gg_sU2 = DUM_MATRIX + 12;
+  int mnlid;
+#endif
 
   /* This factor 2* a missing factor 2 in trace_lambda */
   mnl->forcefactor = 2.;
@@ -93,6 +114,16 @@ void detratio_derivative(const int no) {
     g_mu = mnl->mu;
     boundary(mnl->kappa);
     if(mnl->solver == CG) {
+
+      /* GG detr2 */
+      //if ( (mnl->timescale == 2 && nustor2 < 2) || (mnl->timescale != 2) ) {
+      mnlid = mnl->id - 2;
+      nustor2 = nustora[mnlid];
+      dum_gg_dU2 = DUM_MATRIX + 11 + 2*mnlid;
+      dum_gg_sU2 = dum_gg_dU2 + 1;
+
+      if ( nustor2 < 2 ) {
+
       ITER_MAX_CG = mnl->maxiter;
       /* If CG is used anyhow */
       /*       gamma5(g_spinor_field[DUM_DERI+1], g_spinor_field[DUM_DERI+2], VOLUME/2); */
@@ -108,6 +139,84 @@ void detratio_derivative(const int no) {
 			  mnl->csg_N, &mnl->csg_n, VOLUME/2);
       /* Y_W -> DUM_DERI  */
       Qtm_minus_psi(g_spinor_field[DUM_DERI], g_spinor_field[DUM_DERI+1]);
+
+#if 0
+      /* GG */
+      if (save_prop_flag != 0) {
+	sprintf(conft_filename,"temp.%s.prop.%.4d", mnl->name, ntstore);
+      if(write_prop_format_flag < 10) {
+	//if(propagator_splitted || ix == index_start) {
+	  write_propagator_type(write_prop_format_flag, conft_filename);
+	  write_xlf_info(plaquette_energy/(6.*VOLUME*g_nproc), ntstore, conft_filename, 1, xlfmessage);
+	  write_message(conft_filename, gaugelfn, "gauge-ildg-data-lfn-copy", 1);
+	  write_message(conft_filename, gaugecksum, "gauge-scidac-checksum-copy", 1);
+	  //}
+      }
+      write_propagator(g_spinor_field[DUM_DERI], g_spinor_field[DUM_DERI+1], conft_filename, 1,
+		       prop_precision_flag, write_prop_format_flag);
+      if(g_proc_id == 0) {
+	printf("Writing prop %d in %s \n", ntstore, conft_filename);
+      }
+      ntstore++;
+      /*
+      if ( ntstore++ > 10 )
+	exit(10);
+      */
+      }
+#endif
+      /* GG */
+      }
+
+      /* GG */
+      /*
+      if ( mnl->timescale == 3 )
+	nustore = 0;
+      */
+
+      /* GG detr2 */
+      //if ( mnl->timescale == 2 ) {
+        if(g_proc_id == 0)
+	  printf(" detratio_derivative %s nustor2 = %d \n", mnl->name, nustor2); fflush(stdout);
+
+	if ( nustor2 == 0 ) {
+	  /* Save U0 into sU */
+	  assign(g_spinor_field[dum_gg_sU2], g_spinor_field[DUM_DERI+1], VOLUME/2);
+	  /* */
+	  if(g_proc_id == 0)
+	    printf(" nustor2_0 = %d \n", nustor2); fflush(stdout);
+	  /* */
+	} else if ( nustor2 == 1 ) {
+	  /* Save dU = U1-U0, Save U1 into sU */
+	  diff(g_spinor_field[dum_gg_dU2], g_spinor_field[DUM_DERI+1], g_spinor_field[dum_gg_sU2], VOLUME/2);
+	  assign(g_spinor_field[dum_gg_sU2], g_spinor_field[DUM_DERI+1], VOLUME/2);
+	  /*
+	  if(g_proc_id == 0)
+	    printf(" nustor2_1  = %d \n", nustor2); fflush(stdout);
+	  */
+	} else if ( nustor2 > 0 ) {
+	  /* Apply Un = Un-1 + dU, Save Un into sU, Store Un into DUM_DERI+1 as X_o */
+	  add(g_spinor_field[DUM_DERI+1], g_spinor_field[dum_gg_sU2], g_spinor_field[dum_gg_dU2], VOLUME/2);
+	  /*
+	  if(g_proc_id == 0)
+	    printf(" nustor2_2+ = %d \n", nustor2); fflush(stdout);
+	  */
+	
+	  /* X_i -> DUM_DERI+1 */
+	  /* mnl->iter1 += solve_cg(g_spinor_field[DUM_DERI+1], g_spinor_field[DUM_DERI+2], mnl->forceprec, g_relative_precision_flag); */
+	  mnl->iter1 += cg_her(g_spinor_field[DUM_DERI+1], g_spinor_field[DUM_DERI+2], mnl->maxiter, 
+			       mnl->forceprec, g_relative_precision_flag, VOLUME/2, &Qtm_pm_psi);
+	  /* Y_i -> DUM_DERI  */
+	  Qtm_minus_psi(g_spinor_field[DUM_DERI], g_spinor_field[DUM_DERI+1]);
+
+	  diff(g_spinor_field[dum_gg_dU2], g_spinor_field[DUM_DERI+1], g_spinor_field[dum_gg_sU2], VOLUME/2);
+	  assign(g_spinor_field[dum_gg_sU2], g_spinor_field[DUM_DERI+1], VOLUME/2);
+	}
+
+	if ( nustor2 >= 0 )
+	  nustora[mnlid] = nustora[mnlid] + 1;
+	//nustor2++;
+	//}
+
     }
     else {
       /* Invert first Q_+ */

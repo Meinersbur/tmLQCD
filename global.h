@@ -199,6 +199,9 @@ EXTERN int g_sf_inc_wrap_sq;
 EXTERN double g_acc_Ptilde;
 EXTERN double g_acc_Hfin;
 EXTERN int g_rec_ev;
+/* GG */
+EXTERN int g_rec_ev_min, g_rec_ev_max;
+
 EXTERN double g_mubar, g_epsbar;
 EXTERN int g_use_clover_flag;
 
@@ -244,6 +247,10 @@ EXTERN double g_extra_masses[30];
 
 EXTERN int ITER_MAX_BCG;
 EXTERN int ITER_MAX_CG;
+
+/* GG */
+EXTERN char pnametrajGlob[256];
+EXTERN int  debug_detailGlob;
 
 #undef EXTERN
 /* #undef ALIGN */

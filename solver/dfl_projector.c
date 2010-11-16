@@ -22,6 +22,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -41,8 +43,12 @@
 #include "gcr4complex.h"
 #include "generate_dfl_subspace.h"
 #include "dfl_projector.h"
+#include "read_input.h"
 
-double dfl_little_D_prec = 1.e-24;
+//#define DLDPREC 1.e-24
+#define DLDPREC 1.e-10
+
+double dfl_little_D_prec = DLDPREC;
 int dfl_sloppy_prec = 0;
 int init_dfl_projector = 0;
 spinor **psi;
@@ -82,18 +88,26 @@ void project(spinor * const out, spinor * const in) {
     inprod[j + g_N_s] = scalar_prod(block_list[1].basis[j], psi[1], vol, 0);
   }
 
+  /* GG rm
   if(dfl_sloppy_prec) prec = dfl_little_D_prec;
-  else prec = 1.e-24;
-
-  if(0) {
-    iter = gcr4complex(invvec, inprod, 10, 1000, prec, 1, 2 * g_N_s, 1, 2 * 9 * g_N_s, &little_D);
+  else prec = DLDPREC;
+  */
+  if(dfl_sloppy_prec) prec = dfl_little_D_prec;
+  else prec = gilbert_biggle_prec;
+ 
+  if(1 /* CU+GG backtracking ... */ ) {
+    iter = gcr4complex(invvec, inprod, 10, /* 1000 */gilbert_biggle_loop, prec, 1, 2 * g_N_s, 1, 2 * 9 * g_N_s, &little_D);
     if(g_proc_id == 0 && g_debug_level > -1) {
-      printf("lgcr number of iterations %d (no P_L)\n", iter);
+      //GG printf("lgcr number of iterations %d (no P_L)\n", iter);
+      printf("lgcr number of iterations %d (no P_L) prec %g\n", iter, prec); fflush(stdout);
     }
   }
   else {
     little_P_L(v, inprod);
+    /* GG
     iter = gcr4complex(w, v, 10, 1000, prec, 1, 2 * g_N_s, 1, 2 * 9 * g_N_s, &little_P_L_D);
+    */
+    iter = gcr4complex(w, v, 10, gilbert_biggle_loop, prec, 1, 2 * g_N_s, 1, 2 * 9 * g_N_s, &little_P_L_D);
     little_P_R(v, w);
     little_project(w, inprod, g_N_s);
     for(i = 0; i < 2*g_N_s; i++) {
@@ -101,7 +115,7 @@ void project(spinor * const out, spinor * const in) {
       invvec[i].im = w[i].im + v[i].im;
     }
     if(g_proc_id == 0 && g_debug_level > -1) {
-      printf("lgcr number of iterations %d (using P_L)\n", iter);
+      printf("lgcr number of iterations %d (using P_L) prec %g\n", iter, prec); fflush(stdout);
     }
   }
 
@@ -121,15 +135,20 @@ static void alloc_dfl_projector() {
   int i;
   
   psi = calloc(4, sizeof(spinor*)); /*block local version of global spinor */
+  CMALLOC_ERROR_EXIT(psi);
   inprod = calloc(2 * 9 * g_N_s, sizeof(complex)); /*inner product of spinors with bases */
+  CMALLOC_ERROR_EXIT(inprod);
   invvec = calloc(2 * 9 * g_N_s, sizeof(complex)); /*inner product of spinors with bases */
+  CMALLOC_ERROR_EXIT(invvec);
   work_block = calloc(dfl_work_size * 2 * 9 * g_N_s, sizeof(complex));
+  CMALLOC_ERROR_EXIT(work_block);
   for(i = 0; i < dfl_work_size; ++i){
     work[i] = work_block + i * 2 * 9 * g_N_s;
   }
   
   /* no loop below because further down we also don't take this cleanly into account */
   psi[0] = calloc(2*(block_list[0].volume + block_list[0].spinpad), sizeof(spinor));
+  CMALLOC_ERROR_EXIT(psi[0]);
   psi[1] = psi[0] + (block_list[0].volume + block_list[0].spinpad);
   init_dfl_projector = 1;
   return;
@@ -446,7 +465,9 @@ int check_projectors() {
   apply_little_D_spinor(g_spinor_field[DUM_SOLVER+3], g_spinor_field[DUM_SOLVER+1]);
   D_psi(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER+1]);
   v = calloc(2 * 9 * g_N_s, sizeof(complex));
+  CMALLOC_ERROR_EXIT(v);
   phi[0] = calloc(VOLUME + 2, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(phi[0]);
   phi[1] = phi[0] + VOLUME / 2 + 1;
   split_global_field(phi[0], phi[1], g_spinor_field[DUM_SOLVER+2]);
   if (g_cart_id == 0 && g_debug_level > 4){
@@ -476,7 +497,9 @@ int check_projectors() {
   apply_little_D_spinor(g_spinor_field[DUM_SOLVER+3], g_spinor_field[DUM_SOLVER+1]);
   D_psi(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER+1]);
   v = calloc(2 * 9 * g_N_s, sizeof(complex));
+  CMALLOC_ERROR_EXIT(v);
   phi[0] = calloc(VOLUME + 2, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(phi[0]);
   phi[1] = phi[0] + VOLUME / 2 + 1;
   split_global_field(phi[0], phi[1], g_spinor_field[DUM_SOLVER+2]);
   if (!g_proc_id && g_debug_level > 4){
@@ -603,6 +626,7 @@ void check_little_D_inversion() {
   w = work[12];
 
   result = calloc(2 * 9 * g_N_s, sizeof(complex)); /*inner product of spinors with bases */
+  CMALLOC_ERROR_EXIT(result);
 
   /* no loop below because further down we also don't take this cleanly into account */
 

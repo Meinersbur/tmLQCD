@@ -546,7 +546,9 @@ int check_xchange()
 
     /* The edges */
 #  if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT )
+    /* GG
     fprintf(stdout, "rank:%d; (c0,c1,c2,c3)=(%d,%d,%d,%d)\n",g_proc_id,g_proc_coords[0],g_proc_coords[1],g_proc_coords[2],g_proc_coords[3]); fflush(stdout);
+    */
 
     di[0] = (g_proc_coords[0] - 1)%g_nproc_t;
     di[1] = (g_proc_coords[1] - 1)%g_nproc_x;
@@ -3228,7 +3230,9 @@ int check_xchange()
 
     /* The edges */
 #  if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT)
+    /* GG
     fprintf(stdout, "rank:%d; (c0,c1,c2,c3)=(%d,%d,%d,%d)\n",g_proc_id,g_proc_coords[0],g_proc_coords[1],g_proc_coords[2],g_proc_coords[3]); fflush(stdout);
+    */
 
     di[0] = (g_proc_coords[0] - 1)%g_nproc_t;
     di[1] = (g_proc_coords[1] - 1)%g_nproc_x;

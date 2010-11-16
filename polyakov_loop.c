@@ -39,6 +39,8 @@
 #ifdef MPI
 # include <mpi.h>
 #endif
+#include "cmalloc.h"
+
 #include "global.h"
 #include "complex.h"
 #include "sse.h"
@@ -203,6 +205,7 @@ int polyakov_loop_0(const int nstore, complex *pl) {
 
   VOL3 = L0*L1*L2;
   tmp_loc = (su3 *)calloc(VOL3, sizeof(su3));
+  CMALLOC_ERROR_EXIT(tmp_loc);
   
   for(i0 = 0; i0 < LX; i0++) {
     for(i1 = 0; i1 < LY; i1++) {
@@ -245,6 +248,7 @@ int polyakov_loop_0(const int nstore, complex *pl) {
 
   /* (1) collect contributions from different time slices to nodes with t-coord. 0 */
   tmp_nnb = (su3*)calloc(VOL3, sizeof(su3)); /* contains the next-neighbour-part*/
+  CMALLOC_ERROR_EXIT(tmp_nnb);
 
   /* note: in the following loop t is taken as the time coordinate of nodes */
   for(iproc = g_nproc_t-1; iproc > 0; iproc--) {
@@ -428,6 +432,8 @@ int polyakov_loop_dir(
     tmp_loc = (su3 *)calloc(VOL3, sizeof(su3));
     if((void*)tmp_loc == NULL) {
       /* Abort */
+      fprintf(stderr, "[%2d] Could not allocate memory for tmp_loc\n", g_proc_id);
+      return(-1);
     }
 
     for(it=0; it<T;  it++) {

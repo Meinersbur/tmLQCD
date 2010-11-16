@@ -95,8 +95,22 @@ extern "C"
   extern int reweighting_samples; 
   extern int no_samples;
 
+  extern int gilbert_loop_parameter;
+  extern int gilbert_poly_parameter;
+  extern double gilbert_little_prec;
+  extern double gilbert_biggle_prec;
+  extern int gilbert_biggle_loop;
+
+  /* GG */
+#define MPIO yes
+#ifndef MPIO
   int read_input(char *);
   int reread_input(char *);
+#else
+  /* New read/rearead style with MPI_Bcast */
+  int read_input_fh(FILE *);
+  int reread_input_fh(FILE *);
+#endif
   
 #ifdef __cplusplus
 }

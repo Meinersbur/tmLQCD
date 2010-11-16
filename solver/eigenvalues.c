@@ -35,6 +35,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -128,10 +130,12 @@ double eigenvalues(int * nr_of_eigenvalues, const int max_iterations,
   }
 #if (defined SSE || defined SSE2 || defined SSE3)
     max_eigenvector_ = calloc(N2+1, sizeof(spinor));
+    CMALLOC_ERROR_EXIT(max_eigenvector_);
     max_eigenvector = (spinor *)(((unsigned long int)(max_eigenvector_)+ALIGN_BASE)&~ALIGN_BASE);
 #else
-    max_eigenvector_= calloc(N2, sizeof(spinor));
-    max_eigenvector = max_eigenvector;
+    max_eigenvector_ = calloc(N2, sizeof(spinor));
+    CMALLOC_ERROR_EXIT(max_eigenvector_);
+    max_eigenvector = max_eigenvector_;
 #endif  
 
 
@@ -139,13 +143,17 @@ double eigenvalues(int * nr_of_eigenvalues, const int max_iterations,
     allocated = 1;
 #if (defined SSE || defined SSE2 || defined SSE3)
     eigenvectors_ = calloc(N2*(*nr_of_eigenvalues)+1, sizeof(spinor)); 
+  CMALLOC_ERROR_EXIT(eigenvectors_);
     eigenvectors = (spinor *)(((unsigned long int)(eigenvectors_)+ALIGN_BASE)&~ALIGN_BASE);
 #else
-    eigenvectors_= calloc(N2*(*nr_of_eigenvalues), sizeof(spinor));
+    eigenvectors_ = calloc(N2*(*nr_of_eigenvalues), sizeof(spinor));
+  CMALLOC_ERROR_EXIT(eigenvectors_);
     eigenvectors = eigenvectors_;
 #endif
     eigenvls = (double*)malloc((*nr_of_eigenvalues)*sizeof(double));
+  CMALLOC_ERROR_EXIT(eigenvls);
     inv_eigenvls = (double*)malloc((*nr_of_eigenvalues)*sizeof(double));
+  CMALLOC_ERROR_EXIT(inv_eigenvls);
   }
 
   solver_it_max = 50;
@@ -159,6 +167,8 @@ double eigenvalues(int * nr_of_eigenvalues, const int max_iterations,
 	&returncode2, JD_MAXIMAL, 1,
 	f);
 
+  /* GG Was buggy; To reevaluate ...*/
+#if 0
   if(readwrite && even_odd_flag) {
     for(v0dim = 0; v0dim < (*nr_of_eigenvalues); v0dim++) {
       sprintf(filename, "eigenvector.%s.%.2d.%.4d", maxmin ? "max" : "min", v0dim, nstore);
@@ -167,6 +177,7 @@ double eigenvalues(int * nr_of_eigenvalues, const int max_iterations,
       }
     }
   }
+#endif
 
   if(readwrite != 2) {
 #ifdef MPI
@@ -243,7 +254,8 @@ double eigenvalues(int * nr_of_eigenvalues, const int max_iterations,
     }
   }
 
-
+  /* GG Was buggy; To reevaluate ...*/
+#if 0
   if(readwrite == 1 && even_odd_flag) {
     for(v0dim = 0; v0dim < (*nr_of_eigenvalues); v0dim++) {
       sprintf(filename, "eigenvector.%s.%.2d.%.4d", maxmin ? "max" : "min", v0dim, nstore);
@@ -252,6 +264,8 @@ double eigenvalues(int * nr_of_eigenvalues, const int max_iterations,
       }
     }
   }
+#endif
+
   if(g_proc_id == 0 && readwrite != 2) {
     sprintf(filename, "eigenvalues.%s.%.4d", maxmin ? "max" : "min", nstore); 
     ofs = fopen(filename, "w");

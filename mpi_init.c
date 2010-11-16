@@ -21,6 +21,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #ifdef MPI
@@ -333,13 +335,19 @@ void tmlqcd_mpi_init(int argc,char *argv[]) {
 #  if (!defined _INDEX_INDEP_GEOM)
 #   if ( defined PARALLELXYZT ||  defined PARALLELXYZ )
   field_buffer_z = (spinor*)malloc(T*LX*LY/2*sizeof(spinor));
+  CMALLOC_ERROR_EXIT(field_buffer_z);
   field_buffer_z2 = (spinor*)malloc(T*LX*LY/2*sizeof(spinor));
+  CMALLOC_ERROR_EXIT(field_buffer_z2);
 #    ifdef _NON_BLOCKING
   field_buffer_z3 = (spinor*)malloc(T*LX*LY/2*sizeof(spinor));
+  CMALLOC_ERROR_EXIT(field_buffer_z3);
   field_buffer_z4 = (spinor*)malloc(T*LX*LY/2*sizeof(spinor));
+  CMALLOC_ERROR_EXIT(field_buffer_z4);
 #    endif
   halffield_buffer_z = (halfspinor*)malloc(T*LX*LY/2*sizeof(halfspinor));
+  CMALLOC_ERROR_EXIT(halffield_buffer_z);
   halffield_buffer_z2 = (halfspinor*)malloc(T*LX*LY/2*sizeof(halfspinor));
+  CMALLOC_ERROR_EXIT(halffield_buffer_z2);
 #  endif
 # endif
 
@@ -347,10 +355,12 @@ void tmlqcd_mpi_init(int argc,char *argv[]) {
   MPI_Comm_rank(g_cart_grid, &g_cart_id);
   MPI_Cart_coords(g_cart_grid, g_cart_id, nalldims, g_proc_coords);
 
+  /* GG
   fprintf(stdout,"Process %d of %d on %s: cart_id %d, coordinates (%d %d %d %d)\n",
 	  g_proc_id, g_nproc, processor_name, g_cart_id, 
 	  g_proc_coords[0], g_proc_coords[1], g_proc_coords[2], g_proc_coords[3]);
   fflush(stdout);
+  */
 
   if(g_stdio_proc == -1){
     g_stdio_proc = g_proc_id;

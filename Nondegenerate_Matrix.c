@@ -457,10 +457,14 @@ void Q_Qdagger_ND_BI(bispinor * const bisp_l, bispinor * const bisp_k){
   if(memalloc == 0) {
     memalloc = 1;
     k_strange  = (spinor*)calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
+    if(k_strange == NULL) jderrorhandler(301,"k_strange in Q_Qdagger_ND_BI");
     k_charm    = (spinor*)calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
+    if(k_charm   == NULL) jderrorhandler(301,  "k_charm in Q_Qdagger_ND_BI");
     
     l_strange  = (spinor*)calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
+    if(l_strange == NULL) jderrorhandler(301,"l_strange in Q_Qdagger_ND_BI");
     l_charm    = (spinor*)calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
+    if(l_charm   == NULL) jderrorhandler(301,  "l_charm in Q_Qdagger_ND_BI");
   }
 #endif
 

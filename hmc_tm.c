@@ -32,8 +32,25 @@
 #if HAVE_CONFIG_H
 #include<config.h>
 #endif
+
+#include <execinfo.h> /* GG */
+#include <unistd.h>   /* GG */
+#include <malloc.h>   /* GG */
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+/* GG */
+#include <errno.h>
+#define ERRNO_PRINT {if ( errno ) {int gerrsv=errno; printf (" errno value: %d at %s:%d \n", gerrsv, __FILE__, __LINE__); fflush(stdout); errno = 0;}}
+
 #include <stdlib.h>
 #include <stdio.h>
+
+/* GG Works for both SGI Altix (icc) and BG/L (xlc) */
+extern FILE *fmemopen (void *__s, size_t __len, __const char *__modes) __THROW;
+
 #include <math.h>
 #include <time.h>
 #include <sys/time.h>
@@ -79,6 +96,8 @@
 #include "sf_calc_action.h"
 #include "sf_observables.h"
 
+//#define __NON_INSTRUMENT_FUNCTION__    __attribute__((__no_instrument_function__))
+
 void usage(){
   fprintf(stdout, "HMC for Wilson twisted mass QCD\n");
   fprintf(stdout, "Version %s \n\n", PACKAGE_VERSION);
@@ -90,6 +109,107 @@ void usage(){
   fprintf(stdout, "         [-h|-? this help]\n");
   exit(0);
 }
+
+/* GG */
+int callback_function(const void *pentry, size_t sz, int useflag, int status,
+                      const char *filename, size_t line)
+{
+  /*
+  if (_HEAPOK != status) {
+    puts("status is not _HEAPOK.");
+    exit(status);
+  }
+  */
+  /*
+  if (_USEDENTRY == useflag)
+    printf("allocated  %p     %u\n", pentry, sz);
+  else
+    printf("freed      %p     %u\n", pentry, sz);
+  */
+  printf("allocated  %p useflag %d  size   %u\n", pentry, useflag, sz);
+
+  return 0;
+}
+
+/* GG */
+//#define BACKTRACE yes
+#if defined BACKTRACE
+     void
+     //__NON_INSTRUMENT_FUNCTION__
+     print_trace (void)
+     {
+       /* GG */
+       if ( g_proc_id ) 
+	 return;
+
+       void *array[20];
+       size_t size;
+       char **strings;
+       size_t i;
+     
+       size = backtrace (array, 20);
+       strings = backtrace_symbols (array, size);
+     
+       //GG printf ("Obtained %zd stack frames.\n", size);
+     
+       for (i = 0; i < size; i++)
+	 if ( ! strstr(strings[i], "../phmc_tm [") && ! strstr(strings[i], "../phmc_tm(print_t") && ! strstr(strings[i], "/lib64/tls/libc") )
+	   printf ("%s==", strings[i]);
+       printf ("\n");
+/*           printf ("%s\n", strings[i]); */
+     
+       free (strings);
+     }
+
+     void
+     //__NON_INSTRUMENT_FUNCTION__
+     print_tracel (char* line, char* file)
+     {
+       /* GG */
+       if ( g_proc_id ) 
+	 return;
+
+       void *array[20];
+       size_t size;
+       char **strings;
+       size_t i;
+     
+       size = backtrace (array, 20);
+       strings = backtrace_symbols (array, size);
+     
+       //GG printf ("Obtained %zd stack frames.\n", size);
+     
+       for (i = 0; i < size; i++)
+	 if ( ! strstr(strings[i], "../phmc_tm [") && ! strstr(strings[i], "../phmc_tm(print_t") && ! strstr(strings[i], "/lib64/tls/libc") )
+	   printf ("%s==", strings[i]);
+       printf (" line %s file %s \n", line, file);
+       /*
+       printf ("\n");
+       */
+/*           printf ("%s\n", strings[i]); */
+     
+       free (strings);
+     }
+#else
+     void 
+     //__NON_INSTRUMENT_FUNCTION__
+print_trace (void) {}
+
+     void 
+     //__NON_INSTRUMENT_FUNCTION__
+print_tracel (char* a, char* b) {}
+#endif
+
+/* GG */
+void tmlqcd_mpi_close (void) {
+#ifdef MPI
+  MPI_Finalize();
+#endif
+  abort();
+}
+
+/* GG */
+double gatime=0.0, getime=0.0;
 
 extern int nstore;
 
@@ -108,6 +228,17 @@ int main(int argc,char *argv[]) {
 
   int j,ix,mu, trajectory_counter=1;
   struct timeval t1;
+
+  /* GG */
+  double  atime=0.0,  etime=0.0;
+  int intrig;
+  FILE* yyingg = NULL;
+  MPI_File myyingg = MPI_FILE_NULL;
+  MPI_Info minfo = 0;
+  MPI_Status yyStatus;
+  void* yybufgg = NULL;
+  int yyCount;
+  int yyfd;
 
   /* Energy corresponding to the Gauge part */
   double eneg = 0., plaquette_energy = 0., rectangle_energy = 0.;
@@ -130,15 +261,31 @@ int main(int argc,char *argv[]) {
 #pragma pomp inst begin(main)
 #endif
 
+  /* GG */
+  pid_t gpid;
+  char ghost[256];
+  char gmall[256];
+  char gmalc[256];
+  char gmalv[256];
+  char gmalt[256];
+  //GLOB char pnametrajGlob[256];
+  gpid = getpid();
+  gethostname(ghost, 256);
+  snprintf(gmall, 256, "malloc-ptrace.%s.%d", ghost, gpid);
+  setenv("MALLOC_TRACE", gmall, 1);
+
 #if (defined SSE || defined SSE2 || SSE3)
   signal(SIGILL,&catch_ill_inst);
 #endif
+
+  /* GG */
+  //GOOD mtrace();
 
   strcpy(gauge_filename,"conf.save");
   strcpy(nstore_filename,".nstore_counter");
   strcpy(tmp_filename, ".conf.tmp");
 
-  verbose = 1;
+  verbose = 0;
   g_use_clover_flag = 0;
 
 #ifdef MPI
@@ -148,6 +295,15 @@ int main(int argc,char *argv[]) {
   g_proc_id = 0;
 #endif
 
+  /* GG */
+  /*
+  if (g_proc_id==0)
+    mtrace();
+  */
+  /* 
+  if (g_proc_id!=0)
+    muntrace();
+  */
 
   while ((c = getopt(argc, argv, "h?vf:o:")) != -1) {
     switch (c) {
@@ -177,13 +333,91 @@ int main(int argc,char *argv[]) {
   }
 
   /* Read the input file */
-  read_input(input_filename);
+
+  /* GG */
+#define MPIO yes
+#ifndef MPIO
+  if( (j = read_input(input_filename)) != 0) {
+    fprintf(stderr, "Could not find input file: %s\nAborting...\n", input_filename);
+    exit(-1);
+  }
+#else
+  /* Proto ...
+  int MPI_File_open(MPI_Comm comm, char *filename, int amode,
+          MPI_Info info, MPI_File *fh)
+  */
+
+  if (g_proc_id == 0) {
+    system("df -k");
+    system("ls -l /tmp");
+  }
+#if 1
+  /* New read style with MPI_Bcast */
+    yybufgg = (void *) malloc(8192*sizeof(char));
+    yyingg = (FILE*) malloc(sizeof(FILE*));
+  if (g_proc_id == 0) {
+    yyfd = open(input_filename, O_RDONLY);
+    //yybufgg = (void *) malloc(8192*sizeof(char));
+    yyCount = read(yyfd, yybufgg, 8192);
+    intrig = close(yyfd);
+    /*
+    intrig = MPI_Bcast(yybufgg, yyCount, MPI_CHAR, 0, MPI_COMM_WORLD);
+    yyingg = fmemopen(yybufgg, strlen(yybufgg), "r");
+    intrig = read_input_fh(yyingg);
+    */
+  }
+    intrig = MPI_Bcast(yybufgg, 8192, MPI_CHAR, 0, MPI_COMM_WORLD);
+    //???? intrig = MPI_Barrier(MPI_COMM_WORLD);
+    //intrig = MPI_Recv(yybufgg, 8192, MPI_CHAR, 0, ??tag, MPI_COMM_WORLD, &yyStatus);
+    yyingg = fmemopen(yybufgg, strlen(yybufgg), "r");
+    intrig = read_input_fh(yyingg);
+ 
+#else
+  yyingg = (MPI_File*)malloc(sizeof(MPI_File));
+  yybufgg = (void *) malloc(8192*sizeof(MPI_CHAR));
+  //MPI_Comm_dup(MPI_COMM_WORLD,
+  //intrig = MPI_File_open(MPI_COMM_WORLD, input_filename, MPI_MODE_RDONLY, MPI_INFO_NULL, yyingg);
+  intrig = MPI_File_open(MPI_COMM_WORLD, input_filename, MPI_MODE_RDONLY, MPI_INFO_NULL, yyingg);
+  /* Proto
+     int MPI_File_read_all(MPI_File fh, void *buf, int count,
+          MPI_Datatype datatype, MPI_Status *status)
+  */
+  intrig = MPI_File_read_all(*yyingg, yybufgg, 8192, MPI_CHAR, &yyStatus);
+  //Good?? intrig = MPI_Get_count(&yyStatus, MPI_CHAR, &yyCount);
+  intrig = MPI_File_close(yyingg);
+  //Good printf(" Control %s bufsize %d \n", gmall, yyCount);
+  //system("ls -l /tmp");
+  
+  //yyinfg = (FILE *) yyingg;
+  //////intrig = read_input_fh((FILE *) yyingg);
+  //?? MPI_MODE_SEQUENTIAL
+  intrig = MPI_File_open(MPI_COMM_WORLD, gmall, MPI_MODE_WRONLY|MPI_MODE_CREATE, MPI_INFO_NULL, yyingg);
+  /*Proto
+    int MPI_File_write(MPI_File fh, void *buf, int count,
+          MPI_Datatype datatype, MPI_Status *status)
+  */
+  intrig = MPI_File_write(*yyingg, yybufgg, strlen(yybufgg), MPI_CHAR, &yyStatus);
+  intrig = MPI_File_close(yyingg);
+  if (g_proc_id == 0)
+    system(gmalc);
+  intrig = read_input(gmall);
+#endif
+
+  /* Special for tests */
+  /*
+  MPI_Finalize();
+  return(0);
+  */
+#endif
 
   DUM_DERI = 6;
   DUM_SOLVER = DUM_DERI+8;
   DUM_MATRIX = DUM_SOLVER+6;
   if(g_running_phmc) {
     NO_OF_SPINORFIELDS = DUM_MATRIX+8;
+    NO_OF_SPINORFIELDS = DUM_MATRIX+11; /* GG det0 */
+    NO_OF_SPINORFIELDS = DUM_MATRIX+13; /* GG detr1 */
+    NO_OF_SPINORFIELDS = DUM_MATRIX+15; /* GG detr2 */
   }
   else {
     NO_OF_SPINORFIELDS = DUM_MATRIX+6;
@@ -198,7 +432,10 @@ int main(int argc,char *argv[]) {
 
   init_integrator();
 
+  atexit(&tmlqcd_mpi_close);
+
   if(nstore == -1) {
+    if (g_proc_id == 0) { /* GG */
     countfile = fopen(nstore_filename, "r");
     if(countfile != NULL) {
       j = fscanf(countfile, "%d %d %s\n", &nstore, &trajectory_counter, gauge_input_filename);
@@ -210,6 +447,13 @@ int main(int argc,char *argv[]) {
       nstore = 0;
       trajectory_counter = 0;
     }
+
+    /* GG */
+    }
+    intrig = MPI_Bcast(gauge_input_filename, 100, MPI_CHAR, 0, MPI_COMM_WORLD);
+    intrig = MPI_Bcast(&nstore, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    intrig = MPI_Bcast(&trajectory_counter, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
   }
 
   if(g_rgi_C1 == 0.) {
@@ -241,6 +485,9 @@ int main(int argc,char *argv[]) {
     fprintf(stderr, "Not enough memory for geometry_indices! Aborting...\n");
     exit(0);
   }
+
+  /* GG */
+  if( g_rec_ev == 0 ) {
   if(even_odd_flag) {
     j = init_monomials(VOLUMEPLUSRAND/2, even_odd_flag);
   }
@@ -251,6 +498,9 @@ int main(int argc,char *argv[]) {
     fprintf(stderr, "Not enough memory for monomial pseudo fermion  fields! Aborting...\n");
     exit(0);
   }
+  }
+  /* */
+
   if(even_odd_flag) {
     j = init_spinor_field(VOLUMEPLUSRAND/2, NO_OF_SPINORFIELDS);
   }
@@ -261,6 +511,9 @@ int main(int argc,char *argv[]) {
     fprintf(stderr, "Not enough memory for spinor fields! Aborting...\n");
     exit(0);
   }
+
+  /* GG */
+  if( g_rec_ev == 0 ) {
   if(even_odd_flag) {
     j = init_csg_field(VOLUMEPLUSRAND/2);
   }
@@ -271,11 +524,14 @@ int main(int argc,char *argv[]) {
     fprintf(stderr, "Not enough memory for csg fields! Aborting...\n");
     exit(0);
   }
+
   j = init_moment_field(VOLUME, VOLUMEPLUSRAND);
   if (j != 0) {
     fprintf(stderr, "Not enough memory for moment fields! Aborting...\n");
     exit(0);
   }
+  }
+  /* */
 
   if(g_running_phmc) {
     j = init_bispinor_field(VOLUME/2, NO_OF_BISPINORFIELDS);
@@ -319,6 +575,8 @@ int main(int argc,char *argv[]) {
 
   check_geometry();
 
+  /* GG */
+  if( g_rec_ev == 0 ) {
 #ifdef _USE_HALFSPINOR
   j = init_dirac_halfspinor();
   if ( j!= 0) {
@@ -332,6 +590,8 @@ int main(int argc,char *argv[]) {
   init_xchange_halffield();
 #  endif
 #endif
+}
+/* */
 
   /* Initialise random number generator */
   start_ranlux(rlxd_level, random_seed^nstore);
@@ -359,12 +619,22 @@ int main(int argc,char *argv[]) {
     unit_g_gauge_field();
   }
 
+    /* GG special test ecriture-lecture */
+#if 0
+
   /*For parallelization: exchange the gaugefield */
 #ifdef MPI
   xchange_gauge();
 #endif
 
+  /* GG debug on BG */
+      if(g_proc_id==0) {
+	//_heap_walk(callback_function);
+      }
+
   if(g_running_phmc) init_phmc();
+
+#endif
 
 
   /*********************************************************/
@@ -446,29 +716,56 @@ int main(int argc,char *argv[]) {
     }
     fprintf(countfile, "\n");
     fclose(countfile);
+
+    /* GG */
+#ifdef MPI
+      atime = MPI_Wtime();
+#endif
   }
 
   /* Loop for measurements */
   for(j = 0; j < Nmeas; j++) {
     if(g_proc_id == 0) {
-      printf("# Starting trajectory no %d\n", trajectory_counter);
+      printf("# Starting trajectory no %d\n", trajectory_counter); fflush(stdout);
     }
+
+    /* GG */
+    snprintf(pnametrajGlob, 256, "ProcName %s Trajecount %d", ghost, trajectory_counter);
+    /* We limit to first trajec only */
+    if ( j )
+      debug_detailGlob = 0;
 
     if(return_check_flag == 1 && trajectory_counter%return_check_interval == 0) return_check = 1;
     else return_check = 0;
 
+    /* GG special test ecriture-lecture */
+#if 1
     Rate += update_tm(&plaquette_energy, &rectangle_energy, datafilename, return_check, Ntherm<trajectory_counter);
+#endif
 
+    /* GG */
+    if(g_proc_id == 0) {
+#ifdef MPI
+      etime = MPI_Wtime();
+#endif
+      errno = 0;
+      printf("# Ending trajectory no %d loop_index %d Rate: %d in %e sec. (MPI_Wtime)\n", trajectory_counter, j+1, Rate, etime-atime); fflush(stdout);
+      ERRNO_PRINT;         
+    }
 
     /* Save gauge configuration all Nsave times */
     if((Nsave !=0) && (trajectory_counter%Nsave == 0) && (trajectory_counter!=0)) {
       sprintf(gauge_filename,"conf.%.4d", nstore);
       if(g_proc_id == 0) {
+	errno = 0;
         countfile = fopen("history_hmc_tm", "a");
+	ERRNO_PRINT;         
 	fprintf(countfile, "%.4d, measurement %d of %d, Nsave = %d, Plaquette = %e, trajectory nr = %d\n",
 		nstore, j, Nmeas, Nsave, plaquette_energy/(6.*VOLUME*g_nproc),
 		trajectory_counter);
+	ERRNO_PRINT;         
 	fclose(countfile);
+	ERRNO_PRINT;         
       }
       nstore ++;
     }
@@ -487,10 +784,15 @@ int main(int argc,char *argv[]) {
 
       /* Now move it! */
       if(g_proc_id == 0) {
+	errno = 0;
   	rename(tmp_filename, gauge_filename);
+	ERRNO_PRINT;
         countfile = fopen(nstore_filename, "w");
+	ERRNO_PRINT;
         fprintf(countfile, "%d %d %s\n", nstore, trajectory_counter+1, gauge_filename);
+	ERRNO_PRINT;
         fclose(countfile);
+	ERRNO_PRINT;
       }
     }
     
@@ -503,14 +805,39 @@ int main(int argc,char *argv[]) {
     }
 
     if((g_rec_ev !=0) && (trajectory_counter%g_rec_ev == 0) && (g_running_phmc)) {
-      phmc_compute_ev(trajectory_counter, plaquette_energy);
+      /* GG */
+      if (nstore%5 == 0)
+	phmc_compute_ev(trajectory_counter, plaquette_energy);
     }
-
 
     if(g_proc_id == 0) {
       verbose = 1;
     }
-    ix = reread_input("hmc.reread");
+
+    /* GG */
+#if 0
+#ifndef MPIO
+  ix = reread_input("hmc.reread");
+#else
+  /* New reread style with MPI_Bcast */
+  if (g_proc_id == 0) {
+    if ( (yyfd = open("hmc.reread", O_RDONLY)) == NULL ) {
+      ix = 2;
+    } else {
+      //ix = reread_input("hmc.reread");
+      yyCount = read(yyfd, yybufgg, 8192);
+      intrig = close(yyfd);
+    }
+    intrig = MPI_Bcast(yybufgg, 8192, MPI_CHAR, 0, MPI_COMM_WORLD);
+    yyingg = fmemopen(yybufgg, strlen(yybufgg), "r");
+    intrig = reread_input_fh(yyingg);
+    ix = intrig;
+  }
+#endif
+#else
+  ix = 2;
+#endif
+
     if(g_proc_id == 0) {
       verbose = 0;
     }
@@ -525,11 +852,40 @@ int main(int argc,char *argv[]) {
       printf("# Changed parameter according to hmc.reread (see stdout): measurement %d of %d\n", j, Nmeas);
       remove("hmc.reread");
     }
+
+    /* GG STOP feature */
+  if (g_proc_id == 0) {
+    strcpy(gmalv, getenv("PBS_JOBDIR"));
+    snprintf(gmall, 256, "%s/%s", gmalv, "STOP");
+    //yyfd = open(gmall, O_RDONLY);
+#if 0
+    if ( (yyingg = fopen(gmall, "r")) != (FILE*) NULL ) {
+      intrig = fclose(yyingg);
+      printf(" FOUND: %s \n", gmall); fflush(stdout);
+      break;
+    } else
+      printf(" NOTFOUND ! \n");
+#else
+    intrig = MPI_File_open(MPI_COMM_WORLD, gmall, MPI_MODE_RDONLY, minfo, &myyingg);
+    if ( myyingg != MPI_FILE_NULL ) {
+      intrig = MPI_File_close(&myyingg);
+      printf(" FOUND: %s \n", gmall); fflush(stdout);
+      break;
+    } else
+      printf(" NOTFOUND ! \n");
+#endif
+  }
+
     trajectory_counter++;
   } /* end of loop over trajectories */
 
   if(g_proc_id==0) {
     printf("Acceptance rate was: %3.2f percent\n", 100.*(double)Rate/(double)Nmeas);
+    /* GG */
+#ifdef MPI
+      etime = MPI_Wtime();
+      printf("Simulation achieved for %d trajectories with %d accepted in %e sec. (MPI_Wtime)\n", Nmeas, Rate, etime-atime);
+#endif
     fflush(stdout);
     parameterfile = fopen(parameterfilename, "a");
     fprintf(parameterfile, "Acceptance Rate was: %3.2f Percent\n", 100.*(double)Rate/(double)Nmeas);

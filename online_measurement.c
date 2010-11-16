@@ -22,6 +22,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -80,14 +82,18 @@ void online_measurement(const int traj, const int id) {
 #endif
 
   Cpp = (double*) calloc(g_nproc_t*T, sizeof(double));
+  CMALLOC_ERROR_EXIT(Cpp);
   Cpa = (double*) calloc(g_nproc_t*T, sizeof(double));
+  CMALLOC_ERROR_EXIT(Cpa);
   Cp4 = (double*) calloc(g_nproc_t*T, sizeof(double));
+  CMALLOC_ERROR_EXIT(Cp4);
 
   source_generation_pion_only(g_spinor_field[0], g_spinor_field[1], 
 			      t0, 0, traj);
   
   invert_eo(g_spinor_field[2], g_spinor_field[3], 
 	    g_spinor_field[0], g_spinor_field[1],
+
 	    1.e-14, measurement_list[id].max_iter, CG, 1, 0, 1);
 
   /* now we bring it to normal format */

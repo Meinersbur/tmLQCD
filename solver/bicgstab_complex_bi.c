@@ -65,6 +65,14 @@ int bicgstab_complex_bi(bispinor * const P, bispinor * const Q, const int max_it
 
 /*   init_solver_field(6); */
 
+  
+  /* GG */
+  print_trace();
+  if ( g_bispinor_field[DUM_SOLVER] == 0 ) {
+    if ( g_proc_id == 0 ) 
+      printf(" g_bispinor_field not initialized in bicgstab_complex_bi ! \n");
+    exit(69);
+  }
 
   hatr = g_bispinor_field[DUM_SOLVER];
   r = g_bispinor_field[DUM_SOLVER+1];

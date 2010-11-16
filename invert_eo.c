@@ -70,6 +70,7 @@ int invert_eo(spinor * const Even_new, spinor * const Odd_new,
 	      const int sub_evs_flag, const int even_odd_flag) {
 
   int iter = 0;
+
   /* here comes the inversion using even/odd preconditioning */
   if(even_odd_flag) {
     if(g_proc_id == 0) {printf("# Using Even/Odd preconditioning!\n"); fflush(stdout);}
@@ -93,9 +94,13 @@ int invert_eo(spinor * const Even_new, spinor * const Odd_new,
       iter = gmres(Odd_new, g_spinor_field[DUM_DERI], gmres_m_parameter, max_iter/gmres_m_parameter, precision, rel_prec, VOLUME/2, 1, &Mtm_plus_sym_psi);
     }
     else if(solver_flag == GCR) {
-      if(g_proc_id == 0) {printf("# Using GCR! m = %d\n", gmres_m_parameter); fflush(stdout);}
+      if(g_proc_id == 0) {printf("# Using ggGCR! m = %d\n", gmres_m_parameter); fflush(stdout);}
       mul_one_pm_imu_inv(g_spinor_field[DUM_DERI], +1.);
+      
       iter = gcr(Odd_new, g_spinor_field[DUM_DERI], gmres_m_parameter, max_iter/gmres_m_parameter, precision, rel_prec, VOLUME/2, 0, &Mtm_plus_sym_psi);
+      /*
+      iter = gggcr(Odd_new, g_spinor_field[DUM_DERI], gmres_m_parameter, max_iter/gmres_m_parameter, precision, rel_prec, VOLUME/2, &Mtm_plus_sym_psi);
+      */
     }
     else if(solver_flag == GMRESDR) {
       if(g_proc_id == 0) {printf("# Using GMRES-DR! m = %d, NrEv = %d\n", 

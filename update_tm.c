@@ -67,6 +67,10 @@
 /* for the SF: */
 #include "sf_calc_action.h"
 
+/* GG */
+int nustore;
+int nustor2;
+int nustora[2];
 
 extern su3 ** g_gauge_field_saved;
 void stout_smear();
@@ -153,6 +157,19 @@ int update_tm(double *plaquette_energy, double *rectangle_energy,
 
   g_sloppy_precision = 1;
 
+  /* GG */
+#if 1
+  nustore =    0;
+  nustor2 =    0;
+  nustora[0] = 0;
+  nustora[1] = 0;
+#else
+  nustore = -10;
+  nustor2 = -10;
+  nustora[0] = -10;
+  nustora[1] = -10;
+#endif
+
   /*run the trajectory*/
   Integrator.integrate[Integrator.no_timescales-1](Integrator.tau, 
 						   Integrator.no_timescales-1, 1);
@@ -234,6 +251,22 @@ int update_tm(double *plaquette_energy, double *rectangle_energy,
       free(xlfInfo);
     }
     g_sloppy_precision = 1;
+
+  /* GG */
+#if 1
+  nustore =    0;
+  nustor2 =    0;
+  nustora[0] = 0;
+  nustora[1] = 0;
+#else
+  nustore = -10;
+  nustor2 = -10;
+  nustora[0] = -10;
+  nustora[1] = -10;
+#endif
+    if(g_proc_id == 0) 
+      printf(" Starting Reversibility test, nustore = %d \n", nustore);
+
     /* run the trajectory back */
     Integrator.integrate[Integrator.no_timescales-1](-Integrator.tau, 
 						     Integrator.no_timescales-1, 1);
@@ -319,6 +352,8 @@ int update_tm(double *plaquette_energy, double *rectangle_energy,
       fprintf(ret_check_file,"ddh = %1.4e ddU= %1.4e ddh/H = %1.4e\n",
 	      ret_dh, ret_gauge_diff/4./((double)(VOLUME*g_nproc))/3., ret_dh/tmp);
       fclose(ret_check_file);
+      printf(" Ending Reversibility test, ddh = %1.4e ddU= %1.4e ddh/H = %1.4e \n",
+	     ret_dh, ret_gauge_diff/4./((double)(VOLUME*g_nproc))/3., ret_dh/tmp);
     }
 
     if(accept == 1) {
@@ -381,7 +416,7 @@ int update_tm(double *plaquette_energy, double *rectangle_energy,
   etime = (double)clock()/((double)(CLOCKS_PER_SEC));
 #endif
 
-  /* printining data in the .data file */
+  /* printing data in the .data file */
   if(g_proc_id==0) {
     datafile = fopen(filename, "a");
     if (bc_flag == 0) { /* if PBC */

@@ -33,6 +33,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -53,6 +55,7 @@ void assign_mul_bra_add_mul_ket_add_bi(bispinor * const R, bispinor * const S, b
    w = (spinor *)(((unsigned long int)(w_)+ALIGN_BASE)&~ALIGN_BASE);
 #else
    w_=calloc(N, sizeof(spinor));
+   CMALLOC_ERROR_EXIT(w_);
    w = w_;
 #endif
 

@@ -43,6 +43,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "complex.h"
@@ -57,11 +59,16 @@ void diagonalise_general_matrix(int n, complex * A, int lda, complex * vl,
   int lwork, info, i, j, ilo, ihi;
   
   rwork = malloc(2*n*sizeof(double));
+  CMALLOC_ERROR_EXIT(rwork);
   vr = malloc(n*n*sizeof(complex));
+  CMALLOC_ERROR_EXIT(vr);
 /*   temp = malloc(n*n*sizeof(complex)); */
   scale = malloc(n*sizeof(double));
+  CMALLOC_ERROR_EXIT(scale);
   rcone = malloc(n*sizeof(double));
+  CMALLOC_ERROR_EXIT(rcone);
   rconv = malloc(n*sizeof(double));
+  CMALLOC_ERROR_EXIT(rconv);
 
   /* don't transpose A: */
   for(i=0;i<0;i++) {
@@ -78,6 +85,7 @@ void diagonalise_general_matrix(int n, complex * A, int lda, complex * vl,
 	      &dummy, &lwork, rwork, &info, 1, 1, 1, 1);
   lwork = (int)(dummy.re);
   work = malloc(lwork * sizeof(complex));
+  CMALLOC_ERROR_EXIT(work);
   _FT(zgeevx)("N", "N", "V", "N", &n, A, &lda, evalues, vl, &n, vr, &n, 
 	      &ilo, &ihi, scale, &abnrm, rcone, rconv, 
 	      work, &lwork, rwork, &info, 1, 1, 1, 1);

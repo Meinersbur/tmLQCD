@@ -66,6 +66,9 @@ int cg_her(spinor * const P, spinor * const Q, const int max_iter,
   int iteration;
   int save_sloppy = g_sloppy_precision;
   double atime, etime, flops;
+
+  /* GG */
+  double mflops_mpi, mflops_local;
   
   /* initialize residue r and search vector p */
 #ifdef MPI
@@ -85,15 +88,25 @@ int cg_her(spinor * const P, spinor * const Q, const int max_iter,
   for(iteration = 1; iteration <= max_iter; iteration++) {
     f(g_spinor_field[DUM_SOLVER], g_spinor_field[DUM_SOLVER+2]);
     pro = scalar_prod_r(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER], N, 1);
+     
+    /*  Compute alpha_cg(i+1)   */
     alpha_cg = normsq / pro;
+     
+    /*  Compute x_(i+1) = x_i + alpha_cg(i+1) p_i    */
     assign_add_mul_r(P, g_spinor_field[DUM_SOLVER+2], alpha_cg, N);
     
+    /*  Compute r_(i+1) = r_i - alpha_cg(i+1) Qp_i   */
     assign_mul_add_r(g_spinor_field[DUM_SOLVER], -alpha_cg, g_spinor_field[DUM_SOLVER+1], N);
+
+    /* Check whether the precision is reached ... */
     err=square_norm(g_spinor_field[DUM_SOLVER], N, 1);
 
     if(g_proc_id == g_stdio_proc && g_debug_level > 1) {
-      printf("CG: iterations: %d res^2 %e\n", iteration, err);
-      fflush(stdout);
+
+            /* GG */
+      etime = MPI_Wtime();
+      printf("cg_her: %d\t%g\t%e\n",iteration,err, etime-atime); fflush( stdout);
+      //printf("CG: iterations: %d res^2 %e\n", iteration, err); fflush(stdout);
     }
     
     if (((err <= eps_sq) && (rel_prec == 0)) || ((err <= eps_sq*squarenorm) && (rel_prec == 1))) {
@@ -108,6 +121,8 @@ int cg_her(spinor * const P, spinor * const Q, const int max_iter,
     }
 #endif
 
+    /* Compute beta_cg(i+1)
+       Compute p_(i+1) = r_i+1 + beta_(i+1) p_i     */
     beta_cg = err / normsq;
     assign_mul_add_r(g_spinor_field[DUM_SOLVER+2], beta_cg, g_spinor_field[DUM_SOLVER], N);
     assign(g_spinor_field[DUM_SOLVER+1], g_spinor_field[DUM_SOLVER], N);
@@ -122,9 +137,21 @@ int cg_her(spinor * const P, spinor * const Q, const int max_iter,
   /* 2 A + 2 Nc Ns + N_Count ( 2 A + 10 Nc Ns ) */
   /* 2*1320.0 because the linalg is over VOLUME/2 */
   flops = (2*(2*1320.0+2*3*4) + 2*3*4 + iteration*(2.*(2*1320.0+2*3*4) + 10*3*4))*N/1.0e6f;
+
+  /* GG */
+  mflops_local = flops/(etime-atime);
+  mflops_mpi = mflops_local;
+#ifdef MPI
+  MPI_Reduce(&mflops_local, &mflops_mpi, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  if(g_proc_id==0 && g_debug_level > 0) {
+    printf("CGgg: flopcount: t/s: %1.4e mflops_local: %.1f mflops_global: %.1f\n", 
+	   etime-atime, mflops_local, mflops_mpi); fflush(stdout);
+  }
+#endif
+
   if(g_debug_level > 0 && g_proc_id == 0) {
-    printf("CG: iter: %d eps_sq: %1.4e t/s: %1.4e\n", iteration, eps_sq, etime-atime); 
-    printf("CG: flopcount (for tmWilson with even/odd only): t/s: %1.4e mflops_local: %.1f mflops: %.1f\n", 
+    printf("cg_her: iter: %d eps_sq: %1.4e t/s: %1.4e\n", iteration, eps_sq, etime-atime); 
+    printf("cg_her: flopcount (for tmWilson with even/odd only): t/s: %1.4e mflops_local: %.1f mflops: %.1f\n", 
 	   etime-atime, flops/(etime-atime), g_nproc*flops/(etime-atime));
   }
   if(iteration > max_iter) return(-1);

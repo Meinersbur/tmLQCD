@@ -21,6 +21,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include<stdlib.h>
 #include<stdio.h>
 #include<math.h>
@@ -121,20 +123,31 @@ static void init_lgcr(const int _M, const int _V){
     Vo = _V;
     M = _M;
     a = calloc(M+1, sizeof(complex *));
+  CMALLOC_ERROR_EXIT(a);
     chi = calloc(M, sizeof(complex *));
+  CMALLOC_ERROR_EXIT(chi);
     xi = calloc(M, sizeof(complex *));
+  CMALLOC_ERROR_EXIT(xi);
     tmp = calloc(Vo, sizeof(complex));
+  CMALLOC_ERROR_EXIT(tmp);
     rho = calloc(Vo, sizeof(complex));
+  CMALLOC_ERROR_EXIT(rho);
     _a = calloc((M+1)*M, sizeof(complex));
+  CMALLOC_ERROR_EXIT(_a);
     a[0] = _a;
     _chi = calloc(M*Vo, sizeof(complex));
+  CMALLOC_ERROR_EXIT(_chi);
     chi[0] = _chi;
     _xi = calloc(M*Vo, sizeof(complex));
+  CMALLOC_ERROR_EXIT(_xi);
     xi[0] = _xi;
 
     b = calloc(M, sizeof(double));
+  CMALLOC_ERROR_EXIT(b);
     c = calloc(M, sizeof(complex));
+  CMALLOC_ERROR_EXIT(b);
     alpha = calloc(M+1, sizeof(complex));
+  CMALLOC_ERROR_EXIT(alpha);
     for(i = 1; i < M; i++){
       chi[i] = chi[i-1] + Vo;
       xi[i] = xi[i-1] + Vo;

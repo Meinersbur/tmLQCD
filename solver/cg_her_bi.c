@@ -77,6 +77,14 @@ int cg_her_bi(bispinor * const P, bispinor * const Q, const int max_iter,
   double normsp, normsq, pro, err, alpha_cg, beta_cg, squarenorm;
   int iteration;
   
+  /* GG */
+  print_trace();
+  if ( g_bispinor_field[DUM_SOLVER] == 0 ) {
+    if ( g_proc_id == 0 ) 
+      printf(" g_bispinor_field not initialized in cg_her_bi ! \n");
+    exit(69);
+  }
+  
   squarenorm = square_norm_bi(Q, N);  
   /*        !!!!   INITIALIZATION    !!!! */
   assign_bi(g_bispinor_field[DUM_SOLVER], P, N);

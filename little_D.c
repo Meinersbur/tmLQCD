@@ -22,6 +22,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -93,8 +95,11 @@ void invert_little_D_spinor(spinor *r, spinor *s){
   complex *v, *w;
 
   v = calloc(2 * 9 * g_N_s, sizeof(complex));
+  CMALLOC_ERROR_EXIT(v);
   w = calloc(2 * 9 * g_N_s, sizeof(complex));
+  CMALLOC_ERROR_EXIT(w);
   psi[0] = calloc(VOLUME+2, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(psi[0]);
   psi[1] = psi[0] + VOLUME / 2 +1;
   split_global_field(psi[0], psi[1], s);
 
@@ -130,8 +135,11 @@ void apply_little_D_spinor(spinor *r, spinor *s){
   complex *v, *w;
 
   v = calloc(2 * 9 * g_N_s, sizeof(complex));
+  CMALLOC_ERROR_EXIT(v);
   w = calloc(2 * 9 * g_N_s, sizeof(complex));
+  CMALLOC_ERROR_EXIT(w);
   psi[0] = calloc(VOLUME + 2, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(psi[0]);
   psi[1] = psi[0] + VOLUME / 2 + 1;
   split_global_field(psi[0], psi[1], s);
 
@@ -211,6 +219,7 @@ void alt_little_field_gather(complex * w) {
   MPI_Status status;
   int size = 25 * g_N_s * sizeof(complex);
   complex *buf = malloc(size);
+  CMALLOC_ERROR_EXIT(buf);
   MPI_Buffer_attach((void*)buf, size);
 
   /* LOWER BLOCK */

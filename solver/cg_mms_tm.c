@@ -27,6 +27,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -213,10 +215,15 @@ void init_mms_tm(const int nr) {
   if(ini == 0) {
 
     sigma = (double*)calloc((nr), sizeof(double));
+  CMALLOC_ERROR_EXIT(sigma);
     zitam1 = (double*)calloc((nr), sizeof(double));
+  CMALLOC_ERROR_EXIT(zitam1);
     zita = (double*)calloc((nr), sizeof(double));
+  CMALLOC_ERROR_EXIT(zita);
     alphas = (double*)calloc((nr), sizeof(double));
+  CMALLOC_ERROR_EXIT(alphas);
     betas = (double*)calloc((nr), sizeof(double));
+  CMALLOC_ERROR_EXIT(betas);
 
 #if (defined SSE2 || defined SSE)
     xs_qmms = (spinor*)calloc(VOLUMEPLUSRAND*(nr)+1,sizeof(spinor));
@@ -231,10 +238,14 @@ void init_mms_tm(const int nr) {
     }
 #else
     xs_qmms = (spinor*)calloc(VOLUMEPLUSRAND*(nr),sizeof(spinor));
+  CMALLOC_ERROR_EXIT(xs_qmms);
     xs_mms_solver = (spinor**)calloc((nr),sizeof(spinor*));
+  CMALLOC_ERROR_EXIT(xs_mms_solver);
 
     ps_qmms = (spinor*)calloc(VOLUMEPLUSRAND*(nr),sizeof(spinor));
+  CMALLOC_ERROR_EXIT(ps_qmms);
     ps_mms_solver = (spinor**)calloc((nr),sizeof(spinor*));
+  CMALLOC_ERROR_EXIT(ps_mms_solver);
 
     for(i = 0; i < nr; i++) {
       xs_mms_solver[i] = xs_qmms + i*VOLUMEPLUSRAND;

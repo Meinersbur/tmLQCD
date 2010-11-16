@@ -33,6 +33,7 @@
 #include "start.h"
 #include "xchange_lexicfield.h"
 #include "block.h"
+#include "cmalloc.h"
 
 #define CALLOC_ERROR_CRASH {printf ("calloc errno : %d\n", errno); errno = 0; return 1;}
 
@@ -234,6 +235,7 @@ int check_blocks_geometry(block * blk) {
   
   ipt = blk->idx;
   itest = (int*)calloc(blk->volume + blk->spinpad, sizeof(int));
+  CMALLOC_ERROR_EXIT(itest);
   for(i = 0; i < 8*blk->volume; i++) {
     if(*ipt > blk->volume + blk->spinpad-1 || *ipt < 0) {
       if(g_proc_id == 0) {
@@ -470,19 +472,23 @@ void alt_block_compute_little_D() {
   spinor *psi, *psi_dn, *psi_up;
 
   _rec = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(_rec);
 #if ( defined SSE || defined SSE2 || defined SSE3)
   rec = (spinor*)(((unsigned long int)(_rec)+ALIGN_BASE)&~ALIGN_BASE);
 #else
   rec = _rec;
 #endif  
   _app = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(app);
 #if ( defined SSE || defined SSE2 || defined SSE3)
   app = (spinor*)(((unsigned long int)(_app)+ALIGN_BASE)&~ALIGN_BASE);
 #else
   app = _app;
 #endif  
   zero = calloc(VOLUMEPLUSRAND, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(zero);
   psi = calloc(VOLUME+2, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(psi);
   psi_dn = psi;
   psi_up = psi + VOLUME/2 + 1;
 
@@ -625,6 +631,7 @@ void compute_little_D_diagonal() {
   spinor * tmp, * _tmp;
   complex * M;
   _tmp = calloc( block_list[0].volume + block_list[0].spinpad + 1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(_tmp);
 #if ( defined SSE || defined SSE2 || defined SSE3)
   tmp = (spinor*)(((unsigned long int)(_tmp)+ALIGN_BASE)&~ALIGN_BASE);
 #else
@@ -663,6 +670,7 @@ void compute_little_D()
   /* gauge field                                                    */
   /* It is VOLUME + 2*LZ*(LY*LX + T*LY + T*LX) + 4*LZ*(LY + T + LX) */
   _scratch = calloc(2*VOLUMEPLUSRAND+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(_scratch);
 #if ( defined SSE || defined SSE2 || defined SSE3)
   scratch = (spinor*)(((unsigned long int)(_scratch)+ALIGN_BASE)&~ALIGN_BASE);
 #else

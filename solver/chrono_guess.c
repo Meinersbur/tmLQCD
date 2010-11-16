@@ -21,6 +21,8 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -105,9 +107,13 @@ int chrono_guess(spinor * const trial, spinor * const phi, spinor ** const v, in
     if(init_csg == 0) {
       init_csg = 1;
       work = (complex*) malloc(lwork*sizeof(complex));
+  CMALLOC_ERROR_EXIT(work);
       bn = (complex*) malloc(max_N*sizeof(complex));
+  CMALLOC_ERROR_EXIT(bn);
       G = (complex*) malloc(max_N*max_N*sizeof(complex));
+  CMALLOC_ERROR_EXIT(G);
       ipiv = (int*) malloc(max_N*sizeof(int));
+  CMALLOC_ERROR_EXIT(ipiv);
     }
 
     /* Construct an orthogonal basis */

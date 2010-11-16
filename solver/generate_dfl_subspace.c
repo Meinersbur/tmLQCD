@@ -23,6 +23,7 @@
 #include <config.h>
 #endif
 #include <stdlib.h>
+#include <errno.h>
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
@@ -32,6 +33,10 @@
 #include "start.h"
 #include "ranlxs.h"
 #include "D_psi.h"
+/* GG */
+#include "read_input.h"
+#include <mcheck.h>
+
 #include "poly_precon.h"
 #include "Msap.h"
 #include "gmres_precon.h"
@@ -79,7 +84,7 @@ int generate_dfl_subspace(const int Ns, const int N) {
     vol = VOLUME*sizeof(spinor)/sizeof(complex);
   double nrm, e = 0.3, d = 1.1, atime, etime;
   complex s;
-  complex * work;
+  complex * work = NULL;
   spinor * r, * q, * p;
 
 #ifdef MPI
@@ -88,9 +93,41 @@ int generate_dfl_subspace(const int Ns, const int N) {
   atime = (double)clock()/(double)(CLOCKS_PER_SEC);
 #endif
   work = (complex*)malloc(2*9*Ns*sizeof(complex));
-  if(init_subspace == 0) i = init_dfl_subspace(Ns);
+  /* GG */
+/*   if ( errno ) { */
+  if ( work == NULL ) {
+    printf(" Not enough memory in generate_dfl_subspace ! \n"); fflush(stdout);
+#ifdef MPI
+    MPI_Finalize();
+#endif
+    exit(69);
+  }
 
-  if(init_little_subspace == 0) i = init_little_dfl_subspace(Ns);
+  if (init_subspace == 0) {
+    i = 0;
+    i = init_dfl_subspace(Ns);
+    /* GG */
+    if ( i ) {
+      printf(" Not enough memory in init_dfl_subspace called by generate_dfl_subspace ! \n"); fflush(stdout);
+#ifdef MPI
+      MPI_Finalize();
+#endif
+      exit(69);
+    }
+  }
+
+  if (init_little_subspace == 0) {
+    i = 0;
+    i = init_little_dfl_subspace(Ns);
+    /* GG */
+    if ( i ) {
+      printf(" Not enough memory in init_little_dfl_subspace called by generate_dfl_subspace ! \n"); fflush(stdout);
+#ifdef MPI
+      MPI_Finalize();
+#endif
+      exit(69);
+    }
+  }
 
   random_fields(Ns);
 
@@ -113,21 +150,45 @@ int generate_dfl_subspace(const int Ns, const int N) {
     e=0.3;
   }
 
+  /* GG */
+  //mtrace();
+
   boundary(0.1586);
   for(i = 0; i < Ns; i++) {
     ModifiedGS((complex*)dfl_fields[i], vol, i, (complex*)dfl_fields[0], vpr);
     nrm = sqrt(square_norm(dfl_fields[i], N, 1));
     mul_r(dfl_fields[i], 1./nrm, dfl_fields[i], N);
 
-    for(j = 0; j < 80; j++) {
+    /* GG */
+/*      for(j = 0; j < 2; j++) {  */
+    for(j = 0; j < gilbert_loop_parameter; j++) { 
+
       g_sloppy_precision = 1;
 /*        Msap(g_spinor_field[0], dfl_fields[i], 4); */
-      poly_nonherm_precon(g_spinor_field[0], dfl_fields[i], e, d, 20, N);
+    /* GG */
+      
+      poly_nonherm_precon(g_spinor_field[0], dfl_fields[i], e, d, gilbert_poly_parameter, N);
+      
+      /*
+      gmres_precon(g_spinor_field[DUM_SOLVER], dfl_fields[i], gilbert_poly_parameter, 1, 1.e-14, 0, N, &D_psi);
+      */
 /*       gmres_precon(g_spinor_field[DUM_SOLVER], dfl_fields[i], 20, 1, 1.e-20, 0, N, &D_psi); */
       g_sloppy_precision = 0;
       ModifiedGS((complex*)g_spinor_field[0], vol, i, (complex*)dfl_fields[0], vpr);
       nrm = sqrt(square_norm(g_spinor_field[0], N, 1));
       mul_r(dfl_fields[i], 1./nrm, g_spinor_field[0], N);
+/* GG */
+/*
+      if ( ((j+1)%8) == 0 ) {
+	if(g_debug_level > -1) {
+	  D_psi(g_spinor_field[DUM_SOLVER], dfl_fields[i]);
+	  nrm = sqrt(square_norm(g_spinor_field[DUM_SOLVER], N, 1));
+	  if(g_proc_id == 0) {
+	    printf(" proc %d loopind %d ||D psi_%d||/||psi_%d|| = %1.5e\n", g_proc_id, j+1, i, i, nrm); fflush(stdout); 
+	  }
+	}
+      }
+*/
     }
     /* test quality */
     if(g_debug_level > -1) {
@@ -241,7 +302,19 @@ int generate_dfl_subspace_free(const int Ns, const int N) {
   double nrm;
   complex s;
 
-  if(init_subspace == 0) init_dfl_subspace(Ns);
+  if (init_subspace == 0) {
+    i = 0;
+    i = init_dfl_subspace(Ns);
+
+  /* GG */
+  if ( i ) {
+    printf(" Not enough memory in init_dfl_subspace called by generate_dfl_subspace_free ! \n"); fflush(stdout);
+#ifdef MPI
+    MPI_Finalize();
+#endif
+    exit(69);
+  }
+  }
 
   for(i = 0; i < 12; i++) {
     constant_spinor_field(dfl_fields[i], i, N);
@@ -315,7 +388,7 @@ int init_dfl_subspace(const int N_s) {
   for (i = 1; i < N_s; ++i) {
     dfl_fields[i] = dfl_fields[i-1] + VOLUMEPLUSRAND;
   }
-  return 0;
+  return(0);
 }
 
 int free_dfl_subspace() {
@@ -324,5 +397,5 @@ int free_dfl_subspace() {
     free(_dfl_fields);
     init_subspace = 0;
   }
-  return 0;
+  return (0);
 }

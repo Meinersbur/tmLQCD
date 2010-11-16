@@ -45,6 +45,8 @@
 #define _default_g_acc_Ptilde 1.e-06
 #define _default_g_acc_Hfin 1.e-04
 #define _default_g_rec_ev 0
+#define _default_g_rec_ev_min 1
+#define _default_g_rec_ev_max 1
 #define _default_g_mubar 0.0
 #define _default_g_epsbar 0.0
 #define _default_g_mu 0.0
@@ -131,6 +133,13 @@
 #define _default_no_samples 1
 #define _default_online_measurement_flag 1
 #define _default_online_measurement_freq 5
+
+/* GG default values */
+#define _default_gilbert_loop_parameter 2
+#define _default_gilbert_poly_parameter 20
+#define _default_gilbert_little_prec 1.e-12
+#define _default_gilbert_biggle_prec 1.e-24
+#define _default_gilbert_biggle_loop 1000
 
 /* sf default values */
 #define _default_g_eta 0.

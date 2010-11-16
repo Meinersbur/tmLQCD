@@ -26,14 +26,25 @@
 
 #define MAIN_PROGRAM
 
-#ifdef HAVE_CONFIG_H
-# include<config.h>
+#if HAVE_CONFIG_H
+#include "config.h"
 #endif
+
 #include <stdlib.h>
 #include <stdio.h>
+
+#include <unistd.h>   /* GG */
+#include <fcntl.h> /* GG */
+
+/* GG */
+extern FILE *fmemopen (void *__s, size_t __len, __const char *__modes) __THROW;
+
 #include <math.h>
 #include <time.h>
 #include <string.h>
+#include "su3.h"
+#include "su3adj.h"
+
 #if (defined BGL && !defined BGP)
 #  include <rts.h>
 #endif
@@ -44,8 +55,7 @@
 #  include <io/gauge.h>
 # endif
 #endif
-#include "su3.h"
-#include "su3adj.h"
+
 #include "ranlxd.h"
 #include "geometry_eo.h"
 #include "read_input.h"
@@ -67,6 +77,53 @@
 #include "D_psi.h"
 #include "phmc.h"
 #include "mpi_init.h"
+
+/* GG */
+
+void usage()
+{
+  fprintf(stdout, "Benchmark for Wilson twisted mass QCD\n");
+/*   fprintf(stdout, "Version %s \n\n", PACKAGE_VERSION); */
+/*   fprintf(stdout, "Please send bug reports to %s\n", PACKAGE_BUGREPORT); */
+  fprintf(stdout, "Usage:   benchmark [options]\n");
+  fprintf(stdout, "Options: [-f input-filename]\n");
+  fprintf(stdout, "         [-v] verbose output (default no)\n");
+  fprintf(stdout, "         [-h|-? this help]\n");
+  exit(0);
+}
+
+/* #define BACKTRACE yes */
+#if defined BACKTRACE
+     void
+     print_trace (void)
+     {
+       /* GG */
+       if ( g_proc_id ) 
+	 return;
+
+       void *array[20];
+       size_t size;
+       char **strings;
+       size_t i;
+     
+       size = backtrace (array, 20);
+       strings = backtrace_symbols (array, size);
+     
+       //printf ("Obtained %zd stack frames.\n", size);
+     
+       for (i = 0; i < size; i++)
+	 if ( ! strstr(strings[i], "../invert [") && ! strstr(strings[i], "../invert(print_t") && ! strstr(strings[i], "/lib64/libc") )
+	   printf ("%s==", strings[i]);
+/*           printf ("%s\n", strings[i]); */
+     
+       free (strings);
+     }
+#else
+     void print_trace (void) {}
+#endif
+
+/* GG */
+double gatime, getime;
 
 #ifdef PARALLELT
 #  define SLICE (LX*LY*LZ/2)
@@ -107,6 +164,16 @@ int main(int argc,char *argv[])
   paramsXlfInfo *xlfInfo;
 #endif
   
+
+  /* GG */
+  int intrig;
+  FILE* yyingg = NULL;
+  MPI_Status yyStatus;
+  void* yybufgg = NULL;
+  int yyCount;
+  int yyfd;
+  char *input_filename = NULL;
+  int c;
   
   static double t1,t2,dt,sdt,dts,qdt,sqdt;
   double antioptaway=0.0;
@@ -118,13 +185,61 @@ int main(int argc,char *argv[])
   DUM_MATRIX = DUM_SOLVER+6;
   NO_OF_SPINORFIELDS = DUM_MATRIX+2;
 
+  verbose = 0;
   
   MPI_Init(&argc, &argv);
+  /* GG */
+  MPI_Comm_rank(MPI_COMM_WORLD, &g_proc_id);
 #endif
   g_rgi_C1 = 1.; 
+
+  /* GG modified ... */
+  while ((c = getopt(argc, argv, "vh?f:")) != -1) {
+    switch (c) {
+    case 'f':
+      input_filename = calloc(200, sizeof(char));
+      strcpy(input_filename,optarg);
+      break;
+    case 'v':
+      verbose = 1;
+      break;
+
+    case 'h':
+    case '?':
+    default:
+      usage();
+      break;
+    }
+  }
   
   /* Read the input file */
-  read_input("benchmark.input");
+/*   read_input("benchmark.input"); */
+  if (input_filename == NULL) {
+    strcpy(input_filename, "benchmark.input");
+  }
+
+  /* GG */
+/*   strcpy(input_filename, "benchmark.input"); */
+#define MPIO yes
+#ifndef MPIO
+  read_input(input_filename);
+#else
+  /* New read style with MPI_Bcast */
+  yybufgg = (void *) malloc(8192*sizeof(char));
+  yyingg = (FILE*) malloc(sizeof(FILE*));
+  if (g_proc_id == 0) {
+    yyfd = open(input_filename, O_RDONLY);
+    yyCount = read(yyfd, yybufgg, 8192);
+    intrig = close(yyfd);
+  }
+  intrig = MPI_Bcast(yybufgg, 8192, MPI_CHAR, 0, MPI_COMM_WORLD);
+  yyingg = fmemopen(yybufgg, strlen(yybufgg), "r");
+  intrig = read_input_fh(yyingg);
+#endif
+
+  /* GG */
+  if ( g_proc_id ) 
+    verbose = 0;
   
   tmlqcd_mpi_init(argc, argv);
   
@@ -430,6 +545,9 @@ int main(int argc,char *argv[])
       fflush(stdout);
     }
   }
+
+  /* GG */
+#if 0
 #ifdef HAVE_LIBLEMON
   if(g_proc_id==0) {
     printf("doing parallel IO test ...\n");
@@ -440,6 +558,7 @@ int main(int argc,char *argv[])
   if(g_proc_id==0) {
     printf("done ...\n");
   }
+#endif
 #endif
 
 

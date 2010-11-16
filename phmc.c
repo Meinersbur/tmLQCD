@@ -27,6 +27,7 @@
 #include <string.h>
 #include <time.h>
 #include "global.h"
+#include "cmalloc.h"
 
 #include "read_input.h"
 #include "init_bispinor_field.h"
@@ -52,6 +53,7 @@ int phmc_max_ptilde_degree = NTILDE_CHEBYMAX;
 
 void init_phmc() {
   int max_iter_ev, j, k;
+  double atime, etime;
   double temp, temp2;
   FILE *roots;
   char *filename_phmc_root = "Square_root_BR_roots.dat";
@@ -78,19 +80,54 @@ void init_phmc() {
   if(phmc_compute_evs != 0) {
     g_mu = g_mu1;
     max_iter_ev = 1000;
+
+    /* GG */
+    phmc_cheb_evmin = 0.;
+    phmc_cheb_evmax = 0.;
+#ifdef MPI
+    atime = MPI_Wtime();
+#else
+    atime = (double)clock()/(double)(CLOCKS_PER_SEC);
+#endif
     
-    no_eigenvalues = 10;   /* Number of lowest eigenvalues to be computed */
+    /* GG, was 10 */
+    no_eigenvalues = g_rec_ev_min;   /* Number of lowest eigenvalues to be computed */
+    if ( no_eigenvalues ) {
     if(g_epsbar!=0.0)
       phmc_cheb_evmin = eigenvalues_bi(&no_eigenvalues, max_iter_ev, eigenvalue_precision, 0);
-    else {
+    else
       phmc_cheb_evmin = eigenvalues(&no_eigenvalues, max_iter_ev, eigenvalue_precision, 0, 0, nstore, even_odd_flag);
     }
 
-    no_eigenvalues = 4;   /* Number of highest eigenvalues to be computed */
-    if(g_epsbar!=0.0)
+    /* GG */
+#ifdef MPI
+    etime = MPI_Wtime();
+#else
+    etime = (double)clock()/(double)(CLOCKS_PER_SEC);
+#endif
+  if((g_proc_id == 0)) {
+    printf("PHMC: time/s for lowest eigenvalues computation %e\n", etime-atime);
+    temp = etime-atime;
+  }
+
+    /* GG, was 4 */
+    no_eigenvalues = g_rec_ev_max;   /* Number of highest eigenvalues to be computed */
+     if ( no_eigenvalues ) {
+   if(g_epsbar!=0.0)
       phmc_cheb_evmax = eigenvalues_bi(&no_eigenvalues, max_iter_ev, eigenvalue_precision, 1);
     else
       phmc_cheb_evmax = eigenvalues(&no_eigenvalues, max_iter_ev, eigenvalue_precision, 1, 0, nstore, even_odd_flag);
+     }
+
+    /* GG */
+#ifdef MPI
+    etime = MPI_Wtime();
+#else
+    etime = (double)clock()/(double)(CLOCKS_PER_SEC);
+#endif
+  if((g_proc_id == 0)) {
+    printf("PHMC: time/s for largest eigenvalues computation %e\n", etime-atime-temp);
+  }
        
     temp=phmc_cheb_evmin;
     temp2=phmc_cheb_evmax;
@@ -119,9 +156,9 @@ void init_phmc() {
   /* Here we prepare the less precise polynomial first */
   degree_of_polynomial_nd(degree_of_p);
 
-  if((g_proc_id == 0) && (g_debug_level > 1)) {
+  if((g_proc_id == 0) && (g_debug_level > 0)) {
     printf("PHMC: interval of approximation [stilde_min, stilde_max] = [%e, %e]\n", stilde_min, stilde_max);
-    printf("PHMC: degree for P = %d, epsilont = %e, normalisation = %e", 
+    printf("PHMC: degree for P = %d, epsilont = %e, normalisation = %e\n", 
 	   phmc_dop_n_cheby-1, phmc_cheb_evmin, phmc_invmaxev);
   }
 
@@ -166,6 +203,7 @@ void init_phmc() {
   if(g_epsbar!=0.0 || phmc_exact_poly==0) phmc_Cpol = sqrt(phmc_Cpol);
 
   phmc_root = calloc((2*phmc_dop_n_cheby-2),sizeof(complex));
+  CMALLOC_ERROR_EXIT(phmc_root);
 
 
   if(g_epsbar==0.0 && phmc_exact_poly == 1) 
@@ -184,7 +222,7 @@ void init_phmc() {
       exit(6);
     }
     
-    /* Here we read in the 2n roots needed for the polinomial in sqrt(s) */
+    /* Here we read in the 2n roots needed for the polynomial in sqrt(s) */
     for(j=0; j<(2*phmc_dop_n_cheby-2); j++){
       errcode = fscanf(roots," %d %lf %lf \n", &k, &phmc_root[j].re, &phmc_root[j].im);
     }
@@ -196,6 +234,16 @@ void init_phmc() {
     MPI_Finalize();
 #endif
     exit(6);
+  }
+
+    /* GG */
+#ifdef MPI
+  etime = MPI_Wtime();
+#else
+  etime = (double)clock()/(double)(CLOCKS_PER_SEC);
+#endif
+  if((g_proc_id == 0)) {
+    printf("PHMC: time/s for polynomial degree computation %e\n", etime-atime);
   }
   
   /* END IF PHMC */

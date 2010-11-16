@@ -51,6 +51,11 @@
 #include <float.h>
 #include <math.h>
 #include <stdio.h>
+
+/* GG */
+#include <unistd.h>
+//#include <hpcidris.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -77,7 +82,11 @@
 #define min(a,b) ((a)<(b) ? (a) : (b))
 #define max(a,b) ((a)<(b) ? (b) : (a))
 
-
+/* GG */
+/*
+int callback_function(const void *pentry, size_t sz, int useflag, int status,
+const char *filename, size_t line);
+*/
 
 /****************************************************************************
  *                                                                          *
@@ -151,15 +160,19 @@ void jdher_bi(int n, int lda, double tau, double tol,
 
   /* allocatables: 
    * initialize with NULL, so we can free even unallocated ptrs */
-  double *s = NULL, *resnrm = NULL, *resnrm_old = NULL, *dtemp = NULL, *rwork = NULL;
 
-  complex *V_ = NULL, *V, *Vtmp = NULL, *U = NULL, *M = NULL, *Z = NULL,
+  /* GG */
+  static double *s = NULL, *resnrm = NULL, *resnrm_old = NULL, *dtemp = NULL, *rwork = NULL;
+
+  static complex *V_ = NULL, *V, *Vtmp = NULL, *U = NULL, *M = NULL, *Z = NULL,
     *Res_ = NULL, *Res,
     *eigwork = NULL, *temp1_ = NULL, *temp1;
 
-  int *idx1 = NULL, *idx2 = NULL, 
+  static int *idx1 = NULL, *idx2 = NULL, 
     *convind = NULL, *keepind = NULL, *solvestep = NULL, 
     *actcorrits = NULL;
+
+  static int allocated = 0;
 
   /* non-allocated ptrs */
   complex *q, *v, *u, *r = NULL;  
@@ -247,6 +260,23 @@ void jdher_bi(int n, int lda, double tau, double tol,
    * block size... */
   eigworklen = (2 + _FT(ilaenv)(&ONE, filaenv, fvu, &jmax, &MONE, &MONE, &MONE, 6, 2)) * jmax;
 
+  /* GG */
+  if (allocated) {
+    if ( allocated != lda*jmax ) {
+      if (g_proc_id==0)
+	printf(" Argument values differ from previous call in jdher_bi ! allocated %d lda*jmax %d \n", allocated, lda*jmax); fflush(stdout);
+      exit(69);
+    }
+  }
+
+  /* GG */
+  if ( ! allocated ) {
+    allocated = lda*jmax;
+    /*
+if (g_proc_id==0)
+      HPCIDRIS_memusage_print();
+    */
+
   /* Allocating memory for matrices & vectors */ 
   if((void*)(V_ = (complex *)malloc((lda * jmax + 4) * sizeof(complex))) == NULL) {
     errno = 0;
@@ -325,6 +355,8 @@ void jdher_bi(int n, int lda, double tau, double tol,
 #endif
   if((void*)(dtemp = (double *)malloc(lda * sizeof(complex))) == NULL) {
     jderrorhandler(300,"dtemp in jdher_bi");
+  }
+
   }
 
   /* Set variables for Projection routines */
@@ -736,6 +768,7 @@ void jdher_bi(int n, int lda, double tau, double tol,
     }
   }
 
+  /* GG 
   free(V_); free(Vtmp); free(U); 
   free(s); free(Res_); 
   free(resnrm); free(resnrm_old); 
@@ -745,8 +778,9 @@ void jdher_bi(int n, int lda, double tau, double tol,
   free(p_work_bi);
   free(idx1); free(idx2); 
   free(convind); free(keepind); free(solvestep); free(actcorrits);
+  */
   
-} /* jdher(.....) */
+} /* jdher_bi(.....) */
 
 
 /****************************************************************************

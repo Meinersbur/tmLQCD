@@ -21,7 +21,10 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "cmalloc.h"
+
 #include <stdlib.h>
+#include <errno.h>
 #include <stdio.h>
 #include <math.h>
 #include "global.h"
@@ -87,27 +90,48 @@ void poly_precon(spinor * const R, spinor * const S, const double prec, const in
     c = (double*)calloc(1000, sizeof(double));
 #if (defined SSE || defined SSE2 || defined SSE3)
     sv_  = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(sv_);
     sv   = (spinor *)(((unsigned long int)(sv_)+ALIGN_BASE)&~ALIGN_BASE);
     d_   = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(d_);
     d    = (spinor *)(((unsigned long int)(d_)+ALIGN_BASE)&~ALIGN_BASE);
     dd_  = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(dd_;
     dd   = (spinor *)(((unsigned long int)(dd_)+ALIGN_BASE)&~ALIGN_BASE);
     aux_ = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(aux_);
     aux  = (spinor *)(((unsigned long int)(aux_)+ALIGN_BASE)&~ALIGN_BASE);
     aux3_= calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(aux3_);
     aux3 = (spinor *)(((unsigned long int)(aux3_)+ALIGN_BASE)&~ALIGN_BASE);
 #else 
     sv_  = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(sv_);
     sv   = sv_;
     d_   = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(d_);
     d    = d_;
     dd_  = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(dd_);
     dd   = dd_;
     aux_ = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(aux_);
     aux  = aux_;
+    errno = 0;
     aux3_= calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(aux3_);
     aux3 = aux3_;
 #endif
+
+    /* GG */
+  if ( errno ) {
+    printf(" Not enough memory in poly_precon ! \n"); fflush(stdout);
+#ifdef MPI
+      MPI_Finalize();
+#endif
+    exit(69);
+  }
+
     get_c(minev, maxev, c, 100);
     initp = 1;
   }
@@ -191,7 +215,9 @@ void poly_nonherm_precon(spinor * const R, spinor * const S,
 
   
   if(initpnH == 0) {
+    errno = 0;
     work_  = calloc(4*VOLUMEPLUSRAND+1, sizeof(spinor));
+  CMALLOC_ERROR_EXIT(work_);
 #if (defined SSE || defined SSE2 || defined SSE3)
     work   = (spinor *)(((unsigned long int)(work_)+ALIGN_BASE)&~ALIGN_BASE);
 #else 
@@ -199,6 +225,16 @@ void poly_nonherm_precon(spinor * const R, spinor * const S,
 #endif
     initpnH = 1;
   }
+
+    /* GG */
+  /*
+    if(g_proc_id == g_stdio_proc) {
+      initpnH = sbrk(0);
+      printf(" Memory in poly_nonherm_precon: %d \n", initpnH); fflush(stdout);
+      initpnH = 1;
+    }
+  */
+
   psi = work;
   chi = &work[VOLUMEPLUSRAND];
   tmp0 = &work[2*VOLUMEPLUSRAND];

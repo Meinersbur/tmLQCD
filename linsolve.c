@@ -49,6 +49,14 @@ int solve_cg(spinor * const k, spinor * const l, double eps_sq, const int rel_pr
   int iteration = 0, i, j;
   int save_sloppy = g_sloppy_precision;
   double atime, etime, flops;
+
+  /* GG */
+  double mflops_mpi, mflops_local;
+  
+  /* GG */
+/*   print_tracel(__LINE__, __FILE__); */
+  print_trace();
+
   spinor *x, *delta, *y;
   
   /* initialize residue r and search vector p */
@@ -157,10 +165,30 @@ int solve_cg(spinor * const k, spinor * const l, double eps_sq, const int rel_pr
   /* 2 A + 2 Nc Ns + N_Count ( 2 A + 10 Nc Ns ) */
   /* 2*1320.0 because the linalg is over VOLUME/2 */
   flops = (2*(2*1320.0+2*3*4) + 2*3*4 + iteration*(2.*(2*1320.0+2*3*4) + 10*3*4))*VOLUME/2/1.0e6f;
+
+  /* GG */
+  mflops_local = flops/(etime-atime);
+  mflops_mpi = mflops_local;
+#ifdef MPI
+  MPI_Reduce(&mflops_local, &mflops_mpi, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  if(g_proc_id==0 && g_debug_level > 0) {
+    printf("CGgg: flopcount: t/s: %1.4e mflops_local: %.1f mflops_global: %.1f\n", 
+	   etime-atime, mflops_local, mflops_mpi); fflush(stdout);
+  }
+#endif
+
   if(g_proc_id==0 && g_debug_level > 0) {
     printf("CG: iter: %d eps_sq: %1.4e t/s: %1.4e\n", iteration, eps_sq, etime-atime); 
     printf("CG: flopcount: t/s: %1.4e mflops_local: %.1f mflops: %.1f\n", 
-	   etime-atime, flops/(etime-atime), g_nproc*flops/(etime-atime));
+	   etime-atime, flops/(etime-atime), g_nproc*flops/(etime-atime)); fflush(stdout);
+  }
+
+  /* GG */
+  if ( debug_detailGlob ) {
+    printf("CGgg: PStamp %s Rank %d Flopcount: t/s: %1.4e mflops_local: %.1f\n",
+	   pnametrajGlob, g_proc_id, etime-atime, flops/(etime-atime));
+    //printf("CGgg: PStamp %s Rank %d TStamp %s Flopcount: t/s: %1.4e mflops_local: %.1f\n",
+    //pnametrajGlob, g_proc_id, ctime((time_t*)(long)etime), etime-atime, flops/(etime-atime));
   }
   g_sloppy_precision = save_sloppy;
   return(iteration);
@@ -175,6 +203,9 @@ int bicg(spinor * const k, spinor * const l, double eps_sq, const int rel_prec) 
   int iteration, N=VOLUME/2;
   spinor * r, * p, * v, *hatr, * s, * t, * P, * Q;
   
+  /* GG */
+/*   print_tracel(__LINE__, __FILE__);   */
+  print_trace();
 
   if(ITER_MAX_BCG > 0) {
 

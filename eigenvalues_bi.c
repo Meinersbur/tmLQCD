@@ -85,8 +85,9 @@ double eigenvalues_bi(int * nr_of_eigenvalues,
   int returncode=0;
   char * filename = NULL;
 
-  
+  /* GG
   filename = calloc(200, sizeof(char));
+  */
   /*  strcpy(filename,optarg);*/
 
   if(maxmin == JD_MINIMAL) {
@@ -123,8 +124,19 @@ double eigenvalues_bi(int * nr_of_eigenvalues,
     prec = precision;
   }
 
+  /* GG */
+  if (allocated) {
+    if (allocated < *nr_of_eigenvalues) {
+      allocated = 0;
+      free(eigenvectors_bi_);
+      free(eigenvls_bi);
+    }
+  }
+
   if(allocated == 0) {
-    allocated = 1;
+    /* GG */
+    allocated = *nr_of_eigenvalues;
+
 #if (defined SSE || defined SSE2 || defined SSE3)
     eigenvectors_bi_ = calloc((VOLUME)/2*(*nr_of_eigenvalues)+1, sizeof(bispinor)); 
     eigenvectors_bi = (bispinor *)(((unsigned long int)(eigenvectors_bi_)+ALIGN_BASE)&~ALIGN_BASE);
@@ -137,7 +149,13 @@ double eigenvalues_bi(int * nr_of_eigenvalues,
 
   /* compute eigenvalues */
 
-  if((g_proc_id==0) && (g_debug_level > 4)) {
+  /* GG */
+  if ( eigenvectors_bi == NULL || eigenvls_bi == NULL ) {
+    printf(" Not enough memory in eigenvalues_bi ! \n");
+    exit(69);
+  }
+
+  if((g_proc_id==0) && (g_debug_level > 0)) {
     printf(" Values of   mu = %e     mubar = %e     eps = %e     precision = %e  \n \n", g_mu, g_mubar, g_epsbar, precision);
   }
  
