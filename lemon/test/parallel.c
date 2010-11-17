@@ -23,6 +23,7 @@ int main(int argc, char **argv)
   /* The following are the local volumes - we extend the lattice as needed. */
   int latSizes[] = {4, 4, 4, 4};
   int latVol = 256;
+  int const mapping[] = {0, 3, 1, 2};
 
   MPI_Comm cartesian;
   int i;
@@ -38,7 +39,9 @@ int main(int argc, char **argv)
   MPI_Comm_rank(cartesian, &rank);
 
    /* Start of code - writing */
+   /* Note that the following is the only way to truncate the file with MPI */
   MPI_File_open(cartesian, "parallel.test", MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &fp);
+  MPI_File_set_size(fp, 0);
   w = lemonCreateWriter(&fp, cartesian);
 
   data = (char*)malloc(257);
@@ -51,7 +54,7 @@ int main(int argc, char **argv)
 
   lemonDestroyHeader(h);
 
-  lemonWriteLatticeParallel(w, data, sizeof(char), latSizes);
+  lemonWriteLatticeParallelMapped(w, data, sizeof(char), latSizes, mapping);
 
   lemonWriterCloseRecord(w);
   lemonDestroyWriter(w);
@@ -70,7 +73,7 @@ int main(int argc, char **argv)
   if (strncmp(type, "parallel-test", 13))
     fprintf(stderr, "Node %d reports: wrong type read.\n", rank);
 
-  lemonReadLatticeParallel(r, data_read, sizeof(char), latSizes);
+  lemonReadLatticeParallelMapped(r, data_read, sizeof(char), latSizes, mapping);
   data_read[256] = '\0';
   if (strncmp(data_read, data, 256))
   {
