@@ -139,25 +139,25 @@ int callback_function(const void *pentry, size_t sz, int useflag, int status,
      print_trace (void)
      {
        /* GG */
-       if ( g_proc_id ) 
+       if ( g_proc_id )
 	 return;
 
        void *array[20];
        size_t size;
        char **strings;
        size_t i;
-     
+
        size = backtrace (array, 20);
        strings = backtrace_symbols (array, size);
-     
+
        //GG printf ("Obtained %zd stack frames.\n", size);
-     
+
        for (i = 0; i < size; i++)
 	 if ( ! strstr(strings[i], "../phmc_tm [") && ! strstr(strings[i], "../phmc_tm(print_t") && ! strstr(strings[i], "/lib64/tls/libc") )
 	   printf ("%s==", strings[i]);
        printf ("\n");
 /*           printf ("%s\n", strings[i]); */
-     
+
        free (strings);
      }
 
@@ -166,19 +166,19 @@ int callback_function(const void *pentry, size_t sz, int useflag, int status,
      print_tracel (char* line, char* file)
      {
        /* GG */
-       if ( g_proc_id ) 
+       if ( g_proc_id )
 	 return;
 
        void *array[20];
        size_t size;
        char **strings;
        size_t i;
-     
+
        size = backtrace (array, 20);
        strings = backtrace_symbols (array, size);
-     
+
        //GG printf ("Obtained %zd stack frames.\n", size);
-     
+
        for (i = 0; i < size; i++)
 	 if ( ! strstr(strings[i], "../phmc_tm [") && ! strstr(strings[i], "../phmc_tm(print_t") && ! strstr(strings[i], "/lib64/tls/libc") )
 	   printf ("%s==", strings[i]);
@@ -187,15 +187,15 @@ int callback_function(const void *pentry, size_t sz, int useflag, int status,
        printf ("\n");
        */
 /*           printf ("%s\n", strings[i]); */
-     
+
        free (strings);
      }
 #else
-     void 
+     void
      //__NON_INSTRUMENT_FUNCTION__
 print_trace (void) {}
 
-     void 
+     void
      //__NON_INSTRUMENT_FUNCTION__
 print_tracel (char* a, char* b) {}
 #endif
@@ -300,7 +300,7 @@ int main(int argc,char *argv[]) {
   if (g_proc_id==0)
     mtrace();
   */
-  /* 
+  /*
   if (g_proc_id!=0)
     muntrace();
   */
@@ -371,7 +371,7 @@ int main(int argc,char *argv[]) {
     //intrig = MPI_Recv(yybufgg, 8192, MPI_CHAR, 0, ??tag, MPI_COMM_WORLD, &yyStatus);
     yyingg = fmemopen(yybufgg, strlen(yybufgg), "r");
     intrig = read_input_fh(yyingg);
- 
+
 #else
   yyingg = (MPI_File*)malloc(sizeof(MPI_File));
   yybufgg = (void *) malloc(8192*sizeof(MPI_CHAR));
@@ -387,7 +387,7 @@ int main(int argc,char *argv[]) {
   intrig = MPI_File_close(yyingg);
   //Good printf(" Control %s bufsize %d \n", gmall, yyCount);
   //system("ls -l /tmp");
-  
+
   //yyinfg = (FILE *) yyingg;
   //////intrig = read_input_fh((FILE *) yyingg);
   //?? MPI_MODE_SEQUENTIAL
@@ -540,8 +540,8 @@ int main(int argc,char *argv[]) {
       exit(0);
     }
   }
-  
-  
+
+
      /* list and initialize measurements*/
    if(g_proc_id == 0) {
     printf("\n");
@@ -620,7 +620,7 @@ int main(int argc,char *argv[]) {
   }
 
     /* GG special test ecriture-lecture */
-#if 0
+#if 1
 
   /*For parallelization: exchange the gaugefield */
 #ifdef MPI
@@ -750,7 +750,7 @@ int main(int argc,char *argv[]) {
 #endif
       errno = 0;
       printf("# Ending trajectory no %d loop_index %d Rate: %d in %e sec. (MPI_Wtime)\n", trajectory_counter, j+1, Rate, etime-atime); fflush(stdout);
-      ERRNO_PRINT;         
+      ERRNO_PRINT;
     }
 
     /* Save gauge configuration all Nsave times */
@@ -759,13 +759,13 @@ int main(int argc,char *argv[]) {
       if(g_proc_id == 0) {
 	errno = 0;
         countfile = fopen("history_hmc_tm", "a");
-	ERRNO_PRINT;         
+	ERRNO_PRINT;
 	fprintf(countfile, "%.4d, measurement %d of %d, Nsave = %d, Plaquette = %e, trajectory nr = %d\n",
 		nstore, j, Nmeas, Nsave, plaquette_energy/(6.*VOLUME*g_nproc),
 		trajectory_counter);
-	ERRNO_PRINT;         
+	ERRNO_PRINT;
 	fclose(countfile);
-	ERRNO_PRINT;         
+	ERRNO_PRINT;
       }
       nstore ++;
     }
@@ -795,7 +795,7 @@ int main(int argc,char *argv[]) {
 	ERRNO_PRINT;
       }
     }
-    
+
     /* online measurements */
     for(imeas=0; imeas<no_measurements; imeas++){
       meas = &measurement_list[imeas];
