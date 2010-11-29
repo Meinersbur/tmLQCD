@@ -1,5 +1,5 @@
 /***********************************************************************
- * $Id$ 
+ * $Id$
  *
  * Copyright (C) 2000 Martin Luescher
  *               2002 Martin Hasenbusch, Ines Wetzorke
@@ -11,12 +11,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * tmLQCD is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with tmLQCD.  If not, see <http://www.gnu.org/licenses/>.
  *
@@ -281,7 +281,7 @@ void random_spinor_field_lexic(spinor * const k) {
     tt = t - g_proc_coords[0]*T;
     coords[0] = t / T;
     for(x = 0; x < g_nproc_x*LX; x++) {
-      X = x - g_proc_coords[1]*LX; 
+      X = x - g_proc_coords[1]*LX;
       coords[1] = x / LX;
       for(y = 0; y < g_nproc_y*LY; y++) {
 	Y = y - g_proc_coords[2]*LY;
@@ -329,7 +329,7 @@ void random_spinor_field_eo(spinor * const k) {
     tt = t - g_proc_coords[0]*T;
     coords[0] = t / T;
     for(x = 0; x < g_nproc_x*LX; x++) {
-      X = x - g_proc_coords[1]*LX; 
+      X = x - g_proc_coords[1]*LX;
       coords[1] = x / LX;
       for(y = 0; y < g_nproc_y*LY; y++) {
 	Y = y - g_proc_coords[2]*LY;
@@ -438,7 +438,7 @@ void random_spinor_field(spinor * const k, const int V, const int repro) {
       (*s).s3.c2.im=v[5];
     }
     /* send the state fo the random-number generator to k+1 */
-    
+
     j=g_proc_id+1;
     if(j==g_nproc){
       j=0;
@@ -667,7 +667,7 @@ void random_gauge_field(const int repro) {
     j = (g_proc_id + 1) % g_nproc;
     rlxd_get(rlxd_state);
     MPI_Send(&rlxd_state[0], 105, MPI_INT, j, 102, MPI_COMM_WORLD);
-    
+
     if(g_proc_id == 0) {
       MPI_Recv(&rlxd_state[0], 105, MPI_INT, g_nproc-1, 102, MPI_COMM_WORLD, &status);
       rlxd_reset(rlxd_state);
@@ -942,11 +942,16 @@ void source_spinor_field_point_from_file(spinor * const P, spinor * const Q, int
 
 void start_ranlux(int level,int seed)
 {
+#if 1 /* by Michael Kruse */
+   int loc_seed;
+   loc_seed = seed + g_proc_id; // A good random number generator should generate completely different series for even for small seed differences
+#else
+   // This version overflows (loc_seed < 0) for large values of g_nproc and seed
    int max_seed,loc_seed;
 
    max_seed=2147483647/g_nproc;
    loc_seed=seed+g_proc_id*max_seed;
-
+#endif
    rlxs_init(level-1,loc_seed);
    rlxd_init(level,loc_seed);
 }
@@ -972,7 +977,7 @@ void gen_test_spinor_field(spinor * const k, const int eoflag) {
     }else{
       iy=ix;
     }
-    
+
     invind=(double)(((g_coord[iy][0]*g_nproc_x*LX + g_coord[iy][1])*g_nproc_y*LY + g_coord[iy][2])*g_nproc_z*LZ + g_coord[iy][3] + 1.0);
     invind=1.0/invind;
     (*s).s0.c0.re=invind;
