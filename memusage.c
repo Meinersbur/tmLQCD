@@ -47,8 +47,8 @@ void print_memusage()
     }
     else
     {
-        fprintf(stderr, "MK_User time used:             %d,%d secs\n", usage.ru_utime.tv_sec, usage.ru_utime.tv_usec);
-        fprintf(stderr, "MK_System time used:           %d,%d secs\n", usage.ru_stime.tv_sec, usage.ru_stime.tv_usec);
+        fprintf(stderr, "MK_User time used:             %10ld,%6ld secs\n", usage.ru_utime.tv_sec, usage.ru_utime.tv_usec);
+        fprintf(stderr, "MK_System time used:           %10ld,%6ld secs\n", usage.ru_stime.tv_sec, usage.ru_stime.tv_usec);
         fprintf(stderr, "MK_Maximum resident set size:  %10ld kB\n", usage.ru_maxrss);
         fprintf(stderr, "MK_Integral shared memory size:%10ld kB\n", usage.ru_ixrss);
         fprintf(stderr, "MK_Integral unshared data size:%10ld kB\n", usage.ru_idrss);
@@ -68,19 +68,25 @@ void print_memusage()
     {
         unsigned int memory_size = 0;
         Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAP, &memory_size);
-        fprintf(stderr, "MK_Memory size HEAP:           %10ld MB\n", (long)memory_size);
+        fprintf(stderr, "MK_Memory size HEAP:           %10ld B\n", (long)memory_size);
 
         Kernel_GetMemorySize(KERNEL_MEMSIZE_STACK, &memory_size);
-        fprintf(stderr, "MK_Memory size STACK:          %10ld MB\n", (long)memory_size);
+        fprintf(stderr, "MK_Memory size STACK:          %10ld B\n", (long)memory_size);
 
         Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &memory_size);
-        fprintf(stderr, "MK_Memory available HEAP:      %10ld MB\n", (long)memory_size);
+        fprintf(stderr, "MK_Memory available HEAP:      %10ld B\n", (long)memory_size);
 
         Kernel_GetMemorySize(KERNEL_MEMSIZE_STACKAVAIL, &memory_size);
-        fprintf(stderr, "MK_Memory available STACK:     %10ld MB\n", (long)memory_size);
+        fprintf(stderr, "MK_Memory available STACK:     %10ld B\n", (long)memory_size);
 
         Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPMAX, &memory_size);
-        fprintf(stderr, "MK_Maximum memory HEAP:        %10ld MB\n", (long)memory_size);
+        fprintf(stderr, "MK_Maximum memory HEAP:        %10ld B\n", (long)memory_size);
+        
+	Kernel_GetMemorySize(KERNEL_MEMSIZE_SHARED, &memory_size);
+        fprintf(stderr, "MK_Shared memory:              %10ld B\n", (long)memory_size);
+        
+	Kernel_GetMemorySize(KERNEL_MEMSIZE_PERSIST, &memory_size);
+        fprintf(stderr, "MK_Persistent memeory:         %10ld B\n", (long)memory_size);
     }
 }
 
