@@ -724,17 +724,12 @@ int main(int argc,char *argv[]) {
 #endif
   }
 
+  print_memusage(); // MK
+
   /* Loop for measurements */
   for(j = 0; j < Nmeas; j++) {
     if(g_proc_id == 0) {
       printf("# Starting trajectory no %d\n", trajectory_counter); fflush(stdout);
-    }
-
-    if (g_proc_id == 0) {
-  struct rusage usage;
-      usage.ru_maxrss = 0;
-      getrusage(RUSAGE_SELF, &usage);
-      printf("MK: Current max resident: %d\n", usage.ru_maxrss);	
     }
 
     /* GG */
@@ -883,6 +878,8 @@ int main(int argc,char *argv[]) {
       printf(" NOTFOUND ! \n");
 #endif
   }
+
+    print_memusage(); // MK
 
     trajectory_counter++;
   } /* end of loop over trajectories */
