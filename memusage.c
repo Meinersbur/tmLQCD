@@ -49,10 +49,11 @@ void print_memusage()
     {
         fprintf(stderr, "MK_User time used:             %d,%d secs\n", usage.ru_utime.tv_sec, usage.ru_utime.tv_usec);
         fprintf(stderr, "MK_System time used:           %d,%d secs\n", usage.ru_stime.tv_sec, usage.ru_stime.tv_usec);
-        fprintf(stderr, "MK_Maximum resident set size:  %10ld kB\n", usage.ru_maxrss);
-        fprintf(stderr, "MK_Integral shared memory size:%10ld kB\n", usage.ru_ixrss);
-        fprintf(stderr, "MK_Integral unshared data size:%10ld kB\n", usage.ru_idrss);
-        fprintf(stderr, "MK_Integral unshared stack s.: %10ld kB\n", usage.ru_isrss);
+        fprintf(stderr, "MK_Maximum resident set size:  %10ld MB\n", usage.ru_maxrss / 1024);
+#if 0
+        fprintf(stderr, "MK_Integral shared memory size:%10ld MB\n", usage.ru_ixrss / 1024);
+        fprintf(stderr, "MK_Integral unshared data size:%10ld MB\n", usage.ru_idrss / 1024);
+        fprintf(stderr, "MK_Integral unshared stack s.: %10ld MB\n", usage.ru_isrss / 1024);
         fprintf(stderr, "MK_Page reclaims:              %10ld\n", usage.ru_minflt);
         fprintf(stderr, "MK_Page faults:                %10ld\n", usage.ru_majflt);
         fprintf(stderr, "MK_Swaps:                      %10ld\n", usage.ru_nswap);
@@ -63,6 +64,7 @@ void print_memusage()
         fprintf(stderr, "MK_Signals received:           %10ld\n", usage.ru_nsignals);
         fprintf(stderr, "MK_Voluntary context switches: %10ld\n", usage.ru_nvcsw);
         fprintf(stderr, "MK_Involuntary context sw.:    %10ld\n", usage.ru_nivcsw);
+#endif
     }
 
     {

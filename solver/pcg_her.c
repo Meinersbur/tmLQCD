@@ -7,12 +7,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * tmLQCD is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with tmLQCD.  If not, see <http://www.gnu.org/licenses/>.
  ***********************************************************************/
@@ -33,11 +33,11 @@
 #include "pcg_her.h"
 
 /* P output = solution , Q input = source */
-int pcg_her(spinor * const P, spinor * const Q, const int max_iter, 
+int pcg_her(spinor * const P, spinor * const Q, const int max_iter,
 	    double eps_sq, const int rel_prec, const int N, matrix_mult f) {
   double normsp, normsq, pro, pro2, err, alpha_cg, beta_cg, squarenorm;
   int iteration;
-  
+
   squarenorm = square_norm(Q, N, 1);
   /*        !!!!   INITIALIZATION    !!!! */
   assign(g_spinor_field[DUM_SOLVER], P, N);
@@ -65,7 +65,7 @@ int pcg_her(spinor * const P, spinor * const Q, const int max_iter,
   normsq=square_norm(g_spinor_field[DUM_SOLVER+1], N, 1);
 
   /* Is this really real? */
-  pro2 = scalar_prod_r(g_spinor_field[DUM_SOLVER+1], g_spinor_field[DUM_SOLVER+3], N, 1);  
+  pro2 = scalar_prod_r(g_spinor_field[DUM_SOLVER+1], g_spinor_field[DUM_SOLVER+3], N, 1);
   /* main loop */
   for(iteration = 0; iteration < max_iter; iteration++) {
     /* A p */
@@ -74,7 +74,7 @@ int pcg_her(spinor * const P, spinor * const Q, const int max_iter,
     pro = scalar_prod_r(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER+4], N, 1);
     /*  Compute alpha_cg(i+1)   */
     alpha_cg=pro2/pro;
-     
+
     /*  Compute x_(i+1) = x_i + alpha_cg(i+1) p_i    */
     assign_add_mul_r(g_spinor_field[DUM_SOLVER], g_spinor_field[DUM_SOLVER+2],  alpha_cg, N);
     /*  Compute r_(i+1) = r_i - alpha_cg(i+1) Qp_i   */
@@ -95,7 +95,7 @@ int pcg_her(spinor * const P, spinor * const Q, const int max_iter,
     if(((err*err <= eps_sq) && (rel_prec == 0)) || ((err*err <= eps_sq*squarenorm) && (rel_prec == 1)) || iteration > 1400) {
       g_sloppy_precision = 1;
       if(g_debug_level > 2 && g_proc_id == g_stdio_proc) {
-	printf("sloppy precision on\n"); fflush( stdout);
+	//MK printf("sloppy precision on\n"); fflush( stdout);
       }
     }
 #endif
