@@ -724,8 +724,6 @@ int main(int argc,char *argv[]) {
 #endif
   }
 
-  print_memusage(); // MK
-
   /* Loop for measurements */
   for(j = 0; j < Nmeas; j++) {
     if(g_proc_id == 0) {
@@ -778,8 +776,6 @@ int main(int argc,char *argv[]) {
 
     print_memusage(); // MK
 
-
-    //MK: Warn, crash (SEGV) in write_gauge_field
     if(((Nsave !=0) && (trajectory_counter%Nsave == 0) && (trajectory_counter!=0)) || (write_cp_flag == 1) || (j >= (Nmeas - 1))) {
       /* Write the gauge configuration first to a temporary file */
 /*       write_gauge_field_time_p( tmp_filename); */
@@ -884,6 +880,8 @@ int main(int argc,char *argv[]) {
 #endif
   }
 #endif
+
+    print_memusage(); // MK
 
     trajectory_counter++;
   } /* end of loop over trajectories */
