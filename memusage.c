@@ -84,6 +84,9 @@ void print_memusage()
         Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPMAX, &memory_size);
         fprintf(stderr, "MK_Maximum memory HEAP:        %10ld MB\n", (long)memory_size / (1024 * 1024));
 
+        Kernel_GetMemorySize(KERNEL_MEMSIZE_GUARD, &memory_size);
+        fprintf(stderr, "MK_Heap guardpage:             %10ld MB\n", (long)memory_size / (1024 * 1024));
+
         Kernel_GetMemorySize(KERNEL_MEMSIZE_SHARED, &memory_size);
         fprintf(stderr, "MK_Shared memory:              %10ld MB\n", (long)memory_size / (1024 * 1024));
 

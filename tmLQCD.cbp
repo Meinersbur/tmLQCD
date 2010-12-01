@@ -344,6 +344,192 @@
 		<Unit filename="io/utils_write_xlf.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="lemon/include/config.h" />
+		<Unit filename="lemon/include/lemon.h" />
+		<Unit filename="lemon/include/lemon_binheader.h" />
+		<Unit filename="lemon/include/lemon_defines.h" />
+		<Unit filename="lemon/include/lemon_header.h" />
+		<Unit filename="lemon/include/lemon_reader.h" />
+		<Unit filename="lemon/include/lemon_writer.h" />
+		<Unit filename="lemon/src/header_construct.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/header_destroy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_EOM.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_MBFlag.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_MEFlag.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_bytes.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_closeRecord.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_construct.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_destroy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_finishReading.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_getPointer.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_latticeParallel.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_latticeParallelMapped.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_latticeParallelNonBlocking.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_latticeParallelNonBlockingMapped.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_nextRecord.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_padBytes.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_readData.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_readDataNonBlocking.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_seek.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_setPointer.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_setState.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/reader_type.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/writer_closeRecord.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/writer_construct.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/writer_destroy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/writer_finishWriting.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/writer_latticeParallel.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/writer_latticeParallelMapped.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/writer_latticeParallelNonBlocking.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/writer_latticeParallelNonBlockingMapped.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/writer_recordData.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/writer_recordDataNonBlocking.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/writer_recordHeader.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/writer_seek.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/src/writer_setState.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/test/canonical.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/test/cast.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/test/lemon_contents.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/test/nfstalker.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/test/parallel.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/test/parallel_non_blocking.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/test/sizes.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/test/xlf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lemon/test/xlf_non_blocking.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lime/examples/lime_contents.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lime/examples/lime_extract_record.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lime/examples/lime_extract_type.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lime/examples/lime_pack.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lime/examples/lime_unpack.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lime/examples/lime_writer_test1.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lime/include/dcap-overload.h" />
+		<Unit filename="lime/include/lime.h" />
+		<Unit filename="lime/include/lime_binary_header.h" />
+		<Unit filename="lime/include/lime_config.h" />
+		<Unit filename="lime/include/lime_defs.h" />
+		<Unit filename="lime/include/lime_fixed_types.h" />
+		<Unit filename="lime/include/lime_fseeko.h" />
+		<Unit filename="lime/include/lime_header.h" />
+		<Unit filename="lime/include/lime_reader.h" />
+		<Unit filename="lime/include/lime_utils.h" />
+		<Unit filename="lime/include/lime_writer.h" />
+		<Unit filename="lime/lib/lime_fseeko.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lime/lib/lime_header.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lime/lib/lime_reader.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lime/lib/lime_utils.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lime/lib/lime_writer.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="linalg/add.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -541,6 +727,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="measurements.h" />
+		<Unit filename="memusage.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="memusage.h" />
 		<Unit filename="monomial.c">
 			<Option compilerVar="CC" />
 		</Unit>
