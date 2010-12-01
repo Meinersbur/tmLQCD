@@ -860,6 +860,7 @@ int main(int argc,char *argv[]) {
       remove("hmc.reread");
     }
 
+#if 0
     /* GG STOP feature */
   if (g_proc_id == 0) {
     strcpy(gmalv, getenv("PBS_JOBDIR"));
@@ -882,6 +883,7 @@ int main(int argc,char *argv[]) {
       printf(" NOTFOUND ! \n");
 #endif
   }
+#endif
 
     trajectory_counter++;
   } /* end of loop over trajectories */
