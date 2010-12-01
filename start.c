@@ -942,18 +942,18 @@ void source_spinor_field_point_from_file(spinor * const P, spinor * const Q, int
 
 void start_ranlux(int level,int seed)
 {
+#if 1 /* by Michael Kruse */
+   int loc_seed;
+   loc_seed = seed + g_proc_id; // A good random number generator should generate completely different series even for small seed differences
+   // // loc_seed ranges from seed (for g_proc_id==0) to 2^31-1 or less when downrounding (for g_proc_id==g_nproc-1)
+#else
    int max_seed,loc_seed;
 
-   /* BEGIN Change by Michael Kruse */
-   max_seed = (2147483647-seed)/(g_nproc-1);
-   loc_seed = seed + g_proc_id * max_seed; // loc_seed ranges from seed (for g_proc_id==0) to 2^31-1 or less when downrounding (for g_proc_id==g_nproc-1)
-   /* ELSE */
-   max_seed=2147483647/g_nproc; //MK: (2^31-1)/g_procs; 2^31-1 is the maximal seed accepted by rlxs_init
+   max_seed=2147483647/g_nproc;  //MK: (2^31-1)/g_procs; 2^31-1 is the maximal seed accepted by rlxs_init
    loc_seed=seed+g_proc_id*max_seed; //MK: Seed for every core ranges from seed (for g_proc_id==0) to seed+(g_nproc-1)*max_speed
    /*MK: loc_seed > 2^31-1 possible if the "gap" between the last proc's seed and 2^31-1 is smaller than the argument seed */
    /*MK: This happens starting at g_nproc==2^15 (32k cores), where 2^31-1 - (g_nproc-1)*max_seed == 65535 is smaller than the default seed of 123456 */
-   /* END */
-
+#endif
    rlxs_init(level-1,loc_seed);
    rlxd_init(level,loc_seed);
 }

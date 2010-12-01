@@ -1,8 +1,8 @@
 /***********************************************************************
  * $Id$
- * 
+ *
  * Copyright (C) 2001 Martin Hasenbusch
- *                    
+ *
  * some parts change by C. Urbach 2001-2007
  *
  * This file is part of tmLQCD.
@@ -11,12 +11,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * tmLQCD is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with tmLQCD.  If not, see <http://www.gnu.org/licenses/>.
  ***********************************************************************/
@@ -52,13 +52,13 @@ int solve_cg(spinor * const k, spinor * const l, double eps_sq, const int rel_pr
 
   /* GG */
   double mflops_mpi, mflops_local;
-  
+
   /* GG */
 /*   print_tracel(__LINE__, __FILE__); */
   print_trace();
 
   spinor *x, *delta, *y;
-  
+
   /* initialize residue r and search vector p */
 #ifdef MPI
   atime = MPI_Wtime();
@@ -67,7 +67,7 @@ int solve_cg(spinor * const k, spinor * const l, double eps_sq, const int rel_pr
 #endif
   squarenorm = square_norm(l, VOLUME/2, 1);
 
-  if(g_sloppy_precision_flag == 1) { 
+  if(g_sloppy_precision_flag == 1) {
     delta = g_spinor_field[DUM_SOLVER+3];
     x = g_spinor_field[DUM_SOLVER+4];
     y = g_spinor_field[DUM_SOLVER+5];
@@ -78,7 +78,7 @@ int solve_cg(spinor * const k, spinor * const l, double eps_sq, const int rel_pr
     if(((sqnrm <= eps_sq) && (rel_prec == 0)) || ((sqnrm <= eps_sq*squarenorm) && (rel_prec == 1))) {
       return(0);
     }
-    
+
     for(i = 0; i < 20; i++) {
       g_sloppy_precision = 1;
       /* main CG loop in lower precision */
@@ -91,15 +91,15 @@ int solve_cg(spinor * const k, spinor * const l, double eps_sq, const int rel_pr
 	pro = scalar_prod_r(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER], VOLUME/2, 1);
 	alpha_cg = sqnrm2 / pro;
 	assign_add_mul_r(x, g_spinor_field[DUM_SOLVER+2], alpha_cg, VOLUME/2);
-	
+
 	assign_mul_add_r(g_spinor_field[DUM_SOLVER], -alpha_cg, g_spinor_field[DUM_SOLVER+1], VOLUME/2);
 	err = square_norm(g_spinor_field[DUM_SOLVER], VOLUME/2, 1);
-	
+
 	if(g_proc_id == g_stdio_proc && g_debug_level > 1) {
 	  printf("inner CG: %d res^2 %g\n", iteration+j+1, err);
 	  fflush(stdout);
 	}
-	
+
 	if (((err <= eps_sq) && (rel_prec == 0)) || ((err <= eps_sq*squarenorm) && (rel_prec == 1))){
 	  break;
 	}
@@ -112,14 +112,14 @@ int solve_cg(spinor * const k, spinor * const l, double eps_sq, const int rel_pr
       iteration += j;
       g_sloppy_precision = 0;
       add(k, k, x, VOLUME/2);
-      
+
       Qtm_pm_psi(y, x);
       diff(delta, delta, y, VOLUME/2);
       sqnrm = square_norm(delta, VOLUME/2, 1);
       if(g_debug_level > 0 && g_proc_id == g_stdio_proc) {
 	printf("mixed CG(linsolve): true residue %d\t%g\t\n",iteration, sqnrm); fflush( stdout);
       }
-      
+
       if(((sqnrm <= eps_sq) && (rel_prec == 0)) || ((sqnrm <= eps_sq*squarenorm) && (rel_prec == 1))) {
 	break;
       }
@@ -127,27 +127,27 @@ int solve_cg(spinor * const k, spinor * const l, double eps_sq, const int rel_pr
     }
   }
   else {
-    Qtm_pm_psi(g_spinor_field[DUM_SOLVER], k); 
-    
+    Qtm_pm_psi(g_spinor_field[DUM_SOLVER], k);
+
     diff(g_spinor_field[DUM_SOLVER+1], l, g_spinor_field[DUM_SOLVER], VOLUME/2);
     assign(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER+1], VOLUME/2);
     normsq=square_norm(g_spinor_field[DUM_SOLVER+1], VOLUME/2, 1);
-    
+
     /* main loop */
     for(iteration = 1; iteration <= ITER_MAX_CG; iteration++) {
       Qtm_pm_psi(g_spinor_field[DUM_SOLVER], g_spinor_field[DUM_SOLVER+2]);
       pro=scalar_prod_r(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER], VOLUME/2, 1);
       alpha_cg=normsq/pro;
       assign_add_mul_r(k, g_spinor_field[DUM_SOLVER+2], alpha_cg, VOLUME/2);
-      
+
       assign_mul_add_r(g_spinor_field[DUM_SOLVER], -alpha_cg, g_spinor_field[DUM_SOLVER+1], VOLUME/2);
       err=square_norm(g_spinor_field[DUM_SOLVER], VOLUME/2, 1);
-      
+
       if(g_proc_id == g_stdio_proc && g_debug_level > 1) {
-	printf("CG (linsolve): iterations: %d res^2 %e\n", iteration, err);
+	//MK printf("CG (linsolve): iterations: %d res^2 %e\n", iteration, err);
 	fflush(stdout);
       }
-      
+
       if (((err <= eps_sq) && (rel_prec == 0)) || ((err <= eps_sq*squarenorm) && (rel_prec == 1))){
 	break;
       }
@@ -172,21 +172,21 @@ int solve_cg(spinor * const k, spinor * const l, double eps_sq, const int rel_pr
 #ifdef MPI
   MPI_Reduce(&mflops_local, &mflops_mpi, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
   if(g_proc_id==0 && g_debug_level > 0) {
-    printf("CGgg: flopcount: t/s: %1.4e mflops_local: %.1f mflops_global: %.1f\n", 
-	   etime-atime, mflops_local, mflops_mpi); fflush(stdout);
+    //MK printf("CGgg: flopcount: t/s: %1.4e mflops_local: %.1f mflops_global: %.1f\n",
+	//MK etime-atime, mflops_local, mflops_mpi); fflush(stdout);
   }
 #endif
 
   if(g_proc_id==0 && g_debug_level > 0) {
-    printf("CG: iter: %d eps_sq: %1.4e t/s: %1.4e\n", iteration, eps_sq, etime-atime); 
-    printf("CG: flopcount: t/s: %1.4e mflops_local: %.1f mflops: %.1f\n", 
+    printf("CG: iter: %d eps_sq: %1.4e t/s: %1.4e\n", iteration, eps_sq, etime-atime);
+    printf("CG: flopcount: t/s: %1.4e mflops_local: %.1f mflops: %.1f\n",
 	   etime-atime, flops/(etime-atime), g_nproc*flops/(etime-atime)); fflush(stdout);
   }
 
   /* GG */
   if ( debug_detailGlob ) {
-    printf("CGgg: PStamp %s Rank %d Flopcount: t/s: %1.4e mflops_local: %.1f\n",
-	   pnametrajGlob, g_proc_id, etime-atime, flops/(etime-atime));
+    //MK printf("CGgg: PStamp %s Rank %d Flopcount: t/s: %1.4e mflops_local: %.1f\n",
+	//MK    pnametrajGlob, g_proc_id, etime-atime, flops/(etime-atime));
     //printf("CGgg: PStamp %s Rank %d TStamp %s Flopcount: t/s: %1.4e mflops_local: %.1f\n",
     //pnametrajGlob, g_proc_id, ctime((time_t*)(long)etime), etime-atime, flops/(etime-atime));
   }
@@ -202,7 +202,7 @@ int bicg(spinor * const k, spinor * const l, double eps_sq, const int rel_prec) 
   complex rho0, rho1, omega, alpha, beta, nom, denom;
   int iteration, N=VOLUME/2;
   spinor * r, * p, * v, *hatr, * s, * t, * P, * Q;
-  
+
   /* GG */
 /*   print_tracel(__LINE__, __FILE__);   */
   print_trace();
@@ -221,21 +221,21 @@ int bicg(spinor * const k, spinor * const l, double eps_sq, const int rel_prec) 
     Q = l;
 
     squarenorm = square_norm(Q, VOLUME/2, 1);
-    
+
     Mtm_plus_psi(r, P);
     gamma5(g_spinor_field[DUM_SOLVER], l, VOLUME/2);
     diff(p, hatr, r, N);
     assign(r, p, N);
     assign(hatr, p, N);
     rho0 = scalar_prod(hatr, r, N, 1);
-    
+
     for(iteration = 0; iteration < ITER_MAX_BCG; iteration++){
       err = square_norm(r, N, 1);
       if(g_proc_id == g_stdio_proc && g_debug_level > 1) {
 	printf("BiCGstab: iterations: %d res^2 %e\n", iteration, err);
 	fflush(stdout);
       }
-      if (((err <= eps_sq) && (rel_prec == 0)) 
+      if (((err <= eps_sq) && (rel_prec == 0))
 	  || ((err <= eps_sq*squarenorm) && (rel_prec == 1))){
 	break;
       }
@@ -259,9 +259,9 @@ int bicg(spinor * const k, spinor * const l, double eps_sq, const int rel_prec) 
       assign_mul_bra_add_mul_ket_add(p, v, r, omega, beta, N);
       rho0.re = rho1.re; rho0.im = rho1.im;
     }
-    
+
     if(g_proc_id==0 && g_debug_level > 0) {
-      printf("BiCGstab: iterations: %d eps_sq: %1.4e\n", iteration, eps_sq); 
+      printf("BiCGstab: iterations: %d eps_sq: %1.4e\n", iteration, eps_sq);
     }
   }
   else{
@@ -290,19 +290,19 @@ int eva(double *rz, int k, double q_off, double eps_sq) {
   int iteration;
   /* Initialize k to be gaussian */
   random_spinor_field(g_spinor_field[k], VOLUME/2);
-  norm0=square_norm(g_spinor_field[k], VOLUME/2, 1); 
+  norm0=square_norm(g_spinor_field[k], VOLUME/2, 1);
   /*normalize k */
   assign_mul_bra_add_mul_r( g_spinor_field[k], 1./sqrt(norm0),0., g_spinor_field[k], VOLUME/2);
   Q_psi(DUM_SOLVER,k,q_off);
   Q_psi(DUM_SOLVER,DUM_SOLVER,q_off);
   /*compute the ritz functional */
   /*put g on DUM_SOLVER+2 and p on DUM_SOLVER+1*/
-  ritz=scalar_prod_r(g_spinor_field[DUM_SOLVER], g_spinor_field[k], VOLUME/2, 1); 
+  ritz=scalar_prod_r(g_spinor_field[DUM_SOLVER], g_spinor_field[k], VOLUME/2, 1);
   zero_spinor_field(g_spinor_field[DUM_SOLVER+2],VOLUME/2);
   assign_add_mul_r_add_mul(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER], g_spinor_field[k], 1., -ritz, VOLUME/2);
   assign(g_spinor_field[DUM_SOLVER+1], g_spinor_field[DUM_SOLVER+2], VOLUME/2);
   normg0=square_norm(g_spinor_field[DUM_SOLVER+2], VOLUME/2, 1);
-  
+
   /* main loop */
   for(iteration=1;iteration<=ITER_MAX_BCG;iteration++) {
     if(normg0 <= eps_sq) break;
@@ -311,7 +311,7 @@ int eva(double *rz, int k, double q_off, double eps_sq) {
     /*   compute costh and sinth */
     normp=square_norm(g_spinor_field[DUM_SOLVER+1], VOLUME/2, 1);
     xxx=scalar_prod_r(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER+1], VOLUME/2, 1);
-    
+
     xs1=0.5*(ritz+xxx/normp);
     xs2=0.5*(ritz-xxx/normp);
     normp=sqrt(normp);
@@ -319,31 +319,31 @@ int eva(double *rz, int k, double q_off, double eps_sq) {
     aaa=sqrt(xs2*xs2+xs3*xs3);
     cosd=xs2/aaa;
     sind=xs3/aaa;
-    
-    if(cosd<=0.) { 
+
+    if(cosd<=0.) {
       costh=sqrt(0.5*(1.-cosd));
       sinth=-0.5*sind/costh;
     }
     else {
       sinth=-sqrt(0.5*(1.+cosd));
       costh=-0.5*sind/sinth;
-    } 
+    }
     ritz=ritz-2.*aaa*sinth*sinth;
-    
+
     assign_add_mul_r_add_mul(g_spinor_field[k],g_spinor_field[k], g_spinor_field[DUM_SOLVER +1], costh-1., sinth/normp, VOLUME/2);
     assign_add_mul_r_add_mul(g_spinor_field[DUM_SOLVER], g_spinor_field[DUM_SOLVER], g_spinor_field[DUM_SOLVER+2],
 			     costh-1., sinth/normp, VOLUME/2);
-    
+
     /*   compute g */
     zero_spinor_field(g_spinor_field[DUM_SOLVER+2],VOLUME/2);
     assign_add_mul_r_add_mul(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER], g_spinor_field[k],
 			     1., -ritz, VOLUME/2);
-    
+
     /*   calculate the norm of g' and beta_cg=costh g'^2/g^2 */
     normg=square_norm(g_spinor_field[DUM_SOLVER+2], VOLUME/2, 1);
     beta_cg=costh*normg/normg0;
     if(beta_cg*costh*normp>20.*sqrt(normg))  beta_cg=0.;
-    normg0=normg;    
+    normg0=normg;
     /*   compute the new value of p */
     assign_add_mul_r(g_spinor_field[DUM_SOLVER+1], g_spinor_field[k], -scalar_prod_r(g_spinor_field[k], g_spinor_field[DUM_SOLVER+1], VOLUME/2), VOLUME/2, 1);
     assign_mul_add_r(g_spinor_field[DUM_SOLVER+1],beta_cg, g_spinor_field[DUM_SOLVER+2], VOLUME/2);
@@ -357,7 +357,7 @@ int eva(double *rz, int k, double q_off, double eps_sq) {
       ritz=scalar_prod_r(g_spinor_field[DUM_SOLVER], g_spinor_field[k], VOLUME/2, 1);
       /*put g on DUM_SOLVER+2 and p on DUM_SOLVER+1*/
       zero_spinor_field(g_spinor_field[DUM_SOLVER+2],VOLUME/2);
-      assign_add_mul_r_add_mul(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER], g_spinor_field[k], 
+      assign_add_mul_r_add_mul(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER], g_spinor_field[k],
 			       1., -ritz, VOLUME/2);
       normg0=square_norm(g_spinor_field[DUM_SOLVER+2], VOLUME/2, 1);
       /*subtract a linear combination of x and g from p to
@@ -380,20 +380,20 @@ int evamax(double *rz, int k, double q_off, double eps_sq) {
   int iteration;
   /* Initialize k to be gaussian */
   random_spinor_field(g_spinor_field[k], VOLUME/2);
-  norm0=square_norm(g_spinor_field[k], VOLUME/2, 1); 
+  norm0=square_norm(g_spinor_field[k], VOLUME/2, 1);
   /*normalize k */
   assign_mul_bra_add_mul_r( g_spinor_field[k], 1./sqrt(norm0),0., g_spinor_field[k], VOLUME/2);
   Q_psi(DUM_SOLVER,k,q_off);
   Q_psi(DUM_SOLVER,DUM_SOLVER,q_off);
   /*compute the ritz functional */
   /*put g on DUM_SOLVER+2 and p on DUM_SOLVER+1*/
-  ritz=scalar_prod_r(g_spinor_field[DUM_SOLVER], g_spinor_field[k], VOLUME/2, 1); 
+  ritz=scalar_prod_r(g_spinor_field[DUM_SOLVER], g_spinor_field[k], VOLUME/2, 1);
   zero_spinor_field(g_spinor_field[DUM_SOLVER+2],VOLUME/2);
   assign_add_mul_r_add_mul(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER], g_spinor_field[k],
 			   1., -ritz, VOLUME/2);
   assign(g_spinor_field[DUM_SOLVER+1], g_spinor_field[DUM_SOLVER+2], VOLUME/2);
   normg0=square_norm(g_spinor_field[DUM_SOLVER+2], VOLUME/2, 1);
-  
+
   /* main loop */
   for(iteration=1;iteration<=ITER_MAX_BCG;iteration++) {
     if(normg0 <= eps_sq) break;
@@ -402,7 +402,7 @@ int evamax(double *rz, int k, double q_off, double eps_sq) {
     /*   compute costh and sinth */
     normp=square_norm(g_spinor_field[DUM_SOLVER+1], VOLUME/2, 1);
     xxx=scalar_prod_r(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER+1], VOLUME/2, 1);
-    
+
     xs1=0.5*(ritz+xxx/normp);
     xs2=0.5*(ritz-xxx/normp);
     normp=sqrt(normp);
@@ -410,32 +410,32 @@ int evamax(double *rz, int k, double q_off, double eps_sq) {
     aaa=sqrt(xs2*xs2+xs3*xs3);
     cosd=xs2/aaa;
     sind=xs3/aaa;
-    
-    if(cosd>=0.) { 
+
+    if(cosd>=0.) {
       costh=sqrt(0.5*(1.+cosd));
       sinth=0.5*sind/costh;
     }
     else {
       sinth=sqrt(0.5*(1.-cosd));
       costh=0.5*sind/sinth;
-    } 
+    }
     ritz=xs1+aaa;
-    
-    assign_add_mul_r_add_mul(g_spinor_field[k], g_spinor_field[k], g_spinor_field[DUM_SOLVER+1], 
+
+    assign_add_mul_r_add_mul(g_spinor_field[k], g_spinor_field[k], g_spinor_field[DUM_SOLVER+1],
 			     costh-1., sinth/normp, VOLUME/2);
     assign_add_mul_r_add_mul(g_spinor_field[DUM_SOLVER], g_spinor_field[DUM_SOLVER], g_spinor_field[DUM_SOLVER+2],
 			     costh-1., sinth/normp, VOLUME/2);
-    
+
     /*   compute g */
     zero_spinor_field(g_spinor_field[DUM_SOLVER+2],VOLUME/2);
-    assign_add_mul_r_add_mul(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER], g_spinor_field[k], 
+    assign_add_mul_r_add_mul(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER], g_spinor_field[k],
 			     1., -ritz, VOLUME/2);
-    
+
     /*   calculate the norm of g' and beta_cg=costh g'^2/g^2 */
     normg=square_norm(g_spinor_field[DUM_SOLVER+2], VOLUME/2, 1);
     beta_cg=costh*normg/normg0;
     if(beta_cg*costh*normp>20.*sqrt(normg))  beta_cg=0.;
-    normg0=normg;    
+    normg0=normg;
     /*   compute the new value of p */
     assign_add_mul_r(g_spinor_field[DUM_SOLVER+1], g_spinor_field[k], -scalar_prod_r(g_spinor_field[k], g_spinor_field[DUM_SOLVER+1], VOLUME/2), VOLUME/2, 1);
     assign_mul_add_r(g_spinor_field[DUM_SOLVER+1],beta_cg, g_spinor_field[DUM_SOLVER+2], VOLUME/2);
@@ -453,7 +453,7 @@ int evamax(double *rz, int k, double q_off, double eps_sq) {
       assign_add_mul_r_add_mul(g_spinor_field[DUM_SOLVER+2], g_spinor_field[DUM_SOLVER], g_spinor_field[k],
 			       1., -ritz, VOLUME/2);
       normg0=square_norm(g_spinor_field[DUM_SOLVER+2], VOLUME/2, 1);
-      /*subtract a linear combination of x and g from p to 
+      /*subtract a linear combination of x and g from p to
 	insure (x,p)=0 and (p,g)=(g,g) */
       cosd=scalar_prod_r(g_spinor_field[k], g_spinor_field[DUM_SOLVER+1], VOLUME/2, 1);
       assign_add_mul_r(g_spinor_field[DUM_SOLVER+1], g_spinor_field[k], -cosd, VOLUME/2);
@@ -471,7 +471,7 @@ int evamax0(double *rz, int k, double q_off, double eps_sq) {
   static double norm,norm0;
   int j;
   random_spinor_field(g_spinor_field[k], VOLUME/2);
-  norm0=square_norm(g_spinor_field[k], VOLUME/2, 1); 
+  norm0=square_norm(g_spinor_field[k], VOLUME/2, 1);
   norm=1000.;
   assign_mul_bra_add_mul_r( g_spinor_field[k], 1./sqrt(norm0),0., g_spinor_field[k], VOLUME/2);
   for(j=1;j<ITER_MAX_BCG;j++)
@@ -487,7 +487,7 @@ int evamax0(double *rz, int k, double q_off, double eps_sq) {
   return j;
 }
 
-/* this is actually the not the bicg but the geometric series 
+/* this is actually the not the bicg but the geometric series
    The use of the geometric series avoids  in contrast to the bicg
    reversibility problems when a reduced accuracy of the solver employed
 
@@ -533,7 +533,7 @@ int bicg(spinor * const k, spinor * const l, double eps_sq) {
       fclose(sout);
     }
   }
-  
+
   return iteration;
 }
 #endif

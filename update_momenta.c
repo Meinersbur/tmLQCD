@@ -1,5 +1,5 @@
 /***********************************************************************
- * $Id$ 
+ * $Id$
  *
  * Copyright (C) 2001 Martin Hasebusch
  *               2002,2003,2004,2005,2006,2007,2008 Carsten Urbach
@@ -10,12 +10,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * tmLQCD is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with tmLQCD.  If not, see <http://www.gnu.org/licenses/>.
  ***********************************************************************/
@@ -51,8 +51,8 @@ void update_momenta(int * mnllist, double step, const int no) {
     atime = (double)clock()/(double)(CLOCKS_PER_SEC);
 #endif
 
-  for(i=0;i<(VOLUME);i++) { 
-    for(mu=0;mu<4;mu++) { 
+  for(i=0;i<(VOLUME);i++) {
+    for(mu=0;mu<4;mu++) {
       _zero_su3adj(df0[i][mu]);
     }
   }
@@ -60,8 +60,8 @@ void update_momenta(int * mnllist, double step, const int no) {
   for(k = 0; k < no; k++) {
     sum = 0.;
     max = 0.;
-    for(i = (VOLUME); i < (VOLUME+RAND); i++) { 
-      for(mu = 0; mu < 4; mu++) { 
+    for(i = (VOLUME); i < (VOLUME+RAND); i++) {
+      for(mu = 0; mu < 4; mu++) {
 	_zero_su3adj(df0[i][mu]);
       }
     }
@@ -78,13 +78,13 @@ void update_momenta(int * mnllist, double step, const int no) {
 	deriv=&df0[i][mu];
 	/* force monitoring */
 	if(g_debug_level > 0) {
-	  sum2 = _su3adj_square_norm(*deriv); 
+	  sum2 = _su3adj_square_norm(*deriv);
 	  sum+= sum2;
 	  if(fabs(sum2) > max) max = sum2;
 	}
 	tmp = step*monomial_list[ mnllist[k] ].forcefactor;
 	/* the minus comes from an extra minus in trace_lambda */
-	_minus_const_times_mom(*xm,tmp,*deriv); 
+	_minus_const_times_mom(*xm,tmp,*deriv);
 	/* set to zero immediately */
 	_zero_su3adj(df0[i][mu]);
       }
@@ -102,14 +102,14 @@ void update_momenta(int * mnllist, double step, const int no) {
       max = sum2;
 #endif
       if(g_proc_id == 0) {
-	printf("force %s ts %d\taver: %1.4e\tmax: %1.4e\tdt*aver: %1.4e\tdt*max: %1.4e\tt/s %1.4e\n", 
-	       monomial_list[ mnllist[k] ].name, monomial_list[ mnllist[k] ].timescale, 
-	       fabs(sum/((double)(VOLUME*g_nproc))/4.*monomial_list[ mnllist[k] ].forcefactor),
-	       fabs(max*monomial_list[ mnllist[k] ].forcefactor),
-	       fabs(step*sum/((double)(VOLUME*g_nproc))/4.*monomial_list[ mnllist[k] ].forcefactor),
-	       fabs(step*max*monomial_list[ mnllist[k] ].forcefactor), 
-	       etime-atime);
-	fflush(stdout);
+	//MK printf("force %s ts %d\taver: %1.4e\tmax: %1.4e\tdt*aver: %1.4e\tdt*max: %1.4e\tt/s %1.4e\n",
+	//MK       monomial_list[ mnllist[k] ].name, monomial_list[ mnllist[k] ].timescale,
+	//MK       fabs(sum/((double)(VOLUME*g_nproc))/4.*monomial_list[ mnllist[k] ].forcefactor),
+	//MK       fabs(max*monomial_list[ mnllist[k] ].forcefactor),
+	//MK       fabs(step*sum/((double)(VOLUME*g_nproc))/4.*monomial_list[ mnllist[k] ].forcefactor),
+	//MK       fabs(step*max*monomial_list[ mnllist[k] ].forcefactor),
+	//MK       etime-atime);
+	//MK fflush(stdout);
       }
     }
   }
