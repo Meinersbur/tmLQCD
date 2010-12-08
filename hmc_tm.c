@@ -269,6 +269,12 @@ int main(int argc,char *argv[]) {
   char gmalc[256];
   char gmalv[256];
   char gmalt[256];
+
+  if (g_proc_id == 0) {
+    fprintf(stderr, "MK_Static memusage:\n");
+    print_memusage(); // MK
+  }
+
   //GLOB char pnametrajGlob[256];
   gpid = getpid();
   gethostname(ghost, 256);
@@ -725,7 +731,7 @@ int main(int argc,char *argv[]) {
   }
 
   if (g_proc_id == 0) {
-    fprintf(stderr, "MK_Init memusage:\n");  
+    fprintf(stderr, "MK_Init memusage:\n");
     print_memusage(); // MK
   }
 
