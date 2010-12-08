@@ -270,11 +270,6 @@ int main(int argc,char *argv[]) {
   char gmalv[256];
   char gmalt[256];
 
-  if (g_proc_id == 0) {
-    fprintf(stderr, "MK_Static memusage:\n");
-    print_memusage(); // MK
-  }
-
   //GLOB char pnametrajGlob[256];
   gpid = getpid();
   gethostname(ghost, 256);
@@ -301,6 +296,11 @@ int main(int argc,char *argv[]) {
 #else
   g_proc_id = 0;
 #endif
+
+  if (g_proc_id == 0) {
+    fprintf(stderr, "MK_Static memusage:\n");
+    print_memusage(); // MK
+  }
 
   /* GG */
   /*
@@ -422,8 +422,8 @@ int main(int argc,char *argv[]) {
   DUM_MATRIX = DUM_SOLVER+6;
   if(g_running_phmc) {
     NO_OF_SPINORFIELDS = DUM_MATRIX+8;
-//    NO_OF_SPINORFIELDS = DUM_MATRIX+11; /* GG det0 */   //MK: Change suggested by GG
-//    NO_OF_SPINORFIELDS = DUM_MATRIX+13; /* GG detr1 */  //MK: Change suggested by GG
+    NO_OF_SPINORFIELDS = DUM_MATRIX+11; /* GG det0 */
+    NO_OF_SPINORFIELDS = DUM_MATRIX+13; /* GG detr1 */
 //    NO_OF_SPINORFIELDS = DUM_MATRIX+15; /* GG detr2 */  //MK: Change suggested by GG
   }
   else {
@@ -766,8 +766,10 @@ int main(int argc,char *argv[]) {
     }
 
 #if 1 //MK
-    fprintf(stderr, "MK_Plaquette energy: %e\n", plaquette_energy/(6.*VOLUME*g_nproc));
-    fprintf(stderr, "MK_Rectangle energy: %e\n", rectangle_energy);
+    if (g_proc_id == 0) {
+        fprintf(stderr, "MK_Plaquette energy: %e\n", plaquette_energy/(6.*VOLUME*g_nproc));
+        fprintf(stderr, "MK_Rectangle energy: %e\n", rectangle_energy);
+    }
 #endif
 
     /* Save gauge configuration all Nsave times */
