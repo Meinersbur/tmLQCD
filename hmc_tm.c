@@ -724,6 +724,11 @@ int main(int argc,char *argv[]) {
 #endif
   }
 
+  if (g_proc_id == 0) {
+    fprintf(stderr, "MK_Init memusage:\n");  
+    print_memusage(); // MK
+  }
+
   /* Loop for measurements */
   for(j = 0; j < Nmeas; j++) {
     if(g_proc_id == 0) {
