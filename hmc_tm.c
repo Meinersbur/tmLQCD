@@ -416,9 +416,9 @@ int main(int argc,char *argv[]) {
   DUM_MATRIX = DUM_SOLVER+6;
   if(g_running_phmc) {
     NO_OF_SPINORFIELDS = DUM_MATRIX+8;
-    NO_OF_SPINORFIELDS = DUM_MATRIX+11; /* GG det0 */
-    NO_OF_SPINORFIELDS = DUM_MATRIX+13; /* GG detr1 */
-    NO_OF_SPINORFIELDS = DUM_MATRIX+15; /* GG detr2 */
+//    NO_OF_SPINORFIELDS = DUM_MATRIX+11; /* GG det0 */   //MK: Change suggested by GG
+//    NO_OF_SPINORFIELDS = DUM_MATRIX+13; /* GG detr1 */  //MK: Change suggested by GG
+//    NO_OF_SPINORFIELDS = DUM_MATRIX+15; /* GG detr2 */  //MK: Change suggested by GG
   }
   else {
     NO_OF_SPINORFIELDS = DUM_MATRIX+6;
@@ -488,7 +488,7 @@ int main(int argc,char *argv[]) {
   }
 
   /* GG */
-  if( g_rec_ev == 0 ) {
+  //if( g_rec_ev == 0 ) {  //MK: Change suggested by GG
   if(even_odd_flag) {
     j = init_monomials(VOLUMEPLUSRAND/2, even_odd_flag);
   }
@@ -499,7 +499,7 @@ int main(int argc,char *argv[]) {
     fprintf(stderr, "Not enough memory for monomial pseudo fermion  fields! Aborting...\n");
     exit(0);
   }
-  }
+  //}  //MK: Change suggested by GG
   /* */
 
   if(even_odd_flag) {
@@ -514,7 +514,7 @@ int main(int argc,char *argv[]) {
   }
 
   /* GG */
-  if( g_rec_ev == 0 ) {
+  //if( g_rec_ev == 0 ) { //MK: Change suggested by GG
   if(even_odd_flag) {
     j = init_csg_field(VOLUMEPLUSRAND/2);
   }
@@ -531,7 +531,7 @@ int main(int argc,char *argv[]) {
     fprintf(stderr, "Not enough memory for moment fields! Aborting...\n");
     exit(0);
   }
-  }
+  //} //MK: Change suggested by GG
   /* */
 
   if(g_running_phmc) {
@@ -577,7 +577,7 @@ int main(int argc,char *argv[]) {
   check_geometry();
 
   /* GG */
-  if( g_rec_ev == 0 ) {
+  //if( g_rec_ev == 0 ) { //MK: Change suggested by GG
 #ifdef _USE_HALFSPINOR
   j = init_dirac_halfspinor();
   if ( j!= 0) {
@@ -591,7 +591,7 @@ int main(int argc,char *argv[]) {
   init_xchange_halffield();
 #  endif
 #endif
-}
+//}  //MK: Change suggested by GG
 /* */
 
   /* Initialise random number generator */
@@ -758,6 +758,11 @@ int main(int argc,char *argv[]) {
       printf("# Ending trajectory no %d loop_index %d Rate: %d in %e sec. (MPI_Wtime)\n", trajectory_counter, j+1, Rate, etime-atime); fflush(stdout);
       ERRNO_PRINT;
     }
+
+#if 1 //MK
+    fprintf(stderr, "MK_Plaquette energy: %e\n", plaquette_energy/(6.*VOLUME*g_nproc));
+    fprintf(stderr, "MK_Rectangle energy: %e\n", rectangle_energy);
+#endif
 
     /* Save gauge configuration all Nsave times */
     if((Nsave !=0) && (trajectory_counter%Nsave == 0) && (trajectory_counter!=0)) {
