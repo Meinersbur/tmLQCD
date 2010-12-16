@@ -41,6 +41,9 @@
 #include "linalg/assign_add_mul_r_add_mul.h"
 #include "linsolve.h"
 
+int callcount = 0;
+jmp_buf longjmpenv;
+
 
 /* k output , l input */
 int solve_cg(spinor * const k, spinor * const l, double eps_sq, const int rel_prec) {
@@ -56,6 +59,10 @@ int solve_cg(spinor * const k, spinor * const l, double eps_sq, const int rel_pr
   /* GG */
 /*   print_tracel(__LINE__, __FILE__); */
   print_trace();
+  if (callcount++ >= 21) { //MK
+    longjmp(longjmpenv, 1);
+  }
+
 
   spinor *x, *delta, *y;
 
