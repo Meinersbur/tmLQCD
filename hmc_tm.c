@@ -424,7 +424,7 @@ int main(int argc,char *argv[]) {
     NO_OF_SPINORFIELDS = DUM_MATRIX+8;
     NO_OF_SPINORFIELDS = DUM_MATRIX+11; /* GG det0 */
     NO_OF_SPINORFIELDS = DUM_MATRIX+13; /* GG detr1 */
-//    NO_OF_SPINORFIELDS = DUM_MATRIX+15; /* GG detr2 */  //MK: Change suggested by GG
+    NO_OF_SPINORFIELDS = DUM_MATRIX+15; /* GG detr2 */  //MK: Change suggested by GG
   }
   else {
     NO_OF_SPINORFIELDS = DUM_MATRIX+6;
