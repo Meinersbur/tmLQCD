@@ -41,7 +41,7 @@
 #include "linalg/assign_add_mul_r_add_mul.h"
 #include "linsolve.h"
 
-int callcount = 0;
+static int callcount = 0;
 jmp_buf longjmpenv;
 
 
@@ -59,9 +59,15 @@ int solve_cg(spinor * const k, spinor * const l, double eps_sq, const int rel_pr
   /* GG */
 /*   print_tracel(__LINE__, __FILE__); */
   print_trace();
-  if (callcount++ >= 21) { //MK
+  if (callcount >= 3) { //MK
+    if (g_proc_id == 0)
+      fprintf(stderr, "MK_Comp limit reachead, Aborting trajectory\n");
+    callcount = 0;
     longjmp(longjmpenv, 1);
   }
+  if (g_proc_id == 0)
+    fprintf(stderr, "MK_Callcount %d\n", callcount);
+  callcount += 1;
 
 
   spinor *x, *delta, *y;

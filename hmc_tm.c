@@ -96,7 +96,7 @@ extern FILE *fmemopen (void *__s, size_t __len, __const char *__modes) __THROW;
 #include "measurements.h"
 #include "sf_calc_action.h"
 #include "sf_observables.h"
-#include <setjmp.h> //MK
+#include "linsolve.h" //MK
 
 //#define __NON_INSTRUMENT_FUNCTION__    __attribute__((__no_instrument_function__))
 
@@ -751,7 +751,7 @@ int main(int argc,char *argv[]) {
     if(return_check_flag == 1 && trajectory_counter%return_check_interval == 0) return_check = 1;
     else return_check = 0;
 
-    if (setlongjmp(longjmpenv) == 0) {
+    if (setjmp(longjmpenv) == 0) {
     /* GG special test ecriture-lecture */
 #if 1
     Rate += update_tm(&plaquette_energy, &rectangle_energy, datafilename, return_check, Ntherm<trajectory_counter);

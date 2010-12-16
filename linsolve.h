@@ -21,7 +21,6 @@
 
 #include <setjmp.h> //MK
 
-extern int callcount; //MK
 extern jmp_buf longjmpenv; //MK
 
 
