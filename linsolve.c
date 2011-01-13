@@ -63,7 +63,7 @@ int solve_cg(spinor * const k, spinor * const l, double eps_sq, const int rel_pr
     if (g_proc_id == 0)
       fprintf(stderr, "MK_Comp limit reachead, Aborting trajectory\n");
     callcount = 0;
-    longjmp(longjmpenv, 1);
+    //longjmp(longjmpenv, 1);
   }
   if (g_proc_id == 0)
     fprintf(stderr, "MK_Callcount %d\n", callcount);

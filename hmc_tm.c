@@ -440,7 +440,7 @@ int main(int argc,char *argv[]) {
 
   init_integrator();
 
-  atexit(&tmlqcd_mpi_close);
+  //atexit(&tmlqcd_mpi_close);
 
   if(nstore == -1) {
     if (g_proc_id == 0) { /* GG */
@@ -751,12 +751,12 @@ int main(int argc,char *argv[]) {
     if(return_check_flag == 1 && trajectory_counter%return_check_interval == 0) return_check = 1;
     else return_check = 0;
 
-    if (setjmp(longjmpenv) == 0) {
+    //if (setjmp(longjmpenv) == 0) {
     /* GG special test ecriture-lecture */
 #if 1
     Rate += update_tm(&plaquette_energy, &rectangle_energy, datafilename, return_check, Ntherm<trajectory_counter);
 #endif
-    }
+    //}
 
     /* GG */
     if(g_proc_id == 0) {
@@ -920,9 +920,7 @@ int main(int argc,char *argv[]) {
     fclose(parameterfile);
   }
 
-#ifdef MPI
-  MPI_Finalize();
-#endif
+#if 1
   free_gauge_tmp();
   free_gauge_field();
   free_geometry_indices();
@@ -933,10 +931,14 @@ int main(int argc,char *argv[]) {
     free_bispinor_field();
     free_chi_spinor_field();
   }
+#endif
   /* End IF PHMC */
 /*   if(use_stout_flag == 1) */
 /*     free_stout_smear_vars(); */
 
+#ifdef MPI
+  MPI_Finalize();
+#endif
   return(0);
 #ifdef _KOJAK_INST
 #pragma pomp inst end(main)
