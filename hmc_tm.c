@@ -423,9 +423,9 @@ int main(int argc,char *argv[]) {
   DUM_MATRIX = DUM_SOLVER+6;
   if(g_running_phmc) {
     NO_OF_SPINORFIELDS = DUM_MATRIX+8;
-    NO_OF_SPINORFIELDS = DUM_MATRIX+11; /* GG det0 */
-    NO_OF_SPINORFIELDS = DUM_MATRIX+13; /* GG detr1 */
-    NO_OF_SPINORFIELDS = DUM_MATRIX+15; /* GG detr2 */  //MK: Change suggested by GG
+    //NO_OF_SPINORFIELDS = DUM_MATRIX+11; /* GG det0 */
+    //NO_OF_SPINORFIELDS = DUM_MATRIX+13; /* GG detr1 */
+    //NO_OF_SPINORFIELDS = DUM_MATRIX+15; /* GG detr2 */  //MK: Change suggested by GG
   }
   else {
     NO_OF_SPINORFIELDS = DUM_MATRIX+6;
@@ -751,12 +751,17 @@ int main(int argc,char *argv[]) {
     if(return_check_flag == 1 && trajectory_counter%return_check_interval == 0) return_check = 1;
     else return_check = 0;
 
-    //if (setjmp(longjmpenv) == 0) {
+    if (setjmp(longjmpenv) == 0) {
     /* GG special test ecriture-lecture */
 #if 1
     Rate += update_tm(&plaquette_energy, &rectangle_energy, datafilename, return_check, Ntherm<trajectory_counter);
 #endif
-    //}
+      if (g_proc_id == 0)
+        fprintf(stderr, "MK_update_tm completed normally; Rate=%d\n", Rate);
+    } else {
+      if (g_proc_id == 0)
+        fprintf(stderr, "MK_update_tm partially skipped; Rate=%d\n", Rate);
+    }
 
     /* GG */
     if(g_proc_id == 0) {
@@ -795,9 +800,9 @@ int main(int argc,char *argv[]) {
       sprintf(gauge_filename,"conf.save");
     }
 
-    print_memusage(); // MK
-
-    if(((Nsave !=0) && (trajectory_counter%Nsave == 0) && (trajectory_counter!=0)) || (write_cp_flag == 1) || (j >= (Nmeas - 1))) {
+    //if(((Nsave !=0) && (trajectory_counter%Nsave == 0) && (trajectory_counter!=0)) || (write_cp_flag == 1) || (j >= (Nmeas - 1))) {
+        if (g_proc_id == 0)
+	  fprintf(stderr, "MK_Writing gauge configuration to %s\n", gauge_filename);
       /* Write the gauge configuration first to a temporary file */
 /*       write_gauge_field_time_p( tmp_filename); */
 
@@ -818,7 +823,7 @@ int main(int argc,char *argv[]) {
         fclose(countfile);
 	ERRNO_PRINT;
       }
-    }
+    //}
 
     /* online measurements */
     for(imeas=0; imeas<no_measurements; imeas++){
@@ -832,6 +837,8 @@ int main(int argc,char *argv[]) {
       /* GG */
       if (nstore%5 == 0)
 	phmc_compute_ev(trajectory_counter, plaquette_energy);
+        if (g_proc_id == 0)
+	  fprintf(stderr, "MK_phmc_compute_ev %e\n", plaquette_energy);
     }
 
     if(g_proc_id == 0) {

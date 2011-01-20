@@ -36,10 +36,14 @@ cd $ROOTPATH
 echo
 echo Configure tmLQCD.....
 
+# Heavy optimization
+# -O5 -qnoautoconfig -qprefetch -qarch=450d -qtune=450 -qcache=level=1:type=i:size=32:line=32:assoc=64:cost=8 -qcache=level=1:type=d:size=32:line=32:assoc=64:cost=8 -qcache=level=2:type=c:size=4096:line=128:assoc=8:cost=40
+
 # Normal
 ./configure --enable-mpi --with-mpidimension=4 --enable-gaugecopy --enable-halfspinor --without-gprof --without-bgldram --with-limedir=/homea/hch02/hch023/tmLQCD-5.1.1/lime --with-lemondir=/homea/hch02/hch023/tmLQCD-5.1.5/lemon-build --host=ppc-ibm-bprts --build=ppc64-ibm-linux --enable-largefile --with-lapack="-L/bgsys/local/lapack/lib -L/opt/ibmmath/essl/4.4/lib -lesslbg -llapack -lesslbg -lxlf90_r" CC=mpixlc_r CCFLAGS="-g -qfullpath -I/bgsys/drivers/ppcfloor/arch/include/ -I/bgsys/drivers/ppcfloor/comm/include" F77=mpixlf77_r --with-lapackdir=/usr/local/bg_soft/lapack | tee configure.log
 
 # With scalasca
+#module load scalasca
 #./configure --enable-mpi --with-mpidimension=4 --enable-gaugecopy --enable-halfspinor --without-gprof --without-bgldram --with-limedir=/homea/hch02/hch023/tmLQCD-5.1.1/lime --with-lemondir=/homea/hch02/hch023/tmLQCD-5.1.5/lemon-build --host=ppc-ibm-bprts --build=ppc64-ibm-linux --enable-largefile --with-lapack="-L/bgsys/local/lapack/lib -L/opt/ibmmath/essl/4.4/lib -lesslbg -llapack -lesslbg -lxlf90_r" CC="skin mpixlc_r" CCFLAGS="-g -qfullpath -I/bgsys/drivers/ppcfloor/arch/include/ -I/bgsys/drivers/ppcfloor/comm/include" F77=mpixlf77_r --with-lapackdir=/usr/local/bg_soft/lapack | tee configure.log
 
 # With mpitrace

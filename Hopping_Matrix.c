@@ -510,6 +510,14 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
  *
  **********************************/
 
+//#undef _prefetch_spinor
+//#define _prefetch_spinor(x)
+
+//#undef _prefetch_su3
+//#define _prefetch_su3(x)
+
+//#undef _prefetch_halfspinor
+//#define _prefetch_halfspinor(x)
 
 /* 2. */
 void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){

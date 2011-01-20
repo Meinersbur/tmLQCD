@@ -242,6 +242,15 @@ int update_tm(double *plaquette_energy, double *rectangle_energy,
   if(!acctest) {
     accept = 1;
   }
+
+  if (g_proc_id == 0) {
+    if (accept) {
+      fprintf(stderr, "MK_Trajectory accepted; %e > %e\n", expmdh, yy[0]);
+    } else {
+      fprintf(stderr, "MK_Trajectory rejected; %e <= %e\n", expmdh, yy[0]);
+    }
+  }
+
   /* Here a reversibility test is performed */
   /* The trajectory is integrated back      */
   if(return_check == 1) {
@@ -253,7 +262,7 @@ int update_tm(double *plaquette_energy, double *rectangle_energy,
     g_sloppy_precision = 1;
 
   /* GG */
-#if 1
+#if 0 //MK Change suggested by GG
   nustore =    0;
   nustor2 =    0;
   nustora[0] = 0;
