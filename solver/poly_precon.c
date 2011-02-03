@@ -7,12 +7,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * tmLQCD is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with tmLQCD.  If not, see <http://www.gnu.org/licenses/>.
  ***********************************************************************/
@@ -35,6 +35,7 @@
 #include "boundary.h"
 #include "D_psi.h"
 #include "poly_precon.h"
+#include "cmalloc.h"
 
 
 #define PI 3.141592653589793
@@ -80,7 +81,7 @@ void poly_precon(spinor * const R, spinor * const S, const double prec, const in
   const int N = VOLUME;
 
 
-  
+
   maxev = 4.0;
   invmaxev = 1./maxev;
   minev = 0.1;
@@ -96,7 +97,7 @@ void poly_precon(spinor * const R, spinor * const S, const double prec, const in
   CMALLOC_ERROR_EXIT(d_);
     d    = (spinor *)(((unsigned long int)(d_)+ALIGN_BASE)&~ALIGN_BASE);
     dd_  = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
-  CMALLOC_ERROR_EXIT(dd_;
+  CMALLOC_ERROR_EXIT(dd_);
     dd   = (spinor *)(((unsigned long int)(dd_)+ALIGN_BASE)&~ALIGN_BASE);
     aux_ = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
   CMALLOC_ERROR_EXIT(aux_);
@@ -104,7 +105,7 @@ void poly_precon(spinor * const R, spinor * const S, const double prec, const in
     aux3_= calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
   CMALLOC_ERROR_EXIT(aux3_);
     aux3 = (spinor *)(((unsigned long int)(aux3_)+ALIGN_BASE)&~ALIGN_BASE);
-#else 
+#else
     sv_  = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
   CMALLOC_ERROR_EXIT(sv_);
     sv   = sv_;
@@ -139,14 +140,14 @@ void poly_precon(spinor * const R, spinor * const S, const double prec, const in
 
   fact1 = 4. / (maxev - minev);
   fact2 = -2 * (maxev + minev) / (maxev - minev);
-   
+
   zero_spinor_field(&d[0], N);
-  zero_spinor_field(&dd[0], N); 
-  assign(&aux3[0], &S[0], N); 
+  zero_spinor_field(&dd[0], N);
+  assign(&aux3[0], &S[0], N);
 /*   gamma5(&aux3[0], &S[0], N); */
 
-  /* Use the adaptive precision version using the forward recursion 
-     for the Chebysheff polynomial 
+  /* Use the adaptive precision version using the forward recursion
+     for the Chebysheff polynomial
   */
 
   /* d = T_0(Q^2) */
@@ -156,13 +157,13 @@ void poly_precon(spinor * const R, spinor * const S, const double prec, const in
 /*   mul_r(dd, invmaxev, dd, N); */
   /*    norm_Q_sqr_psi(&dd[0], &d[0], g_m_D_psi, rnorm); */
   temp3 = fact1/2;
-  temp4 = fact2/2;  
+  temp4 = fact2/2;
   assign_mul_add_mul_r(&dd[0], &d[0], temp3, temp4, N);
   /* r = c_1 T_1(Q^2) + 1/2 c_0 */
   temp1 = c[1];
   temp2 = c[0]/2;
   mul_add_mul_r(&R[0], &dd[0], &d[0], temp1, temp2, N);
-     
+
   temp1 = -1.0;
   for (j=2; j<=n-1; j++) {
     /* aux = T_j(Q^2) = 2 Q^2 T_{j-1}(Q^2) - T_{j-2}(Q^2) */
@@ -176,14 +177,14 @@ void poly_precon(spinor * const R, spinor * const S, const double prec, const in
     /* The stoppping criterio tnorm = |T_j(Q^2)| */
     tnorm = square_norm(aux, N, 1);
     tnorm *= (temp2*temp2);
-     
-    
+
+
     auxnorm = square_norm(R, N, 1);
     if(g_proc_id == g_stdio_proc) {
       printf("j= %d\t|c T|^2= %g\t%g\t c_j= %g\t|r|^2= %g\n",j,tnorm,prec, temp2,auxnorm); fflush( stdout);
       fflush(stdout);
     }
-         
+
     if(tnorm < prec) break;
     /* d = T_{j-1}(Q^2) */
     assign(&d[0], &dd[0], N);
@@ -191,10 +192,10 @@ void poly_precon(spinor * const R, spinor * const S, const double prec, const in
     assign(&dd[0], &aux[0], N);
   }
   if(g_proc_id == g_stdio_proc) {
-    printf("Order of Chebysheff approximation = %d\n",j); 
+    printf("Order of Chebysheff approximation = %d\n",j);
     fflush( stdout);
   }
-   
+
 
   /* r = Q r */
 
@@ -205,7 +206,7 @@ void poly_precon(spinor * const R, spinor * const S, const double prec, const in
 }
 
 
-void poly_nonherm_precon(spinor * const R, spinor * const S, 
+void poly_nonherm_precon(spinor * const R, spinor * const S,
 			 const double e, const double d, const int n, const int N) {
   int j;
   double a1, a2, dtmp;
@@ -213,14 +214,14 @@ void poly_nonherm_precon(spinor * const R, spinor * const S,
   static int initpnH = 0;
   spinor * psi, * chi, *tmp0, *tmp1, *cptmp;
 
-  
+
   if(initpnH == 0) {
     errno = 0;
     work_  = calloc(4*VOLUMEPLUSRAND+1, sizeof(spinor));
   CMALLOC_ERROR_EXIT(work_);
 #if (defined SSE || defined SSE2 || defined SSE3)
     work   = (spinor *)(((unsigned long int)(work_)+ALIGN_BASE)&~ALIGN_BASE);
-#else 
+#else
     work = work_;
 #endif
     initpnH = 1;
@@ -292,8 +293,10 @@ void poly_nonherm_precon(spinor * const R, spinor * const S,
     a1 = a2;
   }
   assign(R, chi, N);
-/*   boundary(-g_kappa); */
-/*   g_mu = -g_mu; */
+  boundary(g_kappa);
+  g_mu = dtmp;
+
+ 
   return;
 }
 

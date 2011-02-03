@@ -1,13 +1,20 @@
 #include "memusage.h"
 
+
 #include <sys/resource.h>
+
+#ifdef BGP
 #include <common/bgp_personality.h>
 #include <common/bgp_personality_inlines.h>
 #include <spi/kernel_interface.h>
 #include <spi/bgp_SPI.h>
+#endif
 
 #include "global.h"
+#include <string.h>
 
+
+#ifdef BGP
 /* returns memory per core in MBytes */
 unsigned bg_coreMB()
 {
@@ -18,6 +25,7 @@ unsigned bg_coreMB()
     coreMB = procMB/Kernel_ProcessCount();
     return coreMB;
 }
+#endif
 
 /* return maximum memory usage of process in kBytes */
 unsigned bg_usedKB()
@@ -33,10 +41,12 @@ void print_memusage()
     if (g_proc_id != 0)
         return;
 
+#if BGP
     {
         unsigned memPerCore = bg_coreMB();
         fprintf(stderr, "MK_Memory available per Core:  %10ld MB\n", memPerCore);
     }
+#endif
 
     struct rusage usage;
     memset(&usage, 0, sizeof(usage));
@@ -67,6 +77,7 @@ void print_memusage()
 #endif
     }
 
+#ifdef BGP
     {
         unsigned int memory_size = 0;
         Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAP, &memory_size);
@@ -95,6 +106,8 @@ void print_memusage()
         fprintf(stderr, "MK_Persistent memory:          %10ld MB\n", (long)memory_size / (1024 * 1024));
 #endif
     }
+#endif
+
 }
 
 
