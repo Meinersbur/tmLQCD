@@ -152,7 +152,7 @@ EXTERN int * g_1st_zt_int_up;
 EXTERN int * g_1st_zt_ext_dn;
 EXTERN int * g_1st_zt_ext_up;
 # endif
-#endif /* _INDEX_INDEP_GEOM */ 
+#endif /* _INDEX_INDEP_GEOM */
 
 /* IF PHMC  */
 EXTERN spinor ** g_chi_up_spinor_field;
@@ -260,4 +260,13 @@ static char const g_rcsid[] = "$Id$";
 #endif
 
 #endif
+
+
+
+void *nalloc(size_t size, const char *term, const char *file, const char* func, int line);
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+#define malloc(size) nalloc(size, TOSTRING(size), __FILE__, __PRETTY_FUNCTION__, __LINE__)
+#define calloc(num, size) nalloc((num) * (size), TOSTRING(num) " * " TOSTRING(size), __FILE__, __PRETTY_FUNCTION__, __LINE__)
+
 
