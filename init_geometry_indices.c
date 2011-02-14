@@ -7,12 +7,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * tmLQCD is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with tmLQCD.  If not, see <http://www.gnu.org/licenses/>.
  ***********************************************************************/
@@ -109,20 +109,26 @@ int init_geometry_indices(const int V) {
 
   g_coord= (int**)calloc(VOLUME, sizeof(int*));
   if((void*)g_coord == NULL) return(19);
+  int *pcoord = (int*) calloc(4*VOLUME,sizeof(int));
   for(i=0;i<VOLUME;i++){
-    g_coord[i]= (int*)calloc(4, sizeof(int));
+    g_coord[i] = &pcoord[4*i];
+    //MK g_coord[i]= (int*)calloc(4, sizeof(int));
   }
 
   g_iup_eo= (int**)calloc(VOLUME+RAND, sizeof(int*));  // NEW GIUPDNEO
   if((void*)g_iup_eo == NULL) return(21);
+  int *piup = (int*) calloc(4*(VOLUME+RAND), sizeof(int));
   for(i=0;i<VOLUME+RAND;i++){
-    g_iup_eo[i]= (int*)calloc(4, sizeof(int));
+    g_iup_eo[i] = &piup[4*i];
+    //MK g_iup_eo[i]= (int*)calloc(4, sizeof(int));
   }
 
   g_idn_eo= (int**)calloc(VOLUME+RAND, sizeof(int*));
   if((void*)g_idn_eo == NULL) return(22);
+  int *pidn = (int*)calloc(4*(VOLUME+RAND),sizeof(int));
   for(i=0;i<VOLUME+RAND;i++){
-    g_idn_eo[i]= (int*)calloc(4, sizeof(int));
+    g_idn_eo[i] = &pidn[4*i];
+    //MK g_idn_eo[i]= (int*)calloc(4, sizeof(int));
   }
 
 
@@ -156,8 +162,8 @@ int init_geometry_indices(const int V) {
 }
 
 void free_geometry_indices() {
-  free(idn); 
-  free(iup); 
+  free(idn);
+  free(iup);
   free(ipt);
   free(ipt_);
   free(ipt__);
