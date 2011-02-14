@@ -33,6 +33,7 @@
 #include<config.h>
 #endif
 
+#include "mypapi.h"
 #include <execinfo.h> /* GG */
 #include <unistd.h>   /* GG */
 #include <malloc.h>   /* GG */
@@ -218,7 +219,8 @@ extern int nstore;
 int const rlxdsize = 105;
 
 int main(int argc,char *argv[]) {
-
+#pragma pomp inst init
+  mypapi_init();
   FILE *parameterfile=NULL, *countfile=NULL;
   char *filename = NULL;
   char datafilename[50];
@@ -837,8 +839,9 @@ int main(int argc,char *argv[]) {
       /* GG */
       if (nstore%5 == 0)
 	phmc_compute_ev(trajectory_counter, plaquette_energy);
-        if (g_proc_id == 0)
+        if (g_proc_id == 0) {
 	  fprintf(stderr, "MK_phmc_compute_ev %e\n", plaquette_energy);
+        }
     }
 
     if(g_proc_id == 0) {

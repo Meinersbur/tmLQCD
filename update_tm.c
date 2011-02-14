@@ -101,6 +101,21 @@ int update_tm(double *plaquette_energy, double *rectangle_energy,
   double normalisation=0., partial_effective_action=0., coupling=0.; 
   paramsXlfInfo *xlfInfo;
 
+  /* GG */
+#if 0
+  nustore =    0;
+  nustor2 =    0;
+  nustora[0] = 0;
+  nustora[1] = 0;
+#else
+  nustore = -10;
+  nustor2 = -10;
+  nustora[0] = -10;
+  nustora[1] = -10;
+#endif
+   if (g_proc_id == 0)
+     fprintf(stderr, "MK_nustor2 == %d\n", nustor2);
+
   if(ini_g_tmp == 0) {
     ini_g_tmp = init_gauge_tmp(VOLUME);
     if(ini_g_tmp != 0) {
@@ -158,7 +173,7 @@ int update_tm(double *plaquette_energy, double *rectangle_energy,
   g_sloppy_precision = 1;
 
   /* GG */
-#if 1
+#if 0
   nustore =    0;
   nustor2 =    0;
   nustora[0] = 0;
@@ -169,6 +184,8 @@ int update_tm(double *plaquette_energy, double *rectangle_energy,
   nustora[0] = -10;
   nustora[1] = -10;
 #endif
+   if (g_proc_id == 0)
+     fprintf(stderr, "MK_nustor2 == %d\n", nustor2);
 
   /*run the trajectory*/
   Integrator.integrate[Integrator.no_timescales-1](Integrator.tau, 
@@ -273,6 +290,9 @@ int update_tm(double *plaquette_energy, double *rectangle_energy,
   nustora[0] = -10;
   nustora[1] = -10;
 #endif
+   if (g_proc_id == 0)
+     fprintf(stderr, "MK_nustor2 == %d\n", nustor2);
+
     if(g_proc_id == 0) 
       printf(" Starting Reversibility test, nustore = %d \n", nustore);
 

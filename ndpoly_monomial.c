@@ -22,6 +22,7 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
+#include "mypapi.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -55,6 +56,8 @@ extern int phmc_exact_poly;
  ********************************************/
 
 void ndpoly_derivative(const int id) {
+#pragma pomp inst begin(ndpoly_derivative)
+  mypapi_start();
   int j, k;
   monomial * mnl = &monomial_list[id];
 
@@ -151,6 +154,8 @@ void ndpoly_derivative(const int id) {
     Normalisation by the largest  EW  is done in update_momenta
     using mnl->forcefactor
   */ 
+#pragma pomp inst end(ndpoly_derivative)
+  mypapi_stop();
 }
 
 
