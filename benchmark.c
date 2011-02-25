@@ -29,6 +29,7 @@
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
+//#undef BGL
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,6 +39,9 @@
 
 /* GG */
 extern FILE *fmemopen (void *__s, size_t __len, __const char *__modes) __THROW;
+
+// MK
+#include "mypapi.h"
 
 #include <math.h>
 #include <time.h>
@@ -242,6 +246,7 @@ int main(int argc,char *argv[])
     verbose = 0;
   
   tmlqcd_mpi_init(argc, argv);
+  mypapi_init();
   
   if(g_proc_id==0) {
 #ifdef SSE
@@ -375,16 +380,22 @@ int main(int argc,char *argv[])
     for (k = 0; k < k_max; k++) {
       random_spinor_field(g_spinor_field[k], VOLUME/2, 0);
     }
-    
+
+    int again = 0;
     while(sdt < 30.) {
+      if (again && !g_proc_id)
+	fprintf(stderr, "MK_Running again %d-th time, sdt=%f\n", again, sdt);
+      again++;
 #ifdef MPI
       MPI_Barrier(MPI_COMM_WORLD);
 #endif
+      if (sdt > 17)
+      	mypapi_start();
 #if defined BGL
       t1 = bgl_wtime();
 #else
       t1=(double)clock();
-#endif
+#endif	
       antioptaway=0.0;
       for (j=0;j<j_max;j++) {
 	for (k=0;k<k_max;k++) {
@@ -400,6 +411,9 @@ int main(int argc,char *argv[])
       t2=(double)clock();
       dt=(t2-t1)/((double)(CLOCKS_PER_SEC));
 #endif
+      if (sdt > 17) {
+	mypapi_stop();
+      }
 #ifdef MPI
       MPI_Allreduce (&dt, &sdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 #else
@@ -430,6 +444,7 @@ int main(int argc,char *argv[])
       fflush(stdout);
     }
     
+    mypapi_start();
 #ifdef MPI
     /* isolated computation */
 #if defined BGL
@@ -452,6 +467,8 @@ int main(int argc,char *argv[])
     t2=(double)clock();
     dt2=(t2-t1)/((double)(CLOCKS_PER_SEC));
 #endif
+    mypapi_stop();
+    
     /* compute the bandwidth */
     dt=dts-dt2;
     MPI_Allreduce (&dt, &sdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -462,6 +479,7 @@ int main(int argc,char *argv[])
     if(g_proc_id==0) {
       printf("Print 1 result, to make sure that the calculation is not optimized away: %e  \n",antioptaway);
       printf("communication switched off \n");
+      printf("total time %e sec, Variance of the time %e sec. (iterations=%d). \n",sdt,sqdt,j_max);
       printf(" (%d Mflops [%d bit arithmetic])\n",
 	     (int)(1320.0f/dt),(int)sizeof(spinor)/3);
       printf("\n");

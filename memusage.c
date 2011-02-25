@@ -1,6 +1,6 @@
 #include "memusage.h"
 
-
+#include "config.h"
 #include <sys/resource.h>
 
 #ifdef BGP
@@ -12,7 +12,6 @@
 
 #include "global.h"
 #include <string.h>
-
 
 #ifdef BGP
 /* returns memory per core in MBytes */
