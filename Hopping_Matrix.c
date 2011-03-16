@@ -520,6 +520,7 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
 //#define _prefetch_halfspinor(x)
 
 /* 2. */
+/* 1632 flops + 96 wasted (like multiplying by 1.0) */
 void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
   int i, ix;
   su3 * restrict U ALIGN;
@@ -548,264 +549,7 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
 
   __alignx(16, l);
   __alignx(16, k);
-  if(g_sloppy_precision == 1 && g_sloppy_precision_flag == 1) {
-    /* Take the 64 Bit precision part and replace */
-    /* _bgl_load_reg0|1 with _bgl_load_reg0|1_32 */
-    /* _bgl_load_rs0|1|2|3 with _bgl_load_rs0|1|2|3_32*/
-    /* phi with phi32*/
-    /* _bgl_store_reg0|1 with _bgl_store_reg0|1_32 */
-    /* _bgl_store_reg0|1_up with _bgl_store_reg0|1_up_32 */
-    /* HalfSpinor with Halfspinor32 */
-    /* _bgl_load_rs0|1 with _bgl_load_rs0|1_32*/
-    /* xchange_halffield with xchange_halffield_32 */
-    __alignx(16, HalfSpinor32);
-    /* We will run through the source vector now */
-    /* instead of the solution vector            */
-    s = k;
-    _prefetch_spinor(s); 
-
-    /* s contains the source vector */
-
-    if(ieo == 0) {
-      U = g_gauge_field_copy[0][0];
-    }
-    else {
-      U = g_gauge_field_copy[1][0];
-    }
-    phi32 = NBPointer32[ieo];
-
-    _prefetch_su3(U);
-    /**************** loop over all lattice sites ******************/
-    ix=0;
-    for(i = 0; i < (VOLUME)/2; i++){
-
-      _bgl_load_rs0((*s).s0);
-      _bgl_load_rs1((*s).s1);
-      _bgl_load_rs2((*s).s2);
-      _bgl_load_rs3((*s).s3);
-      s++; 
-      _prefetch_spinor(s); 
-      /*********************** direction +0 ************************/
-      _prefetch_su3(U+1);
-
-      _bgl_vector_add_rs2_to_rs0_reg0();
-      _bgl_vector_add_rs3_to_rs1_reg1();
-
-      _bgl_su3_multiply_double((*U));
-      _bgl_vector_cmplx_mul_double(ka0);
-      /* result is now in regx0, regx1, regx2 , x=0,1 */
-
-      _bgl_store_reg0_up_32((*phi32[ix]).s0);
-      _bgl_store_reg1_up_32((*phi32[ix]).s1);
-      U++;
-      ix++;
-
-      /*********************** direction -0 ************************/
-      _bgl_vector_sub_rs2_from_rs0_reg0();
-      _bgl_vector_sub_rs3_from_rs1_reg1();
-
-      _bgl_store_reg0_32((*phi32[ix]).s0);
-      _bgl_store_reg1_32((*phi32[ix]).s1);
-      ix++;
-
-      /*********************** direction +1 ************************/
-      _prefetch_su3(U+1);
-      _bgl_vector_i_mul_add_rs3_to_rs0_reg0();
-      _bgl_vector_i_mul_add_rs2_to_rs1_reg1();
-
-      _bgl_su3_multiply_double((*U));
-      _bgl_vector_cmplx_mul_double(ka1);
-
-      _bgl_store_reg0_up_32((*phi32[ix]).s0);
-      _bgl_store_reg1_up_32((*phi32[ix]).s1);
-      ix++;
-      U++;
-
-      /*********************** direction -1 ************************/
-      _bgl_vector_i_mul_sub_rs3_from_rs0_reg0();
-      _bgl_vector_i_mul_sub_rs2_from_rs1_reg1();
-
-      _bgl_store_reg0_32((*phi32[ix]).s0);
-      _bgl_store_reg1_32((*phi32[ix]).s1);
-      ix++;
-
-
-      /*********************** direction +2 ************************/
-      _prefetch_su3(U+1);
-
-      _bgl_vector_add_rs3_to_rs0_reg0();
-      _bgl_vector_sub_rs2_from_rs1_reg1();
-
-      _bgl_su3_multiply_double((*U));
-      _bgl_vector_cmplx_mul_double(ka2);
-
-      _bgl_store_reg0_up_32((*phi32[ix]).s0);
-      _bgl_store_reg1_up_32((*phi32[ix]).s1);
-      ix++;
-      U++;
-
-      /*********************** direction -2 ************************/
-      _bgl_vector_sub_rs3_from_rs0_reg0();
-      _bgl_vector_add_rs2_to_rs1_reg1();
-
-      _bgl_store_reg0_32((*phi32[ix]).s0);
-      _bgl_store_reg1_32((*phi32[ix]).s1);
-      ix++;
-
-      /*********************** direction +3 ************************/
-      _prefetch_su3(U+1); 
-
-      _bgl_vector_i_mul_add_rs2_to_rs0_reg0();
-      _bgl_vector_i_mul_sub_rs3_from_rs1_reg1();
-
-      _bgl_su3_multiply_double((*U));
-      _bgl_vector_cmplx_mul_double(ka3);
-
-      _bgl_store_reg0_up_32((*phi32[ix]).s0);
-      _bgl_store_reg1_up_32((*phi32[ix]).s1);
-      ix++;
-      U++;
-
-      /*********************** direction -3 ************************/
-      _bgl_vector_i_mul_sub_rs2_from_rs0_reg0();
-      _bgl_vector_i_mul_add_rs3_to_rs1_reg1();
-
-      _bgl_store_reg0_32((*phi32[ix]).s0);
-      _bgl_store_reg1_32((*phi32[ix]).s1);
-      ix++;
-
-      /************************ end of loop ************************/
-    }
-
-#    if (defined MPI && !defined _NO_COMM)
-    xchange_halffield32(); 
-#    endif
-    s = l;
-    phi32 = NBPointer32[2 + ieo];
-    if(ieo == 0) {
-      U = g_gauge_field_copy[1][0];
-    }
-    else {
-      U = g_gauge_field_copy[0][0];
-    }
-    _prefetch_halfspinor(phi32[0]);
-    _prefetch_su3(U);
-  
-    /* Now we sum up and expand to a full spinor */
-    ix = 0;
-    /*   _prefetch_spinor_for_store(s); */
-    for(i = 0; i < (VOLUME)/2; i++){
-      /* This causes a lot of trouble, do we understand this? */
-      /*     _prefetch_spinor_for_store(s); */
-      _prefetch_halfspinor(phi32[ix+1]);
-      /*********************** direction +0 ************************/
-      _bgl_load_rs0_32((*phi32[ix]).s0);
-      rs20 = rs00;
-      rs21 = rs01;
-      rs22 = rs02;
-      _bgl_load_rs1_32((*phi32[ix]).s1);
-      rs30 = rs10;
-      rs31 = rs11;
-      rs32 = rs12;
-      ix++;
-      /*********************** direction -0 ************************/
-      _prefetch_su3(U+1);
-
-      _bgl_load_reg0_32((*phi32[ix]).s0);
-      _bgl_load_reg1_32((*phi32[ix]).s1);
-
-      _bgl_su3_inverse_multiply_double((*U));
-      _bgl_vector_cmplxcg_mul_double(ka0);
-      /* result is in the upper parts of reg0? and reg1? */
-
-      _bgl_add_to_rs0_reg0();
-      _bgl_sub_from_rs2_reg0();
-      _bgl_add_to_rs1_reg1();
-      _bgl_sub_from_rs3_reg1();
-      U++;
-      ix++;
-      /*********************** direction +1 ************************/
-      _bgl_load_reg0_up_32((*phi32[ix]).s0);
-      _bgl_load_reg1_up_32((*phi32[ix]).s1);
-
-      _bgl_add_to_rs0_reg0();
-      _bgl_i_mul_sub_from_rs3_reg0();
-      _bgl_add_to_rs1_reg1();
-      _bgl_i_mul_sub_from_rs2_reg1();
-      ix++;
-      /*********************** direction -1 ************************/
-      _prefetch_su3(U+1);
-
-      _bgl_load_reg0_32((*phi32[ix]).s0);
-      _bgl_load_reg1_32((*phi32[ix]).s1);
-
-      _bgl_su3_inverse_multiply_double((*U));
-      _bgl_vector_cmplxcg_mul_double(ka1);
-
-      _bgl_add_to_rs0_reg0();
-      _bgl_add_to_rs1_reg1();
-      _bgl_i_mul_add_to_rs3_reg0();
-      _bgl_i_mul_add_to_rs2_reg1();      
-      U++;
-      ix++;
-      /*********************** direction +2 ************************/
-      _bgl_load_reg0_up_32((*phi32[ix]).s0);
-      _bgl_load_reg1_up_32((*phi32[ix]).s1);
-
-      _bgl_add_to_rs0_reg0();
-      _bgl_add_to_rs1_reg1();
-      _bgl_sub_from_rs2_reg1();
-      _bgl_add_to_rs3_reg0();
-      ix++;
-      /*********************** direction -2 ************************/
-      _prefetch_su3(U+1);
-
-      _bgl_load_reg0_32((*phi32[ix]).s0);
-      _bgl_load_reg1_32((*phi32[ix]).s1);
-
-      _bgl_su3_inverse_multiply_double((*U));
-      _bgl_vector_cmplxcg_mul_double(ka2);
-
-      _bgl_add_to_rs0_reg0();
-      _bgl_add_to_rs1_reg1();
-      _bgl_add_to_rs2_reg1();
-      _bgl_sub_from_rs3_reg0();
-      U++;
-      ix++;
-      /*********************** direction +3 ************************/
-      _bgl_load_reg0_up_32((*phi32[ix]).s0);
-      _bgl_load_reg1_up_32((*phi32[ix]).s1);
-
-      _bgl_add_to_rs0_reg0();
-      _bgl_add_to_rs1_reg1();
-      _bgl_i_mul_sub_from_rs2_reg0();
-      _bgl_i_mul_add_to_rs3_reg1();
-      ix++;
-      /*********************** direction -3 ************************/
-      _prefetch_su3(U+1);
-
-      _bgl_load_reg0_32((*phi32[ix]).s0);
-      _bgl_load_reg1_32((*phi32[ix]).s1);
-
-      _bgl_su3_inverse_multiply_double((*U));
-      _bgl_vector_cmplxcg_mul_double(ka3);
-
-      _bgl_add_to_rs0_reg0();
-      _bgl_store_rs0((*s).s0);
-      _bgl_i_mul_add_to_rs2_reg0();
-      _bgl_store_rs2((*s).s2);
-
-      _bgl_add_to_rs1_reg1();
-      _bgl_store_rs1((*s).s1);
-      _bgl_i_mul_sub_from_rs3_reg1();
-      _bgl_store_rs3((*s).s3);
-
-      U++;
-      ix++;
-      s++;
-    }
-  }
-  else {
+ 
     __alignx(16, HalfSpinor);
     /* We will run through the source vector now */
     /* instead of the solution vector            */
@@ -836,11 +580,11 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
       /*********************** direction +0 ************************/
       _prefetch_su3(U+1);
 
-      _bgl_vector_add_rs2_to_rs0_reg0();
-      _bgl_vector_add_rs3_to_rs1_reg1();
+      _bgl_vector_add_rs2_to_rs0_reg0();  /* 6 flops */
+      _bgl_vector_add_rs3_to_rs1_reg1(); /* 6 flops */
 
-      _bgl_su3_multiply_double((*U));
-      _bgl_vector_cmplx_mul_double(ka0);
+      _bgl_su3_multiply_double((*U));   /* 132 flops (12+24+24=60 add, 12+ 12+24+24=72 mul) */
+      _bgl_vector_cmplx_mul_double(ka0); /* 36 flops (12 add, 12+12 mul) */
       /* result is now in regx0, regx1, regx2 , x=0,1 */
 
       _bgl_store_reg0_up((*phi[ix]).s0);
@@ -850,8 +594,8 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
 
       /*********************** direction -0 ************************/
       _prefetch_halfspinor(phi[ix+4]);
-      _bgl_vector_sub_rs2_from_rs0_reg0();
-      _bgl_vector_sub_rs3_from_rs1_reg1();
+      _bgl_vector_sub_rs2_from_rs0_reg0();/* 6 flops */
+      _bgl_vector_sub_rs3_from_rs1_reg1();/* 6 flops */
 
       _bgl_store_reg0((*phi[ix]).s0);
       _bgl_store_reg1((*phi[ix]).s1);
@@ -860,11 +604,11 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
       /*********************** direction +1 ************************/
       _prefetch_halfspinor(phi[ix+4]);
       _prefetch_su3(U+1);
-      _bgl_vector_i_mul_add_rs3_to_rs0_reg0();
-      _bgl_vector_i_mul_add_rs2_to_rs1_reg1();
+      _bgl_vector_i_mul_add_rs3_to_rs0_reg0();  /* 6 flops / 12 physical flops (6 add, 6 mul) */
+      _bgl_vector_i_mul_add_rs2_to_rs1_reg1();  /* 6 flops / 12 flops (6 add, 6 mul) */
 
-      _bgl_su3_multiply_double((*U));
-      _bgl_vector_cmplx_mul_double(ka1);
+      _bgl_su3_multiply_double((*U));/* 132 flops (12+24+24=60 add, 12+ 12+24+24=72 mul) */
+      _bgl_vector_cmplx_mul_double(ka1); /* 36 flops (12 add, 12+12 mul) */
 
       _bgl_store_reg0_up((*phi[ix]).s0);
       _bgl_store_reg1_up((*phi[ix]).s1);
@@ -873,8 +617,8 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
 
       /*********************** direction -1 ************************/
       _prefetch_halfspinor(phi[ix+4]);
-      _bgl_vector_i_mul_sub_rs3_from_rs0_reg0();
-      _bgl_vector_i_mul_sub_rs2_from_rs1_reg1();
+      _bgl_vector_i_mul_sub_rs3_from_rs0_reg0();/* 6 flops / 12 physical flops (6 add, 6 mul) */
+      _bgl_vector_i_mul_sub_rs2_from_rs1_reg1();/* 6 flops / 12 physical flops (6 add, 6 mul) */
 
       _bgl_store_reg0((*phi[ix]).s0);
       _bgl_store_reg1((*phi[ix]).s1);
@@ -885,11 +629,11 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
       _prefetch_halfspinor(phi[ix+4]);
       _prefetch_su3(U+1);
 
-      _bgl_vector_add_rs3_to_rs0_reg0();
-      _bgl_vector_sub_rs2_from_rs1_reg1();
+      _bgl_vector_add_rs3_to_rs0_reg0(); /* 6 flops */
+      _bgl_vector_sub_rs2_from_rs1_reg1(); /* 6 flops */
 
-      _bgl_su3_multiply_double((*U));
-      _bgl_vector_cmplx_mul_double(ka2);
+      _bgl_su3_multiply_double((*U));/* 132 flops (12+24+24=60 add, 12+ 12+24+24=72 mul) */
+      _bgl_vector_cmplx_mul_double(ka2); /* 36 flops (12 add, 12+12 mul) */
 
       _bgl_store_reg0_up((*phi[ix]).s0);
       _bgl_store_reg1_up((*phi[ix]).s1);
@@ -898,8 +642,8 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
 
       /*********************** direction -2 ************************/
       _prefetch_halfspinor(phi[ix+4]);
-      _bgl_vector_sub_rs3_from_rs0_reg0();
-      _bgl_vector_add_rs2_to_rs1_reg1();
+      _bgl_vector_sub_rs3_from_rs0_reg0(); /* 6 flops */
+      _bgl_vector_add_rs2_to_rs1_reg1(); /* 6 flops */
 
       _bgl_store_reg0((*phi[ix]).s0);
       _bgl_store_reg1((*phi[ix]).s1);
@@ -909,11 +653,11 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
       _prefetch_halfspinor(phi[ix+4]);
       _prefetch_su3(U+1); 
 
-      _bgl_vector_i_mul_add_rs2_to_rs0_reg0();
-      _bgl_vector_i_mul_sub_rs3_from_rs1_reg1();
+      _bgl_vector_i_mul_add_rs2_to_rs0_reg0(); /* 6 flops / 12 physical flops (6 add, 6 mul) */
+      _bgl_vector_i_mul_sub_rs3_from_rs1_reg1();/* 6 flops / 12 physical flops (6 add, 6 mul) */
 
-      _bgl_su3_multiply_double((*U));
-      _bgl_vector_cmplx_mul_double(ka3);
+      _bgl_su3_multiply_double((*U));/* 132 flops (12+24+24=60 add, 12+ 12+24+24=72 mul) */
+      _bgl_vector_cmplx_mul_double(ka3); /* 36 flops (12 add, 12+12 mul) */
 
       _bgl_store_reg0_up((*phi[ix]).s0);
       _bgl_store_reg1_up((*phi[ix]).s1);
@@ -922,8 +666,8 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
 
       /*********************** direction -3 ************************/
       _prefetch_halfspinor(phi[ix+4]);
-      _bgl_vector_i_mul_sub_rs2_from_rs0_reg0();
-      _bgl_vector_i_mul_add_rs3_to_rs1_reg1();
+      _bgl_vector_i_mul_sub_rs2_from_rs0_reg0();/* 6 flops / 12 physical flops (6 add, 6 mul) */
+      _bgl_vector_i_mul_add_rs3_to_rs1_reg1();/* 6 flops / 12 physical flops (6 add, 6 mul) */
 
       _bgl_store_reg0((*phi[ix]).s0);
       _bgl_store_reg1((*phi[ix]).s1);
@@ -969,14 +713,14 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
       _bgl_load_reg0((*phi[ix]).s0);
       _bgl_load_reg1((*phi[ix]).s1);
 
-      _bgl_su3_inverse_multiply_double((*U));
-      _bgl_vector_cmplxcg_mul_double(ka0);
+      _bgl_su3_inverse_multiply_double((*U));  /* 132 flops (12+24+24 adds, 12+12+24+24 muls) */
+      _bgl_vector_cmplxcg_mul_double(ka0);/* 36 flops (12 add, 12+12 mul) */
       /* result is in the upper parts of reg0? and reg1? */
 
-      _bgl_add_to_rs0_reg0();
-      _bgl_sub_from_rs2_reg0();
-      _bgl_add_to_rs1_reg1();
-      _bgl_sub_from_rs3_reg1();
+      _bgl_add_to_rs0_reg0(); /* 6 flops */
+      _bgl_sub_from_rs2_reg0(); /* 6 flops */
+      _bgl_add_to_rs1_reg1(); /* 6 flops */
+      _bgl_sub_from_rs3_reg1(); /* 6 flops */
       U++;
       ix++;
       /*********************** direction +1 ************************/
@@ -984,10 +728,10 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
       _bgl_load_reg0_up((*phi[ix]).s0);
       _bgl_load_reg1_up((*phi[ix]).s1);
 
-      _bgl_add_to_rs0_reg0();
-      _bgl_i_mul_sub_from_rs3_reg0();
-      _bgl_add_to_rs1_reg1();
-      _bgl_i_mul_sub_from_rs2_reg1();
+      _bgl_add_to_rs0_reg0(); /* 6 flops */
+      _bgl_i_mul_sub_from_rs3_reg0();/* 6 flops / 12 physical flops (6 add, 6 mul) */
+      _bgl_add_to_rs1_reg1();/* 6 flops */
+      _bgl_i_mul_sub_from_rs2_reg1();/* 6 flops / 12 physical flops (6 add, 6 mul) */
       ix++;
       /*********************** direction -1 ************************/
       _prefetch_halfspinor(phi[ix+3]);
@@ -996,13 +740,13 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
       _bgl_load_reg0((*phi[ix]).s0);
       _bgl_load_reg1((*phi[ix]).s1);
 
-      _bgl_su3_inverse_multiply_double((*U));
-      _bgl_vector_cmplxcg_mul_double(ka1);
+      _bgl_su3_inverse_multiply_double((*U));/* 132 flops (12+24+24 adds, 12+12+24+24 muls) */
+      _bgl_vector_cmplxcg_mul_double(ka1);/* 36 flops (12 add, 12+12 mul) */
 
-      _bgl_add_to_rs0_reg0();
-      _bgl_add_to_rs1_reg1();
-      _bgl_i_mul_add_to_rs3_reg0();
-      _bgl_i_mul_add_to_rs2_reg1();      
+      _bgl_add_to_rs0_reg0();/* 6 flops */
+      _bgl_add_to_rs1_reg1();/* 6 flops */
+      _bgl_i_mul_add_to_rs3_reg0();/* 6 flops / 12 physical flops (6 add, 6 mul) */
+      _bgl_i_mul_add_to_rs2_reg1();/* 6 flops / 12 physical flops (6 add, 6 mul) */  
       U++;
       ix++;
       /*********************** direction +2 ************************/
@@ -1010,10 +754,10 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
       _bgl_load_reg0_up((*phi[ix]).s0);
       _bgl_load_reg1_up((*phi[ix]).s1);
 
-      _bgl_add_to_rs0_reg0();
-      _bgl_add_to_rs1_reg1();
-      _bgl_sub_from_rs2_reg1();
-      _bgl_add_to_rs3_reg0();
+      _bgl_add_to_rs0_reg0();/* 6 flops */
+      _bgl_add_to_rs1_reg1();/* 6 flops */
+      _bgl_sub_from_rs2_reg1();/* 6 flops */
+      _bgl_add_to_rs3_reg0();/* 6 flops */
       ix++;
       /*********************** direction -2 ************************/
 
@@ -1023,13 +767,13 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
       _bgl_load_reg0((*phi[ix]).s0);
       _bgl_load_reg1((*phi[ix]).s1);
 
-      _bgl_su3_inverse_multiply_double((*U));
-      _bgl_vector_cmplxcg_mul_double(ka2);
+      _bgl_su3_inverse_multiply_double((*U));/* 132 flops (12+24+24 adds, 12+12+24+24 muls) */
+      _bgl_vector_cmplxcg_mul_double(ka2);/* 36 flops (12 add, 12+12 mul) */
 
-      _bgl_add_to_rs0_reg0();
-      _bgl_add_to_rs1_reg1();
-      _bgl_add_to_rs2_reg1();
-      _bgl_sub_from_rs3_reg0();
+      _bgl_add_to_rs0_reg0();/* 6 flops */
+      _bgl_add_to_rs1_reg1();/* 6 flops */
+      _bgl_add_to_rs2_reg1();/* 6 flops */
+      _bgl_sub_from_rs3_reg0();/* 6 flops */
       U++;
       ix++;
       /*********************** direction +3 ************************/
@@ -1038,10 +782,10 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
       _bgl_load_reg0_up((*phi[ix]).s0);
       _bgl_load_reg1_up((*phi[ix]).s1);
 
-      _bgl_add_to_rs0_reg0();
-      _bgl_add_to_rs1_reg1();
-      _bgl_i_mul_sub_from_rs2_reg0();
-      _bgl_i_mul_add_to_rs3_reg1();
+      _bgl_add_to_rs0_reg0();/* 6 flops */
+      _bgl_add_to_rs1_reg1();/* 6 flops */
+      _bgl_i_mul_sub_from_rs2_reg0();/* 6 flops / 12 physical flops (6 add, 6 mul) */  
+      _bgl_i_mul_add_to_rs3_reg1();/* 6 flops / 12 physical flops (6 add, 6 mul) */  
       ix++;
       /*********************** direction -3 ************************/
       _prefetch_spinor(s);
@@ -1051,23 +795,23 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
       _bgl_load_reg0((*phi[ix]).s0);
       _bgl_load_reg1((*phi[ix]).s1);
 
-      _bgl_su3_inverse_multiply_double((*U));
-      _bgl_vector_cmplxcg_mul_double(ka3);
+      _bgl_su3_inverse_multiply_double((*U));/* 132 flops (12+24+24 adds, 12+12+24+24 muls) */
+      _bgl_vector_cmplxcg_mul_double(ka3);/* 36 flops (12 add, 12+12 mul) */
 
-      _bgl_add_to_rs0_reg0();
+      _bgl_add_to_rs0_reg0();/* 6 flops */
       _bgl_store_rs0((*s).s0);
-      _bgl_i_mul_add_to_rs2_reg0();
+      _bgl_i_mul_add_to_rs2_reg0();/* 6 flops / 12 physical flops (6 add, 6 mul) */  
       _bgl_store_rs2((*s).s2);
 
-      _bgl_add_to_rs1_reg1();
+      _bgl_add_to_rs1_reg1();/* 6 flops */
       _bgl_store_rs1((*s).s1);
-      _bgl_i_mul_sub_from_rs3_reg1();
+      _bgl_i_mul_sub_from_rs3_reg1();/* 6 flops / 12 physical flops (6 add, 6 mul) */  
       _bgl_store_rs3((*s).s3);
 
       U++;
       ix++;
       s++;
-    }
+    
   }
 #ifdef _KOJAK_INST
 #pragma pomp inst end(hoppingmatrix)
