@@ -39,8 +39,13 @@ echo Configure tmLQCD.....
 module load lapack/3.3.0
 
 
+./configure --enable-mpi --with-mpidimension=3 --enable-gaugecopy --enable-halfspinor --without-gprof --without-bgldram --host=ppc-ibm-bprts --build=ppc64-ibm-linux --enable-largefile --with-lapack="-L$LAPACK_LIB -L/opt/ibmmath/essl/4.4/lib -lesslbg -llapack -lesslbg -lxlf90_r" --with-limedir=`pwd`/lime CC="mpixlc_r" CCFLAGS="-I/bgsys/drivers/ppcfloor/arch/include/ -I/bgsys/drivers/ppcfloor/comm/include" INCLUDES="-I/homea/hch02/hch02d/papi/include/" LIBS="-L/homea/hch02/hch02d/papi/lib -lpapi" F77="bgf77"
+
+# PAPI 4.1.2
+#./configure --enable-mpi --with-mpidimension=4 --enable-gaugecopy --enable-halfspinor --without-gprof --without-bgldram --host=ppc-ibm-bprts --build=ppc64-ibm-linux --enable-largefile --with-lapack="-L$LAPACK_LIB -L/opt/ibmmath/essl/4.4/lib -lesslbg -llapack -lesslbg -lxlf90_r" --with-limedir=`pwd`/lime CC="mpixlc_r" CCFLAGS="-I/bgsys/drivers/ppcfloor/arch/include/ -I/bgsys/drivers/ppcfloor/comm/include" INCLUDES="-I/homea/hch02/hch02d/papi/include/" LIBS="-L/homea/hch02/hch02d/papi/lib -lpapi" F77="bgf77"
+
 # Works
-./configure --enable-mpi --with-mpidimension=4 --enable-gaugecopy --enable-halfspinor --without-gprof --without-bgldram --host=ppc-ibm-bprts --build=ppc64-ibm-linux --enable-largefile --with-lapack="-L$LAPACK_LIB -L/opt/ibmmath/essl/4.4/lib -lesslbg -llapack -lesslbg -lxlf90_r" --with-limedir=`pwd`/lime CC="mpixlc_r" CCFLAGS="-I/bgsys/drivers/ppcfloor/arch/include/ -I/bgsys/drivers/ppcfloor/comm/include -I/bgsys/local/papi/papi-c-3.9.0/include" INCLUDES="-I/bgsys/local/papi/papi-c-3.9.0/include" LIBS="-L/bgsys/local/papi/papi-c-3.9.0/lib -lpapi" F77="bgf77"
+#./configure --enable-mpi --with-mpidimension=4 --enable-gaugecopy --enable-halfspinor --without-gprof --without-bgldram --host=ppc-ibm-bprts --build=ppc64-ibm-linux --enable-largefile --with-lapack="-L$LAPACK_LIB -L/opt/ibmmath/essl/4.4/lib -lesslbg -llapack -lesslbg -lxlf90_r" --with-limedir=`pwd`/lime CC="mpixlc_r" CCFLAGS="-I/bgsys/drivers/ppcfloor/arch/include/ -I/bgsys/drivers/ppcfloor/comm/include -I/bgsys/local/papi/papi-c-3.9.0/include" INCLUDES="-I/bgsys/local/papi/papi-c-3.9.0/include" LIBS="-L/bgsys/local/papi/papi-c-3.9.0/lib -lpapi" F77="bgf77"
 
 
 

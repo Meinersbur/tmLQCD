@@ -220,7 +220,6 @@ int const rlxdsize = 105;
 
 int main(int argc,char *argv[]) {
 #pragma pomp inst init
-  mypapi_init();
   FILE *parameterfile=NULL, *countfile=NULL;
   char *filename = NULL;
   char datafilename[50];
@@ -299,6 +298,7 @@ int main(int argc,char *argv[]) {
 #else
   g_proc_id = 0;
 #endif
+  mypapi_init();
 
   if (g_proc_id == 0) {
     fprintf(stderr, "MK_Static memusage:\n");
