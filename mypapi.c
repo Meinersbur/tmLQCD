@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#ifdef BGP
 #include <common/alignment.h>
 #include "papi.h" //Provides definitions for base PAPI function
 #include <spi/bgp_SPI.h> //The Blue Gene/P substrate for PAPI is based on the UPC interfaces documented in this header file.
@@ -25,10 +26,12 @@ void Print_PAPI_Events(const int pEventSet);
 int PAPI_Events[256];
 long long PAPI_Counters[256];
 int xEventSet=PAPI_NULL;
+#endif
 
 #define PAPI_ERROR(cmd) if (RC = (cmd)) { fprintf(stderr, "MK_PAPI call failed with code %d at line %d: %s\n", RC, __LINE__, TOSTRING(cmd));  }
 
 void mypapi_init() {
+#ifdef BGP
 	if (g_proc_id == 0)
 		fprintf(stderr, "MK_Init mypapi\n");
 
@@ -85,9 +88,11 @@ void mypapi_init() {
 	//PAPI_ERROR(PAPI_add_event(xEventSet, PNE_BGP_PU1_DCACHE_HIT));
 
 	fprintf(stderr, "MK_Init mypapi END\n");
+#endif
 }
 
 void mypapi_start() {
+#ifdef BGP
 	int RC;
 	if (g_proc_id != 0)
 		return;
@@ -96,21 +101,11 @@ void mypapi_start() {
 		PAPI_Counters[i]=0;
 	PAPI_ERROR(PAPI_reset(xEventSet));
 	PAPI_ERROR(PAPI_start(xEventSet));
-}
-
-
-/* Print_Counters */
-void Print_Counters(const int pEventSet) {
-	printf("\n***** Start Print Counter Values *****\n");
-	// Print_Native_Counters_via_Buffer((BGP_UPC_Read_Counters_Struct_t*)Native_Buffer);
-	Print_Native_Counters();
-	Print_Native_Counters_for_PAPI_Counters(pEventSet);
-	Print_PAPI_Counters(pEventSet, PAPI_Counters);
-	printf("\n***** End Print Counter Values *****\n");
-	return;
+#endif
 }
 
 void mypapi_stop() {
+#ifdef BGP
 	if (g_proc_id != 0)
 		return;
 
@@ -124,7 +119,22 @@ void mypapi_stop() {
 	
 	if (g_proc_id == 0)
 		Print_Counters(xEventSet);
+#endif
 }
+
+
+#ifdef BGP
+/* Print_Counters */
+void Print_Counters(const int pEventSet) {
+	printf("\n***** Start Print Counter Values *****\n");
+	// Print_Native_Counters_via_Buffer((BGP_UPC_Read_Counters_Struct_t*)Native_Buffer);
+	Print_Native_Counters();
+	Print_Native_Counters_for_PAPI_Counters(pEventSet);
+	Print_PAPI_Counters(pEventSet, PAPI_Counters);
+	printf("\n***** End Print Counter Values *****\n");
+	return;
+}
+
 
 /* Print_Native_Counters */
 void Print_Native_Counters() {
@@ -256,6 +266,6 @@ void List_PAPI_Events(const int pEventSet, int* pEvents, int* pNumEvents) {
 	}
 	return;
 }
-
+#endif
 
 

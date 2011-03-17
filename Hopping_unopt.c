@@ -359,7 +359,7 @@ void Hopping_unopt_fullspinor(int ieo, spinor * const l, spinor * const k){
     //up=&g_gauge_field[ix][0];          
         up = &REF_GAUGEFIELD(g_gauge_field,jt,jx,jy,jz)[0]; // gauge from (jt,jx,jy,jz) to (jt+1,jx,jy,jz)
 
-    _vector_add(psi,(*sp).s0,(*sp).s2); /* 6 flops */ // (su3_vector) psi = sp.s0 + sp.s2
+    _vector_add(psi,(*sp).s0,(*sp).s2); /* 6 flops */ // (su3_vector) psi = sp.s0 + sp.s2 // (1 − γμ )ψ(x + μ)
 
     _su3_multiply(chi,(*up),psi); /* 66 flops (36 muls, 30 adds) */ // (su3_vector) chi = up * psi (Matrix-Vector-Multiplication)
     _complex_times_vector(psi,ka0,chi); /* 18 flops (12 muls, 6 adds) */ // (su3_vector) psi = ka_0 * chi (Scalar-Vector-Multiplcation)

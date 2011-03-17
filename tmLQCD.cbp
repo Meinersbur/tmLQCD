@@ -57,6 +57,10 @@
 		<Unit filename="Hopping_Matrix_nocom.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
+		<Unit filename="Hopping_unopt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="Hopping_unopt.h" />
 		<Unit filename="Nondegenerate_Matrix.c">
 			<Option compilerVar="CC" />
 			<Option target="&lt;{~None~}&gt;" />
