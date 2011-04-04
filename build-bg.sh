@@ -9,11 +9,13 @@ cd $ROOTPATH/lemon
 
 echo 
 echo Configure Lemon....
-#./configure --enable-largefile CC=mpixlc_r CCFLAGS="-g -qfullpath"
+#./configure --enable-largefile CC=mpixlc_r CCFLAGS="-g -qfullpath" --prefix=`pwd`
 
 echo
 echo Make Lemon......
 #make 
+#mkdir lib
+#cp src/liblemon.a lib
 
  
 
@@ -37,9 +39,27 @@ echo
 echo Configure tmLQCD.....
 
 module load lapack/3.3.0
+module load scalasca
 
+BGP_FLOOR="/bgsys/drivers/ppcfloor"
+BGP_IDIRS="-I${BGP_FLOOR}/arch/include -I${BGP_FLOOR}/comm/include"
+BGP_LIBS="-L${BGP_FLOOR}/comm/lib -L${BGP_FLOOR}/runtime/SPI -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk -lrt -lSPI.cna -lpthread"
 
-./configure --enable-mpi --with-mpidimension=3 --enable-gaugecopy --enable-halfspinor --without-gprof --without-bgldram --host=ppc-ibm-bprts --build=ppc64-ibm-linux --enable-largefile --with-lapack="-L$LAPACK_LIB -L/opt/ibmmath/essl/4.4/lib -lesslbg -llapack -lesslbg -lxlf90_r" --with-limedir=`pwd`/lime CC="mpixlc_r" CCFLAGS="-I/bgsys/drivers/ppcfloor/arch/include/ -I/bgsys/drivers/ppcfloor/comm/include" INCLUDES="-I/homea/hch02/hch02d/papi/include/" LIBS="-L/homea/hch02/hch02d/papi/lib -lpapi" F77="bgf77"
+CC="mpixlc_r"
+F77="bgf77"
+CFLAGS="-I/bgsys/drivers/ppcfloor/arch/include/ -I/bgsys/drivers/ppcfloor/comm/include -DPREFETCH -qsmp=omp"
+INCLUDES="-I/homea/hch02/hch02d/papi/include/"
+
+LDFLAGS="-qsmp=omp"
+LIBS="-L/homea/hch02/hch02d/papi/lib -lpapi ${BGP_LIBS}"
+
+./configure --enable-mpi --with-mpidimension=3 --enable-gaugecopy --enable-halfspinor --without-gprof --without-bgldram --host=ppc-ibm-bprts --build=ppc64-ibm-linux --enable-largefile --with-lapack="-L$LAPACK_LIB -L/opt/ibmmath/essl/4.4/lib -lesslbg -llapack -lesslbg -lxlf90_r -lxlfmath" --with-limedir=`pwd`/lime --with-lemondir=`pwd`/lemon CFLAGS="${CFLAGS}" INCLUDES="${INCLUDES}" LIBS="${LIBS}" LDFLAGS="${LDFLAGS}" F77="${F77}" CC="${CC}" 
+
+# LEMON
+#./configure --enable-mpi --with-mpidimension=4 --enable-gaugecopy --enable-halfspinor --without-gprof --without-bgldram --host=ppc-ibm-bprts --build=ppc64-ibm-linux --enable-largefile --with-lapack="-L$LAPACK_LIB -L/opt/ibmmath/essl/4.4/lib -lesslbg -llapack -lesslbg -lxlf90_r" --with-limedir=`pwd`/lime --with-lemondir=`pwd`/lemon CC="mpixlc_r" CFLAGS="-I/bgsys/drivers/ppcfloor/arch/include/ -I/bgsys/drivers/ppcfloor/comm/include -DPREFETCH" INCLUDES="-I/homea/hch02/hch02d/papi/include/" LIBS="-L/homea/hch02/hch02d/papi/lib -lpapi" F77="bgf77"
+
+# LIME
+#./configure --enable-mpi --with-mpidimension=4 --enable-gaugecopy --enable-halfspinor --without-gprof --without-bgldram --host=ppc-ibm-bprts --build=ppc64-ibm-linux --enable-largefile --with-lapack="-L$LAPACK_LIB -L/opt/ibmmath/essl/4.4/lib -lesslbg -llapack -lesslbg -lxlf90_r" --with-limedir=`pwd`/lime CC="mpixlc_r" CCFLAGS="-I/bgsys/drivers/ppcfloor/arch/include/ -I/bgsys/drivers/ppcfloor/comm/include -DPREFETCH" INCLUDES="-I/homea/hch02/hch02d/papi/include/" LIBS="-L/homea/hch02/hch02d/papi/lib -lpapi" F77="bgf77"
 
 # PAPI 4.1.2
 #./configure --enable-mpi --with-mpidimension=4 --enable-gaugecopy --enable-halfspinor --without-gprof --without-bgldram --host=ppc-ibm-bprts --build=ppc64-ibm-linux --enable-largefile --with-lapack="-L$LAPACK_LIB -L/opt/ibmmath/essl/4.4/lib -lesslbg -llapack -lesslbg -lxlf90_r" --with-limedir=`pwd`/lime CC="mpixlc_r" CCFLAGS="-I/bgsys/drivers/ppcfloor/arch/include/ -I/bgsys/drivers/ppcfloor/comm/include" INCLUDES="-I/homea/hch02/hch02d/papi/include/" LIBS="-L/homea/hch02/hch02d/papi/lib -lpapi" F77="bgf77"
@@ -53,6 +73,17 @@ module load lapack/3.3.0
 # Heavy optimization
 # -O5 -qnoautoconfig -qprefetch -qarch=450d -qtune=450 -qcache=level=1:type=i:size=32:line=32:assoc=64:cost=8 -qcache=level=1:type=d:size=32:line=32:assoc=64:cost=8 -qcache=level=2:type=c:size=4096:line=128:assoc=8:cost=40
 
+# Optimization report
+# -qreport -qxflag=diagnostic
+
+# OpenMP
+# CFLAGS="-qsmp=omp"
+# LDFLAGS="-qsmp=omp"
+
+# Scalasca
+# CC="skin mpixlc_r"
+
+
 # With scalasca
 #module load scalasca
 #./configure --enable-mpi --with-mpidimension=4 --enable-gaugecopy --enable-halfspinor --without-gprof --without-bgldram --with-limedir=/homea/hch02/hch023/tmLQCD-5.1.1/lime --with-lemondir=/homea/hch02/hch023/tmLQCD-5.1.5/lemon-build --host=ppc-ibm-bprts --build=ppc64-ibm-linux --enable-largefile --with-lapack="-L/bgsys/local/lapack/lib -L/opt/ibmmath/essl/4.4/lib -lesslbg -llapack -lesslbg -lxlf90_r" CC="skin -pomp mpixlc_r" CCFLAGS="-g -qfullpath -I/bgsys/drivers/ppcfloor/arch/include/ -I/bgsys/drivers/ppcfloor/comm/include" F77=mpixlf77_r --with-lapackdir=/usr/local/bg_soft/lapack | tee configure.log
@@ -64,6 +95,6 @@ module load lapack/3.3.0
 
 echo 
 echo Making tmLQCD
-make hmc_tm benchmark | tee make.log
+make benchmark hmc_tm | tee make.log
 
 

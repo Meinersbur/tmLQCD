@@ -219,7 +219,6 @@ extern int nstore;
 int const rlxdsize = 105;
 
 int main(int argc,char *argv[]) {
-#pragma pomp inst init
   FILE *parameterfile=NULL, *countfile=NULL;
   char *filename = NULL;
   char datafilename[50];

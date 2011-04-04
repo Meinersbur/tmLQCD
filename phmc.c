@@ -265,7 +265,10 @@ void phmc_compute_ev(const int trajectory_counter,
 #endif
   max_iter_ev = 1000;
   g_mu = g_mu1;
-  
+ 
+  if (g_proc_id == 0) {
+    fprintf(stderr, "MK_Inside phmc_compute_ev g_debug_level=%d\n", g_debug_level);
+  } 
   if((g_proc_id == 0) && (g_debug_level > 0)) {
     printf("# Computing eigenvalues for heavy doublet\n");
   }

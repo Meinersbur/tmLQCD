@@ -269,6 +269,11 @@ int main(int argc,char *argv[])
 #endif
 #ifdef BGL
     printf("# The code was compiled for Blue Gene/L\n");
+#ifdef PREFETCH
+    printf("# the code was compiled with -DPREFETCH\n");
+#else
+    printf("# the code was compiled without -DPREFETCH\n");
+#endif
 #endif
 #ifdef BGP
     printf("# The code was compiled for Blue Gene/P\n");
@@ -281,12 +286,14 @@ int main(int argc,char *argv[])
 #  ifdef _PERSISTENT
     printf("# the code was compiled for persistent MPI calls (halfspinor only)\n");
 #  endif
+    print_prefetch;
 #endif
 #ifdef MPI
 #  ifdef _NON_BLOCKING
     printf("# the code was compiled for non-blocking MPI calls (spinor and gauge)\n");
 #  endif
 #endif
+    printHopVerMsg();
     printf("\n");
     fflush(stdout);
   }
@@ -470,6 +477,7 @@ int main(int argc,char *argv[])
     mypapi_stop();
     
     /* compute the bandwidth */
+    double dt2_single = dt2;
     dt=dts-dt2;
     MPI_Allreduce (&dt, &sdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     sdt=sdt/((double)g_nproc);
@@ -482,6 +490,7 @@ int main(int argc,char *argv[])
       printf("total time %e sec, Variance of the time %e sec. (iterations=%d). \n",sdt,sqdt,j_max);
       printf(" (%d Mflops [%d bit arithmetic])\n",
 	     (int)(1320.0f/dt),(int)sizeof(spinor)/3);
+      printf("MK_ (Control: %.2f secs, %d Mflops)\n", dt2_single, (int) (1320.0 /  (1.0e6 * dt2_single / (double)(k_max * j_max * VOLUME)))),
       printf("\n");
       fflush(stdout);
     }
