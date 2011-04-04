@@ -7,12 +7,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * tmLQCD is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with tmLQCD.  If not, see <http://www.gnu.org/licenses/>.
  ***********************************************************************/
@@ -102,24 +102,24 @@ void usage()
      print_trace (void)
      {
        /* GG */
-       if ( g_proc_id ) 
+       if ( g_proc_id )
 	 return;
 
        void *array[20];
        size_t size;
        char **strings;
        size_t i;
-     
+
        size = backtrace (array, 20);
        strings = backtrace_symbols (array, size);
-     
+
        //printf ("Obtained %zd stack frames.\n", size);
-     
+
        for (i = 0; i < size; i++)
 	 if ( ! strstr(strings[i], "../invert [") && ! strstr(strings[i], "../invert(print_t") && ! strstr(strings[i], "/lib64/libc") )
 	   printf ("%s==", strings[i]);
 /*           printf ("%s\n", strings[i]); */
-     
+
        free (strings);
      }
 #else
@@ -167,7 +167,7 @@ int main(int argc,char *argv[])
 #ifdef HAVE_LIBLEMON
   paramsXlfInfo *xlfInfo;
 #endif
-  
+
 
   /* GG */
   int intrig;
@@ -178,24 +178,24 @@ int main(int argc,char *argv[])
   int yyfd;
   char *input_filename = NULL;
   int c;
-  
+
   static double t1,t2,dt,sdt,dts,qdt,sqdt;
   double antioptaway=0.0;
 #ifdef MPI
   static double dt2;
-  
+
   DUM_DERI = 6;
   DUM_SOLVER = DUM_DERI+2;
   DUM_MATRIX = DUM_SOLVER+6;
   NO_OF_SPINORFIELDS = DUM_MATRIX+2;
 
   verbose = 0;
-  
+
   MPI_Init(&argc, &argv);
   /* GG */
   MPI_Comm_rank(MPI_COMM_WORLD, &g_proc_id);
 #endif
-  g_rgi_C1 = 1.; 
+  g_rgi_C1 = 1.;
 
   /* GG modified ... */
   while ((c = getopt(argc, argv, "vh?f:")) != -1) {
@@ -215,7 +215,7 @@ int main(int argc,char *argv[])
       break;
     }
   }
-  
+
   /* Read the input file */
 /*   read_input("benchmark.input"); */
   if (input_filename == NULL) {
@@ -242,12 +242,12 @@ int main(int argc,char *argv[])
 #endif
 
   /* GG */
-  if ( g_proc_id ) 
+  if ( g_proc_id )
     verbose = 0;
-  
+
   tmlqcd_mpi_init(argc, argv);
   mypapi_init();
-  
+
   if(g_proc_id==0) {
 #ifdef SSE
     printf("# The code was compiled with SSE instructions\n");
@@ -269,24 +269,29 @@ int main(int argc,char *argv[])
 #endif
 #ifdef BGL
     printf("# The code was compiled for Blue Gene/L\n");
+#endif
 #ifdef PREFETCH
     printf("# the code was compiled with -DPREFETCH\n");
 #else
     printf("# the code was compiled without -DPREFETCH\n");
 #endif
+    print_prefetch;
+#ifdef OMP
+    printf("# the code was compiled with -DOMP\n");
+#else
+    printf("# the code was compiled without -DOMP\n");
 #endif
 #ifdef BGP
     printf("# The code was compiled for Blue Gene/P\n");
 #endif
 #ifdef _USE_HALFSPINOR
     printf("# The code was compiled with -D_USE_HALFSPINOR\n");
-#endif    
+#endif
 #ifdef _USE_SHMEM
     printf("# the code was compiled with -D_USE_SHMEM\n");
 #  ifdef _PERSISTENT
     printf("# the code was compiled for persistent MPI calls (halfspinor only)\n");
 #  endif
-    print_prefetch;
 #endif
 #ifdef MPI
 #  ifdef _NON_BLOCKING
@@ -297,8 +302,8 @@ int main(int argc,char *argv[])
     printf("\n");
     fflush(stdout);
   }
-  
-  
+
+
 #ifdef _GAUGE_COPY
   init_gauge_field(VOLUMEPLUSRAND + g_dbw2rand, 1);
 #else
@@ -322,12 +327,12 @@ int main(int argc,char *argv[])
     fprintf(stderr, "Not enough memory for moment fields! Aborting...\n");
     exit(0);
   }
-  
+
   if(g_proc_id == 0) {
     fprintf(stdout,"The number of processes is %d \n",g_nproc);
     printf("# The lattice size is %d x %d x %d x %d\n",
 	   (int)(T*g_nproc_t), (int)(LX*g_nproc_x), (int)(LY*g_nproc_y), (int)(g_nproc_z*LZ));
-    printf("# The local lattice size is %d x %d x %d x %d\n", 
+    printf("# The local lattice size is %d x %d x %d x %d\n",
 	   (int)(T), (int)(LX), (int)(LY),(int) LZ);
     if(even_odd_flag) {
       printf("# benchmarking the even/odd preconditioned Dirac operator\n");
@@ -337,7 +342,7 @@ int main(int argc,char *argv[])
     }
     fflush(stdout);
   }
-  
+
   /* define the geometry */
   geometry();
   /* define the boundary conditions for the fermion fields */
@@ -360,13 +365,13 @@ int main(int argc,char *argv[])
 #  if (defined _PERSISTENT)
   init_xchange_halffield();
 #  endif
-#endif  
+#endif
 
   check_geometry();
 #if (defined MPI && !(defined _USE_SHMEM))
-  check_xchange(); 
+  check_xchange();
 #endif
-  
+
 
   start_ranlux(1, 123456);
   random_gauge_field(reproduce_randomnumber_flag);
@@ -402,7 +407,7 @@ int main(int argc,char *argv[])
       t1 = bgl_wtime();
 #else
       t1=(double)clock();
-#endif	
+#endif
       antioptaway=0.0;
       for (j=0;j<j_max;j++) {
 	for (k=0;k<k_max;k++) {
@@ -440,7 +445,7 @@ int main(int argc,char *argv[])
     dts=dt;
     sdt=1.0e6f*sdt/((double)(k_max*j_max*(VOLUME)));
     sqdt=1.0e6f*sqdt/((double)(k_max*j_max*(VOLUME)));
-    
+
     if(g_proc_id==0) {
       printf("Print 1 result, to make sure that the calculation is not optimized away: %e  \n",antioptaway);
       printf("total time %e sec, Variance of the time %e sec. (itarations=%d). \n",sdt,sqdt,j_max);
@@ -450,7 +455,7 @@ int main(int argc,char *argv[])
       printf("\n");
       fflush(stdout);
     }
-    
+
     mypapi_start();
 #ifdef MPI
     /* isolated computation */
@@ -475,7 +480,7 @@ int main(int argc,char *argv[])
     dt2=(t2-t1)/((double)(CLOCKS_PER_SEC));
 #endif
     mypapi_stop();
-    
+
     /* compute the bandwidth */
     double dt2_single = dt2;
     dt=dts-dt2;
@@ -519,7 +524,7 @@ int main(int argc,char *argv[])
     for (k=0;k<k_max;k++) {
       random_spinor_field(g_spinor_field[k], VOLUME, 0);
     }
-    
+
     while(sdt < 3.) {
 #ifdef MPI
       MPI_Barrier(MPI_COMM_WORLD);
@@ -561,7 +566,7 @@ int main(int argc,char *argv[])
     dts=dt;
     sdt=1.0e6f*sdt/((double)(k_max*j_max*(VOLUME)));
     sqdt=1.0e6f*sqdt/((double)(k_max*j_max*(VOLUME)));
-    
+
     if(g_proc_id==0) {
       printf("Print 1 result, to make sure that the calculation is not optimized away: %e  \n",antioptaway);
       printf("total time %e sec, Variance of the time %e sec. (iterations=%d). \n",sdt,sqdt,j_max);

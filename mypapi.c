@@ -1,5 +1,12 @@
 #include "mypapi.h"
 
+#ifndef BGP
+
+void mypapi_init(){}
+void mypapi_start(){}
+void mypapi_stop(){}
+
+#else
 
 #include <stdio.h>
 #include <stdint.h>
@@ -345,5 +352,5 @@ void List_PAPI_Events(const int pEventSet, int* pEvents, int* pNumEvents) {
 	return;
 }
 
-
+#endif
 

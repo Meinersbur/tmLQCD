@@ -57,6 +57,9 @@
 		<Unit filename="Hopping_Matrix_nocom.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
+		<Unit filename="Hopping_Matrix_omp.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="Hopping_unopt.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -127,6 +130,7 @@
 		<Unit filename="complex.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
+		<Unit filename="config.h" />
 		<Unit filename="default_input_values.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
@@ -1185,6 +1189,10 @@
 		<Unit filename="mpi_init.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
+		<Unit filename="mypapi.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="mypapi.h" />
 		<Unit filename="nddetratio_monomial.c">
 			<Option compilerVar="CC" />
 			<Option target="&lt;{~None~}&gt;" />
@@ -1318,6 +1326,7 @@
 		<Unit filename="read_input.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
+		<Unit filename="read_input.l" />
 		<Unit filename="reducenoise.c">
 			<Option compilerVar="CC" />
 			<Option target="&lt;{~None~}&gt;" />
