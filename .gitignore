@@ -28,3 +28,7 @@ tmLQCD.cscope_file_list
 depcomp
 missing
 benchmark
+
+*.i
+*.lst
+

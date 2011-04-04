@@ -30,4 +30,6 @@
 
 void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k);
 
+void printHopVerMsg();
+
 #endif

@@ -56,7 +56,6 @@ extern int phmc_exact_poly;
  ********************************************/
 
 void ndpoly_derivative(const int id) {
-#pragma pomp inst begin(ndpoly_derivative)
   mypapi_start();
   int j, k;
   monomial * mnl = &monomial_list[id];
@@ -154,12 +153,14 @@ void ndpoly_derivative(const int id) {
     Normalisation by the largest  EW  is done in update_momenta
     using mnl->forcefactor
   */ 
-#pragma pomp inst end(ndpoly_derivative)
   mypapi_stop();
+  if (g_proc_id == 0)
+  fprintf(stderr, "MK_ndpoly_derivative END\n");  
 }
 
 
 void ndpoly_heatbath(const int id) {
+  mypapi_start();
   int j;
   double temp;
   monomial * mnl = &monomial_list[id];
@@ -261,6 +262,10 @@ void ndpoly_heatbath(const int id) {
   if(g_proc_id == 0 && g_debug_level > 3) {
     printf("called ndpoly_heatbath for id %d with g_running_phmc = %d\n", id, g_running_phmc);
   }
+
+  mypapi_stop();
+  if (g_proc_id == 0)
+  fprintf(stderr, "MK_ndpoly_heatbath END\n");
   return;
 }
 

@@ -121,6 +121,8 @@ void detratio_derivative(const int no) {
       nustor2 = nustora[mnlid];
       dum_gg_dU2 = DUM_MATRIX + 11 + 2*mnlid;
       dum_gg_sU2 = dum_gg_dU2 + 1;
+      if (g_proc_id == 0)
+        fprintf(stderr, "MK_mnlid=%d nustor2=%d dum_gg_dU2=%d\n", mnlid, nustor2, dum_gg_dU2);
 
       if ( nustor2 < 2 ) {
 

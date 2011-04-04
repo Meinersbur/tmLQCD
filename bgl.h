@@ -779,6 +779,8 @@
   reg05 = __fxcxnsma(reg05, reg02, __cimag(u02)); \
   reg15 = __fxcxnsma(reg15, reg12, __cimag(u02)); 
 
+#ifdef PREFETCH
+#define print_prefetch printf("Explicit prefetch ON\n")
 
 /* 35 cycles ! */
 #define _prefetch_spinor(addr)			    \
@@ -846,6 +848,18 @@
   __prefetch_by_stream(1,((char*)((unsigned long int)(addr)))+96);	\
   __prefetch_by_stream(1,((char*)((unsigned long int)(addr)))+128); 
 
+#else /* PREFETCH */
+#define print_prefetch printf("Explicit prefetch OFF\n")
+#define _prefetch_spinor(addr)
+#define _prefetch_spinor_for_store(addr)
+#define _prefetch_halfspinor_for_store(addr)
+#define _prefetch_halfspinor(addr)
+#define _prefetch_spinor2(addr)
+#define _prefetch_su3(addr)
+#define _prefetch_su32(addr)
+#define _prefetch_spinor3(addr)
+#define _prefetch_su33(addr)
+#endif
 
 /* computers u*w and stores result in regxx */
 #define _bgl_su3_times_su3(u, w) \
