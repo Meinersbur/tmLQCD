@@ -31,6 +31,7 @@
 void update_backward_gauge() {
   int ix=0, kb=0, iy=0;
 
+ // Odd sites
   for(ix = 0; ix < VOLUME/2; ix++) {
     iy = (VOLUME+RAND)/2+ix;
     kb = g_idn[ g_eo2lexic[iy] ][0];
@@ -42,6 +43,8 @@ void update_backward_gauge() {
     kb = g_idn[ g_eo2lexic[iy] ][3];
     _su3_assign(g_gauge_field_copy[0][ix][3], g_gauge_field[kb][3]);
   }
+  
+  // Even sites
   for(ix = 0; ix < VOLUME/2; ix++) {
     kb = g_idn[ g_eo2lexic[ix] ][0];
     _su3_assign(g_gauge_field_copy[1][ix][0], g_gauge_field[kb][0]);

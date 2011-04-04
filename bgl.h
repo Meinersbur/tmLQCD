@@ -1,3 +1,6 @@
+#ifndef HEADER_B2B6111076A19B78
+#define HEADER_B2B6111076A19B78
+
 /***********************************************************************
  * $Id$ 
  *
@@ -657,6 +660,7 @@
   reg05 = __fxcxnpma(reg05, reg01, (u).c21.im); \
   reg04 = __fxcxnpma(reg04, reg02, (u).c12.im);
 
+/* 132 flops */
 #define _bgl_su3_multiply_double(u) \
   u00 = __lfpd((double*)&(u).c00); \
   u01 = __lfpd((double*)&(u).c01); \
@@ -1591,3 +1595,5 @@
 
 
 #endif
+
+#endif // header guard 

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#ifdef BGP
 #include <common/alignment.h>
 #include "papi.h" //Provides definitions for base PAPI function
 #include <spi/bgp_SPI.h> //The Blue Gene/P substrate for PAPI is based on the UPC interfaces documented in this header file.
@@ -42,6 +43,7 @@ static double now2(){
 #define PAPI_ERROR(cmd) if (RC = (cmd)) { fprintf(stderr, "MK_PAPI call failed with code %d at line %d: %s\n", RC, __LINE__, TOSTRING(cmd));  }
 
 void mypapi_init() {
+#ifdef BGP
 	if (g_proc_id == 0)
 		fprintf(stderr, "MK_Init mypapi\n");
 
@@ -104,6 +106,7 @@ void mypapi_init() {
 }
 
 void mypapi_start() {
+#ifdef BGP
 	int RC;
 	if (g_proc_id != 0)
 		return;
@@ -119,7 +122,20 @@ void mypapi_start() {
 }
 
 
+/* Print_Counters */
+void Print_Counters(const int pEventSet) {
+	printf("\n***** Start Print Counter Values *****\n");
+	// Print_Native_Counters_via_Buffer((BGP_UPC_Read_Counters_Struct_t*)Native_Buffer);
+	Print_Native_Counters();
+	Print_Native_Counters_for_PAPI_Counters(pEventSet);
+	Print_PAPI_Counters(pEventSet, PAPI_Counters);
+	printf("\n***** End Print Counter Values *****\n");
+	return;
+}
+
+
 void mypapi_stop() {
+#ifdef BGP
 	if (g_proc_id != 0)
 		return;
 
@@ -332,6 +348,6 @@ void List_PAPI_Events(const int pEventSet, int* pEvents, int* pNumEvents) {
 	}
 	return;
 }
-
+#endif
 
 
