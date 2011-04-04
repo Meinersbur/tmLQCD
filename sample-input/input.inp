@@ -1,9 +1,9 @@
-T=16
+T=2
 L=16
 
-NrXProcs = 2
+NrXProcs = 4
 NrYProcs = 2
-NrZProcs = 2
+NrZProcs = 1
 
 Measurements = 2
 #startCondition = continue
