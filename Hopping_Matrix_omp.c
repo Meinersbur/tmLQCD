@@ -15,7 +15,7 @@
 void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
   su3 * restrict Ustart ALIGN;
   halfspinor * restrict * phi ALIGN;
-#pragma disjoint(*s, *Ustart, *phi)
+#pragma disjoint(*Ustart, *phi, *l, *l)
 
 #ifdef _GAUGE_COPY
   if(g_update_gauge_copy) {
@@ -58,7 +58,7 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
   double _Complex reg20, reg21;
   /* The following contains the result spinor (12 regs) */
   double _Complex rs00, rs01, rs02, rs10, rs11, rs12, rs20, rs21, rs22, rs30, rs31, rs32;
-  #pragma disjoint(*s, *Um, *phi)
+  #pragma disjoint(*Ustart, *phi, *l, *l, *U, *s)
 
         ix = 0 + i*8;
         s = k + i;
@@ -187,10 +187,10 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
     _prefetch_su3(Ustart);
 
     /* Now we sum up and expand to a full spinor */
-    ix = 0;
+    //ix = 0;
     /*   _prefetch_spinor_for_store(s); */
     #pragma omp for
-    for(i = 0; i < (VOLUME)/2; i++){
+    for(int i = 0; i < (VOLUME)/2; i++){
                   int ix;
   su3 * restrict U ALIGN;
   spinor * restrict s ALIGN;
@@ -203,7 +203,7 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
   double _Complex reg20, reg21;
   /* The following contains the result spinor (12 regs) */
   double _Complex rs00, rs01, rs02, rs10, rs11, rs12, rs20, rs21, rs22, rs30, rs31, rs32;
-  #pragma disjoint(*s, *Um, *phi)
+  #pragma disjoint(*Ustart, *phi, *l, *l, *U, *s)
 
      ix = 0 + i*8;
      s = l;
@@ -345,8 +345,6 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
  * Author: Carsten Urbach
  *
  **********************************/
-
-#include <omp.h>
 
 /* 6. */
 void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
@@ -653,7 +651,7 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
 
     /************************ end of loop ************************/
   }
-
+}
 
 
 #elif (defined _USE_HALFSPINOR && defined OMP)

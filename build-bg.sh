@@ -46,14 +46,55 @@ BGP_IDIRS="-I${BGP_FLOOR}/arch/include -I${BGP_FLOOR}/comm/include"
 BGP_LIBS="-L${BGP_FLOOR}/comm/lib -L${BGP_FLOOR}/runtime/SPI -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk -lrt -lSPI.cna -lpthread"
 
 CC="mpixlc_r"
+CCLD="${CC}"
 F77="bgf77"
-CFLAGS="-I/bgsys/drivers/ppcfloor/arch/include/ -I/bgsys/drivers/ppcfloor/comm/include -DPREFETCH -qsmp=omp"
+CFLAGS="-I/bgsys/drivers/ppcfloor/arch/include/ -I/bgsys/drivers/ppcfloor/comm/include -DPREFETCH"
 INCLUDES="-I/homea/hch02/hch02d/papi/include/"
 
 LDFLAGS="-qsmp=omp"
 LIBS="-L/homea/hch02/hch02d/papi/lib -lpapi ${BGP_LIBS}"
 
-./configure --enable-mpi --with-mpidimension=3 --enable-gaugecopy --enable-halfspinor --without-gprof --without-bgldram --host=ppc-ibm-bprts --build=ppc64-ibm-linux --enable-largefile --with-lapack="-L$LAPACK_LIB -L/opt/ibmmath/essl/4.4/lib -lesslbg -llapack -lesslbg -lxlf90_r -lxlfmath" --with-limedir=`pwd`/lime --with-lemondir=`pwd`/lemon CFLAGS="${CFLAGS}" INCLUDES="${INCLUDES}" LIBS="${LIBS}" LDFLAGS="${LDFLAGS}" F77="${F77}" CC="${CC}" 
+# Enable OpenMP
+#LDFLAGS="${LDFLAGS} -qsmp"
+#CFLAGS="${CFLAGS} -DOMP"
+#CFLAGS="${CFLAGS} -qsmp=noauto"
+#CFLAGS="${CFLAGS} -qsmp=noauto -DOMP"
+#SOPTARGS="${SOPTARGS} -qsmp=auto"
+
+# How many dimensions?
+DIM=4
+
+# Reports on optimizations
+CFLAGS="${CFLAGS} -qreport -qxflag=diagnostic -qphsinfo"
+#CFLAGS="${CFLAGS} -qreport -qxflag=diagnostic -qphsinfo -v -V"
+
+# More detailed error messages
+CFLAGS="${CFLAGS} -qsrcmsg"
+
+# Fast compilation for non-critical code
+OPTARGS="${OPTARGS} -qnosmp -O2"
+
+# Extreme optimization for field operations (Not all switches supported by all versions of xlc)
+SOPTARGS="${SOPTARGS} -O5 -qnoautoconfig -O5 -qmaxmem=-1 -qprefetch -qarch=450d -qtune=450 -qcache=level=1:type=i:size=32:line=32:assoc=64:cost=8 -qcache=level=1:type=d:size=32:line=32:assoc=64:cost=8 -qcache=level=2:type=c:size=4096:line=128:assoc=8:cost=40 -qalign=natural -qhot=simd -qhot=vector"
+
+# Half- or full spinor exchange?
+SPINOR=--enable-halfspinor
+#SPINOR=--disable-halfspinor
+
+#Scalasca
+module load scalasca 
+CC="skin -v ${CC}"
+CCLD="skin -v ${CCLD}"
+CFLAGS="${CFLAGS} -DNOPAPI"
+
+# Lime or lemon?
+LIME="--with-limedir=`pwd`/lime"
+#LEMON="--with-lemondir=`pwd`/lemon"
+
+#./configure --enable-mpi --with-mpidimension=${DIM} --enable-gaugecopy ${SPINOR} --without-gprof --without-bgldram --host=ppc-ibm-bprts --build=ppc64-ibm-linux --enable-largefile --with-lapack="-L$LAPACK_LIB -L/opt/ibmmath/essl/4.4/lib -lesslbg -llapack -lesslbg -lxlf90_r -lxlfmath" ${LIME} ${LEMON} CFLAGS="${CFLAGS}" INCLUDES="${INCLUDES}" LIBS="${LIBS}" LDFLAGS="${LDFLAGS}" F77="${F77}" CC="${CC}" CCLD="${CCLD}"
+
+
+
 
 # LEMON
 #./configure --enable-mpi --with-mpidimension=4 --enable-gaugecopy --enable-halfspinor --without-gprof --without-bgldram --host=ppc-ibm-bprts --build=ppc64-ibm-linux --enable-largefile --with-lapack="-L$LAPACK_LIB -L/opt/ibmmath/essl/4.4/lib -lesslbg -llapack -lesslbg -lxlf90_r" --with-limedir=`pwd`/lime --with-lemondir=`pwd`/lemon CC="mpixlc_r" CFLAGS="-I/bgsys/drivers/ppcfloor/arch/include/ -I/bgsys/drivers/ppcfloor/comm/include -DPREFETCH" INCLUDES="-I/homea/hch02/hch02d/papi/include/" LIBS="-L/homea/hch02/hch02d/papi/lib -lpapi" F77="bgf77"
@@ -95,6 +136,8 @@ LIBS="-L/homea/hch02/hch02d/papi/lib -lpapi ${BGP_LIBS}"
 
 echo 
 echo Making tmLQCD
-make benchmark hmc_tm | tee make.log
+echo \#! /bin/sh > make.sh
+echo make benchmark hmc_tm OPTARGS=\"${OPTARGS}\" SOPTARGS=\"${SOPTARGS}\" >> make.sh
+make benchmark hmc_tm OPTARGS="${OPTARGS}" SOPTARGS="${SOPTARGS}" | tee make.log
 
 

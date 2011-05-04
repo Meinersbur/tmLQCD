@@ -26,7 +26,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with tmLQCD.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * 
  *
  * Hopping_Matrix is the conventional Wilson
  * hopping matrix
@@ -843,6 +843,10 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
 #ifdef XLC
 #pragma disjoint(*l, *k, *U, *s)
 #endif
+
+ __alignx(16,k);
+ __alignx(16,l);
+ __alignx(16,U);
 
 #ifdef _GAUGE_COPY
   if(g_update_gauge_copy) {

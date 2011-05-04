@@ -1,12 +1,8 @@
 #include "mypapi.h"
+#include "config.h"
 
-#ifndef BGP
 
-void mypapi_init(){}
-void mypapi_start(){}
-void mypapi_stop(){}
-
-#else
+#if (defined BGP && !defined NOPAPI)
 
 #include <stdio.h>
 #include <stdint.h>
@@ -124,18 +120,6 @@ void mypapi_start() {
 	xNsec = PAPI_get_real_nsec();
 	xNow = now2();
 	PAPI_ERROR(PAPI_start(xEventSet));
-}
-
-
-/* Print_Counters */
-void Print_Counters(const int pEventSet) {
-	printf("\n***** Start Print Counter Values *****\n");
-	// Print_Native_Counters_via_Buffer((BGP_UPC_Read_Counters_Struct_t*)Native_Buffer);
-	Print_Native_Counters();
-	Print_Native_Counters_for_PAPI_Counters(pEventSet);
-	Print_PAPI_Counters(pEventSet, PAPI_Counters);
-	printf("\n***** End Print Counter Values *****\n");
-	return;
 }
 
 
@@ -351,6 +335,12 @@ void List_PAPI_Events(const int pEventSet, int* pEvents, int* pNumEvents) {
 	}
 	return;
 }
+
+#else
+
+void mypapi_init(){}
+void mypapi_start(){}
+void mypapi_stop(){}
 
 #endif
 
