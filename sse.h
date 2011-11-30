@@ -35,7 +35,7 @@
 #endif
 
 #if (defined SSE || defined SSE2 || defined SSE3)
-
+#define print_prefetch printf("SSE prefetch")
 
 /*******************************************************************************
 *

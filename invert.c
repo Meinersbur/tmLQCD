@@ -370,6 +370,7 @@ int main(int argc, char *argv[])
   intrig = read_input_fh(yyingg);
 #endif
 
+  int solver_flag = 0; // MK: Error, there can be multiple solvers
   if(solver_flag == 12 && even_odd_flag == 1) {
     even_odd_flag = 0;
     if(g_proc_id == 0) fprintf(stderr, "CGMMS works only without even/odd! Forcing!\n");
