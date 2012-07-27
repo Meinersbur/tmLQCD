@@ -65,6 +65,9 @@ typedef enum {
 } direction;
 
 
+#define BGQ_SPINORSITE(spinorfield, isOdd, x, y, z, tv) \
+		&spinorfield[((x*PHYSICAL_LY + y)*PHYSICAL_LZ + z)*PHYSICAL_LTV + tv];
+
 EXTERN inline bgq_spinorsite_double *bgq_spinorsite_double_physical_pointer(bgq_spinorfield_double spinorfield, bool isOdd, int x, int y, int z, int tv) {
 	assert(spinorfield);
 	assert(0 <= isOdd && isOdd < PHYSICAL_LP);

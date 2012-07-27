@@ -275,7 +275,7 @@ int main(int argc,char *argv[])
 #else
     printf("# the code was compiled without -DPREFETCH\n");
 #endif
-    print_prefetch;
+    //print_prefetch;
 #ifdef OMP
     printf("# the code was compiled with -DOMP\n");
 #else

@@ -224,6 +224,14 @@ typedef double vector4double[4];
 	vec_sta(src##_v3_c1, 320, addr);          \
 	vec_sta(src##_v3_c2, 352, addr)
 
+#define bgq_su3_weyldouble_store(addr,src) \
+	vec_sta(src##_v0_c0,   0, addr);          \
+	vec_sta(src##_v0_c1,  32, addr);          \
+	vec_sta(src##_v0_c2,  64, addr);          \
+	vec_sta(src##_v1_c0,  96, addr);          \
+	vec_sta(src##_v1_c1, 128, addr);          \
+	vec_sta(src##_v1_c2, 160, addr)
+
 #define bgq_su3_spinor_merge(dst,a,b)        \
 	bgq_su3_vmerge(dst##_v0, a##_v0, b##_v0) \
 	bgq_su3_vmerge(dst##_v1, a##_v1, b##_v1) \
@@ -297,5 +305,18 @@ typedef double vector4double[4];
 	dest##_c2 = cvec_pcmul  (v##_c0, m##_c02);            \
 	dest##_c2 = cvec_pcpmadd(v##_c1, m##_c12, dest##_c2); \
 	dest##_c2 = cvec_pcpmadd(v##_c2, m##_c12, dest##_c2);
+
+
+#define STRINGIFY(V) #V
+#define TOSTRING(V) STRINGIFY(V)
+#define MPI_CHECK(RTNCODE) \
+	do {                 \
+    	int mpi_rtncode = (RTNCODE);\
+    	if (mpi_rtncode != MPI_SUCCESS) {\
+			fprintf(stderr, "MPI call %s failed: errorcode %d\n", #RTNCODE, mpi_rtncode);  \
+			assert(!"MPI call " #RTNCODE " failed");\
+			abort();\
+		}\
+	} while (0)
 
 #endif /* BGQ_H_ */
