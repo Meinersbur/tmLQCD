@@ -485,6 +485,8 @@ void xchange_deri()
 #  ifdef MPI
   int ix,mu, t, y, z, x;
   MPI_Status status;
+
+#    if (defined PARALLELT || defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT)
   /* send the data to the neighbour on the left in time direction */
   /* recieve the data from the neighbour on the right in time direction */
   MPI_Sendrecv(&df0[(T+1)*LX*LY*LZ][0].d1,    1, deri_time_slice_cont, g_nb_t_dn, 43,
@@ -509,10 +511,11 @@ void xchange_deri()
       }
     }
   }
+#endif
 
   /* send the data to the neighbour on the right is not needed*/
 
-#    if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT)
+#    if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT || defined PARALLELXYZ)
 
   /* send the data to the neighbour on the left in x direction */
   /* recieve the data from the neighbour on the right in x direction */
@@ -542,7 +545,7 @@ void xchange_deri()
   /* end of ifdef PARALLELXT || PARALLELXYT */
 #    endif
 
-#    if (defined PARALLELXYT || defined PARALLELXYZT)
+#    if (defined PARALLELXYT || defined PARALLELXYZT || defined PARALLELXYZ)
   /* send the data to the neighbour on the left in y direction */
   /* recieve the data from the neighbour on the right in y direction */
   MPI_Sendrecv((void*)df0[VOLUME + 2*LZ*(LX*LY + T*LY) + T*LX*LZ], 
@@ -573,7 +576,7 @@ void xchange_deri()
   /* end of ifdef PARALLELXYT */
 #    endif
 
-#    ifdef PARALLELXYZT
+#    if defined PARALLELXYZT || defined PARALLELXYZ
   /* send the data to the neighbour on the left in y direction */
   /* recieve the data from the neighbour on the right in y direction */
   MPI_Sendrecv((void*)df0[VOLUME + 2*LX*LY*LZ + 2*T*LY*LZ + 2*T*LX*LZ + T*LX*LY], 

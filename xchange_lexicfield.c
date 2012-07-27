@@ -167,7 +167,7 @@ void xchange_lexicfield(spinor * const l) {
   int reqcount = 4;
 #  elif defined PARALLELXT
   int reqcount = 8;
-#  elif defined PARALLELXYT
+#  elif defined PARALLELXYT || defined PARALLELXYZ
   int reqcount = 12;
 #  elif defined PARALLELXYZT
   int reqcount = 16;
@@ -181,12 +181,14 @@ void xchange_lexicfield(spinor * const l) {
 
 #  ifdef MPI
 
-
+#if (defined PARALLELT || defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT)
   /* send the data to the neighbour on the left */
   /* recieve the data from the neighbour on the right */
   MPI_Isend((void*)l, 1, lfield_time_slice_cont, g_nb_t_dn, 5081, g_cart_grid, &requests[0]);
   MPI_Irecv((void*)(l+VOLUME), 1, lfield_time_slice_cont, g_nb_t_up, 5081, g_cart_grid, &requests[1]);
-#    if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT)
+#endif
+
+#    if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT || defined PARALLELXYZ)
   /* send the data to the neighbour on the left in x direction */
   /* recieve the data from the neighbour on the right in x direction */
   MPI_Isend((void*)l, 1, lfield_x_slice_gath, g_nb_x_dn, 5091, g_cart_grid,  &requests[4]);
@@ -194,40 +196,43 @@ void xchange_lexicfield(spinor * const l) {
 
 #    endif
   
-#    if (defined PARALLELXYT || defined PARALLELXYZT)
+#    if (defined PARALLELXYT || defined PARALLELXYZT || defined PARALLELXYZ)
   /* send the data to the neighbour on the left in y direction */
   /* recieve the data from the neighbour on the right in y direction */
   MPI_Isend((void*)l, 1, lfield_y_slice_gath, g_nb_y_dn, 5101, g_cart_grid, &requests[8]);
   MPI_Irecv((void*)(l + VOLUME + 2*LZ*(LX*LY + T*LY)), 1, lfield_y_slice_cont, g_nb_y_up, 5101, g_cart_grid, &requests[9]);
 #    endif
   
-#    if (defined PARALLELXYZT)
+#    if (defined PARALLELXYZT || defined PARALLELXYZ)
   
   /* send the data to the neighbour on the left in z direction */
   /* recieve the data from the neighbour on the right in z direction */
   MPI_Isend((void*)l, 1, lfield_z_slice_gath, g_nb_z_dn, 5503, g_cart_grid, &requests[12]); 
   MPI_Irecv((void*)(l+VOLUME + 2*LZ*(LX*LY + T*LY) + 2*LZ*T*LX), 1, lfield_z_slice_cont, g_nb_z_up, 5503, g_cart_grid, &requests[13]); 
 #    endif
+
+#if (defined PARALLELT || defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT)
   /* send the data to the neighbour on the right */
   /* recieve the data from the neighbour on the left */
   MPI_Isend((void*)(l+(T-1)*LX*LY*LZ), 1, lfield_time_slice_cont, g_nb_t_up, 5082, g_cart_grid, &requests[2]);
   MPI_Irecv((void*)(l+(T+1)*LX*LY*LZ), 1, lfield_time_slice_cont, g_nb_t_dn, 5082, g_cart_grid, &requests[3]);
+#endif
   
-#    if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT)
+#    if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT || defined PARALLELXYZ)
   /* send the data to the neighbour on the right in x direction */
   /* recieve the data from the neighbour on the left in x direction */  
   MPI_Isend((void*)(l+(LX-1)*LY*LZ), 1, lfield_x_slice_gath, g_nb_x_up, 5092, g_cart_grid, &requests[6]);
   MPI_Irecv((void*)(l+((T+2)*LX*LY*LZ + T*LY*LZ)), 1, lfield_x_slice_cont, g_nb_x_dn, 5092, g_cart_grid, &requests[7]);
 #    endif
   
-#    if (defined PARALLELXYT || defined PARALLELXYZT)
+#    if (defined PARALLELXYT || defined PARALLELXYZT || defined PARALLELXYZ)
   /* send the data to the neighbour on the right in y direction */
   /* recieve the data from the neighbour on the left in y direction */  
   MPI_Isend((void*)(l+(LY-1)*LZ), 1, lfield_y_slice_gath, g_nb_y_up, 5102, g_cart_grid, &requests[10]);
   MPI_Irecv((void*)(l+VOLUME + 2*LZ*(LX*LY + T*LY) + T*LX*LZ), 1, lfield_y_slice_cont, g_nb_y_dn, 5102, g_cart_grid, &requests[11]);
 #    endif
   
-#    if defined PARALLELXYZT
+#    if defined PARALLELXYZT || defined PARALLELXYZ
   
   /* send the data to the neighbour on the right in y direction */
   /* recieve the data from the neighbour on the left in y direction */  

@@ -227,7 +227,7 @@ void xchange_2fields(spinor * const l, spinor * const k, const int ieo) {
   MPI_Request requests[32];
   MPI_Status status[32];
   int reqcount = 0;
-#if defined PARALLELXYZT
+#if defined PARALLELXYZT || defined PARALLELXYZ
   int ix=0;
 #endif
 
@@ -247,6 +247,7 @@ void xchange_2fields(spinor * const l, spinor * const k, const int ieo) {
   __alignx(16, l);
 #  endif
 
+#if (defined PARALLELT || defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT)
   /* send the data to the neighbour on the left */
   /* recieve the data from the neighbour on the right */
   MPI_Isend((void*)l, 1, field_time_slice_cont, g_nb_t_dn, 81, g_cart_grid, &requests[reqcount]);
@@ -274,9 +275,9 @@ void xchange_2fields(spinor * const l, spinor * const k, const int ieo) {
   reqcount++;
   MPI_Irecv((void*)(k+(T+1)*LX*LY*LZ/2), 1, field_time_slice_cont, g_nb_t_dn, 84, g_cart_grid, &requests[reqcount]);
   reqcount++;
-
+#endif
   
-#    if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT)
+#    if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT || defined PARALLELXYZ)
   /* send the data to the neighbour on the left in x direction */
   /* recieve the data from the neighbour on the right in x direction */
   MPI_Isend((void*)l, 1, field_x_slice_gath, g_nb_x_dn, 91, g_cart_grid,  &requests[reqcount]);
@@ -306,7 +307,7 @@ void xchange_2fields(spinor * const l, spinor * const k, const int ieo) {
   reqcount++;
 #    endif
   
-#    if (defined PARALLELXYT || defined PARALLELXYZT)
+#    if (defined PARALLELXYT || defined PARALLELXYZT || defined PARALLELXYZ)
   /* send the data to the neighbour on the left in y direction */
   /* recieve the data from the neighbour on the right in y direction */
   MPI_Isend((void*)l, 1, field_y_slice_gath, g_nb_y_dn, 101, g_cart_grid, &requests[reqcount]);
@@ -337,7 +338,7 @@ void xchange_2fields(spinor * const l, spinor * const k, const int ieo) {
   
 #    endif
   
-#    if (defined PARALLELXYZT)
+#    if (defined PARALLELXYZT || defined PARALLELXYZ)
   /* fill buffer ! */
   /* This is now depending on whether the field is */
   /* even or odd */

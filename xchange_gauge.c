@@ -664,6 +664,7 @@ void xchange_gauge() {
   MPI_Request request[105];
   MPI_Status status[105];
 
+#if (defined PARALLELT || defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT)
   /* send the data to the neighbour on the left */
   /* recieve the data from the neighbour on the right */
   
@@ -704,8 +705,9 @@ void xchange_gauge() {
 	      g_cart_grid, &request[cntr]);
     cntr++;
   }
+#endif
   
-#    if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT)
+#    if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT || defined PARALLELXYZ)
   /* send the data to the neighbour on the left in x direction */
   /* recieve the data from the neighbour on the right in x direction */
   MPI_Isend(g_gauge_field[0],              1, gauge_x_slice_gath, g_nb_x_dn, 87,
@@ -823,7 +825,7 @@ void xchange_gauge() {
   /* end of if defined PARALLELXT || PARALLELXYT || PARALLELXYZT*/
 #    endif
 
-#    if (defined PARALLELXYT || defined PARALLELXYZT)
+#    if (defined PARALLELXYT || defined PARALLELXYZT || defined PARALLELXYZ)
   /* send the data to the neighbour on the left in y direction */
   /* recieve the data from the neighbour on the right in y direction */
   MPI_Isend(g_gauge_field[0],                            1, gauge_y_slice_gath, g_nb_y_dn, 106,
@@ -864,7 +866,7 @@ void xchange_gauge() {
 #    endif
   MPI_Waitall(cntr, request, status);
   cntr=0;
-#    if (defined PARALLELXYT || defined PARALLELXYZT)
+#    if (defined PARALLELXYT || defined PARALLELXYZT || defined PARALLELXYZ)
 
   /* jetzt wirds richtig eklig ... */
 
@@ -1013,7 +1015,7 @@ void xchange_gauge() {
 
   /* end of if defined PARALLELXYT || PARALLELXYZT */
 #    endif
-#    if defined PARALLELXYZT
+#    if defined PARALLELXYZT || defined PARALLELXYZ
   /* z-Rand */
   /* send the data to the neighbour on the left in z direction */
   /* recieve the data from the neighbour on the right in z direction */
@@ -1062,7 +1064,7 @@ void xchange_gauge() {
   }
 #    endif
   MPI_Waitall(cntr, request, status);
-#    if defined PARALLELXYZT
+#    if defined PARALLELXYZT || defined PARALLELXYZ
   cntr=0;
   /* edges */
 
