@@ -4,6 +4,7 @@
 #include "../global.h"
 #include <stdbool.h>
 #include <complex.h>
+#include <assert.h>
 
 #ifndef EXTERN
 #define EXTERN extern
@@ -24,30 +25,42 @@
 #define PHYSICAL_LZ LOCAL_LZ
 #define PHYSICAL_LTV (LOCAL_LT/(PHYSICAL_LP*PHYSICAL_LK))
 #define PHYSICAL_LK 2 /* Vector unit width (2 complex = 4 reals) */
-#define PHYSICAL_LD 4 /* No of directions (for gauge field) */
+#define PHYSICAL_LD 5 /* No of directions (for gauge field) */
+
+
+// 2 of each
+#define COUNT_FACE_XY ((PHYSICAL_LX-2)*(PHYSICAL_LY-2)*(1))
+#define COUNT_FACE_XZ ((PHYSICAL_LX-2)*(1)*(PHYSICAL_LZ-2))
+#define COUNT_FACE_YZ ((1)*(PHYSICAL_LY-2)*(PHYSICAL_LZ-2))
+
+// 4 of each
+#define COUNT_EDGE_X ((PHYSICAL_LX-2)*(1)*(1))
+#define COUNT_EDGE_Y ((1)*(PHYSICAL_LY-2)*(1))
+#define COUNT_EDGE_Z ((1)*(1)*(PHYSICAL_LZ-2))
+
+// 8
+#define COUNT_VERTEX ((1)*(1)*(1))
+
+#define TOTAL_BORDER (2*(COUNT_FACE_XY + COUNT_FACE_XZ + COUNT_FACE_YZ) + 4*(COUNT_EDGE_X + COUNT_EDGE_Y + COUNT_EDGE_Z) + 8*COUNT_VERTEX)
+
+
 
 typedef struct {
 	double _Complex s[4][3][PHYSICAL_LK];
 } bgq_spinorsite_double;
+typedef struct {
+	double _Complex s[2][3][PHYSICAL_LK];
+} bgq_weylsite_double;
+typedef bgq_spinorsite_double (*bgq_spinorfield_double);
+typedef bgq_weylsite_double (*bgq_weylfield_double);
 
 typedef struct {
 	double _Complex c[3][3][PHYSICAL_LK];
 } bgq_gaugesite_double;
-
 typedef struct {
-	double _Complex s[2][3][PHYSICAL_LK];
-} bgq_weylsite_double;
-
-typedef bgq_spinorsite_double (*bgq_spinorfield_double);
-typedef bgq_weylsite_double (*bgq_weylfield_double);
-typedef bgq_gaugesite_double (*bgq_gaugefield_double)[PHYSICAL_LD];
-typedef  {
-	bgq_gaugefield_double eo[PHYSICAL_LP];
-} bgq_gaugefieldeo_double;
-
-
-
-
+	bgq_gaugesite_double (*eodir)[PHYSICAL_LP][PHYSICAL_LD];
+} bgq_gaugeeodir_double;
+typedef bgq_gaugeeodir_double (*bgq_gaugefield_double);
 
 
 typedef enum {
@@ -62,25 +75,16 @@ typedef enum {
 	Z_UP = 5,
 	T_DOWN = 6,
 	T_UP = 7,
+
+	T_RAGGED_DOWN = 8,
+	T_RAGGED_UP = 9
 } direction;
 
 
 #define BGQ_SPINORSITE(spinorfield, isOdd, x, y, z, tv) \
-		&spinorfield[((x*PHYSICAL_LY + y)*PHYSICAL_LZ + z)*PHYSICAL_LTV + tv];
+		(&spinorfield[((x*PHYSICAL_LY + y)*PHYSICAL_LZ + z)*PHYSICAL_LTV + tv]);
 
-EXTERN inline bgq_spinorsite_double *bgq_spinorsite_double_physical_pointer(bgq_spinorfield_double spinorfield, bool isOdd, int x, int y, int z, int tv) {
-	assert(spinorfield);
-	assert(0 <= isOdd && isOdd < PHYSICAL_LP);
-	assert(0 <= x && x < PHYSICAL_LX);
-	assert(0 <= y && y < PHYSICAL_LY);
-	assert(0 <= z && z < PHYSICAL_LZ);
-	assert(0 <= tv && tv < PHYSICAL_LTV);
-
-	return &spinorfield[((x*LOCAL_LY + y)*LOCAL_LZ + z)*PHYSICAL_LTV + tv];
-}
-
-
-EXTERN inline complex *bgq_spinorfield_double_local_to_physical(bgq_spinorfield_double spinorfield, bool isOdd, int x, int y, int z, int t, int s, int c) {
+EXTERN inline double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spinorfield_double spinorfield, bool isOdd, int x, int y, int z, int t, int s, int c) {
 	assert(spinorfield);
 	assert(0 <= isOdd && isOdd < LOCAL_LP);
 	assert(isOdd == (x+y+z+t)%2);
@@ -94,38 +98,26 @@ EXTERN inline complex *bgq_spinorfield_double_local_to_physical(bgq_spinorfield_
 	int teo = t / PHYSICAL_LP;
 	int tv = teo / PHYSICAL_LK;
 	int k = teo % PHYSICAL_LK;
-	bgq_spinorfield_double site = bgq_spinorsite_double_physical_pointer(spinorfield, isOdd, x, y, z, tv);
-	return &(*site)[s][c][k];
+	bgq_spinorsite_double *site = BGQ_SPINORSITE(spinorfield, isOdd, x, y, z, tv);
+	return &site->s[s][c][k];
 }
 
-EXTERN inline bgq_gaugesite_double *bgq_gaugesiteeo_double_physical_pointer(bgq_gaugefieldeo_double gaugefield, bool isOdd, int x, int y, int z, int tv, direction d) {
-	assert(gaugefield);
-	assert(0 <= isOdd && isOdd <= PHYSICAL_LP);
-	assert(0 <= x && x < PHYSICAL_LX);
-	assert(0 <= y && y < PHYSICAL_LY);
-	assert(0 <= z && z < PHYSICAL_LZ);
-	assert(0 <= tv && tv < PHYSICAL_LTV);
-	assert(X_DOWN <= direction && direction <= T_UP);
-	assert(direction % 2 == DIR_UP && "Only up-directions are stored");
+#define BGQ_WEYLSITE_X(weylfield, isOdd, x, y, z, tv) \
+	(&weylfield[(y*PHYSICAL_LZ + z)*PHYSICAL_LTV + tv]);
 
-	return &gaugefield[isOdd][((x*LOCAL_LY + y)*LOCAL_LZ + z)*PHYSICAL_LTV + tv][direction/2];
-}
+#define BGQ_WEYLSITE_Y(weylfield, isOdd, x, y, z, tv) \
+	(&weylfield[(x*PHYSICAL_LZ + z)*PHYSICAL_LTV + tv]);
+
+#define BGQ_WEYLSITE_Z(weylfield, isOdd, x, y, z, tv) \
+	(&weylfield[(x*PHYSICAL_LY + y)*PHYSICAL_LTV + tv]);
 
 
-EXTERN inline bgq_gaugesite_double *bgq_gaugesite_double_physical_pointer(bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int tv, direction d) {
-	assert(gaugefield);
-	assert(0 <= isOdd && isOdd <= PHYSICAL_LP);
-	assert(0 <= x && x < PHYSICAL_LX);
-	assert(0 <= y && y < PHYSICAL_LY);
-	assert(0 <= z && z < PHYSICAL_LZ);
-	assert(0 <= tv && tv < PHYSICAL_LTV);
-	assert(X_DOWN <= direction && direction <= T_UP);
-	assert(direction % 2 == DIR_UP && "Only up-directions are stored");
 
-	return &gaugefield[((x*LOCAL_LY + y)*LOCAL_LZ + z)*PHYSICAL_LTV + tv][direction/2];
-}
 
-EXTERN inline complex bgq_gaugefield_double_local_to_physical(bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int t, direction d, int i, int l) {
+#define BGQ_GAUGESITE(gaugefield,isOdd,x,y,z,tv,direction) \
+		(&gaugefield->eodir[isOdd][direction][((x*PHYSICAL_LY + y)*PHYSICAL_LZ + z)*PHYSICAL_LTV + tv]);
+
+EXTERN inline double _Complex *bgq_gaugefield_double_local_to_physical(bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int t, direction d, int i, int l) {
 	assert(gaugefield);
 	assert(false <= isOdd && isOdd <= true);
 	assert(isOdd == (x+y+z+t)%2);
@@ -133,15 +125,15 @@ EXTERN inline complex bgq_gaugefield_double_local_to_physical(bgq_gaugefield_dou
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
 	assert(0 <= t && t < LOCAL_LT);
-	assert(X_DOWN <= direction && direction <= T_UP);
+	assert(X_DOWN <= d && d <= T_UP);
 	assert(0 <= i && i < 3);
 	assert(0 <= l && l < 3);
 
 	int teo = t / LOCAL_LP;
-	int tv = t / LOCAL_LK;
-	int k = t % LOCAL_LK;
+	int tv = teo / LOCAL_LK;
+	int k = teo % LOCAL_LK;
 
-	switch (direction) {
+	switch (d) {
 	case X_UP:
 		x -= 1;
 		break;
@@ -154,10 +146,12 @@ EXTERN inline complex bgq_gaugefield_double_local_to_physical(bgq_gaugefield_dou
 	case T_UP:
 		t -= 1;
 		break;
+	default:
+		break;
 	}
 
-	bgq_gaugesite_double *site = bgq_gaugesite_double_physical_pointer(gaugefield, isOdd, x, y, z, tv, (direction/2)*2);
-	return &(*site)[i][l][k];
+	bgq_gaugesite_double *site = BGQ_GAUGESITE(gaugefield,isOdd,x,y,z,tv,d/2);
+	return &site->c[i][l][k];
 }
 
 

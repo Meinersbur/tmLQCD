@@ -1,85 +1,122 @@
-/*
- * bgq_HoppingMatrix_xup.inc.c
- *
- *  Created on: Jul 27, 2012
- *      Author: meinersbur
- */
 
-#ifndef BGQ_HM_NOFUNC
+// BGQ_HM_TLINE_FLUSHLINE
+// BGQ_HM_TLINE_RAGGEDLINE
+
+#if !defined(BGQ_HM_TLINE_FLUSHLINE)
+#error Need to define flush- or ragged line
+#endif
+
+#ifndef BGQ_HM_TUP_RIGHTWRAPAROUND
+#define BGQ_HM_TUP_RIGHTWRAPAROUND 0
+#endif
+
+#ifndef BGQ_HM_TUP_COMPUTE
+#define BGQ_HM_TUP_COMPUTE 0
+#endif
+
+#ifndef BGQ_HM_TUP_ACCUMULATE
+#define BGQ_HM_TUP_ACCUMULATE 0
+#endif
+
+#ifndef BGQ_HM_TUP_WRITECARRYSPINOR
+#define BGQ_HM_TUP_WRITECARRYSPINOR 0
+#endif
+
+#ifndef BGQ_HM_DIR_NOFUNC
 #include "bgq.h"
 #include "bgq_field.h"
 
-void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefieldeo_double gaugefield, bool isOdd, int x, int y, int z, int tv, int k) {
+void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int tv, int k) {
 	bgq_su3_spinor_decl(result);
-	#endif
-
+#endif
 
 	{
-
-		bgq_su3_spinor_decl(spinor_tup);
-#if BGQ_HM_T_ALTERNATING
-#elif BGQ_HM_T_EVENLINE
-#elif BGQ_HM_T_ODDLINE
+#if !BGQ_HM_TLINE_FLUSHLINE
+#if BGQ_HM_TUP_RIGHTWRAPAROUND
+		const int tv_right = 0;
 #else
-		// runtime condition
+		const int tv_right = tv+1;
+#endif
+#endif
 
+		// Load the input spinor
+		bgq_su3_spinor_decl(spinor_tup);
 		// # = stencil site to update (either even or odd sites, depending on what isOdd says)
 		// _ = neighbor sites to read (therefore !isOdd)
 		// (  2  ) = vector site with tv-number
 		// top line = vector sites of isOdd sites
 		// bottom line = vector sites of !isOdd sites
-		if ((x + y + z) % 2 == isOdd) {
-			// (  0  ) (  1  ) (  2  )
-			// |# _ # _ # _ # _ # _ # _|
-			//   (  0  ) (  1  ) (  2  )
-			// T_UP = tv
-			// T_DOWN = half tv, half tv-1
+#if BGQ_HM_TLINE_FLUSHLINE
+		// (  0  ) (  1  ) (  2  )
+		// |# _ # _ # _ # _ # _ # _|
+		//   (  0  ) (  1  ) (  2  )
+		// T_UP = tv
+		// T_DOWN = half tv, half tv-1
+		assert((x+y+z)%2 == isOdd);
 
-			bgq_spinorfield_double *spinor_tup = bgq_spinorsite_double_physical_pointer(spinorfield, !isOdd, x, y, z, tv);
-			bgq_su3_spinor_double_load(spinor_tup, spinor_tup);
-		} else {
-			//   (  0  ) (  1  ) (  2  )
-			// |_ # _ # _ # _ # _ # _ #|
-			// (  0  ) (  1  ) (  2  )
-			// T_UP = half tv, half tv+1
-			// T_DOWN = tv
+		bgq_spinorsite_double *spinorsite_tup = BGQ_SPINORSITE(spinorfield, !isOdd, x, y, z, tv);
+		bgq_su3_spinor_double_load(spinor_tup, spinorsite_tup);
+#else
+		//   (  0  ) (  1  ) (  2  )
+		// |_ # _ # _ # _ # _ # _ #|
+		// (  0  ) (  1  ) (  2  )
+		// T_UP = half tv, half tv+1
+		// T_DOWN = tv
+		assert((x+y+z)%2 == !isOdd);
 
-			bgq_spinorfield_double *spinor_tup_mid = bgq_spinorsite_double_physical_pointer(spinorfield, !isOdd, x, y, z, tv);
-			bgq_spinorfield_double *spinor_tup_right = bgq_spinorsite_double_physical_pointer(spinorfield, !isOdd, x, y, z, tv + 1);
+		bgq_su3_spinor_decl_rightonly(spinor_tup_mid);
+		bgq_spinorsite_double *spinorsite_tup_mid = BGQ_SPINORSITE(spinorfield, !isOdd, x, y, z, tv);
+		bgq_su3_spinor_double_load_right_torightonly(spinor_tup_mid, spinorsite_tup_mid);
 
-			bgq_su3_spinor_decl(spinor_tup_mid);
-			bgq_su3_spinor_decl(spinor_tup_right);
-			bgq_su3_spinor_double_load_left(spinor_tup_right, spinor_tup_right);
-			bgq_su3_spinor_double_load_right(spinor_tup_mid, spinor_tup_mid);
-			bgq_su3_spinor_merge(spinor_tup, spinor_tup_mid, spinor_tup_right);
-		}
+		bgq_su3_spinor_decl_leftonly(spinor_tup_right);
+		bgq_spinorsite_double *spinorsite_tup_right = BGQ_SPINORSITE(spinorfield, !isOdd, x, y, z, tv_right);
+		bgq_su3_spinor_double_load_left_toleftonly(spinor_tup_right, spinorsite_tup_right);
+
+		bgq_su3_spinor_merge(spinor_tup, spinor_tup_mid, spinor_tup_right);
 #endif
 
+		// Compute its halfspinor
 		bgq_su3_weyl_decl(weyl_tup);
 		bgq_su3_vpiadd(weyl_tup_v0, spinor_tup_v0, spinor_tup_v2);
-		bgq_su3_vipsub(weyl_tup_v1, spinor_tup_v1, spinor_tup_v3);
+		bgq_su3_vpisub(weyl_tup_v1, spinor_tup_v1, spinor_tup_v3);
 
+#if BGQ_HM_TUP_COMPUTE
 		bgq_su3_mdecl(gauge_tup);
+#if BGQ_HM_TLINE_FLUSHLINE
+		bgq_gaugesite_double *gaugesite_tup = BGQ_GAUGESITE(gaugefield, isOdd, x, y, z, tv, T_UP);
+#else
+		bgq_gaugesite_double *gaugesite_tup = BGQ_GAUGESITE(gaugefield, isOdd, x, y, z, tv_right, T_RAGGED_UP);
+#endif
+		bgq_su3_matrix_double_load(gauge_tup, gaugesite_tup);
 
-		bgq_gaugesite_double *gauge_tup = bgq_gaugesiteeo_double_physical_pointer(gaugefield, isOdd, x, y, z, tv, T_UP);
-		bgq_su3_matrix_double_load(gauge_tup, gauge_tup);
-
-		bgq_su3_weyl_decl(chi_tup);
-		bgq_su3_mvmul(chi_tup_v0, gauge_tup, weyl_tup_v0);
-		bgq_su3_mvmul(chi_tup_v1, gauge_tup, weyl_tup_v1);
+		bgq_su3_mvmul(weyl_tup_v0, gauge_tup, weyl_tup_v0);
+		bgq_su3_mvmul(weyl_tup_v1, gauge_tup, weyl_tup_v1);
 
 #ifndef BGQ_HM_NOKAMUL
-		bgq_su3_cvmul(chi_tup_v0, ka2, chi_tup_v0);
-		bgq_su3_cvmul(chi_tup_v1, ka2, chi_tup_v1);
+		bgq_su3_cvmul(weyl_tup_v0, qka3, weyl_tup_v0);
+		bgq_su3_cvmul(weyl_tup_v1, qka3, weyl_tup_v1);
+#endif
 #endif
 
-		bgq_su3_vadd(result_v0, result_v0, chi_tup_v0);
-		bgq_su3_vadd(result_v1, result_v1, chi_tup_v1);
-		bgq_su3_vpisub(result_v2, result_v2, chi_tup_v0);
-		bgq_su3_vpiadd(result_v3, result_v3, chi_tup_v1);
+#if BGQ_HM_TUP_ACCUMULATE
+		bgq_su3_vadd(result_v0, result_v0, weyl_tup_v0);
+		bgq_su3_vadd(result_v1, result_v1, weyl_tup_v1);
+		bgq_su3_vpisub(result_v2, result_v2, weyl_tup_v0);
+		bgq_su3_vpiadd(result_v3, result_v3, weyl_tup_v1);
+#endif
+
+#if BGQ_HM_TUP_WRITECARRYSPINOR
+		bgq_su3_spinor_mov(spinor_tcarry, spinor_tup);
+#endif
 	}
 
-#ifndef BGQ_HM_NOFUNC
+#ifndef BGQ_HM_DIR_NOFUNC
 }
 #endif
 
+#undef BGQ_HM_TUP_FLUSHLINE
+#undef BGQ_HM_TUP_RAGGEDLINE
+#undef BGQ_HM_TUP_RIGHTWRAPAROUND
+#undef BGQ_HM_TUP_COMPUTE
+#undef BGQ_HM_TUP_ACCUMULATE
+#undef BGQ_HM_TUP_WRITECARRYSPINOR

@@ -5,67 +5,68 @@
  *      Author: meinersbur
  */
 
+#if BGQ_HM_TLINE_FLUSHLINE
+#define BGQ_HM_TLINE_RAGGEDLINE 0
+#elif BGQ_HM_TLINE_RAGGEDLINE
+#define BGQ_HM_TLINE_FLUSHLINE 0
+#else
+#error Need to define flush or ragged line
+#endif
+
+
 #ifndef BGQ_HM_TLINE_NOFUNC
 #include "bgq.h"
 #include "bgq_field.h"
 
-void bgq_HoppingMatrix_tline(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefieldeo_double gaugefield, bool isOdd, int x, int y, int z) {
+void bgq_HoppingMatrix_tline(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z) {
 	bgq_su3_spinor_decl(result);
+#define BGQ_HM_SITE_NOFUNC 1
+#define BGQ_HM_DIR_NOFUNC 1
 #endif
 
-#define BGQ_HM_SITE_NOFUNC
+	{
 
-
-	if ((x+y+z)%2==isOdd) {
+#if BGQ_HM_TLINE_FLUSHLINE
 		// Flush line (distance 0 from local left border)
-		bgq_su3_spinor_decl(spinor_tdown_flush);
-		bgq_spinorsite_double *spinorsite_flush = BGQ_SPINORSITE(spinorfield,isOdd,x,y,z,0);
-		bgq_su3_spinor_double_load_left(spinor_tdown_flush, spinorsite_flush);
+#define BGQ_HM_TUP_FLUSHLINE 1
+#define BGQ_HM_TDOWN_FLUSHLINE 1
+#elif BGQ_HM_TLINE_RAGGEDLINE
+		// Ragged line (distance 1 from local left border)
+#define BGQ_HM_TUP_RAGGEDLINE 1
+#define BGQ_HM_TDOWN_RAGGEDLINE 1
+#else
+#error need to define flush- or ragged line
+#endif
 
-		bgq_su3_spinor_decl(spinorsite_wraparound);
-		bgq_spinorsite_double *spinorsite_wraparound = BGQ_SPINORSITE(spinorfield,isOdd,x,y,z,PHYSICAL_LTV-1);
-		bgq_su3_spinor_double_load_right(spinorsite_wraparound, spinorsite_wraparound);
-		bgq_su3_spinor_merge(spinor_tdown, spinorsite_wraparound, spinor_tdown_flush);
+		bgq_su3_spinor_decl(spinor_tcarry);
 
-
-		for (int tv = 0; tv < PHYSICAL_LTV; tv+=1) {
-			#include "bgq_HoppingMatrix_site.inc.c"
+		// Prologue
+		{
+			int tv = 0;
+#define BGQ_HM_TDOWN_LEFTWRAPAROUND 1
+#define BGQ_HM_TUP_WRITECARRYSPINOR 1
+#include "bgq_HoppingMatrix_site.inc.c"
 		}
 
-	} else {
-		// Ragged line (distance 1 from left border)
-
-		bgq_spinorsite_double *spinorsite = BGQ_SPINORSITE(spinorfield,isOdd,x,y,z,0);
-				bgq_su3_spinor_double_load(spinor_tdown, spinorsite);
-				tlinesize = PHYSICAL_LTV-1;
-
-		for (int tv = 0; tv < PHYSICAL_LTV-1; tv+=1) {
+		for (int tv = 1; tv < PHYSICAL_LTV-1; tv+=1) {
+#define BGQ_HM_TDOWN_READCARRYSPINOR 1
+#define BGQ_HM_TUP_WRITECARRYSPINOR 1
 			#include "bgq_HoppingMatrix_site.inc.c"
 		}
 
 		// Epilogue
-		 {
-				int tv = PHYSICAL_LTV-1;
+		{
+			int tv = PHYSICAL_LTV-1;
+#define BGQ_HM_TDOWN_READCARRYSPINOR 1
+#define BGQ_HM_TUP_RIGHTWRAPAROUND 1
+#include "bgq_HoppingMatrix_site.inc.c"
+		}
 
-				bgq_su3_spinor_decl(spinor_tup);
-
-				bgq_su3_spinor_decl(spinor_tup_flush);
-				bgq_spinorsite_double *spinorsite_tup_flush = BGQ_SPINORSITE(spinorfield,isOdd,x,y,z,tv);
-				bgq_su3_spinor_double_load_right(spinor_tup_flush, spinorsite_tup_flush);
-
-				bgq_su3_spinor_decl(spinor_tup_wraparound);
-				bgq_spinorsite_double *spinorsite_tup_wraparound = BGQ_SPINORSITE(spinorfield,isOdd,x,y,z,0);
-				bgq_su3_spinor_double_load_left(spinor_tup_wraparound, spinorsite_tup_wraparound);
-				bgq_su3_spinor_merge(spinor_tdown, spinor_tdown_flush, spinor_tup_wraparound);
-
-		#include "bgq_HoppingMatrix_site.inc.c"
-			}
 	}
-
-#undef BGQ_HM_NOFUNC
-
 #ifndef BGQ_HM_TLINE_NOFUNC
 }
+#undef BGQ_HM_SITE_NOFUNC
 #endif
 
-
+#undef BGQ_HM_TLINE_FLUSHLINE
+#undef BGQ_HM_TLINE_RAGGEDLINE

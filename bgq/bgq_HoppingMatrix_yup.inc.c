@@ -1,47 +1,79 @@
-/*
- * bgq_HoppingMatrix_xup.inc.c
- *
- *  Created on: Jul 27, 2012
- *      Author: meinersbur
- */
 
-#ifndef BGQ_HM_NOFUNC
+#ifndef BGQ_HM_YUP_WEYLREAD
+#define BGQ_HM_YUP_WEYLREAD 0
+#endif
+
+#ifndef BGQ_HM_YUP_COMPUTE
+#define BGQ_HM_YUP_COMPUTE 0
+#endif
+
+#ifndef BGQ_HM_YUP_WEYL_SEND
+#define BGQ_HM_YUP_WEYL_SEND 0
+#endif
+
+#ifndef BGQ_HM_YUP_ACCUMULATE
+#define BGQ_HM_YUP_ACCUMULATE 0
+#endif
+
+#ifndef BGQ_HM_SITE_NOFUNC
 #include "bgq.h"
 #include "bgq_field.h"
 
-void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefieldeo_double gaugefield, bool isOdd, int x, int y, int z, int tv, int k) {
+void HoppingMatrix_site_yup(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int tv, int k) {
 	bgq_su3_spinor_decl(result);
-	#endif
-
-	{
-		bgq_su3_spinor_decl(spinor_yup);
-		bgq_spinorfield_double *spinor_yup = bgq_spinorsite_double_physical_pointer(spinorfield, !isOdd, x, y + 1, z, tv);
-		bgq_su3_spinor_double_load(spinor_yup, spinor_yup);
-
-		bgq_su3_weyl_decl(weyl_yup);
-		bgq_su3_vpiadd(weyl_yup_v0, spinor_yup_v0, spinor_yup_v3);
-		bgq_su3_vpiadd(weyl_yup_v1, spinor_yup_v1, spinor_yup_v2);
-
-		bgq_su3_mdecl(gauge_yup);
-		bgq_gaugesite_double *gauge_yup = bgq_gaugesiteeo_double_physical_pointer(gaugefield, isOdd, x, y, z, tv, Y_UP);
-		bgq_su3_matrix_double_load(gauge_yup, gauge_yup);
-
-		bgq_su3_weyl_decl(chi_yup);
-		bgq_su3_mvmul(chi_yup_v0, gauge_yup, weyl_yup_v0);
-		bgq_su3_mvmul(chi_yup_v1, gauge_yup, weyl_yup_v1);
-
-#ifndef BGQ_HM_NOKAMUL
-		bgq_su3_cvmul(chi_yup_v0, ka1, chi_yup_v0);
-		bgq_su3_cvmul(chi_yup_v1, ka1, chi_yup_v1);
 #endif
 
-		bgq_su3_vadd(result_v0, result_v0, chi_yup_v0);
-		bgq_su3_vadd(result_v1, result_v1, chi_yup_v1);
-		bgq_su3_vpisub(result_v2, result_v2, chi_yup_v1);
-		bgq_su3_vpisub(result_v3, result_v3, chi_yup_v0);
+	{
+		bgq_su3_weyl_decl(weyl_yup);
+#if BGQ_HM_YUP_WEYLREAD
+		bgq_weylsite_double *weylsite_yup = BGQ_WEYLSITE_Y(weylxchange_yup_recv_double, !isOdd, x, y+1, z, tv);
+		bgq_su3_weyl_double_load(weyl_yup, weylsite_yup);
+#else
+		// Load the input spinor
+		bgq_su3_spinor_decl(spinor_yup);
+		bgq_spinorsite_double *spinorsite_yup = BGQ_SPINORSITE(spinorfield, !isOdd, x, y+1, z, tv);
+		bgq_su3_spinor_double_load(spinor_yup, spinorsite_yup);
+
+		// Compute its halfspinor
+		bgq_su3_vpiadd(weyl_yup_v0, spinor_yup_v0, spinor_yup_v3);
+		bgq_su3_vpiadd(weyl_yup_v1, spinor_yup_v1, spinor_yup_v2);
+#endif
+
+#if BGQ_HM_YUP_COMPUTE
+		// Load the interaction matrix between the lattice sites
+		bgq_su3_mdecl(gauge_yup);
+		bgq_gaugesite_double *gaugesite_yup = BGQ_GAUGESITE(gaugefield, isOdd, x, y, z, tv, Y_UP);
+		bgq_su3_matrix_double_load(gauge_yup, gaugesite_yup);
+
+		// Multiply the halfspinor with the matrix
+		bgq_su3_mvmul(weyl_yup_v0, gauge_yup, weyl_yup_v0);
+		bgq_su3_mvmul(weyl_yup_v1, gauge_yup, weyl_yup_v1);
+
+#ifndef BGQ_HM_NOKAMUL
+		bgq_su3_cvmul(weyl_yup_v0, qka1, weyl_yup_v0);
+		bgq_su3_cvmul(weyl_yup_v1, qka1, weyl_yup_v1);
+#endif
+#endif
+
+#if BGQ_HM_YUP_WEYL_SEND
+		// Store the halfspinor to be transfered to the neighbor node
+		bgq_su3_weyl_double_store(weylxchange_yup_send_double, weyl_yup);
+#endif
+
+#if BGQ_HM_YUP_ACCUMULATE
+		// Add up at the output lattice site
+		bgq_su3_vadd(result_v0, result_v0, weyl_yup_v0);
+		bgq_su3_vadd(result_v1, result_v1, weyl_yup_v1);
+		bgq_su3_vpisub(result_v2, result_v2, weyl_yup_v1);
+		bgq_su3_vpisub(result_v3, result_v3, weyl_yup_v0);
+#endif
 	}
 
-#ifndef BGQ_HM_NOFUNC
+#ifndef BGQ_HM_SITE_NOFUNC
 }
 #endif
 
+#undef BGQ_HM_YUP_WEYLREAD
+#undef BGQ_HM_YUP_COMPUTE
+#undef BGQ_HM_YUP_WEYL_SEND
+#undef BGQ_HM_YUP_ACCUMULATE

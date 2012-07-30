@@ -8,7 +8,214 @@
 #ifndef BGQ_H_
 #define BGQ_H_
 
-typedef double vector4double[4];
+
+#ifndef XLC
+//typedef double vector4double[4];
+typedef struct { double q[4]; } vector4double;
+
+#define bgq_vector4double_decl(name) \
+	double NAME2(name,q0); \
+	double NAME2(name,q1); \
+	double NAME2(name,q2); \
+	double NAME2(name,q3)
+
+#define bgq_vector4double_decl_leftonly(name) \
+	double NAME2(name,q0); \
+	double NAME2(name,q1)
+
+#define bgq_vector4double_decl_rightonly(name) \
+	double NAME2(name,q2); \
+	double NAME2(name,q3)
+
+#define bgq_lda(dst,offset,addr)                                 \
+	assert( (((size_t)addr) + offset) % 32 == 0);                \
+	NAME2(dst,q0) = ((vector4double*)(((char*)addr) + offset))->q[0]; \
+	NAME2(dst,q1) = ((vector4double*)(((char*)addr) + offset))->q[1]; \
+	NAME2(dst,q2) = ((vector4double*)(((char*)addr) + offset))->q[2]; \
+	NAME2(dst,q3) = ((vector4double*)(((char*)addr) + offset))->q[3]
+//TODO: setting the 5 least significant bits to zero
+
+
+#define bgq_ld2a(dst,offset,addr) \
+	assert( (((size_t)addr) + offset) % 16 == 0);                \
+	dst##_q0 = ((vector4double*)(((char*)addr) + offset))->q[0]; \
+	dst##_q1 = ((vector4double*)(((char*)addr) + offset))->q[1]; \
+	dst##_q2 = dst##_q0;                                         \
+	dst##_q3 = dst##_q1
+
+#define bgq_ld2a_leftonly(dst,offset,addr) \
+	assert( (((size_t)addr) + offset) % 16 == 0);                \
+	dst##_q0 = ((vector4double*)(((char*)addr) + offset))->q[0]; \
+	dst##_q1 = ((vector4double*)(((char*)addr) + offset))->q[1]
+
+#define bgq_ld2a_rightonly(dst,offset,addr) \
+	assert( (((size_t)addr) + offset) % 16 == 0);                \
+	dst##_q2 = ((vector4double*)(((char*)addr) + offset))->q[0]; \
+	dst##_q3 = ((vector4double*)(((char*)addr) + offset))->q[1]
+
+#define bgq_sta(src,offset,addr) \
+	assert( (((size_t)addr) + offset) % 32 == 0);                \
+	((vector4double*)(((char*)addr) + offset))->q[0] = src##_q0; \
+	((vector4double*)(((char*)addr) + offset))->q[1] = src##_q1; \
+	((vector4double*)(((char*)addr) + offset))->q[2] = src##_q2; \
+	((vector4double*)(((char*)addr) + offset))->q[3] = src##_q3; \
+
+#define bgq_add(dst,lhs,rhs)        \
+	dst##_q0 = lhs##_q0 + rhs##_q0; \
+	dst##_q1 = lhs##_q1 + rhs##_q1; \
+	dst##_q2 = lhs##_q2 + rhs##_q2; \
+	dst##_q3 = lhs##_q3 + rhs##_q3
+
+#define bgq_sub(dst,lhs,rhs)        \
+	dst##_q0 = lhs##_q0 - rhs##_q0; \
+	dst##_q1 = lhs##_q1 - rhs##_q1; \
+	dst##_q2 = lhs##_q2 - rhs##_q2; \
+	dst##_q3 = lhs##_q3 - rhs##_q3
+
+#define bgq_xxnpmadd(dst,a,b,c)                     \
+	{                                               \
+		bgq_vector4double_decl(MAKENAME5(xxnpmadd,dst,a,b,v)); \
+		MAKENAME6(xxnpmadd,dst,a,b,v,q0) = - (CONCAT(a,_q1) * CONCAT(b,_q1) - CONCAT(c,_q0)); \
+		MAKENAME6(xxnpmadd,dst,a,b,v,q1) =    CONCAT(a,_q0) * CONCAT(b,_q1) + CONCAT(c,_q1) ; \
+		MAKENAME6(xxnpmadd,dst,a,b,v,q2) = - (CONCAT(a,_q3) * CONCAT(b,_q3) - CONCAT(c,_q2)); \
+		MAKENAME6(xxnpmadd,dst,a,b,v,q3) =    CONCAT(a,_q2) * CONCAT(b,_q3) + CONCAT(c,_q3) ; \
+		bgq_mov(dst,MAKENAME5(xxnpmadd,dst,a,b,v));                                           \
+	}
+
+#define bgq_iadd(dst,lhs,rhs)         \
+	{                                 \
+		bgq_vector4double_decl(tmp);  \
+		tmp_q0 = lhs##_q0 - rhs##_q1; \
+		tmp_q1 = lhs##_q1 + rhs##_q0; \
+		tmp_q2 = lhs##_q2 - rhs##_q3; \
+		tmp_q3 = lhs##_q3 + rhs##_q2; \
+		bgq_mov(dst,tmp);             \
+	}
+
+#define bgq_isub(dst,lhs,rhs)         \
+	{                                 \
+		bgq_vector4double_decl(tmp);  \
+		tmp_q0 = lhs##_q0 + rhs##_q1; \
+		tmp_q1 = lhs##_q1 - rhs##_q0; \
+		tmp_q2 = lhs##_q2 + rhs##_q3; \
+		tmp_q3 = lhs##_q3 - rhs##_q2; \
+		bgq_mov(dst,tmp);             \
+	}
+
+#define bgq_merge2(dst, a23_to01, b01_to23) \
+	{                                       \
+		bgq_vector4double_decl(MAKENAME4(merge2,dst,a23_to01, b01_to23));      \
+		MAKENAME5(merge2,dst,a23_to01,b01_to23,q0) = NAME2(a23_to01,q2);      \
+		MAKENAME5(merge2,dst,a23_to01,b01_to23,q1) = NAME2(a23_to01,q3);      \
+		MAKENAME5(merge2,dst,a23_to01,b01_to23,q2) = NAME2(b01_to23,q0);      \
+		MAKENAME5(merge2,dst,a23_to01,b01_to23,q3) = NAME2(b01_to23,q1);      \
+		bgq_mov(dst,MAKENAME4(merge2,dst,a23_to01,b01_to23));                   \
+	}
+
+#define bgq_xmul(dst,lhs,rhs)              \
+	{                                      \
+		bgq_vector4double_decl(MAKENAME4(xmul,dst,lhs,rhs));                \
+		MAKENAME5(xmul,dst,lhs,rhs,q0) = CONCAT(lhs,_q0) * CONCAT(rhs,_q0); \
+		MAKENAME5(xmul,dst,lhs,rhs,q1) = CONCAT(lhs,_q0) * CONCAT(rhs,_q1); \
+		MAKENAME5(xmul,dst,lhs,rhs,q2) = CONCAT(lhs,_q2) * CONCAT(rhs,_q2); \
+		MAKENAME5(xmul,dst,lhs,rhs,q3) = CONCAT(lhs,_q2) * CONCAT(rhs,_q3); \
+		bgq_mov(dst,MAKENAME4(xmul,dst,lhs,rhs));                           \
+	}
+
+#define bgq_xmadd(dst,a,b,c)                      \
+	{                                             \
+		bgq_vector4double_decl(MAKENAME5(xmul,dst,a,b,c));                            \
+		MAKENAME6(xmul,dst,a,b,c,q0) = CONCAT(a,_q0) * CONCAT(b,_q0) + CONCAT(c,_q0); \
+		MAKENAME6(xmul,dst,a,b,c,q1) = CONCAT(a,_q0) * CONCAT(b,_q1) + CONCAT(c,_q1); \
+		MAKENAME6(xmul,dst,a,b,c,q2) = CONCAT(a,_q2) * CONCAT(b,_q2) + CONCAT(c,_q2); \
+		MAKENAME6(xmul,dst,a,b,c,q3) = CONCAT(a,_q2) * CONCAT(b,_q3) + CONCAT(c,_q3); \
+		bgq_mov(dst,MAKENAME5(xmul,dst,a,b,c));                                       \
+	}
+
+#define bgq_mov(dst,src) \
+	NAME2(dst,q0) = NAME2(src,q0); \
+	NAME2(dst,q1) = NAME2(src,q1); \
+	NAME2(dst,q2) = NAME2(src,q2); \
+	NAME2(dst,q3) = NAME2(src,q3)
+
+#define bgq_cconst(dst,re,im) \
+	dst##_q0 = re;            \
+	dst##_q1 = im;            \
+	dst##_q2 = re;            \
+	dst##_q3 = im
+
+#define bgq_xxcpnmadd(dst,a,b,c)                      \
+	{                                                 \
+		bgq_vector4double_decl(MAKENAME5(xmul,dst,a,b,c));   \
+		MAKENAME6(xmul,dst,a,b,c,q0) =    CONCAT(a,_q1) * CONCAT(b,_q1) + CONCAT(c,_q0) ; \
+		MAKENAME6(xmul,dst,a,b,c,q1) = - (CONCAT(a,_q0) * CONCAT(b,_q1) - CONCAT(c,_q1)); \
+		MAKENAME6(xmul,dst,a,b,c,q2) =    CONCAT(a,_q3) * CONCAT(b,_q3) + CONCAT(c,_q2) ; \
+		MAKENAME6(xmul,dst,a,b,c,q3) = - (CONCAT(a,_q2) * CONCAT(b,_q3) - CONCAT(c,_q3)); \
+		bgq_mov(dst,MAKENAME5(xmul,dst,a,b,c));                                           \
+	}
+
+#else
+
+#define bgq_vector4double_decl(name) \
+	vector4double name
+
+#define bgq_vector4double_decl_leftonly(name) \
+	vector4double name
+
+#define bgq_vector4double_decl_rightonly(name) \
+	vector4double name
+
+#define bgq_lda(dst,offset,addr) \
+	dst = vec_lda(offset,addr)
+
+#define bgq_ld2a(dst,offset,addr) \
+	dst = vec_ld2a(offset, addr)
+
+#define bgq_ld2a_leftonly(dst,offset,addr) \
+	bgq_ld2a(dst,offset,addr)
+
+#define bgq_ld2a_rightonly(dst,offset,addr) \
+	bgq_ld2a(dst,offset,addr)
+
+#define bgq_sta(src,offset,addr) \
+	vec_sta(src,offset,addr)
+
+#define bgq_add(dst,lhs,rhs) \
+	dst = vec_add(lhs, rhs)
+
+#define bgq_sub(dst,lhs,rhs) \
+	dst = vec_sub(lhs, rhs)
+
+#define bgq_xxnpmadd(dst,a,b,c) \
+	dst = vec_xxnpmadd(a,b,c)
+
+#define bgq_iadd(dst,lhs,rhs) \
+	dst = bgq_xxnpmadd(dst,(vector4double)(1),rhs,lhs)
+
+#define bgq_isub(dst,lhs,rhs) \
+	dst = bgq_xxcpnmadd(dst, b,(vector4double)(1),a)
+
+#define bgq_merge2(dst, a23_to01, b01_to23) \
+	dst = vec_perm(a23_to01, b01_to23, vec_gpci(02345))
+
+#define bgq_xmul(dst,lhs,rhs) \
+	dst = vec_xmul(lhs,rhs)
+
+#define bgq_xmadd(dst,a,b,c) \
+	dst = vec_xmadd(a,b,c)
+
+#define bgq_mov(dst,src) \
+	dst = src
+
+#define bgq_const(dst,re,im) \
+	dst = (vector4double){re,im,re,im}
+
+#define bgq_xxcpnmadd(dst,a,b,c) \
+	dst = vec_xxcpnmadd(a,b,c)
+
+#endif
+
+
 
 
 
@@ -59,12 +266,26 @@ typedef double vector4double[4];
 // im = a.re * b.im + a.im * b.re
 //    = a * b
 
+#define bgq_cmul(dst,lhs,rhs)                                                                       \
+	{                                                                                               \
+		bgq_vector4double_decl(MAKENAME4(cmul,dst,lhs,rhs));                                         \
+		bgq_xmul              (MAKENAME4(cmul,dst,lhs,rhs), lhs, rhs);                              \
+		bgq_xxnpmadd          (dst                        , rhs, lhs, MAKENAME4(cmul,dst,lhs,rhs)); \
+	}
+
 #define cvec_madd(a,b,c) vec_xxnpmadd(b,a,vec_xmadd(a,b,c))
 // vec_xxnpmadd(b,a,vec_xmadd(a,b,c))
 // vec_xxnpmadd(a,b,vec_xmadd(b,a,c))
 // re = a.re * b.re - a.im * b.im + c.re
 // im = a.re * b.im + a.im * b.re + c.im
 //    = a * b + c
+
+#define bgq_cmadd(dst,a,b,c)                                                                                  \
+	{                                                                                                         \
+		bgq_vector4double_decl(MAKENAME5(cmadd,dst,a,b,c));                                           \
+		bgq_xmadd             (MAKENAME5(cmadd,dst,a,b,c), a, b, c);                                  \
+		bgq_xxnpmadd          (dst                       , b, a, MAKENAME5(cmadd,dst,a,b,c)); \
+	}
 
 // conjugated second argument
 #define cvec_pcmul(a,b) vec_xxcpnmadd(a,b,vec_xmul(b,a))
@@ -73,6 +294,13 @@ typedef double vector4double[4];
 // im = a.im * b.re - a.re * b.im
 //    = a * conjugate(b)
 
+#define bgq_ccmul(dst,lhs,rhs) \
+	{                                  \
+		bgq_vector4double_decl(tmq);   \
+		bgq_xmul(tmq,rhs,lhs);         \
+		bgq_xxnpmadd(dst,lhs,rhs,tmq); \
+	}
+
 // conjugated second argument
 #define cvec_pcpmadd(a,b,c) vec_xxcpnmadd(a,b,vec_xmadd(b,a,c))
 // vec_xxcpnmadd(a,b,vec_xmadd(b,a,c))
@@ -80,6 +308,13 @@ typedef double vector4double[4];
 // re = a.re * b.re + a.im * b.im + c.re
 // im = a.im * b.re - a.re * b.im + c.im
 //    = a * conjugate(b) + c
+
+#define bgq_ccmadd(dst,a,b,c)        \
+	{                                \
+		bgq_vector4double_decl(tmq); \
+		bgq_xmadd(tmq,b,a,c);        \
+		bgq_xxcpnmadd(dst,a,b,tmq);  \
+	}
 
 #define cvec_piadd(a,b) vec_xxnpmadd((vector4double)(1),b,a)
 // vec_xxnpmadd((vector4double)(1),b,a)
@@ -99,21 +334,32 @@ typedef double vector4double[4];
 // [2] = b[0] = b.re
 // [3] = b[1] = b.im
 
-#define bgq_su3_vdecl(name)  \
-	vector4double name##_c0; \
-	vector4double name##_c1; \
-	vector4double name##_c2
 
-#define bgq_su3_mdecl(name)   \
-	vector4double name##_c00; \
-	vector4double name##_c01; \
-	vector4double name##_c02; \
-	vector4double name##_c10; \
-	vector4double name##_c11; \
-	vector4double name##_c12; \
-	vector4double name##_c20; \
-	vector4double name##_c21; \
-	vector4double name##_c22
+#define bgq_su3_vdecl(name)            \
+	bgq_vector4double_decl(CONCAT(name,_c0)); \
+	bgq_vector4double_decl(CONCAT(name,_c1)); \
+	bgq_vector4double_decl(CONCAT(name,_c2))
+
+#define bgq_su3_vdecl_leftonly(name)            \
+	bgq_vector4double_decl_leftonly(CONCAT(name,_c0)); \
+	bgq_vector4double_decl_leftonly(CONCAT(name,_c1)); \
+	bgq_vector4double_decl_leftonly(CONCAT(name,_c2))
+
+#define bgq_su3_vdecl_rightonly(name)            \
+	bgq_vector4double_decl_rightonly(CONCAT(name,_c0)); \
+	bgq_vector4double_decl_rightonly(CONCAT(name,_c1)); \
+	bgq_vector4double_decl_rightonly(CONCAT(name,_c2))
+
+#define bgq_su3_mdecl(name)             \
+	bgq_vector4double_decl(name##_c00); \
+	bgq_vector4double_decl(name##_c01); \
+	bgq_vector4double_decl(name##_c02); \
+	bgq_vector4double_decl(name##_c10); \
+	bgq_vector4double_decl(name##_c11); \
+	bgq_vector4double_decl(name##_c12); \
+	bgq_vector4double_decl(name##_c20); \
+	bgq_vector4double_decl(name##_c21); \
+	bgq_vector4double_decl(name##_c22)
 
 #define bgq_su3_spinor_decl(name) \
 	bgq_su3_vdecl(name##_v0);     \
@@ -121,44 +367,56 @@ typedef double vector4double[4];
 	bgq_su3_vdecl(name##_v2);     \
 	bgq_su3_vdecl(name##_v3)
 
+#define bgq_su3_spinor_decl_leftonly(name) \
+	bgq_su3_vdecl_leftonly(name##_v0);     \
+	bgq_su3_vdecl_leftonly(name##_v1);     \
+	bgq_su3_vdecl_leftonly(name##_v2);     \
+	bgq_su3_vdecl_leftonly(name##_v3)
+
+#define bgq_su3_spinor_decl_rightonly(name) \
+	bgq_su3_vdecl_rightonly(name##_v0);     \
+	bgq_su3_vdecl_rightonly(name##_v1);     \
+	bgq_su3_vdecl_rightonly(name##_v2);     \
+	bgq_su3_vdecl_rightonly(name##_v3)
+
 #define bgq_su3_weyl_decl(name) \
 	bgq_su3_vdecl(name##_v0);	\
 	bgq_su3_vdecl(name##_v1)
 
 
-#define bgq_su3_spinor_double_load(dest, addr)   \
-	dest##_v0_c0 = vec_lda(  0, addr); \
-	dest##_v0_c1 = vec_lda( 32, addr); \
-	dest##_v0_c2 = vec_lda( 64, addr); \
-	dest##_v1_c0 = vec_lda( 96, addr); \
-	dest##_v1_c1 = vec_lda(128, addr); \
-	dest##_v1_c2 = vec_lda(160, addr); \
-	dest##_v2_c0 = vec_lda(192, addr); \
-	dest##_v2_c1 = vec_lda(224, addr); \
-	dest##_v2_c2 = vec_lda(256, addr); \
-	dest##_v3_c0 = vec_lda(288, addr); \
-	dest##_v3_c1 = vec_lda(320, addr); \
-	dest##_v3_c2 = vec_lda(352, addr)
-// NOTE: qvlfdux is more effective, but no compiler built-in exists
+#define bgq_su3_spinor_double_load(dst, addr) \
+	bgq_lda(NAME3(dst,v0,c0),   0, addr);          \
+	bgq_lda(NAME3(dst,v0,c1),  32, addr);          \
+	bgq_lda(NAME3(dst,v0,c2),  64, addr);          \
+	bgq_lda(NAME3(dst,v1,c0),  96, addr);          \
+	bgq_lda(NAME3(dst,v1,c1), 128, addr);          \
+	bgq_lda(NAME3(dst,v1,c2), 160, addr);          \
+	bgq_lda(NAME3(dst,v2,c0), 192, addr);          \
+	bgq_lda(NAME3(dst,v2,c1), 224, addr);          \
+	bgq_lda(NAME3(dst,v2,c2), 256, addr);          \
+	bgq_lda(NAME3(dst,v3,c0), 288, addr);          \
+	bgq_lda(NAME3(dst,v3,c1), 320, addr);          \
+	bgq_lda(NAME3(dst,v3,c2), 352, addr)
+// NOTE: qvlfdux is possibly more effective, but no compiler built-in exists
 
-#define bgq_su3_weyl_double_load(dest, addr)   \
-	dest##_v0_c0 = vec_lda(  0, addr); \
-	dest##_v0_c1 = vec_lda( 32, addr); \
-	dest##_v0_c2 = vec_lda( 64, addr); \
-	dest##_v1_c0 = vec_lda( 96, addr); \
-	dest##_v1_c1 = vec_lda(128, addr); \
-	dest##_v1_c2 = vec_lda(160, addr)
+#define bgq_su3_weyl_double_load(dest, addr) \
+	bgq_lda(dest##_v0_c0,   0, addr);        \
+	bgq_lda(dest##_v0_c1,  32, addr);        \
+	bgq_lda(dest##_v0_c2,  64, addr);        \
+	bgq_lda(dest##_v1_c0,  96, addr);        \
+	bgq_lda(dest##_v1_c1, 128, addr);        \
+	bgq_lda(dest##_v1_c2, 160, addr)
 
 #define bgq_su3_matrix_double_load(dest, addr)   \
-	dest##_c00 = vec_lda(  0, addr); \
-	dest##_c01 = vec_lda( 32, addr); \
-	dest##_c02 = vec_lda( 64, addr); \
-	dest##_c10 = vec_lda( 96, addr); \
-	dest##_c11 = vec_lda(128, addr); \
-	dest##_c12 = vec_lda(160, addr); \
-	dest##_c20 = vec_lda(192, addr); \
-	dest##_c21 = vec_lda(224, addr); \
-	dest##_c22 = vec_lda(256, addr)
+	bgq_lda(dest##_c00,   0, addr); \
+	bgq_lda(dest##_c01,  32, addr); \
+	bgq_lda(dest##_c02,  64, addr); \
+	bgq_lda(dest##_c10,  96, addr); \
+	bgq_lda(dest##_c11, 128, addr); \
+	bgq_lda(dest##_c12, 160, addr); \
+	bgq_lda(dest##_c20, 192, addr); \
+	bgq_lda(dest##_c21, 224, addr); \
+	bgq_lda(dest##_c22, 256, addr)
 
 #define bgq_su3_matrix_double_load_left(dest, addr)   \
 	dest##_c00 = vec_ld2a(  0, addr); \
@@ -183,69 +441,98 @@ typedef double vector4double[4];
 	dest##_c22 = vec_ld2a(16+256, addr)
 
 #define bgq_su3_spinor_double_load_left(dst,addr) \
-	dst##_v0_c0 = vec_ld2a(  0, addr); \
-	dst##_v0_c1 = vec_ld2a( 32, addr); \
-	dst##_v0_c2 = vec_ld2a( 64, addr); \
-	dst##_v1_c0 = vec_ld2a( 96, addr); \
-	dst##_v1_c1 = vec_ld2a(128, addr); \
-	dst##_v1_c2 = vec_ld2a(160, addr); \
-	dst##_v2_c0 = vec_ld2a(192, addr); \
-	dst##_v2_c1 = vec_ld2a(224, addr); \
-	dst##_v2_c2 = vec_ld2a(256, addr); \
-	dst##_v3_c0 = vec_ld2a(288, addr); \
-	dst##_v3_c1 = vec_ld2a(320, addr); \
-	dst##_v3_c2 = vec_ld2a(352, addr)
+	bgq_ld2a(dst##_v0_c0,   0, addr); \
+	bgq_ld2a(dst##_v0_c1,  32, addr); \
+	bgq_ld2a(dst##_v0_c2,  64, addr); \
+	bgq_ld2a(dst##_v1_c0,  96, addr); \
+	bgq_ld2a(dst##_v1_c1, 128, addr); \
+	bgq_ld2a(dst##_v1_c2, 160, addr); \
+	bgq_ld2a(dst##_v2_c0, 192, addr); \
+	bgq_ld2a(dst##_v2_c1, 224, addr); \
+	bgq_ld2a(dst##_v2_c2, 256, addr); \
+	bgq_ld2a(dst##_v3_c0, 288, addr); \
+	bgq_ld2a(dst##_v3_c1, 320, addr); \
+	bgq_ld2a(dst##_v3_c2, 352, addr)
+
+#define bgq_su3_spinor_double_load_left_toleftonly(dst,addr) \
+	bgq_ld2a_leftonly(dst##_v0_c0,   0, addr); \
+	bgq_ld2a_leftonly(dst##_v0_c1,  32, addr); \
+	bgq_ld2a_leftonly(dst##_v0_c2,  64, addr); \
+	bgq_ld2a_leftonly(dst##_v1_c0,  96, addr); \
+	bgq_ld2a_leftonly(dst##_v1_c1, 128, addr); \
+	bgq_ld2a_leftonly(dst##_v1_c2, 160, addr); \
+	bgq_ld2a_leftonly(dst##_v2_c0, 192, addr); \
+	bgq_ld2a_leftonly(dst##_v2_c1, 224, addr); \
+	bgq_ld2a_leftonly(dst##_v2_c2, 256, addr); \
+	bgq_ld2a_leftonly(dst##_v3_c0, 288, addr); \
+	bgq_ld2a_leftonly(dst##_v3_c1, 320, addr); \
+	bgq_ld2a_leftonly(dst##_v3_c2, 352, addr)
 
 #define bgq_su3_spinor_double_load_right(dst,addr) \
-	dst##_v0_c0 = vec_ld2a(16+  0, addr); \
-	dst##_v0_c1 = vec_ld2a(16+ 32, addr); \
-	dst##_v0_c2 = vec_ld2a(16+ 64, addr); \
-	dst##_v1_c0 = vec_ld2a(16+ 96, addr); \
-	dst##_v1_c1 = vec_ld2a(16+128, addr); \
-	dst##_v1_c2 = vec_ld2a(16+160, addr); \
-	dst##_v2_c0 = vec_ld2a(16+192, addr); \
-	dst##_v2_c1 = vec_ld2a(16+224, addr); \
-	dst##_v2_c2 = vec_ld2a(16+256, addr); \
-	dst##_v3_c0 = vec_ld2a(16+288, addr); \
-	dst##_v3_c1 = vec_ld2a(16+320, addr); \
-	dst##_v3_c2 = vec_ld2a(16+352, addr)
+	bgq_ld2a(dst##_v0_c0,   0+16, addr); \
+	bgq_ld2a(dst##_v0_c1,  32+16, addr); \
+	bgq_ld2a(dst##_v0_c2,  64+16, addr); \
+	bgq_ld2a(dst##_v1_c0,  96+16, addr); \
+	bgq_ld2a(dst##_v1_c1, 128+16, addr); \
+	bgq_ld2a(dst##_v1_c2, 160+16, addr); \
+	bgq_ld2a(dst##_v2_c0, 192+16, addr); \
+	bgq_ld2a(dst##_v2_c1, 224+16, addr); \
+	bgq_ld2a(dst##_v2_c2, 256+16, addr); \
+	bgq_ld2a(dst##_v3_c0, 288+16, addr); \
+	bgq_ld2a(dst##_v3_c1, 320+16, addr); \
+	bgq_ld2a(dst##_v3_c2, 352+16, addr)
+
+#define bgq_su3_spinor_double_load_right_torightonly(dst,addr) \
+	bgq_ld2a_rightonly(dst##_v0_c0,   0+16, addr); \
+	bgq_ld2a_rightonly(dst##_v0_c1,  32+16, addr); \
+	bgq_ld2a_rightonly(dst##_v0_c2,  64+16, addr); \
+	bgq_ld2a_rightonly(dst##_v1_c0,  96+16, addr); \
+	bgq_ld2a_rightonly(dst##_v1_c1, 128+16, addr); \
+	bgq_ld2a_rightonly(dst##_v1_c2, 160+16, addr); \
+	bgq_ld2a_rightonly(dst##_v2_c0, 192+16, addr); \
+	bgq_ld2a_rightonly(dst##_v2_c1, 224+16, addr); \
+	bgq_ld2a_rightonly(dst##_v2_c2, 256+16, addr); \
+	bgq_ld2a_rightonly(dst##_v3_c0, 288+16, addr); \
+	bgq_ld2a_rightonly(dst##_v3_c1, 320+16, addr); \
+	bgq_ld2a_rightonly(dst##_v3_c2, 352+16, addr)
 
 #define bgq_su3_spinor_double_store(addr,src) \
-	vec_sta(src##_v0_c0,   0, addr);          \
-	vec_sta(src##_v0_c1,  32, addr);          \
-	vec_sta(src##_v0_c2,  64, addr);          \
-	vec_sta(src##_v1_c0,  96, addr);          \
-	vec_sta(src##_v1_c1, 128, addr);          \
-	vec_sta(src##_v1_c2, 160, addr);          \
-	vec_sta(src##_v2_c0, 192, addr);          \
-	vec_sta(src##_v2_c1, 224, addr);          \
-	vec_sta(src##_v2_c2, 256, addr);          \
-	vec_sta(src##_v3_c0, 288, addr);          \
-	vec_sta(src##_v3_c1, 320, addr);          \
-	vec_sta(src##_v3_c2, 352, addr)
+	bgq_sta(src##_v0_c0,   0, addr);          \
+	bgq_sta(src##_v0_c1,  32, addr);          \
+	bgq_sta(src##_v0_c2,  64, addr);          \
+	bgq_sta(src##_v1_c0,  96, addr);          \
+	bgq_sta(src##_v1_c1, 128, addr);          \
+	bgq_sta(src##_v1_c2, 160, addr);          \
+	bgq_sta(src##_v2_c0, 192, addr);          \
+	bgq_sta(src##_v2_c1, 224, addr);          \
+	bgq_sta(src##_v2_c2, 256, addr);          \
+	bgq_sta(src##_v3_c0, 288, addr);          \
+	bgq_sta(src##_v3_c1, 320, addr);          \
+	bgq_sta(src##_v3_c2, 352, addr)
 
-#define bgq_su3_weyldouble_store(addr,src) \
-	vec_sta(src##_v0_c0,   0, addr);          \
-	vec_sta(src##_v0_c1,  32, addr);          \
-	vec_sta(src##_v0_c2,  64, addr);          \
-	vec_sta(src##_v1_c0,  96, addr);          \
-	vec_sta(src##_v1_c1, 128, addr);          \
-	vec_sta(src##_v1_c2, 160, addr)
+#define bgq_su3_weyl_double_store(addr,src) \
+	bgq_sta(src##_v0_c0,   0, addr);          \
+	bgq_sta(src##_v0_c1,  32, addr);          \
+	bgq_sta(src##_v0_c2,  64, addr);          \
+	bgq_sta(src##_v1_c0,  96, addr);          \
+	bgq_sta(src##_v1_c1, 128, addr);          \
+	bgq_sta(src##_v1_c2, 160, addr)
 
-#define bgq_su3_spinor_merge(dst,a,b)        \
-	bgq_su3_vmerge(dst##_v0, a##_v0, b##_v0) \
-	bgq_su3_vmerge(dst##_v1, a##_v1, b##_v1) \
-	bgq_su3_vmerge(dst##_v2, a##_v2, b##_v2)
+#define bgq_su3_spinor_merge(dst,a,b)         \
+	bgq_su3_vmerge(dst##_v0, a##_v0, b##_v0); \
+	bgq_su3_vmerge(dst##_v1, a##_v1, b##_v1); \
+	bgq_su3_vmerge(dst##_v2, a##_v2, b##_v2); \
+	bgq_su3_vmerge(dst##_v3, a##_v3, b##_v3)
 
-#define bgq_su3_vmov(dst,src) \
-	dst##_c0 = src##_c0;     \
-	dst##_c1 = src##_c1;     \
-	dst##_c2 = src##_c2
+#define bgq_su3_vmov(dst,src)    \
+	bgq_mov(NAME2(dst,c0), NAME2(src,c0)); \
+	bgq_mov(NAME2(dst,c1), NAME2(src,c1)); \
+	bgq_mov(NAME2(dst,c2), NAME2(src,c2))
 
-#define bgq_su3_vmerge(dst,a,b)            \
-	dst##_c0 = cvec_merge(a##_c0, b##_c0); \
-	dst##_c1 = cvec_merge(a##_c1, b##_c1); \
-	dst##_c2 = cvec_merge(a##_c2, b##_c2)
+#define bgq_su3_vmerge(dst,a,b)           \
+	bgq_merge2(dst##_c0, a##_c0, b##_c0); \
+	bgq_merge2(dst##_c1, a##_c1, b##_c1); \
+	bgq_merge2(dst##_c2, a##_c2, b##_c2)
 
 #define bgq_su3_mmerge(dst,a,b)               \
 	dst##_c00 = cvec_merge(a##_c00, b##_c00); \
@@ -258,65 +545,115 @@ typedef double vector4double[4];
 	dst##_c21 = cvec_merge(a##_c21, b##_c21); \
 	dst##_c22 = cvec_merge(a##_c22, b##_c22); \
 
-#define bgq_su3_vadd(dest,v1,v2)           \
-	dest##_c0 = vec_add(v1##_c0, v2##_c0); \
-	dest##_c1 = vec_add(v1##_c1, v2##_c1); \
-	dest##_c2 = vec_add(v1##_c2, v2##_c2)
+#define bgq_su3_vadd(dst,v1,v2)          \
+	bgq_add(dst##_c0, v1##_c0, v2##_c0); \
+	bgq_add(dst##_c1, v1##_c1, v2##_c1); \
+	bgq_add(dst##_c2, v1##_c2, v2##_c2)
 
-#define bgq_su3_vsub(dest,v1,v2)           \
-	dest##_c0 = vec_sub(v1##_c0, v2##_c0); \
-	dest##_c1 = vec_sub(v1##_c1, v2##_c1); \
-	dest##_c2 = vec_sub(v1##_c2, v2##_c2)
+#define bgq_su3_vsub(dst,v1,v2)         \
+	bgq_sub(dst##_c0, v1##_c0, v2##_c0); \
+	bgq_sub(dst##_c1, v1##_c1, v2##_c1); \
+	bgq_sub(dst##_c2, v1##_c2, v2##_c2)
 
-#define bgq_su3_vpiadd(dst,v1,v2)            \
-	dst##_c0 = cvec_piadd(v1##_c0, v2##_c0); \
-	dst##_c1 = cvec_piadd(v1##_c1, v2##_c1); \
-	dst##_c2 = cvec_piadd(v1##_c2, v2##_c2)
+#define bgq_su3_vpiadd(dst,v1,v2)         \
+	bgq_iadd(dst##_c0, v1##_c0, v2##_c0); \
+	bgq_iadd(dst##_c1, v1##_c1, v2##_c1); \
+	bgq_iadd(dst##_c2, v1##_c2, v2##_c2)
 
-#define bgq_su3_vpisub(dst,v1,v2)            \
-	dst##_c0 = cvec_pisub(v1##_c0, v2##_c0); \
-	dst##_c1 = cvec_pisub(v1##_c1, v2##_c1); \
-	dst##_c2 = cvec_pisub(v1##_c2, v2##_c2)
+#define bgq_su3_vpisub(dst,v1,v2)         \
+	bgq_isub(dst##_c0, v1##_c0, v2##_c0); \
+	bgq_isub(dst##_c1, v1##_c1, v2##_c1); \
+	bgq_isub(dst##_c2, v1##_c2, v2##_c2)
+
+#define bgq_su3_cvmul(dst,c,v)     \
+	bgq_cmul(CONCAT(dst,_c0), c, CONCAT(v,_c0)); \
+	bgq_cmul(CONCAT(dst,_c1), c, CONCAT(v,_c1)); \
+	bgq_cmul(CONCAT(dst,_c2), c, CONCAT(v,_c2))
+
+#define bgq_su3_mvmul(dst,m,v)                                                      \
+	{                                                                               \
+		bgq_su3_vdecl(MAKENAME4(mvmul,dst,m,v));                           \
+		bgq_cmul (MAKENAME5(mvmul,dst,m,v,c0), v##_c0, m##_c00);         \
+		bgq_cmadd(MAKENAME5(mvmul,dst,m,v,c0), v##_c1, m##_c01, MAKENAME5(mvmul,dst,m,v,c0)); \
+		bgq_cmadd(MAKENAME5(mvmul,dst,m,v,c0), v##_c2, m##_c02, MAKENAME5(mvmul,dst,m,v,c0)); \
+		bgq_cmul (MAKENAME5(mvmul,dst,m,v,c1), v##_c0, m##_c10);         \
+		bgq_cmadd(MAKENAME5(mvmul,dst,m,v,c1), v##_c1, m##_c11, MAKENAME5(mvmul,dst,m,v,c1)); \
+		bgq_cmadd(MAKENAME5(mvmul,dst,m,v,c1), v##_c2, m##_c12, MAKENAME5(mvmul,dst,m,v,c1)); \
+		bgq_cmul (MAKENAME5(mvmul,dst,m,v,c2), v##_c0, m##_c20);         \
+		bgq_cmadd(MAKENAME5(mvmul,dst,m,v,c2), v##_c1, m##_c21, MAKENAME5(mvmul,dst,m,v,c2)); \
+		bgq_cmadd(MAKENAME5(mvmul,dst,m,v,c2), v##_c2, m##_c22, MAKENAME5(mvmul,dst,m,v,c2)); \
+		bgq_su3_vmov(dst, MAKENAME4(mvmul,dst,m,v));                       \
+	}
+
+#define bgq_su3_mvinvmul(dst,m,v)                    \
+	{                                                \
+		bgq_su3_vdecl(tmp);                          \
+		bgq_ccmul (tmp_c0, v##_c0, m##_c00);         \
+		bgq_ccmadd(tmp_c0, v##_c1, m##_c10, tmp_c0); \
+		bgq_ccmadd(tmp_c0, v##_c2, m##_c20, tmp_c0); \
+		bgq_ccmul (tmp_c1, v##_c0, m##_c01);         \
+		bgq_ccmadd(tmp_c1, v##_c1, m##_c11, tmp_c1); \
+		bgq_ccmadd(tmp_c1, v##_c2, m##_c21, tmp_c1); \
+		bgq_ccmul (tmp_c2, v##_c0, m##_c02);         \
+		bgq_ccmadd(tmp_c2, v##_c1, m##_c12, tmp_c2); \
+		bgq_ccmadd(tmp_c2, v##_c2, m##_c22, tmp_c2); \
+		bgq_su3_vmov(dst, tmp);                      \
+	}
+
+#define bgq_su3_spinor_mov(dst,src)  \
+	bgq_su3_vmov(dst##_v0,src##_v0); \
+	bgq_su3_vmov(dst##_v1,src##_v1); \
+	bgq_su3_vmov(dst##_v2,src##_v2); \
+	bgq_su3_vmov(dst##_v3,src##_v3)
 
 
-#define bgq_su3_cvmul(dst,c,v)       \
-	dst##_c0 = cvec_mul(c, v##_c0); \
-	dst##_c1 = cvec_mul(c, v##_c1); \
-	dst##_c2 = cvec_mul(c, v##_c2); \
+#define _CONCAT(X,Y) X ## Y
+#define CONCAT(X,Y) _CONCAT(X,Y)
 
-#define bgq_su3_mvmul(dest,m,v)                        \
-	dest##_c0 = cvec_mul (v##_c0, m##_c00);            \
-	dest##_c0 = cvec_madd(v##_c1, m##_c01, dest##_c0); \
-	dest##_c0 = cvec_madd(v##_c2, m##_c01, dest##_c0); \
-	dest##_c1 = cvec_mul (v##_c0, m##_c10);            \
-	dest##_c1 = cvec_madd(v##_c1, m##_c11, dest##_c1); \
-	dest##_c1 = cvec_madd(v##_c2, m##_c11, dest##_c1); \
-	dest##_c2 = cvec_mul (v##_c0, m##_c20);            \
-	dest##_c2 = cvec_madd(v##_c1, m##_c21, dest##_c2); \
-	dest##_c2 = cvec_madd(v##_c2, m##_c21, dest##_c2);
+#define CONCAT2(s1,s2) CONCAT(s1,s2)
+#define CONCAT3(s1,s2,s3) CONCAT(CONCAT2(s1,s2),s3)
+#define CONCAT4(s1,s2,s3,s4) CONCAT(CONCAT3(s1,s2,s3),s4)
+#define CONCAT5(s1,s2,s3,s4,s5) CONCAT(s1,CONCAT4(s2,s3,s4,s5))
 
-#define bgq_su3_mvinvmul(dest,m,v)                        \
-	dest##_c0 = cvec_pcmul  (v##_c0, m##_c00);            \
-	dest##_c0 = cvec_pcpmadd(v##_c1, m##_c10, dest##_c0); \
-	dest##_c0 = cvec_pcpmadd(v##_c2, m##_c10, dest##_c0); \
-	dest##_c1 = cvec_pcmul  (v##_c0, m##_c01);            \
-	dest##_c1 = cvec_pcpmadd(v##_c1, m##_c11, dest##_c1); \
-	dest##_c1 = cvec_pcpmadd(v##_c2, m##_c11, dest##_c1); \
-	dest##_c2 = cvec_pcmul  (v##_c0, m##_c02);            \
-	dest##_c2 = cvec_pcpmadd(v##_c1, m##_c12, dest##_c2); \
-	dest##_c2 = cvec_pcpmadd(v##_c2, m##_c12, dest##_c2);
+#define NAME2(s1,s2) CONCAT3(s1,_,s2)
+#define NAME3(s1,s2,s3) NAME2(CONCAT3(s1,_,s2),s3)
 
+#define MAKENAME CONCAT2(tmp,__LINE__) /* TODO: Use __COUNTER__ if available */
+#define MAKENAME1(s1) CONCAT3(MAKENAME, _, s1)
+#define MAKENAME2(s1,s2) CONCAT3(MAKENAME1(s1), _, s2)
+#define MAKENAME3(s1,s2,s3) CONCAT3(MAKENAME2(s1,s2), _, s3)
+#define MAKENAME4(s1,s2,s3,s4) CONCAT3(MAKENAME3(s1,s2,s3), _, s4)
+#define MAKENAME5(s1,s2,s3,s4,s5) CONCAT3(MAKENAME4(s1,s2,s3,s4), _, s5)
+#define MAKENAME6(s1,s2,s3,s4,s5,s6) CONCAT3(MAKENAME5(s1,s2,s3,s4,s5), _, s6)
 
+#ifndef STRINGIFY
 #define STRINGIFY(V) #V
+#endif
+#ifndef TOSTRING
 #define TOSTRING(V) STRINGIFY(V)
-#define MPI_CHECK(RTNCODE) \
-	do {                 \
-    	int mpi_rtncode = (RTNCODE);\
-    	if (mpi_rtncode != MPI_SUCCESS) {\
+#endif
+#define MPI_CHECK(RTNCODE)                                                                 \
+	do {                                                                                   \
+    	int mpi_rtncode = (RTNCODE);                                                       \
+    	if (mpi_rtncode != MPI_SUCCESS) {                                                  \
 			fprintf(stderr, "MPI call %s failed: errorcode %d\n", #RTNCODE, mpi_rtncode);  \
-			assert(!"MPI call " #RTNCODE " failed");\
-			abort();\
-		}\
+			assert(!"MPI call " #RTNCODE " failed");                                       \
+			abort();                                                                       \
+		}                                                                                  \
 	} while (0)
+
+static inline int get_MPI_count(MPI_Status *status) {
+	int count;
+	MPI_Get_count(status, MPI_BYTE, &count);
+	return count;
+}
+
+#define SECTION_DECL \
+	int xyz_orig
+
+#define SECTION_SLICE(COUNT) \
+	(xyz_orig = xyz, xyz = xyz_orig / (COUNT), xyz_orig % (COUNT))
+
+
 
 #endif /* BGQ_H_ */
