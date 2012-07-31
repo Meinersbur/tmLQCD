@@ -92,6 +92,12 @@ void HoppingMatrix_site_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_
 		bgq_su3_vpiadd(weyl_tup_v0, spinor_tup_v0, spinor_tup_v2);
 		bgq_su3_vpisub(weyl_tup_v1, spinor_tup_v1, spinor_tup_v3);
 
+#if BGQ_HM_TUP_WRITECARRYSPINOR
+		bgq_su3_vpisub(weyl_tcarry_v0, spinor_tup_v0, spinor_tup_v2);
+		bgq_su3_vpiadd(weyl_tcarry_v1, spinor_tup_v1, spinor_tup_v3);
+		//bgq_su3_spinor_mov(spinor_tcarry, spinor_tup);
+#endif
+
 #if BGQ_HM_TUP_COMPUTE
 		bgq_su3_mdecl(gauge_tup);
 
@@ -129,9 +135,7 @@ void HoppingMatrix_site_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_
 		bgq_su3_vpiadd(result_v3, result_v3, weyl_tup_v1);
 #endif
 
-#if BGQ_HM_TUP_WRITECARRYSPINOR
-		bgq_su3_spinor_mov(spinor_tcarry, spinor_tup);
-#endif
+
 	}
 
 #ifndef BGQ_HM_DIR_NOFUNC

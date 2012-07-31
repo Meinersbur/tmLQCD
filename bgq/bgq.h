@@ -606,6 +606,9 @@ typedef struct { double q[4]; } vector4double;
 	bgq_su3_vmov(dst##_v2,src##_v2); \
 	bgq_su3_vmov(dst##_v3,src##_v3)
 
+#define bgq_su3_weyl_mov(dst,src)  \
+	bgq_su3_vmov(dst##_v0,src##_v0); \
+	bgq_su3_vmov(dst##_v1,src##_v1)
 
 #define _CONCAT(X,Y) X ## Y
 #define CONCAT(X,Y) _CONCAT(X,Y)

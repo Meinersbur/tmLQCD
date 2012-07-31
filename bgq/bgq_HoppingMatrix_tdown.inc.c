@@ -40,11 +40,13 @@ void HoppingMatrix_site_tdown(bgq_spinorfield_double targetfield, bgq_spinorfiel
 #endif
 #endif
 
+		bgq_su3_weyl_decl(weyl_tdown);
+#if BGQ_HM_TDOWN_READCARRYSPINOR
+		//bgq_su3_spinor_mov(spinor_tdown, spinor_tcarry);
+		bgq_su3_weyl_mov(weyl_tdown, weyl_tcarry);
+#else
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_tdown);
-#if BGQ_HM_TDOWN_READCARRYSPINOR
-		bgq_su3_spinor_mov(spinor_tdown, spinor_tcarry);
-#else
 #if BGQ_HM_TDOWN_TLINEINDENT==-1
 		if ((x+y+z)%2 == isOdd) {
 #endif
@@ -83,11 +85,13 @@ void HoppingMatrix_site_tdown(bgq_spinorfield_double targetfield, bgq_spinorfiel
 #if BGQ_HM_TDOWN_TLINEINDENT==-1
 		}
 #endif
-#endif
-
-		bgq_su3_weyl_decl(weyl_tdown);
+		// Compute the halfspinor
 		bgq_su3_vpisub(weyl_tdown_v0, spinor_tdown_v0, spinor_tdown_v2);
 		bgq_su3_vpiadd(weyl_tdown_v1, spinor_tdown_v1, spinor_tdown_v3);
+#endif
+
+
+
 
 #if BGQ_HM_TDOWN_COMPUTE
 		bgq_su3_mdecl(gauge_tdown);

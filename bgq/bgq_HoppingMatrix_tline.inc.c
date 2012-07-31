@@ -34,7 +34,8 @@ void bgq_HoppingMatrix_tline(bgq_spinorfield_double targetfield, bgq_spinorfield
 		bgq_cconst(qka3,creal(ka3),cimag(ka3));
 
 
-		bgq_su3_spinor_decl(spinor_tcarry);
+		//bgq_su3_spinor_decl(spinor_tcarry);
+		bgq_su3_weyl_decl(weyl_tcarry);
 
 		// Prologue
 		{
