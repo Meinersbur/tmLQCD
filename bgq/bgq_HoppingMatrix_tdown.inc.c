@@ -2,8 +2,9 @@
 // BGQ_HM_TLINE_FLUSHLINE
 // BGQ_HM_TLINE_RAGGEDLINE
 
-#if !defined(BGQ_HM_TLINE_FLUSHLINE)
-#error Need to define flush- or ragged line
+#ifndef BGQ_HM_TDOWN_TLINEINDENT
+#error Must define the line indention (0, 1 or -1 for runtime-conditional)
+#define BGQ_HM_TDOWN_TLINEINDENT -1
 #endif
 
 #ifndef BGQ_HM_TDOWN_LEFTWRAPAROUND
@@ -11,7 +12,7 @@
 #endif
 
 #ifndef BGQ_HM_TDOWN_COMPUTE
-#define BGQ_HM_TDOWN_COMPUTE 0
+#define BGQ_HM_TDOWN_COMPUTE 1
 #endif
 
 #ifndef BGQ_HM_TDOWN_ACCUMULATE
@@ -26,12 +27,12 @@
 #include "bgq.h"
 #include "bgq_field.h"
 
-void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefieldeo_double gaugefield, bool isOdd, int x, int y, int z, int tv, int k) {
+void HoppingMatrix_site_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefieldeo_double gaugefield, bool isOdd, int x, int y, int z, int tv, int k) {
 	bgq_su3_spinor_decl(result);
 #endif
 
 	{
-#if BGQ_HM_TLINE_FLUSHLINE
+#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==0)
 #if BGQ_HM_TDOWN_LEFTWRAPAROUND
 		const int tv_left = PHYSICAL_LTV-1;
 #else
@@ -44,7 +45,10 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 #if BGQ_HM_TDOWN_READCARRYSPINOR
 		bgq_su3_spinor_mov(spinor_tdown, spinor_tcarry);
 #else
-#if BGQ_HM_TLINE_FLUSHLINE
+#if BGQ_HM_TDOWN_TLINEINDENT==-1
+		if ((x+y+z)%2 == isOdd) {
+#endif
+#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==0)
 		// (  0  ) (  1  ) (  2  )
 		// |# _ # _ # _ # _ # _ # _|
 		//   (  0  ) (  1  ) (  2  )
@@ -61,7 +65,11 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 		bgq_su3_spinor_double_load_left_toleftonly(spinor_tdown_mid, spinorsite_tdown_mid);
 
 		bgq_su3_spinor_merge(spinor_tdown, spinor_tdown_left/*toright*/, spinor_tdown_mid/*toleft*/);
-#else
+#endif
+#if BGQ_HM_TDOWN_TLINEINDENT==-1
+		} else {
+#endif
+#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==1)
 		//   (  0  ) (  1  ) (  2  )
 		// |_ # _ # _ # _ # _ # _ #|
 		// (  0  ) (  1  ) (  2  )
@@ -72,6 +80,9 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 		bgq_spinorsite_double *spinorsite_tdown = BGQ_SPINORSITE(spinorfield, !isOdd, x, y, z, tv);
 		bgq_su3_spinor_double_load(spinor_tdown, spinorsite_tdown);
 #endif
+#if BGQ_HM_TDOWN_TLINEINDENT==-1
+		}
+#endif
 #endif
 
 		bgq_su3_weyl_decl(weyl_tdown);
@@ -80,10 +91,22 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 
 #if BGQ_HM_TDOWN_COMPUTE
 		bgq_su3_mdecl(gauge_tdown);
-#if BGQ_HM_TLINE_FLUSHLINE
-		bgq_gaugesite_double *gaugesite_tdown = BGQ_GAUGESITE(gaugefield, isOdd, x, y, z, tv_left, T_RAGGED_UP);
-#else
-		bgq_gaugesite_double *gaugesite_tdown = BGQ_GAUGESITE(gaugefield, isOdd, x, y, z, tv, T_UP);
+
+		bgq_gaugesite_double *gaugesite_tdown;
+#if BGQ_HM_TDOWN_TLINEINDENT==-1
+		if ((x+y+z)%2 == isOdd) {
+#endif
+#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==0)
+		gaugesite_tdown = BGQ_GAUGESITE(gaugefield, isOdd, x, y, z, tv_left, T_RAGGED_UP);
+#endif
+#if BGQ_HM_TDOWN_TLINEINDENT==-1
+		} else {
+#endif
+#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==1)
+		gaugesite_tdown = BGQ_GAUGESITE(gaugefield, isOdd, x, y, z, tv, T_UP);
+#endif
+#if BGQ_HM_TDOWN_TLINEINDENT==-1
+		}
 #endif
 		bgq_su3_matrix_double_load(gauge_tdown, gaugesite_tdown);
 
@@ -109,6 +132,7 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 }
 #endif
 
+#undef BGQ_HM_TDOWN_TLINEINDENT
 #undef BGQ_HM_TDOWN_LEFTWRAPAROUND
 #undef BGQ_HM_TDOWN_COMPUTE
 #undef BGQ_HM_TDOWN_ACCUMULATE

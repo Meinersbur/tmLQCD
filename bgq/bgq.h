@@ -648,12 +648,143 @@ static inline int get_MPI_count(MPI_Status *status) {
 	return count;
 }
 
-#define SECTION_DECL \
-	int xyz_orig
 
-#define SECTION_SLICE(COUNT) \
-	(xyz_orig = xyz, xyz = xyz_orig / (COUNT), xyz_orig % (COUNT))
+#define WORKLOAD_DECL(TOTAL) \
+	int xyz_orig;            \
+	int xyz_torig;           \
+	int xyz_total = (TOTAL); \
+	int xyz_param;
+
+// true:  xyz = 0            .. TRUE_COUNT -> 0 .. TRUE_COUNT
+// false: xyz = TRUE_COUNT+1 .. xyz_total  -> 0 .. xyz_total-TRUE_COUNT
+#define WORKLOAD_SPLIT(TRUE_COUNT) \
+	((xyz < TRUE_COUNT) ? (                    \
+		xyz_total = (TRUE_COUNT),              \
+		true                                   \
+	) : (                                      \
+		xyz_total = xyz_total - (TRUE_COUNT),  \
+		xyz = xyz - (TRUE_COUNT),              \
+		false                                  \
+	))
+/*
+xyz_orig		xyz				return
+0				0				1
+1				1				1
+2				2				1
+...
+TRUE_COUNT-1	TRUE_COUNT-1	1
+TRUE_COUNT		0				0
+				1				0
+				2				0
+...
+xyz_torig-1						0
+*/
+
+
+#define WORKLOAD_PARAM(LENGTH)            \
+	(xyz_param = (LENGTH),                \
+	 xyz_orig = xyz,                      \
+	 xyz_torig = xyz_total,               \
+	 xyz_total = xyz_torig / xyz_param,   \
+	 xyz = xyz_orig / xyz_param,          \
+	 xyz_orig % xyz_param)
+/*
+xyz_orig	xyz			return (=PARAM)
+0			0			0
+1			0			1
+2			0			2
+...
+LENGTH-1	0			LENGTH-1
+LENGTH		1			0
+			1			1
+			1			2
+...
+xyz_torig	xyz_total	LENGTH
+
+xyz_orig =	xyz*LENGTH + return
+*/
+
+
+#define WORKLOAD_SECTION(SECTIONS)        \
+	(xyz_param = (SECTIONS),              \
+	 xyz_orig  = xyz,                     \
+	 xyz_torig = xyz_total,               \
+	 xyz_total = xyz_param,  			  \
+	 xyz = xyz_orig / (xyz_torig/xyz_param),          \
+	 xyz_orig % (xyz_torig/xyz_param))
+/*
+xyz_orig	xyz			return
+0			0			0
+1			0			1
+2			0			2
+...
+			0
+			1			0
+			1			1
+			1			2
+...
+xyz_torig-1	SECTIONS-1
+xyz_torig	SECTIONS	xyz_torig/SECTIONS
+			(=xyz_total)
+
+xyz_orig =	xyz*(xyz_torig/SECTIONS) + return
+*/
+
+
+
+#define WORKLOAD_TILE(TILES)   					   \
+		(xyz_param = (TILES),                      \
+		 xyz_orig = xyz,                           \
+		 xyz_torig = xyz_total,                    \
+		 xyz_total = TILES,     				   \
+		 xyz = xyz_orig % (xyz_torig / xyz_param), \
+		 xyz_orig / (xyz_torig / xyz_param))
+/*
+xyz_orig	xyz	(=TILE)	return
+0			0			0
+1			1			0
+2			2			0
+...
+TILES-1		TILES-1		0
+TILES		0			1
+			1			1
+			2			1
+...
+xyz_torig	TILES		xyz_torig/TILES
+			(=xyz_total)
+
+xyz_orig =	xyz +		return*TILES
+*/
+
+
+
+#define WORKLOAD_CHUNK(LENGTH)                 \
+	(xyz_param = (LENGTH),                     \
+	 xyz_orig = xyz,                           \
+	 xyz_torig = xyz_total,                    \
+	 xyz_total = xyz_torig / xyz_param,        \
+	 xyz = xyz_orig % xyz_total,               \
+	 xyz_orig / xyz_total)
+
+/*
+xyz_orig	xyz			return (=CHUNCK)
+0			0			0
+1			1			0
+2			2			0
+...
+						0
+			0			1
+			1			1
+			2			1
+...
+xyz_torig-1	xyz_total-1	LENGTH-1
+xyz_torig	xyz_total	LENGTH
+			(=xyz_torig/LENGTH)
+
+xyz_orig =	xyz + 		return*xyz_total
+*/
 
 
 
 #endif /* BGQ_H_ */
+

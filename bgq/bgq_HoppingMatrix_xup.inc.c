@@ -27,10 +27,17 @@ void bgq_HoppingMatrix_site_xup(bgq_spinorfield_double targetfield, bgq_spinorfi
 	{
 
 		bgq_su3_weyl_decl(weyl_xup);
-#if BGQ_HM_XUP_WEYLREAD
+#if BGQ_HM_XUP_WEYLREAD==-1
+		if (x==PHYSICAL_LX-1) {
+#endif
+#if (BGQ_HM_XUP_WEYLREAD==-1) || (BGQ_HM_XUP_WEYLREAD==1)
 		bgq_weylsite_double *weylsite_xup = BGQ_WEYLSITE_X(weylxchange_xup_recv_double, !isOdd, x+1, y, z, tv);
 		bgq_su3_weyl_double_load(weyl_xup, weylsite_xup);
-#else
+#endif
+#if BGQ_HM_XUP_WEYLREAD==-1
+		} else {
+#endif
+#if (BGQ_HM_XUP_WEYLREAD==-1) || (BGQ_HM_XUP_WEYLREAD==0)
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_xup);
 		bgq_spinorsite_double *spinorsite_xup = BGQ_SPINORSITE(spinorfield, !isOdd, x + 1, y, z, tv);
@@ -39,6 +46,9 @@ void bgq_HoppingMatrix_site_xup(bgq_spinorfield_double targetfield, bgq_spinorfi
 		// Compute its halfspinor
 		bgq_su3_vadd(weyl_xup_v0, spinor_xup_v0, spinor_xup_v2);
 		bgq_su3_vadd(weyl_xup_v1, spinor_xup_v1, spinor_xup_v3);
+#endif
+#if BGQ_HM_XUP_WEYLREAD==-1
+		}
 #endif
 
 #if BGQ_HM_XUP_COMPUTE

@@ -93,6 +93,19 @@ void bgq_destroy() {
 
 //#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 
+
+void bgq_HoppingMatrix_bordertline_double(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield_double targetfield, bgq_gaugefield_double gaugefield, int x, int y, int z) {
+#define BGQ_HM_TLINE_TLINEINDENT -1
+#define BGQ_HM_XUP_WEYLREAD -1
+#define BGQ_HM_XDOWN_WEYLREAD -1
+#define BGQ_HM_YUP_WEYLREAD -1
+#define BGQ_HM_YDOWN_WEYLREAD -1
+#define BGQ_HM_ZUP_WEYLREAD -1
+#define BGQ_HM_ZDOWN_WEYLREAD -1
+#include "bgq_HoppingMatrix_tline.inc.c"
+}
+
+
 void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield_double targetfield, bgq_gaugefield_double gaugefield) {
 	MPI_Request request_recv_xup;
 	MPI_CHECK(MPI_Irecv(weylxchange_xup_recv_double, sizeof(*weylxchange_xup_recv_double) * PHYSICAL_LY * PHYSICAL_LZ * PHYSICAL_LTV, MPI_BYTE, g_nb_x_up, X_UP, MPI_COMM_WORLD, &request_recv_xup));
@@ -109,15 +122,7 @@ void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield_double spinorfield, bg
 	MPI_Request request_recv_zdown;
 	MPI_CHECK(MPI_Irecv(weylxchange_zdown_recv_double, sizeof(*weylxchange_zdown_recv_double) * PHYSICAL_LX * PHYSICAL_LY * PHYSICAL_LTV, MPI_BYTE, g_nb_z_dn,Z_DOWN, MPI_COMM_WORLD, &request_recv_zdown));
 
-	// Load constants
-	bgq_vector4double_decl(qka0);
-	bgq_cconst(qka0,creal(ka0),cimag(ka0));
-	bgq_vector4double_decl(qka1);
-	bgq_cconst(qka1,creal(ka1),cimag(ka1));
-	bgq_vector4double_decl(qka2);
-	bgq_cconst(qka2,creal(ka2),cimag(ka2));
-	bgq_vector4double_decl(qka3);
-	bgq_cconst(qka3,creal(ka3),cimag(ka3));
+
 
 	MPI_CHECK(MPI_Barrier(g_cart_grid)); // To ensure that all ranks started the receive requests (necessary? how expensive is this?)
 
@@ -238,7 +243,7 @@ void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield_double spinorfield, bg
 		xyz = xyz/(PHYSICAL_LY-2);
 		const int x = xyz*2 + isOdd;
 
-#define BGQ_HM_TLINE_FLUSHLINE 1
+#define BGQ_HM_TLINE_TLINEINDENT 0
 		#include "bgq_HoppingMatrix_tline.inc.c"
 	}
 
@@ -250,7 +255,7 @@ void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield_double spinorfield, bg
 		xyz = xyz/(PHYSICAL_LY-2);
 		const int x = xyz*2 + !isOdd;
 
-#define BGQ_HM_TLINE_RAGGEDLINE 1
+#define BGQ_HM_TLINE_TLINEINDENT 1
 		#include "bgq_HoppingMatrix_tline.inc.c"
 	}
 
@@ -280,121 +285,64 @@ void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield_double spinorfield, bg
 	MPI_CHECK(MPI_Wait(&request_recv_zdown, &weylxchange_zdown_recv_status));
 	assert(get_MPI_count(&weylxchange_zdown_recv_status) == sizeof(*weylxchange_zdown_recv_double)*PHYSICAL_LX*(PHYSICAL_LY)*(1)*(PHYSICAL_LTV));
 
+#pragma omp parallel for schedule(static,1)
+	for (int xyz = 0; xyz < TOTAL_BORDER; xyz += 1) {
+		int x;
+		int y;
+		int z;
+		WORKLOAD_DECL(TOTAL_BORDER);
+		if (WORKLOAD_SPLIT(COUNT_FACES)) {
+			if (WORKLOAD_SPLIT(2*COUNT_FACE_XY)) {
+				const bool p = WORKLOAD_TILE(2);
+				x = WORKLOAD_PARAM(PHYSICAL_LX-2)+1;
+				y = WORKLOAD_PARAM((PHYSICAL_LY-2)/2)*2+p+1;
+				z = WORKLOAD_CHUNK(2)*(PHYSICAL_LZ-1);
+			} else if (WORKLOAD_SPLIT(2*COUNT_FACE_XZ)) {
+				const bool p = WORKLOAD_TILE(2);
+				x = WORKLOAD_PARAM(PHYSICAL_LX-2)+1;
+				y = WORKLOAD_CHUNK(2)*(PHYSICAL_LY-1);
+				z = WORKLOAD_PARAM((PHYSICAL_LZ-2)/2)+2+p+1;
+			} else {
+				assert(xyz_total == 2*COUNT_FACE_YZ);
 
+				const bool p = WORKLOAD_TILE(2);
+				x = WORKLOAD_CHUNK(2)*(PHYSICAL_LX-1);
+				y = WORKLOAD_PARAM(PHYSICAL_LY-2)+1;
+				z = WORKLOAD_PARAM((PHYSICAL_LZ-2)/2)+2+p+1;
+			}
+		} else if (WORKLOAD_SPLIT(COUNT_EDGES)) {
+			if (WORKLOAD_SPLIT(4*COUNT_EDGE_X)) {
+				const bool p = WORKLOAD_TILE(2);
+				x = WORKLOAD_PARAM((PHYSICAL_LX-2)/2)*2+p+1;
+				y = WORKLOAD_CHUNK(2)*(PHYSICAL_LY-1);
+				z = WORKLOAD_CHUNK(2)*(PHYSICAL_LZ-1);
+			} else if (WORKLOAD_SPLIT(4*COUNT_EDGE_Y)) {
+				const bool p = WORKLOAD_TILE(2);
+				x = WORKLOAD_CHUNK(2)*(PHYSICAL_LZ-1);
+				y = WORKLOAD_PARAM((PHYSICAL_LY-2)/2)*2+p+1;
+				z = WORKLOAD_CHUNK(2)*(PHYSICAL_LZ-1);
+			} else {
+				assert(xyz_total==4*COUNT_EDGE_Z);
 
+				const bool p = WORKLOAD_TILE(2);
+				x = WORKLOAD_CHUNK(2)*(PHYSICAL_LZ-1);
+				y = WORKLOAD_CHUNK(2)*(PHYSICAL_LY-1);
+				z = WORKLOAD_PARAM((PHYSICAL_LZ-2)/2)*2+p+1;
+			}
+		} else {
+			// vertices
+			assert(xyz_total == COUNT_VERTICES);
+			int bits = WORKLOAD_PARAM(8);
 
+			x = (bits & 0x4)*(PHYSICAL_LX-1);
+			y = (bits & 0x2)*(PHYSICAL_LY-1);
+			z = (bits & 0x1)*(PHYSICAL_LZ-1);
+		}
+		assert(xyz_total == 1);
+		assert(xyz == 0);
 
-#define BGQ_HM_BORDER_XUP 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_XDOWN 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_YUP 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_YDOWN 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_ZUP 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_ZDOWN 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-
-
-#define BGQ_HM_BORDER_XUP 1
-#define BGQ_HM_BORDER_YUP 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_XUP 1
-#define BGQ_HM_BORDER_YDOWN 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_XUP 1
-#define BGQ_HM_BORDER_ZUP 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_XUP 1
-#define BGQ_HM_BORDER_ZDOWN 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-
-#define BGQ_HM_BORDER_XDOWN 1
-#define BGQ_HM_BORDER_YUP 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_XDOWN 1
-#define BGQ_HM_BORDER_YDOWN 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_XDOWN 1
-#define BGQ_HM_BORDER_ZUP 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_XDOWN 1
-#define BGQ_HM_BORDER_ZDOWN 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-
-#define BGQ_HM_BORDER_YUP 1
-#define BGQ_HM_BORDER_ZUP 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_YUP 1
-#define BGQ_HM_BORDER_ZDOWN 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_YDOWN 1
-#define BGQ_HM_BORDER_ZUP 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_YDOWN 1
-#define BGQ_HM_BORDER_ZDOWN 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-
-#define BGQ_HM_BORDER_XUP 1
-#define BGQ_HM_BORDER_YUP 1
-#define BGQ_HM_BORDER_ZUP 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_XUP 1
-#define BGQ_HM_BORDER_YUP 1
-#define BGQ_HM_BORDER_ZDOWN 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_XUP 1
-#define BGQ_HM_BORDER_YDOWN 1
-#define BGQ_HM_BORDER_ZUP 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_XUP 1
-#define BGQ_HM_BORDER_YDOWN 1
-#define BGQ_HM_BORDER_ZDOWN 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_XDOWN 1
-#define BGQ_HM_BORDER_YUP 1
-#define BGQ_HM_BORDER_ZUP 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_XDOWN 1
-#define BGQ_HM_BORDER_YUP 1
-#define BGQ_HM_BORDER_ZDOWN 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_XDOWN 1
-#define BGQ_HM_BORDER_YDOWN 1
-#define BGQ_HM_BORDER_ZUP 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
-#define BGQ_HM_BORDER_XDOWN 1
-#define BGQ_HM_BORDER_YDOWN 1
-#define BGQ_HM_BORDER_ZDOWN 1
-#include "bgq_HoppingMatrix_border.inc.c"
-
+		bgq_HoppingMatrix_bordertline_double(isOdd,spinorfield,targetfield,gaugefield,x,y,z);
+	}
 }
 
 #undef BGQ_HM_NOFUNC
