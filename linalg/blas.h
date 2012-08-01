@@ -21,7 +21,7 @@
 #ifndef _BLAS_H
 #define _BLAS_H
 
-#include "complex.h"
+#include "complex_struct.h"
 #include "linalg/fortran.h"
 
 #if defined CRAY || defined HITACHI

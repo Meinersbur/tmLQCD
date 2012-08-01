@@ -24,7 +24,7 @@
 #include<stdlib.h>
 #include<math.h>
 #include "global.h"
-#include"complex.h"
+#include"complex_struct.h"
 #include"solver/lu_solve.h"
 
 /* Solve M a = b by LU decomposition with partial pivoting */

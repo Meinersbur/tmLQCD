@@ -19,8 +19,8 @@
  * along with tmLQCD.  If not, see <http://www.gnu.org/licenses/>.
  ***********************************************************************/
 
-#ifndef _COMPLEX_H_TMLQCD
-#define _COMPLEX_H_TMLQCD
+#ifndef _COMPLEX_STRUCT_H_
+#define _COMPLEX_STRUCT_H_
 
 #include <math.h>
 

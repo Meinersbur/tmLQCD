@@ -60,7 +60,7 @@
 #include "linalg/blas.h"
 #include "linalg/lapack.h"
 #include "linalg_eo.h"
-#include "complex.h"
+#include "complex_struct.h"
 #include "solver/solver.h"
 #include "solver/gram-schmidt.h"
 #include "solver/quicksort.h"

@@ -22,7 +22,7 @@
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
-#include <complex.h>
+#include "complex_struct.h"
 #include <math.h>
 #include "global.h"
 #include "su3.h"

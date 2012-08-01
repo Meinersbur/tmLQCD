@@ -127,7 +127,7 @@
 		<Unit filename="cmalloc.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
-		<Unit filename="complex.h">
+		<Unit filename="complex_struct.h">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
 		<Unit filename="config.h" />

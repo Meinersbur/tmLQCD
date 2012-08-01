@@ -42,7 +42,7 @@
 #include "cmalloc.h"
 
 #include "global.h"
-#include "complex.h"
+#include "complex_struct.h"
 #include "sse.h"
 #include "su3.h"
 #include "read_input.h"

@@ -29,7 +29,7 @@
 #include <time.h>
 #include "global.h"
 #include "su3.h"
-#include "complex.h"
+#include "complex_struct.h"
 #include "start.h"
 #include "ranlxs.h"
 #include "D_psi.h"

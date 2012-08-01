@@ -33,7 +33,7 @@
 #endif
 #include "global.h"
 #include "start.h"
-#include "complex.h"
+#include "complex_struct.h"
 #include "block.h"
 #include "linalg/blas.h"
 #include "D_psi.h"

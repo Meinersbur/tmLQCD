@@ -17,7 +17,7 @@ extern "C" {
 #include "tm_operators.h"
 #include "linalg_eo.h"
 #include "start.h"
-#include "complex.h"
+#include "complex_struct.h"
 #include "read_input.h"
 #include "geometry_eo.h"
 #include "boundary.h"

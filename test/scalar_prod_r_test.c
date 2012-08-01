@@ -24,7 +24,7 @@
 # include<config.h>
 #endif
 #ifndef _STD_C99_COMPLEX
-#include "complex.h"
+#include "complex_struct.h"
 #endif
 
 #include "qdran64.h"

@@ -38,7 +38,7 @@
 #ifdef _STD_C99_COMPLEX_CHECKED
 #include <complex.h>
 #else
-#include "complex.h"
+#include "complex_struct.h"
 #endif
 #if (defined XLC && defined BGL)
 # include "bgl.h"

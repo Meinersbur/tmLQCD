@@ -47,7 +47,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "complex.h"
+#include "complex_struct.h"
 #include "linalg/lapack.h"
 #include "diagonalise_general_matrix.h"
 

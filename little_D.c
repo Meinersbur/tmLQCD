@@ -32,7 +32,7 @@
 # include <mpi.h>
 #endif
 #include "global.h"
-#include "complex.h"
+#include "complex_struct.h"
 #include "block.h"
 #include "linalg/blas.h"
 #include "solver/gcr4complex.h"

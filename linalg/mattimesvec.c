@@ -25,7 +25,7 @@
 #ifdef MPI
 #include <mpi.h>
 #endif
-#include "complex.h"
+#include "complex_struct.h"
 #include "mattimesvec.h"
 
 /* v = M*w                         */

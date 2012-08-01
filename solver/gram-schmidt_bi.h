@@ -18,7 +18,7 @@
  ***********************************************************************/
 #ifndef _GRAM_SCHMIDT_BI_H
 #define _GRAM_SCHMIDT_BI_H
-#include "complex.h"
+#include "complex_struct.h"
 
 void IteratedClassicalGS_bi_old(complex v[], double *vnrm, int n, int m, complex A[], complex work1[]);
 void IteratedClassicalGS_bi(complex v[], double *vnrm, int n, int m, complex A[], 

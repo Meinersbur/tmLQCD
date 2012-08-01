@@ -37,7 +37,7 @@
 #include <stdio.h>
 #include <math.h>
 #include "global.h"
-#include "complex.h"
+#include "complex_struct.h"
 #include "su3.h"
 #include "linalg_eo.h"
 #include "start.h"

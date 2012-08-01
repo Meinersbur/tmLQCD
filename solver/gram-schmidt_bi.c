@@ -36,7 +36,7 @@
 #include <math.h>
 #include <stdio.h>
 #include "su3spinor.h"
-#include "complex.h"
+#include "complex_struct.h"
 #include "linalg_eo.h"
 #include "linalg/blas.h"
 #ifdef CRAY

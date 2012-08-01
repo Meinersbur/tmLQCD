@@ -8,7 +8,7 @@
 #ifndef COMPLEX_C99_H_
 #define COMPLEX_C99_H_
 
-#include "complex.h"
+#include "complex_struct.h"
 #undef cimag
 #undef creal
 

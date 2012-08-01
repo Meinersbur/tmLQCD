@@ -21,7 +21,7 @@
 #define _GENERATE_DFL_SUBSPACE
 
 #include "su3.h"
-#include "complex.h"
+#include "complex_struct.h"
 
 int init_dfl_subspace(const int);
 int free_dfl_subspace();

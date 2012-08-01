@@ -50,7 +50,7 @@
 #include "linalg_eo.h"
 #include "start.h"
 #include "solver/matrix_mult_typedef.h"
-#include "complex.h"
+#include "complex_struct.h"
 #include "gamma.h"
 #include "solver/eigenvalues.h"
 #include "solver/sub_low_ev.h"

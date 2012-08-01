@@ -20,7 +20,7 @@ make
 cd $ROOTPATH
 
 ./configure --with-lapack="-llapack" --with-limedir="${ROOTPATH}/lime" --enable-mpi --with-mpidimension=XYZ --enable-halfspinor CC="mpicc" CFLAGS="-g -O0 -fopenmp -Wall -Wundef"
-make benchmark hmc_tm invert
+make -j4 benchmark hmc_tm invert
 
 # mpirun -np 16 hmc_tm -v -f input.inp
 
