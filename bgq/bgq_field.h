@@ -8,8 +8,12 @@
 #include "complex_c99.h"
 
 
-#ifndef EXTERN
-#define EXTERN extern
+#ifdef BGQ_FIELD_C_H_
+#define EXTERN_INLINE extern inline
+#define EXTERN_FIELD extern
+#else
+#define EXTERN_INLINE inline
+#define EXTERN_FIELD
 #endif
 
 #define VECTOR_WIDTH 2 /* 2 complex values = 4 reals */
@@ -47,7 +51,7 @@
 #define COUNT_VERTICES (8*COUNT_VERTEX)
 
 #define TOTAL_BORDER (COUNT_FACES + COUNT_EDGES + COUNT_VERTICES)
-
+#define TOTAL_VOLUME (PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ)
 
 
 typedef struct {
@@ -63,7 +67,7 @@ typedef struct {
 	double _Complex c[3][3][PHYSICAL_LK];
 } bgq_gaugesite_double;
 typedef struct {
-	bgq_gaugesite_double (*eodir)[PHYSICAL_LP][PHYSICAL_LD];
+	bgq_gaugesite_double *(eodir[PHYSICAL_LP][PHYSICAL_LD]);
 } bgq_gaugeeodir_double;
 typedef bgq_gaugeeodir_double (*bgq_gaugefield_double);
 
@@ -86,10 +90,13 @@ typedef enum {
 } direction;
 
 
+void *malloc_aligned(size_t size, size_t alignment);
+
+
 #define BGQ_SPINORSITE(spinorfield, isOdd, x, y, z, tv) \
 		(&spinorfield[((x*PHYSICAL_LY + y)*PHYSICAL_LZ + z)*PHYSICAL_LTV + tv]);
 
-EXTERN inline double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spinorfield_double spinorfield, bool isOdd, int x, int y, int z, int t, int s, int c) {
+EXTERN_INLINE double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spinorfield_double spinorfield, bool isOdd, int x, int y, int z, int t, int s, int c) {
 	assert(spinorfield);
 	assert(0 <= isOdd && isOdd < LOCAL_LP);
 	assert(isOdd == (x+y+z+t)%2);
@@ -129,7 +136,7 @@ EXTERN inline double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spin
 		(&gaugefield->eodir[(isOdd)][T_RAGGED_UP/2][(((x)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z))*PHYSICAL_LTV + (tv)]);
 
 
-EXTERN inline double _Complex *bgq_gaugefield_double_local_to_physical(bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int t, direction d, int i, int l) {
+EXTERN_INLINE double _Complex *bgq_gaugefield_double_local_to_physical(bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int t, direction d, int i, int l) {
 	assert(gaugefield);
 	assert(false <= isOdd && isOdd <= true);
 	assert(isOdd == (x+y+z+t)%2);
@@ -166,7 +173,7 @@ EXTERN inline double _Complex *bgq_gaugefield_double_local_to_physical(bgq_gauge
 	return &site->c[i][l][k];
 }
 
-EXTERN inline void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int t, direction d, int i, int l, double _Complex value) {
+EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int t, direction d, int i, int l, double _Complex value) {
 	assert(gaugefield);
 	assert(false <= isOdd && isOdd <= true);
 	assert(isOdd == (x+y+z+t)%2);
@@ -253,10 +260,16 @@ EXTERN inline void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 	}
 }
 
+EXTERN_FIELD bgq_gaugeeodir_double g_gaugefield_doubledata;
+EXTERN_FIELD bgq_gaugefield_double g_gaugefield_double;
 
+void bgq_init_gaugefield();
+void bgq_free_gaugefield();
 
+void bgq_transfer_gaugefield(bgq_gaugefield_double targetfield, su3 **sourcefield);
 
-#undef EXTERN
+#undef EXTERN_INLINE
+#undef EXTERN_FIELD
 #endif // BGQ_H_INCLUDED
 
 

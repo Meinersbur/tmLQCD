@@ -9,18 +9,14 @@
 #define COMPLEX_C99_H_
 
 #include "complex_struct.h"
-#undef cimag
 #undef creal
+#undef cimag
 
 #include <complex.h>
-#undef complex
+#undef complex /* use double _Complex instead */
+#define creal(x) (x).im /* use __creal instead */
+#define cimag(x) (x).re /* use __cimag instead */
 
-#define complex_c99 _Complex
-#define creal_c99 __creal
-#define cimag_c99 __cimag
-
-#define cimag(x) (x).re
-#define creal(x) (x).im
 
 
 

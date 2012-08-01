@@ -16,6 +16,8 @@
 #include <mpi.h>
 #include <omp.h>
 
+#include "bgq_HoppingMatrix.h"
+
 
 #define SETUP_PERSISTENT_SEND(ISODD, DIM, DIR) \
 	MPI_CHECK(MPI_Rsend_init(&sendsurface->dim ## DIM[(ISODD)][(-(DIR)+1)/3], sizeof(sendsurface->dim ## DIM[(ISODD)][(-(DIR)+1)/3]), MPI_BYTE, g_cart_shift[joinDimdir((DIM),(DIR))], g_cart_tag[(ISODD)][joinDimdir((DIM),(DIR))], g_cart, &g_cart_send_requests[(ISODD)][joinDimdir((DIM),(DIR))]))
@@ -24,15 +26,7 @@
 	MPI_CHECK(MPI_Recv_init(&recvsurface->dim ## DIM[(ISODD)][(-(DIR)+1)/3], sizeof(recvsurface->dim ## DIM[(ISODD)][(-(DIR)+1)/3]), MPI_BYTE, g_cart_shift[joinDimdir((DIM),(DIR))], g_cart_tag[(ISODD)][joinDimdir((DIM),(DIR))], g_cart, &g_cart_recv_requests[(ISODD)][joinDimdir((DIM),(DIR))]))
 
 
-void *malloc_aligned(size_t size, size_t alignment) {
-	void *result=NULL;
-	int errcode = posix_memalign(&result,alignment, size) ;
-	if (errcode != 0) {
-		fprintf(stderr ,"malloc returned %d\n", errcode);
-		exit(10);
-	}
-	return result;
-}
+
 
 
 bgq_weylfield_double weylxchange_xup_send_double;

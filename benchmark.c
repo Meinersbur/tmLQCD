@@ -82,6 +82,10 @@ extern FILE *fmemopen (void *__s, size_t __len, __const char *__modes) __THROW;
 #include "phmc.h"
 #include "mpi_init.h"
 
+#ifdef BGQ
+#include "bgq/bgq_field.h"
+#endif
+
 /* GG */
 
 void usage()
@@ -372,9 +376,13 @@ int main(int argc,char *argv[])
   check_xchange();
 #endif
 
-
   start_ranlux(1, 123456);
   random_gauge_field(reproduce_randomnumber_flag);
+
+#ifdef BGQ
+  bgq_init_gaugefield();
+  update_backward_gauge();
+#endif
 
 #ifdef MPI
   /*For parallelization: exchange the gaugefield */

@@ -104,6 +104,19 @@ void update_backward_gauge() {
   return;
 }
 
+#elif defined(BGQ)
+
+#include "bgq/bgq_field.h"
+
+void update_backward_gauge() {
+	if (!g_update_gauge_copy)
+		return;
+
+	bgq_transfer_gaugefield(g_gaugefield_double, g_gauge_field);
+
+	g_update_gauge_copy = 0;
+}
+
 #else
 
 void update_backward_gauge() {
