@@ -2472,7 +2472,7 @@ static su3_vector psi1, psi2, psi, chi, phi1, phi3;
 /* 8. */
 /* l output , k input*/
 /* for ieo=0, k resides on  odd sites and l on even sites */
-void Hopping_Matrix(int ieo, spinor * const l, spinor * const k){
+void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k/*0..VOLUME/2-1*/){
   int ix,iy;
   int ioff,ioff2,icx,icy;
   su3 * restrict up, * restrict um;

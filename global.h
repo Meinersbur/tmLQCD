@@ -264,8 +264,12 @@ static char const g_rcsid[] = "$Id$";
 
 
 void *nalloc(size_t size, const char *term, const char *file, const char* func, int line);
+#ifndef STRINGIFY
 #define STRINGIFY(x) #x
+#endif
+#ifndef TOSTRING
 #define TOSTRING(x) STRINGIFY(x)
+#endif
 #define malloc(size) nalloc(size, TOSTRING(size), __FILE__, __PRETTY_FUNCTION__, __LINE__)
 #define calloc(num, size) nalloc((num) * (size), TOSTRING(num) " * " TOSTRING(size), __FILE__, __PRETTY_FUNCTION__, __LINE__)
 

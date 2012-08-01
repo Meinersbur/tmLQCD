@@ -1,10 +1,12 @@
 #ifndef BGQ_H_INCLUDED
 #define BGQ_H_INCLUDED
 
+
 #include "../global.h"
 #include <stdbool.h>
-#include <complex.h>
 #include <assert.h>
+#include "complex_c99.h"
+
 
 #ifndef EXTERN
 #define EXTERN extern
@@ -25,7 +27,7 @@
 #define PHYSICAL_LZ LOCAL_LZ
 #define PHYSICAL_LTV (LOCAL_LT/(PHYSICAL_LP*PHYSICAL_LK))
 #define PHYSICAL_LK 2 /* Vector unit width (2 complex = 4 reals) */
-#define PHYSICAL_LD 5 /* No of directions (for gauge field) */
+#define PHYSICAL_LD 5 /* No of directions (for gauge field) = 4 up-directions + 1 for ragged t-line (note that it is one element longer for wraparound values) */
 
 
 // 2 of each
@@ -118,7 +120,14 @@ EXTERN inline double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spin
 
 
 #define BGQ_GAUGESITE(gaugefield,isOdd,x,y,z,tv,direction) \
-		(&gaugefield->eodir[isOdd][direction][((x*PHYSICAL_LY + y)*PHYSICAL_LZ + z)*PHYSICAL_LTV + tv]);
+		(&gaugefield->eodir[(isOdd)][(direction)/2][(((x)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z))*PHYSICAL_LTV + (tv)]);
+
+#define BGQ_GAUGESITE_T(gaugefield,isOdd,x,y,z,tv,direction) \
+		(&gaugefield->eodir[(isOdd)][T_UP/2][(((x)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z))*PHYSICAL_LTV + (tv)]);
+
+#define BGQ_GAUGESITE_T_SHIFTED(gaugefield,isOdd,x,y,z,tv,direction) \
+		(&gaugefield->eodir[(isOdd)][T_RAGGED_UP/2][(((x)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z))*PHYSICAL_LTV + (tv)]);
+
 
 EXTERN inline double _Complex *bgq_gaugefield_double_local_to_physical(bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int t, direction d, int i, int l) {
 	assert(gaugefield);
@@ -156,6 +165,95 @@ EXTERN inline double _Complex *bgq_gaugefield_double_local_to_physical(bgq_gauge
 	bgq_gaugesite_double *site = BGQ_GAUGESITE(gaugefield,isOdd,x,y,z,tv,d/2);
 	return &site->c[i][l][k];
 }
+
+EXTERN inline void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int t, direction d, int i, int l, double _Complex value) {
+	assert(gaugefield);
+	assert(false <= isOdd && isOdd <= true);
+	assert(isOdd == (x+y+z+t)%2);
+	assert(0 <= x && x < LOCAL_LX);
+	assert(0 <= y && y < LOCAL_LY);
+	assert(0 <= z && z < LOCAL_LZ);
+	assert(0 <= t && t < LOCAL_LT);
+	assert(X_DOWN <= d && d <= T_UP);
+	assert(0 <= i && i < 3);
+	assert(0 <= l && l < 3);
+
+	bool adjoint;
+	switch (d) {
+	case X_DOWN:
+		x -= 1;
+		isOdd = !isOdd;
+		adjoint = true;
+		d = X_UP;
+		break;
+	case Y_DOWN:
+		y -= 1;
+		isOdd = !isOdd;
+		adjoint = true;
+		d = Y_UP;
+		break;
+	case Z_DOWN:
+		z -= 1;
+		isOdd = !isOdd;
+		adjoint = true;
+		d = Z_UP;
+		break;
+	case T_DOWN:
+	case T_RAGGED_DOWN:
+		t -= 1;
+		isOdd = !isOdd;
+		adjoint = true;
+		d = T_UP;
+		break;
+	case T_RAGGED_UP:
+		d = T_UP;
+		adjoint = false;
+		break;
+	default:
+		adjoint = false;
+		break;
+	}
+
+	int teo = t / LOCAL_LP;
+	int tv = teo / LOCAL_LK;
+	int k = teo % LOCAL_LK;
+
+	if (adjoint) {
+		int tmp = i;
+		i = l;
+		l = tmp;
+		crealf(value);
+		value = conj(value);
+	}
+
+	bgq_gaugesite_double *site = BGQ_GAUGESITE(gaugefield, isOdd, x,y,z,tv,d);
+			site->c[i][l][k] = value;
+
+	if (d == T_UP) {
+		// Do some special things for T_UP, values exist in multiple copied
+
+		// Move one to the right
+		int tv_shift = (teo+1)/ LOCAL_LK;
+		int k_shift = (teo+1) % LOCAL_LK;
+
+		bgq_gaugesite_double *raggedsite = BGQ_GAUGESITE(gaugefield, isOdd, x,y,z, tv_shift, T_RAGGED_UP);
+		raggedsite->c[i][l][k_shift] = value;
+
+		if (t == LOCAL_LT-1) {
+			// wraparound
+			bgq_gaugesite_double *site = BGQ_GAUGESITE(gaugefield, isOdd, x,y,z,0, T_RAGGED_UP);
+			site->c[i][l][0] = value;
+		}
+
+		if (t == 0) {
+			// wraparound
+			bgq_gaugesite_double *site = BGQ_GAUGESITE(gaugefield, isOdd, x,y,z,PHYSICAL_LTV, T_RAGGED_UP);
+			site->c[i][l][1] = value;
+		}
+	}
+}
+
+
 
 
 #undef EXTERN

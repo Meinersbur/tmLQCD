@@ -60,7 +60,7 @@ MODULES = read_input gamma hybrid_update observables start \
 	sf_get_staples sf_get_rectangle_staples sf_observables \
 	Dov_psi operator poly_monomial measurements pion_norm \
 	memusage global mypapi \
-	bgq/bgq_HoppingMatrix
+	bgq/bgq_field bgq/bgq_HoppingMatrix
 
 NOOPTMOD = test/check_xchange test/check_geometry
 

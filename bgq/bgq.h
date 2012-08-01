@@ -8,6 +8,7 @@
 #ifndef BGQ_H_
 #define BGQ_H_
 
+#include <mpi.h>
 
 #ifndef XLC
 //typedef double vector4double[4];
@@ -768,7 +769,6 @@ xyz_orig =	xyz +		return*TILES
 	 xyz_total = xyz_torig / xyz_param,        \
 	 xyz = xyz_orig % xyz_total,               \
 	 xyz_orig / xyz_total)
-
 /*
 xyz_orig	xyz			return (=CHUNCK)
 0			0			0
