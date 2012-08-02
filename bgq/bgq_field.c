@@ -50,6 +50,29 @@ void bgq_free_gaugefield() {
 void bgq_transfer_gaugefield(bgq_gaugefield_double targetfield, su3 **sourcefield) {
 
 #pragma omp parallel for schedule(static)
+	for (int xyz = 0; xyz < GAUGE_VOLUME; xyz+=1) {
+		WORKLOAD_DECL(GAUGE_VOLUME);
+		const int z = WORKLOAD_PARAM(LOCAL_LZ+1)-1;
+		const int y = WORKLOAD_PARAM(LOCAL_LY+1)-1;
+		const int x = WORKLOAD_PARAM(LOCAL_LX+1)-1;
+		const int t = WORKLOAD_PARAM(LOCAL_LT+1)-1;
+		const bool isOdd = (t+x+y+z)%2;
+
+		const int ix = g_ipt[t][x][y][z];
+
+		for (int d = X_UP; d <= T_UP; d+=1) {
+			su3 *m = &g_gauge_field[ix][d/2];
+			for (int i = 0; i < 3; i+=1) {
+				for (int l = 0; l < 3; l+=1) {
+					complex *c = ((complex*)m)+i*3+l;
+					bgq_gaugefield_double_set(targetfield, isOdd, x, y, z, t, d, i,l, cs2c99(*c));
+				}
+			}
+		}
+	}
+
+#if 0
+#pragma omp parallel for schedule(static)
 	for (int xyz = 0; xyz < VOLUME; xyz+=1) {
 		WORKLOAD_DECL(VOLUME);
 
@@ -87,6 +110,7 @@ void bgq_transfer_gaugefield(bgq_gaugefield_double targetfield, su3 **sourcefiel
 			bgq_gaugefield_double_set(targetfield, isOdd, x, y, z, t, d, 2,2, cs2c99(m->c22));
 		}
 	}
+#endif
 }
 
 

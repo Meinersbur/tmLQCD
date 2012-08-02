@@ -79,12 +79,14 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		}
 #endif
 
+
 #if BGQ_HM_ZDOWN_WRITECARRY
 		// Compute the halfspinor for the zup of the next (downwards-)iteration
 		//TODO: Confirm correct computation
 		bgq_su3_vadd(weyl_zcarry_v0, spinor_zdown_v0, spinor_zdown_v3);
 		bgq_su3_vsub(weyl_zcarry_v1, spinor_zdown_v1, spinor_zdown_v2);
 #endif
+
 
 #if BGQ_HM_ZDOWN_ACCUMULATE /* unused otherwise */
 		// Compute its halfspinor
