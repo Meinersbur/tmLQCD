@@ -29,7 +29,7 @@ void HoppingMatrix_site_yup(bgq_spinorfield_double targetfield, bgq_spinorfield_
 		if (y==PHYSICAL_LY-1) {
 #endif
 #if (BGQ_HM_YUP_WEYLREAD==-1) || (BGQ_HM_YUP_WEYLREAD==1)
-		bgq_weylsite_double *weylsite_yup = BGQ_WEYLSITE_Y(weylxchange_yup_recv_double, !isOdd, x, y+1, z, tv);
+		bgq_weylsite_double *weylsite_yup = BGQ_WEYLSITE_Y(weylxchange_recv_double[Y_UP], !isOdd, t, x, y+1, zv);
 		bgq_su3_weyl_double_load(weyl_yup, weylsite_yup);
 #endif
 #if BGQ_HM_YUP_WEYLREAD==-1
@@ -38,7 +38,7 @@ void HoppingMatrix_site_yup(bgq_spinorfield_double targetfield, bgq_spinorfield_
 #if (BGQ_HM_YUP_WEYLREAD==-1) || (BGQ_HM_YUP_WEYLREAD==0)
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_yup);
-		bgq_spinorsite_double *spinorsite_yup = BGQ_SPINORSITE(spinorfield, !isOdd, x, y+1, z, tv);
+		bgq_spinorsite_double *spinorsite_yup = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y+1, zv);
 		bgq_su3_spinor_double_load(spinor_yup, spinorsite_yup);
 
 		// Compute its halfspinor
@@ -52,7 +52,7 @@ void HoppingMatrix_site_yup(bgq_spinorfield_double targetfield, bgq_spinorfield_
 #if BGQ_HM_YUP_COMPUTE
 		// Load the interaction matrix between the lattice sites
 		bgq_su3_mdecl(gauge_yup);
-		bgq_gaugesite_double *gaugesite_yup = BGQ_GAUGESITE(gaugefield, isOdd, x, y, z, tv, Y_UP);
+		bgq_gaugesite_double *gaugesite_yup = BGQ_GAUGESITE(gaugefield, isOdd, t, x, y, zv, Y_UP);
 		bgq_su3_matrix_double_load(gauge_yup, gaugesite_yup);
 
 		// Multiply the halfspinor with the matrix
@@ -67,7 +67,7 @@ void HoppingMatrix_site_yup(bgq_spinorfield_double targetfield, bgq_spinorfield_
 
 #if BGQ_HM_YUP_WEYL_SEND
 		// Store the halfspinor to be transfered to the neighbor node
-		bgq_su3_weyl_double_store(weylxchange_yup_send_double, weyl_yup);
+		bgq_su3_weyl_double_store(weylxchange_send_double[Y_UP], weyl_yup);
 #endif
 
 #if BGQ_HM_YUP_ACCUMULATE

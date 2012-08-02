@@ -19,39 +19,47 @@
 #define VECTOR_WIDTH 2 /* 2 complex values = 4 reals */
 
 #define LOCAL_LP 2 /* Even/Odd */
+#define LOCAL_LT T
 #define LOCAL_LX LX
 #define LOCAL_LY LY
 #define LOCAL_LZ LZ
-#define LOCAL_LT T
-#define LOCAL_LK 2 /* Vector unit width (2 complex = 4 reals) */
 
 #define PHYSICAL_LP 2 /* Even/Odd */
+#define PHYSICAL_LT LOCAL_LT
 #define PHYSICAL_LX LOCAL_LX
 #define PHYSICAL_LY LOCAL_LY
-#define PHYSICAL_LZ LOCAL_LZ
-#define PHYSICAL_LTV (LOCAL_LT/(PHYSICAL_LP*PHYSICAL_LK))
+#define PHYSICAL_LZV (LOCAL_LZ/(PHYSICAL_LP*PHYSICAL_LK))
 #define PHYSICAL_LK 2 /* Vector unit width (2 complex = 4 reals) */
-#define PHYSICAL_LD 5 /* No of directions (for gauge field) = 4 up-directions + 1 for ragged t-line (note that it is one element longer for wraparound values) */
+#define PHYSICAL_LD 5 /* No of directions (for gauge field) = 4 up-directions + 1 for shifted z-line (note that it is one vector-element longer for wraparound values) */
+
+// volume without borders
+#define BODY_ZLINES ((PHYSICAL_LT-2)*(PHYSICAL_LX-2)*(PHYSICAL_LY-2))
+
+// faces, 2 of each
+#define BORDER_ZLINES_T ((1)*(PHYSICAL_LX-2)*(PHYSICAL_LY-2))
+#define BORDER_ZLINES_X ((PHYSICAL_LT-2)*(1)*(PHYSICAL_LY-2))
+#define BORDER_ZLINES_Y ((PHYSICAL_LT-2)*(PHYSICAL_LX-2)*(1))
+#define BORDER_ZLINES_ALLFACES (2*BORDER_ZLINES_T+2*BORDER_ZLINES_X+2*BORDER_ZLINES_Y)
+
+// edges, 4 of each
+#define BORDER_ZLINES_TX ((1)*(1)*(PHYSICAL_LY-2))
+#define BORDER_ZLINES_TY ((1)*(PHYSICAL_LX-2)*(1))
+#define BORDER_ZLINES_XY ((PHYSICAL_LT-2)*(1)*(1))
+#define BORDER_ZLINES_ALLEDGES (4*BORDER_ZLINES_TX+4*BORDER_ZLINES_TY+4*BORDER_ZLINES_XY)
+
+// vertices, 8
+#define BORDER_ZLINES_TXY ((1)*(1)*(1))
+#define BORDER_ZLINES_ALLVERTICES (8*BORDER_ZLINES_TXY)
+
+#define BORDER_ZLINES_TOTAL (BORDER_ZLINES_ALLFACES+BORDER_ZLINES_ALLEDGES+BORDER_ZLINES_ALLVERTICES)
+#define VOLUME_ZLINES ((PHYSICAL_LT)*(PHYSICAL_LX)*(PHYSICAL_LY))
 
 
-// 2 of each
-#define COUNT_FACE_XY ((PHYSICAL_LX-2)*(PHYSICAL_LY-2)*(1))
-#define COUNT_FACE_XZ ((PHYSICAL_LX-2)*(1)*(PHYSICAL_LZ-2))
-#define COUNT_FACE_YZ ((1)*(PHYSICAL_LY-2)*(PHYSICAL_LZ-2))
-#define COUNT_FACES (2*(COUNT_FACE_XY + COUNT_FACE_XZ + COUNT_FACE_YZ))
+#define SURFACE_ZLINES_T ((1)*(PHYSICAL_LX)*(PHYSICAL_LY))
+#define SURFACE_ZLINES_X ((PHYSICAL_LT)*(1)*(PHYSICAL_LY))
+#define SURFACE_ZLINES_Y ((PHYSICAL_LT)*(PHYSICAL_LX)*(1))
+#define SURFACE_ZLINES_TOTAL (2*(SURFACE_ZLINES_T+SURFACE_ZLINES_X+SURFACE_ZLINES_Y))
 
-// 4 of each
-#define COUNT_EDGE_X ((PHYSICAL_LX-2)*(1)*(1))
-#define COUNT_EDGE_Y ((1)*(PHYSICAL_LY-2)*(1))
-#define COUNT_EDGE_Z ((1)*(1)*(PHYSICAL_LZ-2))
-#define COUNT_EDGES  (4*(COUNT_EDGE_X + COUNT_EDGE_Y + COUNT_EDGE_Z))
-
-// 8
-#define COUNT_VERTEX ((1)*(1)*(1))
-#define COUNT_VERTICES (8*COUNT_VERTEX)
-
-#define TOTAL_BORDER (COUNT_FACES + COUNT_EDGES + COUNT_VERTICES)
-#define TOTAL_VOLUME (PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ)
 
 
 typedef struct {
@@ -73,120 +81,85 @@ typedef bgq_gaugeeodir_double (*bgq_gaugefield_double);
 
 
 typedef enum {
-	DIR_DOWN = 0,
-	DIR_UP = 1,
+	DIR_UP = 0,
+	DIR_DOWN = 1,
 
-	X_DOWN = 0,
-	X_UP = 1,
-	Y_DOWN = 2,
-	Y_UP = 3,
-	Z_DOWN = 4,
-	Z_UP = 5,
-	T_DOWN = 6,
-	T_UP = 7,
+	T_UP = 0,
+	T_DOWN = 1,
+	X_UP = 2,
+	X_DOWN = 3,
+	Y_UP = 4,
+	Y_DOWN = 5,
+	Z_UP = 6,
+	Z_DOWN = 7,
 
-	T_RAGGED_DOWN = 8,
-	T_RAGGED_UP = 9
+	Z_UP_SHIFT = 8,
+	Z_DOWN_SHIFT = 9
 } direction;
 
 
 void *malloc_aligned(size_t size, size_t alignment);
 
 
-#define BGQ_SPINORSITE(spinorfield, isOdd, x, y, z, tv) \
-		(&spinorfield[((x*PHYSICAL_LY + y)*PHYSICAL_LZ + z)*PHYSICAL_LTV + tv]);
+#define BGQ_SPINORSITE(spinorfield, isOdd, t, x, y, zv) \
+		(&spinorfield[((t*PHYSICAL_LX + x)*PHYSICAL_LY + y)*PHYSICAL_LZV + zv]);
 
-EXTERN_INLINE double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spinorfield_double spinorfield, bool isOdd, int x, int y, int z, int t, int s, int c) {
+EXTERN_INLINE double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spinorfield_double spinorfield, bool isOdd, int t,  int x, int y, int z, int s, int c) {
 	assert(spinorfield);
 	assert(0 <= isOdd && isOdd < LOCAL_LP);
 	assert(isOdd == (x+y+z+t)%2);
+	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
-	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= s && s < 4);
 	assert(0 <= c && c < 3);
 
-	int teo = t / PHYSICAL_LP;
-	int tv = teo / PHYSICAL_LK;
-	int k = teo % PHYSICAL_LK;
-	bgq_spinorsite_double *site = BGQ_SPINORSITE(spinorfield, isOdd, x, y, z, tv);
+	int zeo = z / PHYSICAL_LP;
+	int zv = zeo / PHYSICAL_LK;
+	int k = zeo % PHYSICAL_LK;
+	bgq_spinorsite_double *site = BGQ_SPINORSITE(spinorfield, isOdd, t, x, y, zv);
 	return &site->s[s][c][k];
 }
 
-#define BGQ_WEYLSITE_X(weylfield, isOdd, x, y, z, tv) \
-	(&weylfield[(y*PHYSICAL_LZ + z)*PHYSICAL_LTV + tv]);
+#define BGQ_WEYLSITE_T(weylfield, isOdd, t, x, y, zv) \
+	(&weylfield[(x*PHYSICAL_LY + y)*PHYSICAL_LZV + zv]);
 
-#define BGQ_WEYLSITE_Y(weylfield, isOdd, x, y, z, tv) \
-	(&weylfield[(x*PHYSICAL_LZ + z)*PHYSICAL_LTV + tv]);
+#define BGQ_WEYLSITE_X(weylfield, isOdd, t, x, y, zv) \
+	(&weylfield[(t*PHYSICAL_LY + y)*PHYSICAL_LZV + zv]);
 
-#define BGQ_WEYLSITE_Z(weylfield, isOdd, x, y, z, tv) \
-	(&weylfield[(x*PHYSICAL_LY + y)*PHYSICAL_LTV + tv]);
-
-
+#define BGQ_WEYLSITE_Y(weylfield, isOdd, t, x, y, zv) \
+	(&weylfield[(t*PHYSICAL_LX + x)*PHYSICAL_LZV + zv]);
 
 
-#define BGQ_GAUGESITE(gaugefield,isOdd,x,y,z,tv,direction) \
-		(&gaugefield->eodir[(isOdd)][(direction)/2][(((x)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z))*PHYSICAL_LTV + (tv)]);
-
-#define BGQ_GAUGESITE_T(gaugefield,isOdd,x,y,z,tv,direction) \
-		(&gaugefield->eodir[(isOdd)][T_UP/2][(((x)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z))*PHYSICAL_LTV + (tv)]);
-
-#define BGQ_GAUGESITE_T_SHIFTED(gaugefield,isOdd,x,y,z,tv,direction) \
-		(&gaugefield->eodir[(isOdd)][T_RAGGED_UP/2][(((x)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z))*PHYSICAL_LTV + (tv)]);
 
 
-EXTERN_INLINE double _Complex *bgq_gaugefield_double_local_to_physical(bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int t, direction d, int i, int l) {
+
+#define BGQ_GAUGESITE(gaugefield,isOdd,t,x,y,zv,direction) \
+		(&gaugefield->eodir[(isOdd)][(direction)/2][((((t)+1)*PHYSICAL_LX + ((x)+1))*PHYSICAL_LY + ((y)+1))*PHYSICAL_LZV + (zv)]);
+
+
+
+EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, direction d, int i, int l, double _Complex value) {
 	assert(gaugefield);
 	assert(false <= isOdd && isOdd <= true);
 	assert(isOdd == (x+y+z+t)%2);
+	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
-	assert(0 <= t && t < LOCAL_LT);
 	assert(X_DOWN <= d && d <= T_UP);
 	assert(0 <= i && i < 3);
 	assert(0 <= l && l < 3);
 
-	int teo = t / LOCAL_LP;
-	int tv = teo / LOCAL_LK;
-	int k = teo % LOCAL_LK;
-
+	bool adjoint = false;
 	switch (d) {
-	case X_UP:
-		x -= 1;
-		break;
-	case Y_UP:
-		y -= 1;
-		break;
-	case Z_UP:
-		z -= 1;
-		break;
-	case T_UP:
+	case T_DOWN:
 		t -= 1;
+		isOdd = !isOdd;
+		adjoint = true;
+		d = T_UP;
 		break;
-	default:
-		break;
-	}
-
-	bgq_gaugesite_double *site = BGQ_GAUGESITE(gaugefield,isOdd,x,y,z,tv,d/2);
-	return &site->c[i][l][k];
-}
-
-EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int t, direction d, int i, int l, double _Complex value) {
-	assert(gaugefield);
-	assert(false <= isOdd && isOdd <= true);
-	assert(isOdd == (x+y+z+t)%2);
-	assert(0 <= x && x < LOCAL_LX);
-	assert(0 <= y && y < LOCAL_LY);
-	assert(0 <= z && z < LOCAL_LZ);
-	assert(0 <= t && t < LOCAL_LT);
-	assert(X_DOWN <= d && d <= T_UP);
-	assert(0 <= i && i < 3);
-	assert(0 <= l && l < 3);
-
-	bool adjoint;
-	switch (d) {
 	case X_DOWN:
 		x -= 1;
 		isOdd = !isOdd;
@@ -200,30 +173,22 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 		d = Y_UP;
 		break;
 	case Z_DOWN:
+	case Z_DOWN_SHIFT:
 		z -= 1;
 		isOdd = !isOdd;
 		adjoint = true;
 		d = Z_UP;
 		break;
-	case T_DOWN:
-	case T_RAGGED_DOWN:
-		t -= 1;
-		isOdd = !isOdd;
-		adjoint = true;
-		d = T_UP;
-		break;
-	case T_RAGGED_UP:
-		d = T_UP;
-		adjoint = false;
+	case Z_UP_SHIFT:
+		d = Z_UP;
 		break;
 	default:
-		adjoint = false;
 		break;
 	}
 
-	int teo = t / LOCAL_LP;
-	int tv = teo / LOCAL_LK;
-	int k = teo % LOCAL_LK;
+	int zeo = z / PHYSICAL_LP;
+	int zv = zeo / PHYSICAL_LK;
+	int k = zeo % PHYSICAL_LK;
 
 	if (adjoint) {
 		int tmp = i;
@@ -233,28 +198,28 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 		value = conj(value);
 	}
 
-	bgq_gaugesite_double *site = BGQ_GAUGESITE(gaugefield, isOdd, x,y,z,tv,d);
-			site->c[i][l][k] = value;
+	bgq_gaugesite_double *site = BGQ_GAUGESITE(gaugefield, isOdd, t,x,y,zv,d);
+	site->c[i][l][k] = value;
 
-	if (d == T_UP) {
-		// Do some special things for T_UP, values exist in multiple copied
+	if (d == Z_UP) {
+		// Do some special things for Z_UP, values exist in multiple places
 
 		// Move one to the right
-		int tv_shift = (teo+1)/ LOCAL_LK;
-		int k_shift = (teo+1) % LOCAL_LK;
+		int zv_shift = (zeo+1)/ PHYSICAL_LK;
+		int k_shift = (zeo+1) % PHYSICAL_LK;
 
-		bgq_gaugesite_double *raggedsite = BGQ_GAUGESITE(gaugefield, isOdd, x,y,z, tv_shift, T_RAGGED_UP);
+		bgq_gaugesite_double *raggedsite = BGQ_GAUGESITE(gaugefield, isOdd, t,x,y,zv_shift, Z_UP_SHIFT);
 		raggedsite->c[i][l][k_shift] = value;
 
-		if (t == LOCAL_LT-1) {
+		if (z == LOCAL_LZ-1) {
 			// wraparound
-			bgq_gaugesite_double *site = BGQ_GAUGESITE(gaugefield, isOdd, x,y,z,0, T_RAGGED_UP);
+			bgq_gaugesite_double *site = BGQ_GAUGESITE(gaugefield, isOdd, t,x,y,0, Z_UP_SHIFT);
 			site->c[i][l][0] = value;
 		}
 
-		if (t == 0) {
+		if (z == 0) {
 			// wraparound
-			bgq_gaugesite_double *site = BGQ_GAUGESITE(gaugefield, isOdd, x,y,z,PHYSICAL_LTV, T_RAGGED_UP);
+			bgq_gaugesite_double *site = BGQ_GAUGESITE(gaugefield, isOdd, x,y,z,PHYSICAL_LZV, Z_UP_SHIFT);
 			site->c[i][l][1] = value;
 		}
 	}

@@ -43,6 +43,7 @@
 									<listOptionValue builtIn="false" value="_NON_BLOCKING"/>
 									<listOptionValue builtIn="false" value="PARALLELXYZ"/>
 									<listOptionValue builtIn="false" value="BGQ"/>
+									<listOptionValue builtIn="false" value="_USE_HALFSPINOR"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1186333786" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>

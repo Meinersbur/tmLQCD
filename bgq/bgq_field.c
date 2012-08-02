@@ -24,12 +24,12 @@ void *malloc_aligned(size_t size, size_t alignment) {
 
 void bgq_init_gaugefield() {
 	for (bool isOdd = false; isOdd <= true; isOdd+=1) {
-		for (int dir = X_UP; dir <= T_RAGGED_UP; dir+=2) {
-			int tlines = PHYSICAL_LTV;
-			if (dir == T_RAGGED_UP)
-				tlines +=1;
+		for (int dir = T_UP; dir <= Z_UP_SHIFT; dir+=2) {
+			int zlinelength = PHYSICAL_LZV;
+			if (dir == Z_UP_SHIFT)
+				zlinelength +=1;
 
-			g_gaugefield_doubledata.eodir[isOdd][dir/2] = malloc_aligned(TOTAL_VOLUME * tlines * sizeof(bgq_gaugesite_double), 128 /*L2 cache line size*/);
+			g_gaugefield_doubledata.eodir[isOdd][dir/2] = malloc_aligned((PHYSICAL_LT+1)*(PHYSICAL_LX+1)*(PHYSICAL_LY+1) * zlinelength * sizeof(bgq_gaugesite_double), 128 /*L2 cache line size*/);
 		}
 	}
 
@@ -38,7 +38,7 @@ void bgq_init_gaugefield() {
 
 void bgq_free_gaugefield() {
 	for (bool isOdd = false; isOdd <= true; isOdd+=1) {
-			for (int dir = X_UP; dir <= T_RAGGED_UP; dir+=2) {
+			for (int dir = T_UP; dir <= Z_UP_SHIFT; dir+=2) {
 				free(g_gaugefield_doubledata.eodir[isOdd][dir/2]);
 				g_gaugefield_doubledata.eodir[isOdd][dir/2] = NULL;
 			}
@@ -73,7 +73,7 @@ void bgq_transfer_gaugefield(bgq_gaugefield_double targetfield, su3 **sourcefiel
 		const int z = g_y[i];
 		const int t = g_t[i];
 
-		for (int d = X_UP; d <= T_UP; d+=2) {
+		for (int d = T_UP; d <= Z_UP; d+=2) {
 			int kb = g_idn[g_eo2lexic[i]][d/2];
 			su3 *m = &sourcefield[kb][d/2];
 			bgq_gaugefield_double_set(targetfield, isOdd, x, y, z, t, d, 0,0, cs2c99(m->c00));

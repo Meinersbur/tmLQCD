@@ -1868,7 +1868,7 @@ int check_geometry()
 #endif     
                   
 	  iy1=g_iup[ix][1];
-#if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT || PARALLELXYZ)
+#if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT || defined PARALLELXYZ)
 	  if(x1 !=LX-1) {
 	    iz1=g_ipt[x0][(x1+1)%LX][x2][x3];
 	  }
@@ -1890,7 +1890,7 @@ int check_geometry()
 #endif
 
 	  iy2=g_iup[ix][2];
-#if (defined PARALLELXYT || defined PARALLELXYZT || PARALLELXYZ)
+#if (defined PARALLELXYT || defined PARALLELXYZT || defined PARALLELXYZ)
 	  if(x2 !=LY-1) {
 	    iz2=g_ipt[x0][x1][(x2+1)%LY][x3];
 	  }
@@ -1912,7 +1912,7 @@ int check_geometry()
 #endif
 
 	  iy3=g_iup[ix][3];
-#if defined PARALLELXYZT || PARALLELXYZ
+#if defined PARALLELXYZT || defined PARALLELXYZ
 	  if(x3 !=LZ-1) {
 	    iz3=g_ipt[x0][x1][x2][(x3+1)%LZ];
 	  }
@@ -1968,7 +1968,7 @@ int check_geometry()
 #endif
 
 	  iy1=g_idn[ix][1];
-#if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT || PARALLELXYZ)
+#if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT/* || defined PARALLELXYZ*/)
 	  if(x1 !=0) {
 	    iz1=g_ipt[x0][(x1+LX-1)%LX][x2][x3];
 	  }
@@ -1989,7 +1989,7 @@ int check_geometry()
 	  iz1=g_ipt[x0][(x1+LX-1)%LX][x2][x3];
 #endif
 	  iy2=g_idn[ix][2];
-#if (defined PARALLELXYT || defined PARALLELXYZT || PARALLELXYZ)
+#if (defined PARALLELXYT || defined PARALLELXYZT/* || defined PARALLELXYZ*/)
 	  if(x2 !=0) {
 	    iz2=g_ipt[x0][x1][(x2+LY-1)%LY][x3];
 	  }
@@ -2011,7 +2011,7 @@ int check_geometry()
 #endif
 
 	  iy3=g_idn[ix][3];
-#if defined PARALLELXYZT || PARALLELXYZ
+#if defined PARALLELXYZT /*|| defined PARALLELXYZ*/
 	  if(x3 !=0) {
 	    iz3=g_ipt[x0][x1][x2][(x3+LZ-1)%LZ];
 	  }

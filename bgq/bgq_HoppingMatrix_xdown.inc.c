@@ -1,6 +1,6 @@
 
 #ifndef BGQ_HM_XDOWN_WEYLREAD
-#define BGQ_HM_XDOWN_WEYLREAD 0
+#define BGQ_HM_XDOWN_WEYLREAD -1
 #endif
 
 #ifndef BGQ_HM_XDOWN_COMPUTE
@@ -29,7 +29,7 @@ void bgq_HoppingMatrix_site_xdn(bgq_spinorfield_double targetfield, bgq_spinorfi
 		if (x==0) {
 #endif
 #if (BGQ_HM_XDOWN_WEYLREAD==-1) || (BGQ_HM_XDOWN_WEYLREAD==1)
-		bgq_weylsite_double *weylsite_xdown = BGQ_WEYLSITE_X(weylxchange_xdown_recv_double, !isOdd, x-1, y, z, tv);
+		bgq_weylsite_double *weylsite_xdown = BGQ_WEYLSITE_X(weylxchange_recv_double[X_DOWN], !isOdd, t, x-1, y, zv);
 		bgq_su3_weyl_double_load(weyl_xdown, weylsite_xdown);
 #endif
 #if BGQ_HM_XDOWN_WEYLREAD==-1
@@ -38,7 +38,7 @@ void bgq_HoppingMatrix_site_xdn(bgq_spinorfield_double targetfield, bgq_spinorfi
 #if (BGQ_HM_XDOWN_WEYLREAD==-1) || (BGQ_HM_XDOWN_WEYLREAD==0)
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_xdown);
-		bgq_spinorsite_double *spinorsite_xdown = BGQ_SPINORSITE(spinorfield, !isOdd, x - 1, y, z, tv);
+		bgq_spinorsite_double *spinorsite_xdown = BGQ_SPINORSITE(spinorfield, !isOdd, t, x-1, y, zv);
 		bgq_su3_spinor_double_load(spinor_xdown, spinorsite_xdown);
 
 		// Compute its halfspinor
@@ -52,7 +52,7 @@ void bgq_HoppingMatrix_site_xdn(bgq_spinorfield_double targetfield, bgq_spinorfi
 #if BGQ_HM_XDOWN_COMPUTE
 		// Load the between sites-interaction matrix
 		bgq_su3_mdecl(gauge_xdown);
-		bgq_gaugesite_double *gaugesite_xdown = BGQ_GAUGESITE(gaugefield, !isOdd, x-1, y, z, tv, X_UP);
+		bgq_gaugesite_double *gaugesite_xdown = BGQ_GAUGESITE(gaugefield, !isOdd, t, x-1, y, zv, X_UP);
 		bgq_su3_matrix_double_load(gauge_xdown, gaugesite_xdown);
 
 		// Multiply the halfspinor with the matrix
@@ -67,7 +67,7 @@ void bgq_HoppingMatrix_site_xdn(bgq_spinorfield_double targetfield, bgq_spinorfi
 
 #if BGQ_HM_XDOWN_WEYL_SEND
 		// Store the halfspinor to be transfered to the neighbor node
-		bgq_su3_weyl_double_store(weylxchange_xdown_send_double, weyl_xdown);
+		bgq_su3_weyl_double_store(weylxchange_send_double[X_DOWN], weyl_xdown);
 #endif
 
 #if BGQ_HM_XDOWN_ACCUMULATE

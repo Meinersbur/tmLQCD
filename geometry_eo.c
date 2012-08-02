@@ -295,7 +295,7 @@ int Index(const int x0, const int x1, const int x2, const int x3) {
     ix = VOLUME + LX*LY*LZ + y3 + LZ*y2 + LZ*LY*y1;
   }
 #endif
-#if ((defined PARALLELXT) || (defined PARALLELXYT) || (defined PARALLELXYZT))
+#if ((defined PARALLELXT) || (defined PARALLELXYT) || (defined PARALLELXYZT) || (defined PARALLELXYZ))
   if(x1 == LX){
     ix = VOLUME + 2*LX*LY*LZ + y0*LY*LZ + y2*LZ + y3;
   }
@@ -323,7 +323,7 @@ int Index(const int x0, const int x1, const int x2, const int x3) {
   
 #endif /* endif of PARALLELXT || PARALLELXYT || PARALLELXYZT */
 
-#if (defined PARALLELXYT || defined PARALLELXYZT)
+#if (defined PARALLELXYT || defined PARALLELXYZT || (defined PARALLELXYZ))
   /* y-Rand */
   if(x2 == LY) {
     ix = VOLUME + 2*LX*LY*LZ + 2*T*LY*LZ + y0*LX*LZ + y1*LZ + y3;
@@ -349,6 +349,7 @@ int Index(const int x0, const int x1, const int x2, const int x3) {
       ix = VOLUME + RAND +  4*LY*LZ + 3*T*LZ + y0*LZ + y3;
     }
   }
+#ifndef PARALLELXYZ
   /* ty-edge */
   /* Be carefully here! Here we need y first, then t */
   /* this is because the chain is first t dir, then y direction */
@@ -369,7 +370,7 @@ int Index(const int x0, const int x1, const int x2, const int x3) {
       ix = VOLUME + RAND +  4*LY*LZ + 4*T*LZ + 3*LX*LZ + y1*LZ + y3;
     }
   }
-
+#endif
 #endif /* endif of PARALLELXYT  || PARALLELXYZT */
 #if defined PARALLELXYZT
   /* z-Rand */

@@ -1,93 +1,55 @@
 
-// BGQ_HM_TLINE_FLUSHLINE
-// BGQ_HM_TLINE_RAGGEDLINE
-
-#ifndef BGQ_HM_TDOWN_TLINEINDENT
-#error Must define the line indention (0, 1 or -1 for runtime-conditional)
-#define BGQ_HM_TDOWN_TLINEINDENT -1
-#endif
-
-#ifndef BGQ_HM_TDOWN_LEFTWRAPAROUND
-#define BGQ_HM_TDOWN_LEFTWRAPAROUND 0
+#ifndef BGQ_HM_TDOWN_WEYLREAD
+#define BGQ_HM_TDOWN_WEYLREAD 0
 #endif
 
 #ifndef BGQ_HM_TDOWN_COMPUTE
-#define BGQ_HM_TDOWN_COMPUTE 1
+#define BGQ_HM_TDOWN_COMPUTE 0
+#endif
+
+#ifndef BGQ_HM_TDOWN_WEYL_SEND
+#define BGQ_HM_TDOWN_WEYL_SEND 0
 #endif
 
 #ifndef BGQ_HM_TDOWN_ACCUMULATE
 #define BGQ_HM_TDOWN_ACCUMULATE 0
 #endif
 
-#ifndef BGQ_HM_TDOWN_READCARRYSPINOR
-#define BGQ_HM_TDOWN_READCARRYSPINOR 0
-#endif
+
 
 #ifndef BGQ_HM_NOFUNC
 #include "bgq.h"
 #include "bgq_field.h"
 
-void HoppingMatrix_site_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefieldeo_double gaugefield, bool isOdd, int x, int y, int z, int tv, int k) {
+void bgq_HoppingMatrix_site_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefieldeo_double gaugefield, bool isOdd, int t, int x, int y, int zv) {
 	bgq_su3_spinor_decl(result);
 #endif
-
 	{
-#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==0)
-#if BGQ_HM_TDOWN_LEFTWRAPAROUND
-		const int tv_left = PHYSICAL_LTV-1;
-#else
-		const int tv_left = tv-1;
-#endif
-#endif
+
 
 		bgq_su3_weyl_decl(weyl_tdown);
-#if BGQ_HM_TDOWN_READCARRYSPINOR
-		//bgq_su3_spinor_mov(spinor_tdown, spinor_tcarry);
-		bgq_su3_weyl_mov(weyl_tdown, weyl_tcarry);
-#else
-		// Load the input spinor
-		bgq_su3_spinor_decl(spinor_tdown);
-#if BGQ_HM_TDOWN_TLINEINDENT==-1
-		if ((x+y+z)%2 == isOdd) {
+#if BGQ_HM_TDOWN_WEYLREAD==-1
+		if (x==0) {
 #endif
-#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==0)
-		// (  0  ) (  1  ) (  2  )
-		// |# _ # _ # _ # _ # _ # _|
-		//   (  0  ) (  1  ) (  2  )
-		// T_UP = tv
-		// T_DOWN = half tv, half tv-1
-		assert((x+y+z)%2 == isOdd);
-
-		bgq_spinorsite_double *spinorsite_tdown_left = BGQ_SPINORSITE(spinorfield, !isOdd, x, y, z, tv_left);
-		bgq_su3_spinor_decl_rightonly(spinor_tdown_left);
-		bgq_su3_spinor_double_load_right_torightonly(spinor_tdown_left, spinorsite_tdown_left);
-
-		bgq_spinorsite_double *spinorsite_tdown_mid = BGQ_SPINORSITE(spinorfield, !isOdd, x, y, z, tv);
-		bgq_su3_spinor_decl_leftonly(spinor_tdown_mid);
-		bgq_su3_spinor_double_load_left_toleftonly(spinor_tdown_mid, spinorsite_tdown_mid);
-
-		bgq_su3_spinor_merge(spinor_tdown, spinor_tdown_left/*toright*/, spinor_tdown_mid/*toleft*/);
+#if (BGQ_HM_TDOWN_WEYLREAD==-1) || (BGQ_HM_TDOWN_WEYLREAD==1)
+		bgq_weylsite_double *weylsite_xdown = BGQ_WEYLSITE_X(weylxchange_recv_double[T_DOWN], !isOdd, x-1, y, z, tv);
+		bgq_su3_weyl_double_load(weyl_xdown, weylsite_xdown);
 #endif
-#if BGQ_HM_TDOWN_TLINEINDENT==-1
+#if BGQ_HM_TDOWN_WEYLREAD==-1
 		} else {
 #endif
-#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==1)
-		//   (  0  ) (  1  ) (  2  )
-		// |_ # _ # _ # _ # _ # _ #|
-		// (  0  ) (  1  ) (  2  )
-		// T_UP = half tv, half tv+1
-		// T_DOWN = tv
-		assert((x+y+z)%2 == !isOdd);
-
-		bgq_spinorsite_double *spinorsite_tdown = BGQ_SPINORSITE(spinorfield, !isOdd, x, y, z, tv);
+#if (BGQ_HM_TDOWN_WEYLREAD==-1) || (BGQ_HM_TDOWN_WEYLREAD==0)
+		// Load the input spinor
+		bgq_su3_spinor_decl(spinor_tdown);
+		bgq_spinorsite_double *spinorsite_tdown = BGQ_SPINORSITE(spinorfield, !isOdd, t-1, x, y, zv);
 		bgq_su3_spinor_double_load(spinor_tdown, spinorsite_tdown);
-#endif
-#if BGQ_HM_TDOWN_TLINEINDENT==-1
-		}
-#endif
-		// Compute the halfspinor
+
+		// Compute its halfspinor
 		bgq_su3_vpisub(weyl_tdown_v0, spinor_tdown_v0, spinor_tdown_v2);
 		bgq_su3_vpiadd(weyl_tdown_v1, spinor_tdown_v1, spinor_tdown_v3);
+#endif
+#if BGQ_HM_TDOWN_WEYLREAD==-1
+		}
 #endif
 
 
@@ -95,23 +57,7 @@ void HoppingMatrix_site_tdown(bgq_spinorfield_double targetfield, bgq_spinorfiel
 
 #if BGQ_HM_TDOWN_COMPUTE
 		bgq_su3_mdecl(gauge_tdown);
-
-		bgq_gaugesite_double *gaugesite_tdown;
-#if BGQ_HM_TDOWN_TLINEINDENT==-1
-		if ((x+y+z)%2 == isOdd) {
-#endif
-#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==0)
-		gaugesite_tdown = BGQ_GAUGESITE(gaugefield, isOdd, x, y, z, tv_left, T_RAGGED_UP);
-#endif
-#if BGQ_HM_TDOWN_TLINEINDENT==-1
-		} else {
-#endif
-#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==1)
-		gaugesite_tdown = BGQ_GAUGESITE(gaugefield, isOdd, x, y, z, tv, T_UP);
-#endif
-#if BGQ_HM_TDOWN_TLINEINDENT==-1
-		}
-#endif
+		bgq_gaugesite_double *gaugesite_tdown = BGQ_GAUGESITE(gaugefield, !isOdd, t-1, x, y, zv, T_UP);
 		bgq_su3_matrix_double_load(gauge_tdown, gaugesite_tdown);
 
 		bgq_su3_mvinvmul(weyl_tdown_v0, gauge_tdown, weyl_tdown_v0);
@@ -129,15 +75,15 @@ void HoppingMatrix_site_tdown(bgq_spinorfield_double targetfield, bgq_spinorfiel
 		bgq_su3_vpiadd(result_v2, result_v2, weyl_tdown_v0);
 		bgq_su3_vpisub(result_v3, result_v3, weyl_tdown_v1);
 #endif
+
+
 	}
-
-
 #ifndef BGQ_HM_NOFUNC
 }
 #endif
 
-#undef BGQ_HM_TDOWN_TLINEINDENT
-#undef BGQ_HM_TDOWN_LEFTWRAPAROUND
+#undef BGQ_HM_TDOWN_WEYLREAD
 #undef BGQ_HM_TDOWN_COMPUTE
+#undef BGQ_HM_TDOWN_WEYL_SEND
 #undef BGQ_HM_TDOWN_ACCUMULATE
-#undef BGQ_HM_TDOWN_READCARRYSPINOR
+

@@ -30,7 +30,7 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 		if (y==0) {
 #endif
 #if (BGQ_HM_YDOWN_WEYLREAD==-1) || (BGQ_HM_YDOWN_WEYLREAD==1)
-		bgq_weylsite_double *weylsite_ydown = BGQ_WEYLSITE_Y(weylxchange_xdown_recv_double, !isOdd, x, y-1, z, tv);
+		bgq_weylsite_double *weylsite_ydown = BGQ_WEYLSITE_Y(weylxchange_recv_double[Y_DOWN], !isOdd, t, x, y-1, zv);
 		bgq_su3_weyl_double_load(weyl_ydown, weylsite_ydown);
 #endif
 #if BGQ_HM_YDOWN_WEYLREAD==-1
@@ -39,7 +39,7 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 #if (BGQ_HM_YDOWN_WEYLREAD==-1) || (BGQ_HM_YDOWN_WEYLREAD==0)
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_ydown);
-		bgq_spinorsite_double *spinorsite_ydown = BGQ_SPINORSITE(spinorfield, !isOdd, x, y-1, z, tv);
+		bgq_spinorsite_double *spinorsite_ydown = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y-1, zv);
 		bgq_su3_spinor_double_load(spinor_ydown, spinorsite_ydown);
 
 		// Compute its halfspinor
@@ -53,7 +53,7 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 
 #if BGQ_HM_YDOWN_COMPUTE
 		bgq_su3_mdecl(gauge_ydown);
-		bgq_gaugesite_double *gaugesite_ydown = BGQ_GAUGESITE(gaugefield, !isOdd, x, y-1, z, tv, Y_UP);
+		bgq_gaugesite_double *gaugesite_ydown = BGQ_GAUGESITE(gaugefield, !isOdd, t, x, y-1, zv, Y_UP);
 		bgq_su3_matrix_double_load(gauge_ydown, gaugesite_ydown);
 
 		bgq_su3_mvinvmul(weyl_ydown_v0, gauge_ydown, weyl_ydown_v0);
