@@ -8,5 +8,4 @@
 #ifndef BGQ_HOPPINGMATRIX_H_
 #define BGQ_HOPPINGMATRIX_H_
 
-
 #endif /* BGQ_HOPPINGMATRIX_H_ */

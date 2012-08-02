@@ -1,12 +1,10 @@
 #ifndef BGQ_H_INCLUDED
 #define BGQ_H_INCLUDED
 
-
 #include "../global.h"
 #include <stdbool.h>
 #include <assert.h>
 #include "complex_c99.h"
-
 
 #ifdef BGQ_FIELD_C_H_
 #define EXTERN_INLINE extern inline
@@ -54,14 +52,12 @@
 #define BORDER_ZLINES_TOTAL (BORDER_ZLINES_ALLFACES+BORDER_ZLINES_ALLEDGES+BORDER_ZLINES_ALLVERTICES)
 #define VOLUME_ZLINES ((PHYSICAL_LT)*(PHYSICAL_LX)*(PHYSICAL_LY))
 
-
 #define SURFACE_ZLINES_T ((1)*(PHYSICAL_LX)*(PHYSICAL_LY))
 #define SURFACE_ZLINES_X ((PHYSICAL_LT)*(1)*(PHYSICAL_LY))
 #define SURFACE_ZLINES_Y ((PHYSICAL_LT)*(PHYSICAL_LX)*(1))
 #define SURFACE_ZLINES_TOTAL (2*(SURFACE_ZLINES_T+SURFACE_ZLINES_X+SURFACE_ZLINES_Y))
 
 #define GAUGE_VOLUME ((LOCAL_LT+1)*(LOCAL_LX+1)*(LOCAL_LY+1)*(LOCAL_LZ))
-
 
 typedef struct {
 	double _Complex s[4][3][PHYSICAL_LK];
@@ -80,7 +76,6 @@ typedef struct {
 } bgq_gaugeeodir_double;
 typedef bgq_gaugeeodir_double (*bgq_gaugefield_double);
 
-
 typedef enum {
 	T_UP = 0,
 	T_DOWN = 1,
@@ -98,14 +93,12 @@ typedef enum {
 	DIR_DOWN = 1
 } direction;
 
-
 void *malloc_aligned(size_t size, size_t alignment);
-
 
 #define BGQ_SPINORSITE(spinorfield, isOdd, t, x, y, zv) \
 		(&spinorfield[((t*PHYSICAL_LX + x)*PHYSICAL_LY + y)*PHYSICAL_LZV + zv]);
 
-EXTERN_INLINE double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spinorfield_double spinorfield, bool isOdd, int t,  int x, int y, int z, int s, int c) {
+EXTERN_INLINE double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int s, int c) {
 	assert(spinorfield);
 	assert(0 <= isOdd && isOdd < LOCAL_LP);
 	assert(isOdd == (x+y+z+t)%2);
@@ -132,14 +125,8 @@ EXTERN_INLINE double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spin
 #define BGQ_WEYLSITE_Y(weylfield, isOdd, t, x, y, zv) \
 	(&weylfield[(t*PHYSICAL_LX + x)*PHYSICAL_LZV + zv]);
 
-
-
-
-
 #define BGQ_GAUGESITE(gaugefield,isOdd,t,x,y,zv,direction) \
 		(&gaugefield->eodir[(isOdd)][(direction)/2][((((t)+1)*PHYSICAL_LX + ((x)+1))*PHYSICAL_LY + ((y)+1))*PHYSICAL_LZV + (zv)]);
-
-
 
 EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, direction d, int i, int l, double _Complex value) {
 	assert(gaugefield);
@@ -174,7 +161,7 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 		d = Y_UP;
 		break;
 	case Z_DOWN:
-	case Z_DOWN_SHIFT:
+		case Z_DOWN_SHIFT:
 		z -= 1;
 		isOdd = !isOdd;
 		adjoint = true;
@@ -188,8 +175,8 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 	}
 
 	int zeo = z / PHYSICAL_LP;
-	int zv = (PHYSICAL_LK+zeo) / PHYSICAL_LK;
-	int k = (PHYSICAL_LK+zeo) % PHYSICAL_LK;
+	int zv = (PHYSICAL_LK + zeo) / PHYSICAL_LK;
+	int k = (PHYSICAL_LK + zeo) % PHYSICAL_LK;
 
 	if (adjoint) {
 		int tmp = i;
@@ -206,13 +193,13 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 		// Do some special things for Z_UP, values exist in multiple places
 
 		// Move one to the right
-		int zv_shift = (zeo+1)/ PHYSICAL_LK;
-		int k_shift = (zeo+1) % PHYSICAL_LK;
+		int zv_shift = (zeo + 1) / PHYSICAL_LK;
+		int k_shift = (zeo + 1) % PHYSICAL_LK;
 
 		bgq_gaugesite_double *raggedsite = BGQ_GAUGESITE(gaugefield, isOdd, t,x,y,zv_shift, Z_UP_SHIFT);
 		raggedsite->c[i][l][k_shift] = value;
 
-		if (z == LOCAL_LZ-1) {
+		if (z == LOCAL_LZ - 1) {
 			// wraparound
 			bgq_gaugesite_double *site = BGQ_GAUGESITE(gaugefield, isOdd, t,x,y,0, Z_UP_SHIFT);
 			site->c[i][l][0] = value;
@@ -226,7 +213,7 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 	}
 }
 
-EXTERN_FIELD bgq_gaugeeodir_double g_gaugefield_doubledata;
+			EXTERN_FIELD bgq_gaugeeodir_double g_gaugefield_doubledata;
 EXTERN_FIELD bgq_gaugefield_double g_gaugefield_double;
 
 void bgq_init_gaugefield();
@@ -237,5 +224,3 @@ void bgq_transfer_gaugefield(bgq_gaugefield_double targetfield, su3 **sourcefiel
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD
 #endif // BGQ_H_INCLUDED
-
-

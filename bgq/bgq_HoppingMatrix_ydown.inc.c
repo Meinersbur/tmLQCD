@@ -1,4 +1,3 @@
-
 #ifndef BGQ_HM_YDOWN_WEYLREAD
 #define BGQ_HM_YDOWN_WEYLREAD 0
 #endif
@@ -14,7 +13,6 @@
 #ifndef BGQ_HM_YDOWN_ACCUMULATE
 #define BGQ_HM_YDOWN_ACCUMULATE 0
 #endif
-
 
 #ifndef BGQ_HM_NOFUNC
 #include "bgq.h"
@@ -34,7 +32,7 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 		bgq_su3_weyl_double_load(weyl_ydown, weylsite_ydown);
 #endif
 #if BGQ_HM_YDOWN_WEYLREAD==-1
-		} else {
+	} else {
 #endif
 #if (BGQ_HM_YDOWN_WEYLREAD==-1) || (BGQ_HM_YDOWN_WEYLREAD==0)
 		// Load the input spinor
@@ -48,7 +46,7 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 		bgq_su3_vpisub(weyl_ydown_v1, spinor_ydown_v1, spinor_ydown_v2);
 #endif
 #if BGQ_HM_YDOWN_WEYLREAD==-1
-		}
+	}
 #endif
 
 #if BGQ_HM_YDOWN_COMPUTE
@@ -78,7 +76,6 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 #endif
 
 	}
-
 #ifndef BGQ_HM_NOFUNC
 }
 #endif

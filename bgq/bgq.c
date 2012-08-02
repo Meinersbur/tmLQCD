@@ -5,5 +5,4 @@
  *      Author: meinersbur
  */
 
-
 #include "bgq.h"

@@ -13,7 +13,9 @@
 
 #ifndef XLC
 //typedef double vector4double[4];
-typedef struct { double q[4]; } vector4double;
+typedef struct {
+	double q[4];
+} vector4double;
 
 #define bgq_vector4double_decl(name) \
 	double NAME2(name,q0); \
@@ -36,7 +38,6 @@ typedef struct { double q[4]; } vector4double;
 	NAME2(dst,q2) = ((vector4double*)(((char*)addr) + offset))->q[2]; \
 	NAME2(dst,q3) = ((vector4double*)(((char*)addr) + offset))->q[3]
 //TODO: setting the 5 least significant bits to zero
-
 
 #define bgq_ld2a(dst,offset,addr) \
 	assert( (((size_t)addr) + offset) % 16 == 0);                \
@@ -217,10 +218,6 @@ typedef struct { double q[4]; } vector4double;
 
 #endif
 
-
-
-
-
 // vec_xmul(a, b)
 // re =    a.re * b.re
 // im =    a.re * b.im
@@ -336,7 +333,6 @@ typedef struct { double q[4]; } vector4double;
 // [2] = b[0] = b.re
 // [3] = b[1] = b.im
 
-
 #define bgq_su3_vdecl(name)            \
 	bgq_vector4double_decl(CONCAT(name,_c0)); \
 	bgq_vector4double_decl(CONCAT(name,_c1)); \
@@ -384,7 +380,6 @@ typedef struct { double q[4]; } vector4double;
 #define bgq_su3_weyl_decl(name) \
 	bgq_su3_vdecl(name##_v0);	\
 	bgq_su3_vdecl(name##_v1)
-
 
 #define bgq_su3_spinor_double_load(dst, addr) \
 	bgq_lda(NAME3(dst,v0,c0),   0, addr);          \
@@ -612,22 +607,15 @@ typedef struct { double q[4]; } vector4double;
 	bgq_su3_vmov(dst##_v0,src##_v0); \
 	bgq_su3_vmov(dst##_v1,src##_v1)
 
-
-
-
-
 #define cs2c99(cs) \
 	((cs).re + _Complex_I*(cs).im)
 
 static inline complex c992cs(double _Complex c99) {
-	complex result = {__creal(c99),__cimag(c99)};
+	complex result = { __creal(c99), __cimag(c99) };
 	//result.re = creal(c99);
 	//result.im = cimag(c99);
 	return result;
 }
-
-
-
 
 #define _CONCAT(X,Y) X##Y
 #define CONCAT(X,Y) _CONCAT(X,Y)
@@ -670,7 +658,6 @@ static inline int get_MPI_count(MPI_Status *status) {
 	return count;
 }
 
-
 #define WORKLOAD_DECL(COUNTER, TOTAL) \
 	int xyz_counter = (COUNTER);         \
 	int xyz_orig;            \
@@ -691,19 +678,18 @@ static inline int get_MPI_count(MPI_Status *status) {
 		false                                  \
 	))
 /*
-xyz_orig		xyz				return
-0				0				1
-1				1				1
-2				2				1
-...
-TRUE_COUNT-1	TRUE_COUNT-1	1
-TRUE_COUNT		0				0
-				1				0
-				2				0
-...
-xyz_torig-1						0
-*/
-
+ xyz_orig		xyz				return
+ 0				0				1
+ 1				1				1
+ 2				2				1
+ ...
+ TRUE_COUNT-1	TRUE_COUNT-1	1
+ TRUE_COUNT		0				0
+ 1				0
+ 2				0
+ ...
+ xyz_torig-1						0
+ */
 
 #define WORKLOAD_PARAM(LENGTH)            \
 	(assert(((xyz_total % (LENGTH))==0) && "Loop bounds must be a multiple of this parameter"), \
@@ -714,21 +700,20 @@ xyz_torig-1						0
 	 xyz_counter = xyz_orig / xyz_param,          \
 	 xyz_orig % xyz_param)
 /*
-xyz_orig	xyz			return (=PARAM)
-0			0			0
-1			0			1
-2			0			2
-...
-LENGTH-1	0			LENGTH-1
-LENGTH		1			0
-			1			1
-			1			2
-...
-xyz_torig	xyz_total	LENGTH
+ xyz_orig	xyz			return (=PARAM)
+ 0			0			0
+ 1			0			1
+ 2			0			2
+ ...
+ LENGTH-1	0			LENGTH-1
+ LENGTH		1			0
+ 1			1
+ 1			2
+ ...
+ xyz_torig	xyz_total	LENGTH
 
-xyz_orig =	xyz*LENGTH + return
-*/
-
+ xyz_orig =	xyz*LENGTH + return
+ */
 
 #define WORKLOAD_SECTION(SECTIONS)        \
 	(xyz_param = (SECTIONS),              \
@@ -738,24 +723,22 @@ xyz_orig =	xyz*LENGTH + return
 	 xyz_counter = xyz_orig / (xyz_torig/xyz_param),          \
 	 xyz_orig % (xyz_torig/xyz_param))
 /*
-xyz_orig	xyz			return
-0			0			0
-1			0			1
-2			0			2
-...
-			0
-			1			0
-			1			1
-			1			2
-...
-xyz_torig-1	SECTIONS-1
-xyz_torig	SECTIONS	xyz_torig/SECTIONS
-			(=xyz_total)
+ xyz_orig	xyz			return
+ 0			0			0
+ 1			0			1
+ 2			0			2
+ ...
+ 0
+ 1			0
+ 1			1
+ 1			2
+ ...
+ xyz_torig-1	SECTIONS-1
+ xyz_torig	SECTIONS	xyz_torig/SECTIONS
+ (=xyz_total)
 
-xyz_orig =	xyz*(xyz_torig/SECTIONS) + return
-*/
-
-
+ xyz_orig =	xyz*(xyz_torig/SECTIONS) + return
+ */
 
 #define WORKLOAD_TILE(TILES)   					   \
 		(xyz_param = (TILES),                      \
@@ -765,23 +748,21 @@ xyz_orig =	xyz*(xyz_torig/SECTIONS) + return
 		 xyz_counter = xyz_orig % (xyz_torig / xyz_param), \
 		 xyz_orig / (xyz_torig / xyz_param))
 /*
-xyz_orig	xyz	(=TILE)	return
-0			0			0
-1			1			0
-2			2			0
-...
-TILES-1		TILES-1		0
-TILES		0			1
-			1			1
-			2			1
-...
-xyz_torig	TILES		xyz_torig/TILES
-			(=xyz_total)
+ xyz_orig	xyz	(=TILE)	return
+ 0			0			0
+ 1			1			0
+ 2			2			0
+ ...
+ TILES-1		TILES-1		0
+ TILES		0			1
+ 1			1
+ 2			1
+ ...
+ xyz_torig	TILES		xyz_torig/TILES
+ (=xyz_total)
 
-xyz_orig =	xyz +		return*TILES
-*/
-
-
+ xyz_orig =	xyz +		return*TILES
+ */
 
 #define WORKLOAD_CHUNK(LENGTH)                 \
 	(xyz_param = (LENGTH),                     \
@@ -791,29 +772,26 @@ xyz_orig =	xyz +		return*TILES
 	 xyz_counter = xyz_orig % xyz_total,               \
 	 xyz_orig / xyz_total)
 /*
-xyz_orig	xyz			return (=CHUNCK)
-0			0			0
-1			1			0
-2			2			0
-...
-						0
-			0			1
-			1			1
-			2			1
-...
-xyz_torig-1	xyz_total-1	LENGTH-1
-xyz_torig	xyz_total	LENGTH
-			(=xyz_torig/LENGTH)
+ xyz_orig	xyz			return (=CHUNCK)
+ 0			0			0
+ 1			1			0
+ 2			2			0
+ ...
+ 0
+ 0			1
+ 1			1
+ 2			1
+ ...
+ xyz_torig-1	xyz_total-1	LENGTH-1
+ xyz_torig	xyz_total	LENGTH
+ (=xyz_torig/LENGTH)
 
-xyz_orig =	xyz + 		return*xyz_total
-*/
+ xyz_orig =	xyz + 		return*xyz_total
+ */
 
-
-#define WORKLOAD_CHECK() \
+#define WORKLOAD_CHECK \
 	assert(xyz_counter==0); \
 	assert(xyz_total==1)
-
-
 
 #endif /* BGQ_H_ */
 
