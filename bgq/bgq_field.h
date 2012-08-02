@@ -60,7 +60,7 @@
 #define SURFACE_ZLINES_Y ((PHYSICAL_LT)*(PHYSICAL_LX)*(1))
 #define SURFACE_ZLINES_TOTAL (2*(SURFACE_ZLINES_T+SURFACE_ZLINES_X+SURFACE_ZLINES_Y))
 
-#define GAUGE_VOLUME ((LOCAL_LT+1)*(LOCAL_LX+1)*(LOCAL_LY+1)*(LOCAL_LZ+1))
+#define GAUGE_VOLUME ((LOCAL_LT+1)*(LOCAL_LX+1)*(LOCAL_LY+1)*(LOCAL_LZ))
 
 
 typedef struct {
@@ -82,9 +82,6 @@ typedef bgq_gaugeeodir_double (*bgq_gaugefield_double);
 
 
 typedef enum {
-	DIR_UP = 0,
-	DIR_DOWN = 1,
-
 	T_UP = 0,
 	T_DOWN = 1,
 	X_UP = 2,
@@ -95,7 +92,10 @@ typedef enum {
 	Z_DOWN = 7,
 
 	Z_UP_SHIFT = 8,
-	Z_DOWN_SHIFT = 9
+	Z_DOWN_SHIFT = 9,
+
+	DIR_UP = 0,
+	DIR_DOWN = 1
 } direction;
 
 
@@ -144,12 +144,12 @@ EXTERN_INLINE double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spin
 EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, direction d, int i, int l, double _Complex value) {
 	assert(gaugefield);
 	assert(false <= isOdd && isOdd <= true);
-	assert(isOdd == (x+y+z+t)%2);
+	assert(isOdd == (8+t+x+y+z)%2);
 	assert(-1 <= t && t < LOCAL_LT);
 	assert(-1 <= x && x < LOCAL_LX);
 	assert(-1 <= y && y < LOCAL_LY);
-	assert(-1 <= z && z < LOCAL_LZ);
-	assert(X_DOWN <= d && d <= T_UP);
+	assert(0 <= z && z < LOCAL_LZ);
+	assert(T_UP <= d && d <= Z_DOWN);
 	assert(0 <= i && i < 3);
 	assert(0 <= l && l < 3);
 
@@ -188,8 +188,8 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 	}
 
 	int zeo = z / PHYSICAL_LP;
-	int zv = zeo / PHYSICAL_LK;
-	int k = zeo % PHYSICAL_LK;
+	int zv = (PHYSICAL_LK+zeo) / PHYSICAL_LK;
+	int k = (PHYSICAL_LK+zeo) % PHYSICAL_LK;
 
 	if (adjoint) {
 		int tmp = i;
@@ -220,7 +220,7 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 
 		if (z == 0) {
 			// wraparound
-			bgq_gaugesite_double *site = BGQ_GAUGESITE(gaugefield, isOdd, x,y,z,PHYSICAL_LZV, Z_UP_SHIFT);
+			bgq_gaugesite_double *site = BGQ_GAUGESITE(gaugefield, isOdd, t,x,y,PHYSICAL_LZV, Z_UP_SHIFT);
 			site->c[i][l][1] = value;
 		}
 	}
