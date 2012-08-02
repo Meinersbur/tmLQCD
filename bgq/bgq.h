@@ -671,7 +671,8 @@ static inline int get_MPI_count(MPI_Status *status) {
 }
 
 
-#define WORKLOAD_DECL(TOTAL) \
+#define WORKLOAD_DECL(COUNTER, TOTAL) \
+	int xyz_counter = (COUNTER);         \
 	int xyz_orig;            \
 	int xyz_torig;           \
 	int xyz_total = (TOTAL); \
@@ -680,12 +681,13 @@ static inline int get_MPI_count(MPI_Status *status) {
 // true:  xyz = 0            .. TRUE_COUNT -> 0 .. TRUE_COUNT
 // false: xyz = TRUE_COUNT+1 .. xyz_total  -> 0 .. xyz_total-TRUE_COUNT
 #define WORKLOAD_SPLIT(TRUE_COUNT) \
-	((xyz < TRUE_COUNT) ? (                    \
+	((xyz_counter < TRUE_COUNT) ? (                    \
 		xyz_total = (TRUE_COUNT),              \
 		true                                   \
 	) : (                                      \
 		xyz_total = xyz_total - (TRUE_COUNT),  \
-		xyz = xyz - (TRUE_COUNT),              \
+		xyz_counter = xyz_counter - (TRUE_COUNT),              \
+		assert(xyz_total >= 0 && "Expected more to split"),   \
 		false                                  \
 	))
 /*
@@ -704,11 +706,12 @@ xyz_torig-1						0
 
 
 #define WORKLOAD_PARAM(LENGTH)            \
-	(xyz_param = (LENGTH),                \
-	 xyz_orig = xyz,                      \
+	(assert(((xyz_total % (LENGTH))==0) && "Loop bounds must be a multiple of this parameter"), \
+	 xyz_param = (LENGTH),                \
+	 xyz_orig = xyz_counter,                      \
 	 xyz_torig = xyz_total,               \
 	 xyz_total = xyz_torig / xyz_param,   \
-	 xyz = xyz_orig / xyz_param,          \
+	 xyz_counter = xyz_orig / xyz_param,          \
 	 xyz_orig % xyz_param)
 /*
 xyz_orig	xyz			return (=PARAM)
@@ -729,10 +732,10 @@ xyz_orig =	xyz*LENGTH + return
 
 #define WORKLOAD_SECTION(SECTIONS)        \
 	(xyz_param = (SECTIONS),              \
-	 xyz_orig  = xyz,                     \
+	 xyz_orig  = xyz_counter,                     \
 	 xyz_torig = xyz_total,               \
 	 xyz_total = xyz_param,  			  \
-	 xyz = xyz_orig / (xyz_torig/xyz_param),          \
+	 xyz_counter = xyz_orig / (xyz_torig/xyz_param),          \
 	 xyz_orig % (xyz_torig/xyz_param))
 /*
 xyz_orig	xyz			return
@@ -756,10 +759,10 @@ xyz_orig =	xyz*(xyz_torig/SECTIONS) + return
 
 #define WORKLOAD_TILE(TILES)   					   \
 		(xyz_param = (TILES),                      \
-		 xyz_orig = xyz,                           \
+		 xyz_orig = xyz_counter,                           \
 		 xyz_torig = xyz_total,                    \
 		 xyz_total = TILES,     				   \
-		 xyz = xyz_orig % (xyz_torig / xyz_param), \
+		 xyz_counter = xyz_orig % (xyz_torig / xyz_param), \
 		 xyz_orig / (xyz_torig / xyz_param))
 /*
 xyz_orig	xyz	(=TILE)	return
@@ -782,10 +785,10 @@ xyz_orig =	xyz +		return*TILES
 
 #define WORKLOAD_CHUNK(LENGTH)                 \
 	(xyz_param = (LENGTH),                     \
-	 xyz_orig = xyz,                           \
+	 xyz_orig = xyz_counter,                           \
 	 xyz_torig = xyz_total,                    \
 	 xyz_total = xyz_torig / xyz_param,        \
-	 xyz = xyz_orig % xyz_total,               \
+	 xyz_counter = xyz_orig % xyz_total,               \
 	 xyz_orig / xyz_total)
 /*
 xyz_orig	xyz			return (=CHUNCK)
@@ -804,6 +807,11 @@ xyz_torig	xyz_total	LENGTH
 
 xyz_orig =	xyz + 		return*xyz_total
 */
+
+
+#define WORKLOAD_CHECK() \
+	assert(xyz_counter==0); \
+	assert(xyz_total==1)
 
 
 

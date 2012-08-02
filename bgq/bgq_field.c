@@ -5,7 +5,9 @@
 
 
 #include "bgq.h"
+#include "../geometry_eo.h"
 #include "../global.h"
+
 #include <string.h>
 
 
@@ -23,8 +25,8 @@ void *malloc_aligned(size_t size, size_t alignment) {
 
 
 void bgq_init_gaugefield() {
-	for (bool isOdd = false; isOdd <= true; isOdd+=1) {
-		for (int dir = T_UP; dir <= Z_UP_SHIFT; dir+=2) {
+	for (int isOdd = false; isOdd <= true; isOdd+=1) {
+		for (direction dir = T_UP; dir <= Z_UP_SHIFT; dir+=2) {
 			int zlinelength = PHYSICAL_LZV;
 			if (dir == Z_UP_SHIFT)
 				zlinelength +=1;
@@ -37,7 +39,7 @@ void bgq_init_gaugefield() {
 }
 
 void bgq_free_gaugefield() {
-	for (bool isOdd = false; isOdd <= true; isOdd+=1) {
+	for (int isOdd = false; isOdd <= true; isOdd+=1) {
 			for (int dir = T_UP; dir <= Z_UP_SHIFT; dir+=2) {
 				free(g_gaugefield_doubledata.eodir[isOdd][dir/2]);
 				g_gaugefield_doubledata.eodir[isOdd][dir/2] = NULL;
@@ -49,23 +51,24 @@ void bgq_free_gaugefield() {
 
 void bgq_transfer_gaugefield(bgq_gaugefield_double targetfield, su3 **sourcefield) {
 
-#pragma omp parallel for schedule(static)
-	for (int xyz = 0; xyz < GAUGE_VOLUME; xyz+=1) {
-		WORKLOAD_DECL(GAUGE_VOLUME);
+//#pragma omp parallel for schedule(static)
+	for (int tzy = 0; tzy < GAUGE_VOLUME; tzy+=1) {
+		WORKLOAD_DECL(tzy, GAUGE_VOLUME);
 		const int z = WORKLOAD_PARAM(LOCAL_LZ+1)-1;
 		const int y = WORKLOAD_PARAM(LOCAL_LY+1)-1;
 		const int x = WORKLOAD_PARAM(LOCAL_LX+1)-1;
 		const int t = WORKLOAD_PARAM(LOCAL_LT+1)-1;
+		WORKLOAD_CHECK();
+
 		const bool isOdd = (t+x+y+z)%2;
+		const int ix = Index(t,x,y,z);
 
-		const int ix = g_ipt[t][x][y][z];
-
-		for (int d = X_UP; d <= T_UP; d+=1) {
+		for (direction d = T_UP; d <= Z_UP; d+=2) {
 			su3 *m = &g_gauge_field[ix][d/2];
 			for (int i = 0; i < 3; i+=1) {
 				for (int l = 0; l < 3; l+=1) {
 					complex *c = ((complex*)m)+i*3+l;
-					bgq_gaugefield_double_set(targetfield, isOdd, x, y, z, t, d, i,l, cs2c99(*c));
+					bgq_gaugefield_double_set(targetfield, isOdd, t, x, y, z, d, i, l, cs2c99(*c));
 				}
 			}
 		}

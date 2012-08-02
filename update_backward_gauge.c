@@ -26,8 +26,20 @@
 #include "su3.h"
 #include "update_backward_gauge.h"
 
+#if defined(BGQ)
 
-#if defined _USE_HALFSPINOR
+#include "bgq/bgq_field.h"
+void update_backward_gauge() {
+	if (!g_update_gauge_copy)
+		return;
+
+	bgq_transfer_gaugefield(g_gaugefield_double, g_gauge_field);
+
+	g_update_gauge_copy = 0;
+}
+
+
+#elif defined _USE_HALFSPINOR
 void update_backward_gauge() {
   int ix=0, kb=0, iy=0;
 
@@ -102,19 +114,6 @@ void update_backward_gauge() {
   }
   g_update_gauge_copy = 0;
   return;
-}
-
-#elif defined(BGQ)
-
-#include "bgq/bgq_field.h"
-
-void update_backward_gauge() {
-	if (!g_update_gauge_copy)
-		return;
-
-	bgq_transfer_gaugefield(g_gaugefield_double, g_gauge_field);
-
-	g_update_gauge_copy = 0;
 }
 
 #else

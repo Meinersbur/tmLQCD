@@ -75,7 +75,7 @@ void bgq_destroy() {
 #define BGQ_HM_BORDER_NOFUNC 1
 #define BGQ_HM_BORDERDIST_NOFUNC 1
 
-//#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 //#pragma GCC diagnostic ignored "-Wunused-variable"
 
 void bgq_HoppingMatrix_borderzline_double(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield_double targetfield, bgq_gaugefield_double gaugefield, int t, int x, int y) {
@@ -103,7 +103,7 @@ void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield_double spinorfield, bg
 
 #pragma omp parallel for schedule(static)
 	for (int xyz = 0; xyz < SURFACE_ZLINES_TOTAL*PHYSICAL_LZV; xyz+=1) {
-		WORKLOAD_DECL(SURFACE_ZLINES_TOTAL*PHYSICAL_LZV);
+		WORKLOAD_DECL(xyz,SURFACE_ZLINES_TOTAL*PHYSICAL_LZV);
 		const int dir = WORKLOAD_CHUNK(6);
 		const int zv = WORKLOAD_PARAM(PHYSICAL_LZV);
 		switch (dir) {
@@ -181,7 +181,7 @@ void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield_double spinorfield, bg
 	// Body volume kernel, flush lines
 #pragma omp parallel for schedule(static,1)
 	for (int xyz = 0; xyz < BODY_ZLINES/2; xyz += 1) {
-		WORKLOAD_DECL(BODY_ZLINES/2);
+		WORKLOAD_DECL(xyz,BODY_ZLINES/2);
 		const int y = WORKLOAD_PARAM((PHYSICAL_LY-2)/2)*2+isOdd+1;
 		const int x = WORKLOAD_PARAM(PHYSICAL_LX-2)+1;
 		const int t = WORKLOAD_PARAM(PHYSICAL_LT-2)+1;
@@ -193,7 +193,7 @@ void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield_double spinorfield, bg
 	// Body volume kernel, ragged lines
 #pragma omp parallel for schedule(static,1)
 	for (int xyz = 0; xyz < BODY_ZLINES/2; xyz += 1) {
-		WORKLOAD_DECL(BODY_ZLINES/2);
+		WORKLOAD_DECL(xyz,BODY_ZLINES/2);
 		const int y = WORKLOAD_PARAM((PHYSICAL_LY-2)/2)*2+!isOdd+1;
 		const int x = WORKLOAD_PARAM(PHYSICAL_LX-2)+1;
 		const int t = WORKLOAD_PARAM(PHYSICAL_LT-2)+1;
@@ -219,7 +219,7 @@ void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield_double spinorfield, bg
 
 #pragma omp parallel for schedule(static,1)
 	for (int xyz = 0; xyz < BORDER_ZLINES_TOTAL; xyz += 1) {
-		WORKLOAD_DECL(BORDER_ZLINES_TOTAL);
+		WORKLOAD_DECL(xyz,BORDER_ZLINES_TOTAL);
 
 		int t;
 		int x;

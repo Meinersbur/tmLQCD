@@ -60,7 +60,7 @@
 #define SURFACE_ZLINES_Y ((PHYSICAL_LT)*(PHYSICAL_LX)*(1))
 #define SURFACE_ZLINES_TOTAL (2*(SURFACE_ZLINES_T+SURFACE_ZLINES_X+SURFACE_ZLINES_Y))
 
-#define GAUGE_VOLUME ((LOCAL_LT+1)*(LOCAL_LX)*(LOCAL_LY+1)*(LOCAL_LZ+1))
+#define GAUGE_VOLUME ((LOCAL_LT+1)*(LOCAL_LX+1)*(LOCAL_LY+1)*(LOCAL_LZ+1))
 
 
 typedef struct {
@@ -145,10 +145,10 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 	assert(gaugefield);
 	assert(false <= isOdd && isOdd <= true);
 	assert(isOdd == (x+y+z+t)%2);
-	assert(0 <= t && t < LOCAL_LT);
-	assert(0 <= x && x < LOCAL_LX);
-	assert(0 <= y && y < LOCAL_LY);
-	assert(0 <= z && z < LOCAL_LZ);
+	assert(-1 <= t && t < LOCAL_LT);
+	assert(-1 <= x && x < LOCAL_LX);
+	assert(-1 <= y && y < LOCAL_LY);
+	assert(-1 <= z && z < LOCAL_LZ);
 	assert(X_DOWN <= d && d <= T_UP);
 	assert(0 <= i && i < 3);
 	assert(0 <= l && l < 3);
