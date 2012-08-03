@@ -30,9 +30,8 @@ LDADD =
 COMPILE = ${CC} $(DEFS) ${INCLUDES} ${CFLAGS}
 
 LIBRARIES = libbgq
-libbgq_TARGETS = bgq_field bgq_HoppingMatrix bgq
-
-libbgq_STARGETS =
+libbgq_TARGETS = bgq_field bgq
+libbgq_STARGETS = bgq_HoppingMatrix
 
 libbgq_OBJECTS = $(addsuffix .o, ${libbgq_TARGETS})
 libbgq_SOBJECTS = $(addsuffix .o, ${libbgq_STARGETS})

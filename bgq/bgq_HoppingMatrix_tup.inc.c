@@ -37,7 +37,7 @@ void HoppingMatrix_site_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_
 #if (BGQ_HM_TUP_WEYLREAD==-1) || (BGQ_HM_TUP_WEYLREAD==0)
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_tup);
-		bgq_spinorsite_double *spinorsite_tup = BGQ_SPINORSITE(spinorfield, !isOdd, t+1, x, y, zv);
+		bgq_spinorsite_double *spinorsite_tup = BGQ_SPINORSITE(spinorfield, !isOdd, t+1, x, y, zv, z1,z2);
 		bgq_su3_spinor_double_load(spinor_tup, spinorsite_tup);
 
 		// Compute its halfspinor
@@ -64,7 +64,7 @@ void HoppingMatrix_site_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_
 
 #if BGQ_HM_TUP_WEYL_SEND
 		// Store the halfspinor to be transfered to the neighbor node
-		bgq_su3_weyl_double_store(weylxchange_send_double[T_UP], weyl_tup);
+		bgq_su3_weyl_double_store(weylxchange_send_double[T_DOWN], weyl_tup);
 #endif
 
 #if BGQ_HM_TUP_ACCUMULATE
@@ -74,14 +74,14 @@ void HoppingMatrix_site_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_
 		bgq_su3_vpiadd(result_v3, result_v3, weyl_tup_v1);
 #endif
 
-	}
 
+	}
 #ifndef BGQ_HM_DIR_NOFUNC
 }
 #endif
+
 
 #undef BGQ_HM_TUP_WEYLREAD
 #undef BGQ_HM_TUP_WEYL_SEND
 #undef BGQ_HM_TUP_COMPUTE
 #undef BGQ_HM_TUP_ACCUMULATE
-

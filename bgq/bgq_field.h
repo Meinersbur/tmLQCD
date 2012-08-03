@@ -96,8 +96,102 @@ typedef enum {
 
 void *malloc_aligned(size_t size, size_t alignment);
 
-#define BGQ_SPINORSITE(spinorfield, isOdd, t, x, y, zv) \
-		(&spinorfield[((t*PHYSICAL_LX + x)*PHYSICAL_LY + y)*PHYSICAL_LZV + zv]);
+
+
+
+EXTERN_FIELD bgq_spinorsite_double *g_spinorfields_doubledata;
+EXTERN_FIELD bgq_spinorfield_double *g_spinorfields_double;
+
+void bgq_init_spinorfields(int count);
+void bgq_free_spinofields();
+
+EXTERN_INLINE bgq_spinorfield_double bgq_translate_spinorfield(spinor * const field) {
+	const int V = even_odd_flag ? VOLUMEPLUSRAND / 2 : VOLUMEPLUSRAND;
+	const int fieldsize  = V * sizeof(*field);
+// This computes the original index address of the passed field; be aware that its correctness depends on the implementation of init_spinorfield
+	long long offset = (char*)field - (char*)g_spinor_field[0];
+	assert(offset >= 0);
+	assert(offset % fieldsize == 0);
+	int result = offset  / fieldsize;
+	return g_spinorfields_double[result];
+}
+
+EXTERN_FIELD int g_num_spinorfields;
+EXTERN_FIELD int *g_spinorfield_isOdd;
+
+EXTERN_INLINE int assert_spinorcoord(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int zv, int k) {
+	assert(spinorfield);
+	assert(false <= isOdd && isOdd <= true);
+	assert(0 <= t && t < LOCAL_LT);
+	assert(0 <= x && x < LOCAL_LX);
+	assert(0 <= y && y < LOCAL_LY);
+	assert(0 <= z && z < LOCAL_LZ);
+	assert(0 <= zv && zv < PHYSICAL_LZV);
+	assert(0 <= k && k < PHYSICAL_LK);
+
+	// Get the index of the used spinorfield
+	const int fieldsize = sizeof(bgq_spinorsite_double) * VOLUME; // alignment???
+	long long offset = (char*)g_spinorfields_doubledata - (char*)spinorfield;
+	assert(offset >= 0);
+	assert(offset % fieldsize == 0);
+	int index = offset / fieldsize;
+	assert(index < g_num_spinorfields);
+
+	// Check that field is used as an odd/even field
+	if (g_spinorfield_isOdd[index] == -1) {
+		// not yet defined, just ensure that at all following uses it is the same
+		g_spinorfield_isOdd[index] = isOdd;
+	} else {
+		assert(g_spinorfield_isOdd[index] == isOdd);
+	}
+
+	// Check that the coordinate is really an odd/even coordinate
+	assert((t+x+y+z)%2 == isOdd);
+	assert((t+x+y)%2 == isOdd^(zv%2));
+
+	int zeo = z/PHYSICAL_LP;
+
+	// Check that zv and matche the coordinate
+	assert(zeo/PHYSICAL_LK == zv);
+	assert(zeo%PHYSICAL_LK == k);
+
+	return 1; // All checks passed
+}
+
+
+void bgq_transfer_spinorfield(bool isOdd, bgq_spinorfield_double targetfield, spinor *sourcefield);
+
+EXTERN_FIELD bgq_gaugeeodir_double g_gaugefield_doubledata;
+EXTERN_FIELD bgq_gaugefield_double g_gaugefield_double;
+
+void bgq_init_gaugefield();
+void bgq_free_gaugefield();
+
+void bgq_transfer_gaugefield(bgq_gaugefield_double targetfield, su3 **sourcefield);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef NDEBUG
+#define BGQ_SPINORSITE(spinorfield, isOdd, t, x, y, zv, z1, z2)                   \
+		(assert_spinorcoord(spinorfield, isOdd, t, x, y, z1, zv, 0),			  \
+		 assert_spinorcoord(spinorfield, isOdd, t, x, y, z2, zv, 1),			  \
+		 &spinorfield[((t*PHYSICAL_LX + x)*PHYSICAL_LY + y)*PHYSICAL_LZV + zv]);
+#else
+#define BGQ_SPINORSITE(spinorfield, isOdd, t, x, y, zv, z1, z2)                    \
+		 (&spinorfield[((t*PHYSICAL_LX + x)*PHYSICAL_LY + y)*PHYSICAL_LZV + zv]);
+#endif
 
 EXTERN_INLINE double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int s, int c) {
 	assert(spinorfield);
@@ -113,7 +207,7 @@ EXTERN_INLINE double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spin
 	int zeo = z / PHYSICAL_LP;
 	int zv = zeo / PHYSICAL_LK;
 	int k = zeo % PHYSICAL_LK;
-	bgq_spinorsite_double *site = BGQ_SPINORSITE(spinorfield, isOdd, t, x, y, zv);
+	bgq_spinorsite_double *site = BGQ_SPINORSITE(spinorfield, isOdd, t, x, y, zv, z+2*k, z-2*(1-k));
 	return &site->s[s][c][k];
 }
 
@@ -215,33 +309,15 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 	}
 }
 
-EXTERN_FIELD bgq_spinorsite_double *g_spinorfields_doubledata;
-EXTERN_FIELD bgq_spinorfield_double *g_spinorfields_double;
-
-void bgq_init_spinorfields(int count);
-void bgq_free_spinofields();
-
-EXTERN_INLINE bgq_spinorfield_double bgq_translate_spinorfield(spinor * const field) {
-	const int V = even_odd_flag ? VOLUMEPLUSRAND / 2 : VOLUMEPLUSRAND;
-	const int fieldsize  = V * sizeof(*field);
-// This computes the original index address of the passed field; be aware that its correctness depends on the implementation of init_spinorfield
-	int offset = (char*)field - (char*)g_spinor_field[0];
-	assert(offset >= 0);
-	assert(offset % fieldsize == 0);
-	int result = offset  / fieldsize;
-	return g_spinorfields_double[result];
-}
 
 
-void bgq_transfer_spinorfield(bool isOdd, bgq_spinorfield_double targetfield, spinor *sourcefield);
 
-EXTERN_FIELD bgq_gaugeeodir_double g_gaugefield_doubledata;
-EXTERN_FIELD bgq_gaugefield_double g_gaugefield_double;
 
-void bgq_init_gaugefield();
-void bgq_free_gaugefield();
 
-void bgq_transfer_gaugefield(bgq_gaugefield_double targetfield, su3 **sourcefield);
+
+
+
+
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

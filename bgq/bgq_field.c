@@ -19,18 +19,21 @@ void *malloc_aligned(size_t size, size_t alignment) {
 	return result;
 }
 
-static int g_num_spinorfields = 0;
+
 void bgq_init_spinorfields(int count) {
 	g_num_spinorfields = count;
 	int datasize = count * sizeof(*g_spinorfields_doubledata) * VOLUME;
 	g_spinorfields_doubledata = malloc_aligned(datasize, 128);
 	memset(g_spinorfields_doubledata, 0, datasize);
-	g_spinorfields_double = malloc(count * sizeof(*g_spinorfields_double));
 
+	g_spinorfields_double = malloc(count * sizeof(*g_spinorfields_double));
+	g_spinorfield_isOdd = malloc(count * sizeof(g_spinorfield_isOdd));
 	for (int i = 0; i < count; i += 1) {
 		g_spinorfields_double[i] = g_spinorfields_doubledata + i * VOLUME;
+		g_spinorfield_isOdd[i] = -1; // Unknown yet
 	}
 }
+
 
 void bgq_free_spinofields() {
 	free(g_spinorfields_double);
@@ -38,7 +41,10 @@ void bgq_free_spinofields() {
 	free(g_spinorfields_doubledata);
 	g_spinorfields_doubledata = NULL;
 	g_num_spinorfields = 0;
+	free(g_spinorfield_isOdd);
+	g_spinorfield_isOdd = NULL;
 }
+
 
 void bgq_init_gaugefield() {
 	for (int isOdd = false; isOdd <= true; isOdd += 1) {

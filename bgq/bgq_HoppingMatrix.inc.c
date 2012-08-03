@@ -30,24 +30,23 @@
 #define BGQ_HM_SITE_NOFUNC 1
 #define BGQ_HM_DIR_NOFUNC 1
 
-#define BGQ_HM_NAME(NAME) \
-	NAME2(NAME,BGQ_HM_SUFFIX)
 
+#define BGQ_HM_BORDERZLINE_NAME CONCAT(bgq_HoppingMatrix_borderzline_ ,BGQ_HM_SUFFIX)
+#define BGQ_HM_NAME CONCAT(bgq_HoppingMatrix_ ,BGQ_HM_SUFFIX)
 
-
-void BGQ_HM_NAME(bgq_HoppingMatrix_borderzline) (bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield_double targetfield, bgq_gaugefield_double gaugefield, int t, int x, int y) {
-#define BGQ_HM_ZLINE_ZLINEINDENT -1
+void BGQ_HM_BORDERZLINE_NAME (bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield_double targetfield, bgq_gaugefield_double gaugefield, int t, int x, int y) {
+	#define BGQ_HM_ZLINE_ZLINEINDENT -1
 #define BGQ_HM_ZUP_WEYLREAD -1
 #define BGQ_HM_ZDOWN_WEYLREAD -1
 #define BGQ_HM_XUP_WEYLREAD -1
 #define BGQ_HM_XDOWN_WEYLREAD -1
 #define BGQ_HM_YUP_WEYLREAD -1
-#define BGQ_HM_YDOWN_WEYLREAD -1
+#define BGQ_HM_YDOWN_WEYLREAD -+1
 #include "bgq_HoppingMatrix_zline.inc.c"
 }
 
 
-void BGQ_HM_NAME(bgq_HoppingMatrix)(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield_double targetfield, bgq_gaugefield_double gaugefield) {
+void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield_double targetfield, bgq_gaugefield_double gaugefield) {
 
 #if !BGQ_HM_NOCOM && defined(MPI)
 	MPI_Request request_recv[6];
@@ -68,60 +67,72 @@ void BGQ_HM_NAME(bgq_HoppingMatrix)(bool isOdd, bgq_spinorfield_double spinorfie
 		case T_UP: {
 			const int y = WORKLOAD_PARAM(PHYSICAL_LY);
 			const int x = WORKLOAD_PARAM(PHYSICAL_LX);
-			const int t = PHYSICAL_LT - 1;
-
-#define BGQ_HM_TUP_WEYL_SEND 1
-#include "bgq_HoppingMatrix_tup.inc.c"
-
-		}
-			break;
-		case T_DOWN: {
-			const int y = WORKLOAD_PARAM(PHYSICAL_LY);
-			const int x = WORKLOAD_PARAM(PHYSICAL_LX);
-			const int t = 0;
+			const int t = PHYSICAL_LT;
+			const int z1 = zv*4 + (t+x+y+isOdd)%2;
+			const int z2 = zv*4 + (t+x+y+isOdd)%2 + 2;
 
 #define BGQ_HM_TDOWN_WEYL_SEND 1
 #include "bgq_HoppingMatrix_tdown.inc.c"
 
 		}
 			break;
-		case X_UP: {
+		case T_DOWN: {
 			const int y = WORKLOAD_PARAM(PHYSICAL_LY);
-			const int x = PHYSICAL_LX - 1;
-			const int t = WORKLOAD_PARAM(PHYSICAL_LT);
+			const int x = WORKLOAD_PARAM(PHYSICAL_LX);
+			const int t = -1;
+			const int z1 = zv*4 + (t+x+y+isOdd)%2;
+			const int z2 = z1+2;
 
-#define BGQ_HM_XUP_WEYL_SEND 1
-#include "bgq_HoppingMatrix_xup.inc.c"
+#define BGQ_HM_TUP_WEYL_SEND 1
+#include "bgq_HoppingMatrix_tup.inc.c"
 
 		}
 			break;
-		case X_DOWN: {
+		case X_UP: {
 			const int y = WORKLOAD_PARAM(PHYSICAL_LY);
-			const int x = 0;
+			const int x = PHYSICAL_LX;
 			const int t = WORKLOAD_PARAM(PHYSICAL_LT);
+			const int z1 = zv*4 + (t+x+y+isOdd)%2;
+			const int z2 = z1+2;
 
 #define BGQ_HM_XDOWN_WEYL_SEND 1
 #include "bgq_HoppingMatrix_xdown.inc.c"
 
 		}
 			break;
+		case X_DOWN: {
+			const int y = WORKLOAD_PARAM(PHYSICAL_LY);
+			const int x = -1;
+			const int t = WORKLOAD_PARAM(PHYSICAL_LT);
+			const int z1 = zv*4 + (t+x+y+isOdd)%2;
+			const int z2 = z1+2;
+
+#define BGQ_HM_XUP_WEYL_SEND 1
+#include "bgq_HoppingMatrix_xup.inc.c"
+
+		}
+			break;
 		case Y_UP: {
-			const int y = PHYSICAL_LY - 1;
+			const int y = PHYSICAL_LY;
 			const int x = WORKLOAD_PARAM(PHYSICAL_LX);
 			const int t = WORKLOAD_PARAM(PHYSICAL_LT);
+			const int z1 = zv*4 + (t+x+y+isOdd)%2;
+			const int z2 = z1+2;
 
-#define BGQ_HM_YUP_WEYL_SEND 1
-#include "bgq_HoppingMatrix_yup.inc.c"
+#define BGQ_HM_YDOWN_WEYL_SEND 1
+#include "bgq_HoppingMatrix_ydown.inc.c"
 
 		}
 			break;
 		case Y_DOWN: {
-			const int y = 0;
+			const int y = -1;
 			const int x = WORKLOAD_PARAM(PHYSICAL_LX);
 			const int t = WORKLOAD_PARAM(PHYSICAL_LT);
+			const int z1 = zv*4 + (t+x+y+isOdd)%2;
+			const int z2 = z1+2;
 
-#define BGQ_HM_XDOWN_WEYL_SEND 1
-#include "bgq_HoppingMatrix_ydown.inc.c"
+#define BGQ_HM_YUP_WEYL_SEND 1
+#include "bgq_HoppingMatrix_yup.inc.c"
 
 		}
 			break;
@@ -229,7 +240,7 @@ void BGQ_HM_NAME(bgq_HoppingMatrix)(bool isOdd, bgq_spinorfield_double spinorfie
 		assert(xyz_total == 1);
 		assert(xyz == 0);
 
-		BGQ_HM_NAME(bgq_HoppingMatrix_borderzline) (isOdd, spinorfield, targetfield, gaugefield, t, x, y);
+		BGQ_HM_BORDERZLINE_NAME (isOdd, spinorfield, targetfield, gaugefield, t, x, y);
 	}
 }
 
@@ -240,6 +251,7 @@ void BGQ_HM_NAME(bgq_HoppingMatrix)(bool isOdd, bgq_spinorfield_double spinorfie
 #undef BGQ_HM_NOCOM
 
 #undef BGQ_HM_NAME
+#undef BGQ_HM_BORDERZLINE_NAME
 
 #undef BGQ_HM_NOFUNC
 #undef BGQ_HM_ZLINE_NOFUNC

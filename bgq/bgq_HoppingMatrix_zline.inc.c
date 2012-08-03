@@ -45,6 +45,8 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 			assert((t+x+y)%2==isOdd);
 			// zline indention == 0
 			// iterate from zbottom to ztop
+			int z1 = 0;
+			int z2 = 2;
 
 			// Prologue
 			{
@@ -69,6 +71,9 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 #define BGQ_HM_ZDOWN_READCARRYSPINOR 1
 #define BGQ_HM_ZUP_WRITECARRYSPINOR 1
 #include "bgq_HoppingMatrix_site.inc.c"
+
+	z1 += PHYSICAL_LP * PHYSICAL_LK;
+	z2 += PHYSICAL_LP * PHYSICAL_LK;
 				}
 
 #endif
@@ -79,6 +84,8 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 				assert((t+x+y)%2==!isOdd);
 				// zline indention == 1
 				// iterate backwards from ztop to zbottom
+				int z1 = LOCAL_LZ-1-2;
+				int z2 = LOCAL_LZ-1;
 
 				// Prologue
 				{
@@ -105,6 +112,9 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 #define BGQ_HM_ZDOWN_READCARRYSPINOR 1
 #define BGQ_HM_ZUP_WRITECARRYSPINOR 1
 #include "bgq_HoppingMatrix_site.inc.c"
+
+					z1 -= PHYSICAL_LP * PHYSICAL_LK;
+					z2 -= PHYSICAL_LP * PHYSICAL_LK;
 				}
 
 #endif

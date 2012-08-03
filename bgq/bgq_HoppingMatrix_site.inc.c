@@ -10,7 +10,7 @@
 #include "bgq.h"
 #include "bgq_field.h"
 
-void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int tv, int k) {
+void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z1, int z2. int tv, int k) {
 #define BGQ_HM_DIR_NOFUNC 1
 #endif
 	{
@@ -77,7 +77,7 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 ///////////////////////////////////////////////////////////////////////////////
 // Store the spinor
 
-		bgq_spinorsite_double * targetsite = BGQ_SPINORSITE(targetfield, isOdd, t, x, y, zv);
+		bgq_spinorsite_double * targetsite = BGQ_SPINORSITE(targetfield, isOdd, t, x, y, zv, z1, z2);
 		bgq_su3_spinor_double_store(targetsite, result);
 
 	}
