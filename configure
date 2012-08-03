@@ -7106,10 +7106,10 @@ if test ! -e test; then
 fi
 
 
-LIBS="-lhmc -lsolver -llinalg -lhmc -lio $LIBS"
+LIBS="-lhmc -lsolver -llinalg -lbgq -lhmc -lio $LIBS"
 AUTOCONF=autoconf
 
-ac_config_files="$ac_config_files Makefile linalg/Makefile solver/Makefile io/Makefile"
+ac_config_files="$ac_config_files Makefile linalg/Makefile bgq/Makefile solver/Makefile io/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -7817,6 +7817,7 @@ do
     "fixed_volume.h") CONFIG_FILES="$CONFIG_FILES fixed_volume.h" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "linalg/Makefile") CONFIG_FILES="$CONFIG_FILES linalg/Makefile" ;;
+    "bgq/Makefile") CONFIG_FILES="$CONFIG_FILES bgq/Makefile" ;;
     "solver/Makefile") CONFIG_FILES="$CONFIG_FILES solver/Makefile" ;;
     "io/Makefile") CONFIG_FILES="$CONFIG_FILES io/Makefile" ;;
 

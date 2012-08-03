@@ -19,7 +19,9 @@ void *malloc_aligned(size_t size, size_t alignment) {
 	return result;
 }
 
+static int g_num_spinorfields = 0;
 void bgq_init_spinorfields(int count) {
+	g_num_spinorfields = count;
 	int datasize = count * sizeof(*g_spinorfields_doubledata) * VOLUME;
 	g_spinorfields_doubledata = malloc_aligned(datasize, 128);
 	memset(g_spinorfields_doubledata, 0, datasize);
@@ -35,6 +37,7 @@ void bgq_free_spinofields() {
 	g_spinorfields_double = NULL;
 	free(g_spinorfields_doubledata);
 	g_spinorfields_doubledata = NULL;
+	g_num_spinorfields = 0;
 }
 
 void bgq_init_gaugefield() {
@@ -101,11 +104,12 @@ typedef struct {
 } spinor_array64;
 
 
+
 void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield_double const targetfield, spinor * const sourcefield) {
 	assert(sourcefield);
 	assert(targetfield);
 
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
 	for (int txy = 0; txy < VOLUME/2; txy+=1) {
 		WORKLOAD_DECL(txy, VOLUME/2);
 		const int t = WORKLOAD_CHUNK(LOCAL_LT);
@@ -132,6 +136,9 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield_double const tar
 		}
 	}
 }
+
+
+
 
 
 

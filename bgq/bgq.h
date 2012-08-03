@@ -642,6 +642,8 @@ static inline complex c992cs(double _Complex c99) {
 #ifndef TOSTRING
 #define TOSTRING(V) STRINGIFY(V)
 #endif
+
+
 #define MPI_CHECK(RTNCODE)                                                                 \
 	do {                                                                                   \
     	int mpi_rtncode = (RTNCODE);                                                       \

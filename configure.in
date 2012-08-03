@@ -636,11 +636,12 @@ if test ! -e test; then
 fi
 
 
-LIBS="-lhmc -lsolver -llinalg -lhmc -lio $LIBS"
+LIBS="-lhmc -lsolver -llinalg -lbgq -lhmc -lio $LIBS"
 AUTOCONF=autoconf
 
 AC_CONFIG_FILES([Makefile
                  linalg/Makefile
+		 bgq/Makefile
 	         solver/Makefile
 		 io/Makefile])
 

@@ -35,5 +35,8 @@ benchmark
 /Debug/
 /invert
 *.swp
+*.kate-swp
 
 /routing_file
+*.ompexp
+

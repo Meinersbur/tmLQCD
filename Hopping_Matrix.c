@@ -99,7 +99,9 @@
 #include "Hopping_Matrix_omp.c"
 #else
 
-#if defined _USE_HALFSPINOR
+#if BGQ
+// Hopping_Matrix defined in bgq/bgq_HoppingMatrix.c
+#elif defined _USE_HALFSPINOR
 #  if ((defined SSE2)||(defined SSE3))
 #undef HopVerMsg
 #define HopVerMsg printf("Hopping_Matrix half_spinor SSE edition");

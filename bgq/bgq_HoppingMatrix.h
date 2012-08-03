@@ -8,4 +8,7 @@
 #ifndef BGQ_HOPPINGMATRIX_H_
 #define BGQ_HOPPINGMATRIX_H_
 
+void bgq_hm_init();
+void bgq_hm_free();
+
 #endif /* BGQ_HOPPINGMATRIX_H_ */

@@ -388,6 +388,7 @@ int main(int argc, char *argv[])
 #ifdef BGQ
   bgq_init_gaugefield();
   bgq_init_spinorfields(2 * k_max + 1);
+  bgq_hm_init();
 
   update_backward_gauge();
 #endif
@@ -403,7 +404,7 @@ int main(int argc, char *argv[])
 		for (k = 0; k < k_max; k++) {
 			random_spinor_field(g_spinor_field[k], VOLUME / 2, 0);
 #if BGQ
-			bgq_transfer_spinorfield(k%2, g_spinorfields_double[k], g_spinor_field[k]);
+			bgq_transfer_spinorfield(k>=k_max, g_spinorfields_double[k], g_spinor_field[k]);
 #endif
 		}
 

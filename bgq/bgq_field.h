@@ -2,6 +2,7 @@
 #define BGQ_H_INCLUDED
 
 #include "../global.h"
+#include "../read_input.h"
 #include <stdbool.h>
 #include <assert.h>
 #include "complex_c99.h"
@@ -219,6 +220,18 @@ EXTERN_FIELD bgq_spinorfield_double *g_spinorfields_double;
 
 void bgq_init_spinorfields(int count);
 void bgq_free_spinofields();
+
+EXTERN_INLINE bgq_spinorfield_double bgq_translate_spinorfield(spinor * const field) {
+	const int V = even_odd_flag ? VOLUMEPLUSRAND / 2 : VOLUMEPLUSRAND;
+	const int fieldsize  = V * sizeof(*field);
+// This computes the original index address of the passed field; be aware that its correctness depends on the implementation of init_spinorfield
+	int offset = (char*)field - (char*)g_spinor_field[0];
+	assert(offset >= 0);
+	assert(offset % fieldsize == 0);
+	int result = offset  / fieldsize;
+	return g_spinorfields_double[result];
+}
+
 
 void bgq_transfer_spinorfield(bool isOdd, bgq_spinorfield_double targetfield, spinor *sourcefield);
 

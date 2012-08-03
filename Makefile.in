@@ -29,7 +29,7 @@ DEFS = @DEFS@
 
 INCLUDES = @INCLUDES@
 LINK = $(CCLD) -o $@ ${LDFLAGS}
-LINKLIBS = ${top_builddir}/linalg/liblinalg.a  \
+LINKLIBS = ${top_builddir}/linalg/liblinalg.a  ${top_builddir}/bgq/libbgq.a  \
 	${top_builddir}/solver/libsolver.a ${top_builddir}/io/libio.a
 COMPILE = ${CC} ${DEFS} ${INCLUDES} -o $@ ${CFLAGS}
 
@@ -59,8 +59,7 @@ MODULES = read_input gamma hybrid_update observables start \
 	little_D block sf_gauge_monomial sf_utils sf_calc_action \
 	sf_get_staples sf_get_rectangle_staples sf_observables \
 	Dov_psi operator poly_monomial measurements pion_norm \
-	memusage global mypapi \
-	bgq/bgq_field bgq/bgq_HoppingMatrix
+	memusage global mypapi
 
 NOOPTMOD = test/check_xchange test/check_geometry
 
@@ -69,11 +68,11 @@ PROGRAMS = hmc_tm benchmark invert gwc2ildg \
 	check_locallity test_lemon hopping_test
 
 ALLOBJ = ${MODULES} ${PROGRAMS} ${SMODULES}
-SUBDIRS = io linalg solver
+SUBDIRS = io linalg solver bgq
 
 .SUFFIXES:
 
-all: Makefile all-recursive dep hmc_tm invert
+all: Makefile all-recursive dep benchmark invert hmc_tm
 
 #ifneq (,$(findstring lapack,${LIBS}))
 #all: Makefile all-recursive dep hmc_tm invert
