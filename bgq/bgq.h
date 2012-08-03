@@ -765,7 +765,8 @@ static inline int get_MPI_count(MPI_Status *status) {
  */
 
 #define WORKLOAD_CHUNK(LENGTH)                 \
-	(xyz_param = (LENGTH),                     \
+	(assert(((xyz_total % (LENGTH))==0) && "Loop bounds must be a multiple of this parameter"), \
+	 xyz_param = (LENGTH),                     \
 	 xyz_orig = xyz_counter,                           \
 	 xyz_torig = xyz_total,                    \
 	 xyz_total = xyz_torig / xyz_param,        \
@@ -791,7 +792,7 @@ static inline int get_MPI_count(MPI_Status *status) {
 
 #define WORKLOAD_CHECK \
 	assert(xyz_counter==0); \
-	assert(xyz_total==1)
+	assert(xyz_total==1);
 
 #endif /* BGQ_H_ */
 

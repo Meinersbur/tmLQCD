@@ -6,11 +6,11 @@
 #include <assert.h>
 #include "complex_c99.h"
 
-#ifdef BGQ_FIELD_C_H_
-#define EXTERN_INLINE extern inline
+#ifndef BGQ_FIELD_C_H_
+#define EXTERN_INLINE inline
 #define EXTERN_FIELD extern
 #else
-#define EXTERN_INLINE inline
+#define EXTERN_INLINE extern inline
 #define EXTERN_FIELD
 #endif
 
@@ -100,7 +100,7 @@ void *malloc_aligned(size_t size, size_t alignment);
 
 EXTERN_INLINE double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int s, int c) {
 	assert(spinorfield);
-	assert(0 <= isOdd && isOdd < LOCAL_LP);
+	assert(false <= isOdd && isOdd <= true);
 	assert(isOdd == (x+y+z+t)%2);
 	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= x && x < LOCAL_LX);
@@ -115,6 +115,7 @@ EXTERN_INLINE double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spin
 	bgq_spinorsite_double *site = BGQ_SPINORSITE(spinorfield, isOdd, t, x, y, zv);
 	return &site->s[s][c][k];
 }
+
 
 #define BGQ_WEYLSITE_T(weylfield, isOdd, t, x, y, zv) \
 	(&weylfield[(x*PHYSICAL_LY + y)*PHYSICAL_LZV + zv]);
@@ -213,7 +214,15 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 	}
 }
 
-			EXTERN_FIELD bgq_gaugeeodir_double g_gaugefield_doubledata;
+EXTERN_FIELD bgq_spinorsite_double *g_spinorfields_doubledata;
+EXTERN_FIELD bgq_spinorfield_double *g_spinorfields_double;
+
+void bgq_init_spinorfields(int count);
+void bgq_free_spinofields();
+
+void bgq_transfer_spinorfield(bool isOdd, bgq_spinorfield_double targetfield, spinor *sourcefield);
+
+EXTERN_FIELD bgq_gaugeeodir_double g_gaugefield_doubledata;
 EXTERN_FIELD bgq_gaugefield_double g_gaugefield_double;
 
 void bgq_init_gaugefield();
