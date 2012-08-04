@@ -22,8 +22,8 @@
 void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int tv, int k, int z1, int z2) {
 	bgq_su3_spinor_decl(result);
 #endif
-
 	{
+
 		bgq_su3_weyl_decl(weyl_ydown);
 #if BGQ_HM_YDOWN_WEYLREAD==-1
 		if (y==0) {
@@ -43,12 +43,13 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 
 		// Compute its halfspinor
 
-		bgq_su3_vpisub(weyl_ydown_v0, spinor_ydown_v0, spinor_ydown_v3);
-		bgq_su3_vpisub(weyl_ydown_v1, spinor_ydown_v1, spinor_ydown_v2);
+		bgq_su3_vsub(weyl_ydown_v0, spinor_ydown_v0, spinor_ydown_v3);
+		bgq_su3_vadd(weyl_ydown_v1, spinor_ydown_v1, spinor_ydown_v2);
 #endif
 #if BGQ_HM_YDOWN_WEYLREAD==-1
 	}
 #endif
+
 
 #if BGQ_HM_YDOWN_COMPUTE
 		bgq_su3_mdecl(gauge_ydown);
@@ -64,22 +65,26 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 #endif
 #endif
 
+
 #if BGQ_HM_YDOWN_WEYL_SEND
 		// Store the halfspinor to be transfered to the neighbor node
 		bgq_su3_weyl_double_store(weylxchange_send_double[Y_UP], weyl_ydown);
 #endif
 
+
 #if BGQ_HM_YDOWN_ACCUMULATE
 		bgq_su3_vadd(result_v0, result_v0, weyl_ydown_v0);
 		bgq_su3_vadd(result_v1, result_v1, weyl_ydown_v1);
-		bgq_su3_vpiadd(result_v2, result_v2, weyl_ydown_v1);
-		bgq_su3_vpiadd(result_v3, result_v3, weyl_ydown_v0);
+		bgq_su3_vadd(result_v2, result_v2, weyl_ydown_v1);
+		bgq_su3_vsub(result_v3, result_v3, weyl_ydown_v0);
 #endif
+
 
 	}
 #ifndef BGQ_HM_NOFUNC
 }
 #endif
+
 
 #undef BGQ_HM_YDOWN_WEYLREAD
 #undef BGQ_HM_YDOWN_COMPUTE

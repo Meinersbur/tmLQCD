@@ -70,8 +70,8 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 		// Compute its halfspinor
 		bgq_su3_weyl_decl(weyl_zdown);
-		bgq_su3_vsub(weyl_zdown_v0, spinor_zdown_v0, spinor_zdown_v3);
-		bgq_su3_vadd(weyl_zdown_v1, spinor_zdown_v1, spinor_zdown_v2);
+		bgq_su3_vpisub(weyl_zdown_v0, spinor_zdown_v0, spinor_zdown_v2);
+		bgq_su3_vpiadd(weyl_zdown_v1, spinor_zdown_v1, spinor_zdown_v3);
 
 
 #if BGQ_HM_ZDOWN_COMPUTE
@@ -92,8 +92,8 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 #if BGQ_HM_ZDOWN_ACCUMULATE
 		bgq_su3_vadd(result_v0, result_v0, weyl_zdown_v0);
 		bgq_su3_vadd(result_v1, result_v1, weyl_zdown_v1);
-		bgq_su3_vadd(result_v2, result_v2, weyl_zdown_v1);
-		bgq_su3_vsub(result_v3, result_v3, weyl_zdown_v0);
+		bgq_su3_vpiadd(result_v2, result_v2, weyl_zdown_v0);
+		bgq_su3_vpisub(result_v3, result_v3, weyl_zdown_v1);
 #endif
 
 

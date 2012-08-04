@@ -252,7 +252,6 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield
 }
 
 
-
 #undef BGQ_HM_SUFFIX
 #undef BGQ_HM_PRECISION
 #undef BGQ_HM_NOCOM
