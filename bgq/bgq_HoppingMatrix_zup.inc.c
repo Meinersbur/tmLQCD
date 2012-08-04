@@ -1,3 +1,4 @@
+
 #ifndef BGQ_HM_ZUP_ZLINEINDENT
 #error Must define the line indention (0, 1 or -1 for runtime-conditional)
 #define BGQ_HM_ZUP_ZLINEINDENT -1
@@ -27,7 +28,7 @@
 #include "bgq.h"
 #include "bgq_field.h"
 
-void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, int zv) {
+void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, int zv, int z1, int z2) {
 	bgq_su3_spinor_decl(result);
 #endif
 	{
@@ -38,7 +39,7 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 		assert(zv==PHYSICAL_LZV-1);
 		const int zv_right = 0;
 #else
-		const int zv_right = (zv + 1) % PHYSICAL_LZV;
+		const int zv_right = mod(zv + 1, PHYSICAL_LZV);
 #endif
 
 		bgq_su3_weyl_decl(weyl_zup);
@@ -54,7 +55,7 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 		// bottom line = vector sites of !isOdd sites
 
 #if (BGQ_HM_ZUP_ZLINEINDENT==-1)
-		if ((t + x + y) % 2 == isOdd) {
+		if (((t + x + y)&1) == isOdd) {
 #endif
 #if (BGQ_HM_ZUP_ZLINEINDENT==-1) || (BGQ_HM_ZUP_ZLINEINDENT==0)
 			// (  0  ) (  1  ) (  2  )
@@ -62,9 +63,9 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 			//   (  0  ) (  1  ) (  2  )
 			// T_UP = zv
 			// T_DOWN = merge2(zv, zv-1)
-			assert((t+x+y)%2 == isOdd);
+			assert(((t+x+y)&1) == isOdd);
 
-			bgq_spinorsite_double *spinorsite_zup = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y, zv, z1+1,z2+1);
+			bgq_spinorsite_double *spinorsite_zup = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y, zv, z1+1, z2+1);
 			bgq_su3_spinor_double_load(spinor_zup, spinorsite_zup);
 #endif
 #if BGQ_HM_ZUP_ZLINEINDENT==-1
@@ -76,7 +77,7 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 			// (  0  ) (  1  ) (  2  )
 			// T_UP = half tv, half tv+1
 			// T_DOWN = tv
-			assert((t+x+y)%2 == !isOdd);
+			assert(((t+x+y)&1) == !isOdd);
 
 			bgq_su3_spinor_decl_rightonly(spinor_zup_mid);
 			bgq_spinorsite_double *spinorsite_zup_mid = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y, zv, z1-1,z1+1);

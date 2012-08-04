@@ -39,49 +39,59 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 		bgq_su3_weyl_decl(weyl_zcarry);
 
 #if (BGQ_HM_ZLINE_ZLINEINDENT==-1)
-		if ((t + x + y) % 2 == isOdd) {
+		if (((t + x + y)&1) == isOdd) {
 #endif
 #if (BGQ_HM_ZLINE_ZLINEINDENT==-1) || (BGQ_HM_ZLINE_ZLINEINDENT==0)
-			assert((t+x+y)%2==isOdd);
+			assert(((t+x+y)&1)==isOdd);
 			// zline indention == 0
 			// iterate from zbottom to ztop
-			int z1 = 0;
-			int z2 = 2;
+
 
 			// Prologue
 			{
-				const int zv = PHYSICAL_LZV - 1;
+				// We need the zcarry from the wraparound
+				// We fake a site update from the zup-border such that it computes the carry for the first iteration
+				const int zv = PHYSICAL_LZV - 1; // wraparound
+				const int z1 = LOCAL_LZ-4;
+				const int z2 = LOCAL_LZ-2;
 
 				// Read the zcarry value for the first iteration
-#define BGQ_HM_ZUP_ZLINEINDENT 0
-#define BGQ_HM_ZUP_WRITECARRY 1
-#define BGQ_HM_ZUP_RIGHTWRAPAROUND 1
-#include "bgq_HoppingMatrix_zup.inc.c"
-}				for (int zv = 1; zv < PHYSICAL_LZV; zv+=1) {
-#define BGQ_HM_ZUP_ZLINEINDENT 0
-#define BGQ_HM_ZDOWN_ZLINEINDENT 0
-#define BGQ_HM_TUP_COMPUTE 1
-#define BGQ_HM_TDOWN_COMPUTE 1
-#define BGQ_HM_XUP_COMPUTE 1
-#define BGQ_HM_XDOWN_COMPUTE 1
-#define BGQ_HM_YUP_COMPUTE 1
-#define BGQ_HM_YDOWN_COMPUTE 1
-#define BGQ_HM_ZUP_COMPUTE 1
-#define BGQ_HM_ZDOWN_COMPUTE 1
-#define BGQ_HM_ZDOWN_READCARRYSPINOR 1
-#define BGQ_HM_ZUP_WRITECARRYSPINOR 1
-#include "bgq_HoppingMatrix_site.inc.c"
+				#define BGQ_HM_ZUP_ZLINEINDENT 0
+				#define BGQ_HM_ZUP_WRITECARRY 1
+				#define BGQ_HM_ZUP_RIGHTWRAPAROUND 1
+				#include "bgq_HoppingMatrix_zup.inc.c"
+			}
 
-	z1 += PHYSICAL_LP * PHYSICAL_LK;
-	z2 += PHYSICAL_LP * PHYSICAL_LK;
+			{
+				int z1 = 0;
+				int z2 = 2;
+
+				for (int zv = 1; zv < PHYSICAL_LZV-1; zv+=1) {
+					#define BGQ_HM_ZUP_ZLINEINDENT 0
+					#define BGQ_HM_ZDOWN_ZLINEINDENT 0
+					#define BGQ_HM_TUP_COMPUTE 1
+					#define BGQ_HM_TDOWN_COMPUTE 1
+					#define BGQ_HM_XUP_COMPUTE 1
+					#define BGQ_HM_XDOWN_COMPUTE 1
+					#define BGQ_HM_YUP_COMPUTE 1
+					#define BGQ_HM_YDOWN_COMPUTE 1
+					#define BGQ_HM_ZUP_COMPUTE 1
+					#define BGQ_HM_ZDOWN_COMPUTE 1
+					#define BGQ_HM_ZDOWN_READCARRYSPINOR 1
+					#define BGQ_HM_ZUP_WRITECARRYSPINOR 1
+					#include "bgq_HoppingMatrix_site.inc.c"
+
+					z1 += PHYSICAL_LP * PHYSICAL_LK;
+					z2 += PHYSICAL_LP * PHYSICAL_LK;
 				}
+			}
 
 #endif
 #if (BGQ_HM_ZLINE_ZLINEINDENT==-1)
 			} else {
 #endif
 #if (BGQ_HM_ZLINE_ZLINEINDENT==-1) || (BGQ_HM_ZLINE_ZLINEINDENT==1)
-				assert((t+x+y)%2==!isOdd);
+				assert(((t+x+y)&1)==!isOdd);
 				// zline indention == 1
 				// iterate backwards from ztop to zbottom
 				int z1 = LOCAL_LZ-1-2;
@@ -89,29 +99,29 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 				// Prologue
 				{
-					const int zv = 0;
+					const int zv = 0; // wraparound
 
 					// Read the zcarry value for the first iteration
-#define BGQ_HM_ZDOWN_ZLINEINDENT 1
-#define BGQ_HM_ZDOWN_WRITECARRY 1
-#define BGQ_HM_ZDOWN_RIGHTWRAPAROUND 1
-#include "bgq_HoppingMatrix_zdown.inc.c"
+					#define BGQ_HM_ZDOWN_ZLINEINDENT 1
+					#define BGQ_HM_ZDOWN_WRITECARRY 1
+					#define BGQ_HM_ZDOWN_RIGHTWRAPAROUND 1
+					#include "bgq_HoppingMatrix_zdown.inc.c"
 				}
 
 				for (int zv = 1; zv < PHYSICAL_LZV; zv+=1) {
-#define BGQ_HM_ZUP_ZLINEINDENT 1
-#define BGQ_HM_ZDOWN_ZLINEINDENT 1
-#define BGQ_HM_TUP_COMPUTE 1
-#define BGQ_HM_TDOWN_COMPUTE 1
-#define BGQ_HM_XUP_COMPUTE 1
-#define BGQ_HM_XDOWN_COMPUTE 1
-#define BGQ_HM_YUP_COMPUTE 1
-#define BGQ_HM_YDOWN_COMPUTE 1
-#define BGQ_HM_ZUP_COMPUTE 1
-#define BGQ_HM_ZDOWN_COMPUTE 1
-#define BGQ_HM_ZDOWN_READCARRYSPINOR 1
-#define BGQ_HM_ZUP_WRITECARRYSPINOR 1
-#include "bgq_HoppingMatrix_site.inc.c"
+					#define BGQ_HM_ZUP_ZLINEINDENT 1
+					#define BGQ_HM_ZDOWN_ZLINEINDENT 1
+					#define BGQ_HM_TUP_COMPUTE 1
+					#define BGQ_HM_TDOWN_COMPUTE 1
+					#define BGQ_HM_XUP_COMPUTE 1
+					#define BGQ_HM_XDOWN_COMPUTE 1
+					#define BGQ_HM_YUP_COMPUTE 1
+					#define BGQ_HM_YDOWN_COMPUTE 1
+					#define BGQ_HM_ZUP_COMPUTE 1
+					#define BGQ_HM_ZDOWN_COMPUTE 1
+					#define BGQ_HM_ZDOWN_READCARRYSPINOR 1
+					#define BGQ_HM_ZUP_WRITECARRYSPINOR 1
+					#include "bgq_HoppingMatrix_site.inc.c"
 
 					z1 -= PHYSICAL_LP * PHYSICAL_LK;
 					z2 -= PHYSICAL_LP * PHYSICAL_LK;

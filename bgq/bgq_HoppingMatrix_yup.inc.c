@@ -1,3 +1,4 @@
+
 #ifndef BGQ_HM_YUP_WEYLREAD
 #define BGQ_HM_YUP_WEYLREAD 0
 #endif
@@ -18,7 +19,7 @@
 #include "bgq.h"
 #include "bgq_field.h"
 
-void HoppingMatrix_site_yup(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int tv, int k) {
+void HoppingMatrix_site_yup(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int tv, int k, int z1, int z2) {
 	bgq_su3_spinor_decl(result);
 #endif
 

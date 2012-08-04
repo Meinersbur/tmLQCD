@@ -10,6 +10,7 @@
 #include "bgq.h"
 #include "bgq_field.h"
 
+
 void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z1, int z2. int tv, int k) {
 #define BGQ_HM_DIR_NOFUNC 1
 #endif

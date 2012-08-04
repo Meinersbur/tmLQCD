@@ -1,3 +1,4 @@
+
 #ifndef BGQ_HM_ZDOWN_ZLINEINDENT
 #error Must define the line indention (0, 1 or -1 for runtime-conditional)
 #define BGQ_HM_ZDOWN_ZLINEINDENT -1
@@ -27,7 +28,7 @@
 #include "bgq.h"
 #include "bgq_field.h"
 
-void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int zv) {
+void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int zv, int z1, int z2) {
 	bgq_su3_spinor_decl(result);
 #endif
 	{
@@ -38,7 +39,7 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		assert(zv==0);
 		const int zv_left = PHYSICAL_LZV-1;
 #elif (BGQ_HM_ZDOWN_LEFTWRAPAROUND==-1)
-		const int zv_left = (PHYSICAL_LZV + zv - 1) % PHYSICAL_LZV;
+		const int zv_left = mod(zv - 1, PHYSICAL_LZV);
 #endif
 
 		bgq_su3_weyl_decl(weyl_zdown);
@@ -48,10 +49,10 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_zdown);
 #if (BGQ_HM_ZDOWN_ZLINEINDENT==-1)
-		if ((t + x + y) % 2 == isOdd) {
+		if (((t + x + y)&1) == isOdd) {
 #endif
 #if (BGQ_HM_ZDOWN_ZLINEINDENT==-1) || (BGQ_HM_ZDOWN_ZLINEINDENT==0)
-			assert((t+x+y)%2 == isOdd);
+			assert(((t+x+y)&1) == isOdd);
 
 			bgq_su3_spinor_decl_rightonly(spinor_zdown_left);
 			bgq_spinorsite_double *spinorsite_zdown_left = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y, zv_left, z2-1, z2+1);
@@ -67,7 +68,7 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		} else {
 #endif
 #if (BGQ_HM_ZDOWN_ZLINEINDENT==-1) || (BGQ_HM_ZDOWN_ZLINEINDENT==1)
-			assert((t+x+y)%2 == !isOdd);
+			assert(((t+x+y)&1) == !isOdd);
 
 			bgq_spinorsite_double *spinorsite_zdown = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y, zv, z1-1,z2-1);
 			bgq_su3_spinor_double_load(spinor_zdown, spinorsite_zdown);

@@ -1,3 +1,6 @@
+
+
+
 #define BGQ_FIELD_C_H_
 #include "bgq_field.h"
 
@@ -130,7 +133,9 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield_double const tar
 		assert(ix == Index(t,x,y,z));
 
 		int iy = g_lexic2eo[ix]; /* even/odd coordinate (even and odd sites in two different fields of size VOLUME/2, first even field followed by odd) */
+		assert(0 <= iy && iy < (VOLUME+RAND));
 		int icx = g_lexic2eosub[ix]; /*  even/odd coordinate relative to field base */
+		assert(0 <= icx && icx < VOLUME/2);
 		assert(icx == iy - (isOdd ? (VOLUME+RAND)/2 : 0));
 
 		spinor_array64 *sp = (spinor_array64*)&sourcefield[icx];
@@ -142,8 +147,6 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield_double const tar
 		}
 	}
 }
-
-
 
 
 

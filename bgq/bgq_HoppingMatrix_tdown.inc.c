@@ -18,7 +18,7 @@
 #include "bgq.h"
 #include "bgq_field.h"
 
-void bgq_HoppingMatrix_site_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefieldeo_double gaugefield, bool isOdd, int t, int x, int y, int zv) {
+void bgq_HoppingMatrix_site_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int zv, int z1, int z2) {
 	bgq_su3_spinor_decl(result);
 #endif
 	{

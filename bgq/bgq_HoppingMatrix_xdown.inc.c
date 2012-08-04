@@ -1,6 +1,6 @@
 
 #ifndef BGQ_HM_XDOWN_WEYLREAD
-#define BGQ_HM_XDOWN_WEYLREAD -1
+#define BGQ_HM_XDOWN_WEYLREAD 0
 #endif
 
 #ifndef BGQ_HM_XDOWN_COMPUTE
@@ -19,7 +19,7 @@
 #include "bgq.h"
 #include "bgq_field.h"
 
-void bgq_HoppingMatrix_site_xdn(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int tv, int k) {
+void bgq_HoppingMatrix_site_xdn(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int tv, int k, int z1, int z2) {
 	bgq_su3_spinor_decl(result);
 #endif
 

@@ -1,11 +1,13 @@
 #ifndef BGQ_H_INCLUDED
 #define BGQ_H_INCLUDED
 
+#include "bgq_utils.h"
+#include "complex_c99.h"
 #include "../global.h"
 #include "../read_input.h"
 #include <stdbool.h>
 #include <assert.h>
-#include "complex_c99.h"
+
 
 #ifndef BGQ_FIELD_C_H_
 #define EXTERN_INLINE inline
@@ -113,6 +115,7 @@ EXTERN_INLINE bgq_spinorfield_double bgq_translate_spinorfield(spinor * const fi
 	assert(offset >= 0);
 	assert(offset % fieldsize == 0);
 	int result = offset  / fieldsize;
+	assert(g_spinorfields_double[result] >= g_spinorfields_doubledata);
 	return g_spinorfields_double[result];
 }
 
@@ -125,6 +128,7 @@ EXTERN_INLINE int assert_spinorcoord(bgq_spinorfield_double spinorfield, bool is
 	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
+	z = mod(z,LOCAL_LZ);
 	assert(0 <= z && z < LOCAL_LZ);
 	assert(0 <= zv && zv < PHYSICAL_LZV);
 	assert(0 <= k && k < PHYSICAL_LK);
@@ -139,21 +143,21 @@ EXTERN_INLINE int assert_spinorcoord(bgq_spinorfield_double spinorfield, bool is
 
 	// Check that field is used as an odd/even field
 	if (g_spinorfield_isOdd[index] == -1) {
-		// not yet defined, just ensure that at all following uses it is the same
+		// not yet defined, just ensure that at all following uses are the same
 		g_spinorfield_isOdd[index] = isOdd;
 	} else {
 		assert(g_spinorfield_isOdd[index] == isOdd);
 	}
 
 	// Check that the coordinate is really an odd/even coordinate
-	assert((t+x+y+z)%2 == isOdd);
-	assert((t+x+y)%2 == isOdd^(zv%2));
+	assert(((t+x+y+z)&1) == isOdd);
+	assert(((t+x+y)&1) == (isOdd!=(z&1)));
 
 	int zeo = z/PHYSICAL_LP;
 
-	// Check that zv and matche the coordinate
+	// Check that zv and k match the coordinate
 	assert(zeo/PHYSICAL_LK == zv);
-	assert(zeo%PHYSICAL_LK == k);
+	assert(mod(zeo,PHYSICAL_LK) == k);
 
 	return 1; // All checks passed
 }
@@ -207,7 +211,7 @@ EXTERN_INLINE double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spin
 	int zeo = z / PHYSICAL_LP;
 	int zv = zeo / PHYSICAL_LK;
 	int k = zeo % PHYSICAL_LK;
-	bgq_spinorsite_double *site = BGQ_SPINORSITE(spinorfield, isOdd, t, x, y, zv, z+2*k, z-2*(1-k));
+	bgq_spinorsite_double *site = BGQ_SPINORSITE(spinorfield, isOdd, t, x, y, zv, z-2*k, z+2*(1-k));
 	return &site->s[s][c][k];
 }
 

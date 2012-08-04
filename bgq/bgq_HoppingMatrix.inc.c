@@ -46,7 +46,8 @@ void BGQ_HM_BORDERZLINE_NAME (bool isOdd, bgq_spinorfield_double spinorfield, bg
 }
 
 
-void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield_double targetfield, bgq_gaugefield_double gaugefield) {
+// isOdd refers to the oddness of targetfield; spinorfield will have the opposite oddness
+void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield) {
 
 #if !BGQ_HM_NOCOM && defined(MPI)
 	MPI_Request request_recv[6];
@@ -54,12 +55,12 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield
 		MPI_CHECK(MPI_Irecv(weylxchange_recv_double[d], weylxchange_size_double[d/2], MPI_BYTE, weylexchange_destination[d], d, MPI_COMM_WORLD, &request_recv[d]));
 	}
 
-	MPI_CHECK(MPI_Barrier(g_cart_grid));
-	// To ensure that all ranks started the receive requests (necessary? how expensive is this?)
+	MPI_CHECK(MPI_Barrier(g_cart_grid)); // To ensure that all ranks started the receive requests (necessary? how expensive is this?)
 #endif
 
-//#pragma omp parallel for schedule(static)
-	for (int xyz = 0; xyz < SURFACE_ZLINES_TOTAL * PHYSICAL_LZV; xyz += 1) {
+
+#pragma omp parallel for schedule(static)
+	for (int xyz = 0; xyz < SURFACE_ZLINES_TOTAL*PHYSICAL_LZV; xyz+=1) {
 		WORKLOAD_DECL(xyz, SURFACE_ZLINES_TOTAL*PHYSICAL_LZV);
 		const int dir = WORKLOAD_CHUNK(6);
 		const int zv = WORKLOAD_PARAM(PHYSICAL_LZV);
@@ -68,8 +69,8 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield
 			const int y = WORKLOAD_PARAM(PHYSICAL_LY);
 			const int x = WORKLOAD_PARAM(PHYSICAL_LX);
 			const int t = PHYSICAL_LT;
-			const int z1 = zv*4 + (t+x+y+isOdd)%2;
-			const int z2 = zv*4 + (t+x+y+isOdd)%2 + 2;
+			const int z1 = zv*4 + ((t+x+y+isOdd)&1);
+			const int z2 = zv*4 + ((t+x+y+isOdd)&1) + 2;
 
 #define BGQ_HM_TDOWN_WEYL_SEND 1
 #include "bgq_HoppingMatrix_tdown.inc.c"
@@ -80,8 +81,8 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield
 			const int y = WORKLOAD_PARAM(PHYSICAL_LY);
 			const int x = WORKLOAD_PARAM(PHYSICAL_LX);
 			const int t = -1;
-			const int z1 = zv*4 + (t+x+y+isOdd)%2;
-			const int z2 = z1+2;
+			const int z1 = zv*4 + ((t+x+y+isOdd)&1);
+			const int z2 = zv*4 + ((t+x+y+isOdd)&1) + 2;
 
 #define BGQ_HM_TUP_WEYL_SEND 1
 #include "bgq_HoppingMatrix_tup.inc.c"
@@ -92,8 +93,8 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield
 			const int y = WORKLOAD_PARAM(PHYSICAL_LY);
 			const int x = PHYSICAL_LX;
 			const int t = WORKLOAD_PARAM(PHYSICAL_LT);
-			const int z1 = zv*4 + (t+x+y+isOdd)%2;
-			const int z2 = z1+2;
+			const int z1 = zv*4 + ((t+x+y+isOdd)&1);
+			const int z2 = zv*4 + ((t+x+y+isOdd)&1) + 2;
 
 #define BGQ_HM_XDOWN_WEYL_SEND 1
 #include "bgq_HoppingMatrix_xdown.inc.c"
@@ -104,8 +105,8 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield
 			const int y = WORKLOAD_PARAM(PHYSICAL_LY);
 			const int x = -1;
 			const int t = WORKLOAD_PARAM(PHYSICAL_LT);
-			const int z1 = zv*4 + (t+x+y+isOdd)%2;
-			const int z2 = z1+2;
+			const int z1 = zv*4 + ((t+x+y+isOdd)&1);
+			const int z2 = zv*4 + ((t+x+y+isOdd)&1) + 2;
 
 #define BGQ_HM_XUP_WEYL_SEND 1
 #include "bgq_HoppingMatrix_xup.inc.c"
@@ -116,8 +117,8 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield
 			const int y = PHYSICAL_LY;
 			const int x = WORKLOAD_PARAM(PHYSICAL_LX);
 			const int t = WORKLOAD_PARAM(PHYSICAL_LT);
-			const int z1 = zv*4 + (t+x+y+isOdd)%2;
-			const int z2 = z1+2;
+			const int z1 = zv*4 + ((t+x+y+isOdd)&1);
+			const int z2 = zv*4 + ((t+x+y+isOdd)&1) + 2;
 
 #define BGQ_HM_YDOWN_WEYL_SEND 1
 #include "bgq_HoppingMatrix_ydown.inc.c"
@@ -128,8 +129,8 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield
 			const int y = -1;
 			const int x = WORKLOAD_PARAM(PHYSICAL_LX);
 			const int t = WORKLOAD_PARAM(PHYSICAL_LT);
-			const int z1 = zv*4 + (t+x+y+isOdd)%2;
-			const int z2 = z1+2;
+			const int z1 = zv*4 + ((t+x+y+isOdd)&1);
+			const int z2 = zv*4 + ((t+x+y+isOdd)&1) + 2;
 
 #define BGQ_HM_YUP_WEYL_SEND 1
 #include "bgq_HoppingMatrix_yup.inc.c"
@@ -137,13 +138,13 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield
 		}
 			break;
 		default:
-			assert(false);
+			assert(!"All directions processed, nothing more to do");
 			break;
 		}
 
 		WORKLOAD_CHECK
-
 	}
+
 
 #if !BGQ_HM_NOCOM && defined(MPI)
 	MPI_Request request_send[6];
@@ -154,11 +155,12 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield
 
 	// Body volume kernel, flush lines, wavefronting
 //#pragma omp parallel for schedule(static,1)
-	for (int xyz = 0; xyz < BODY_ZLINES / 2; xyz += 1) {
+	for (int xyz = 0; xyz < BODY_ZLINES/2; xyz += 1) {
 		WORKLOAD_DECL(xyz, BODY_ZLINES/2);
-		const int y = WORKLOAD_PARAM((PHYSICAL_LY-2)/2) * 2 + isOdd + 1;
-		const int x = WORKLOAD_PARAM(PHYSICAL_LX-2) + 1;
-		const int t = WORKLOAD_PARAM(PHYSICAL_LT-2) + 1;
+		const int t = WORKLOAD_CHUNK(PHYSICAL_LT-2) + 1;
+		const int x = WORKLOAD_CHUNK(PHYSICAL_LX-2) + 1;
+		const int y = WORKLOAD_CHUNK((PHYSICAL_LY-2)/2)*2 + ((t+x+!isOdd)&1) + 1;
+		WORKLOAD_CHECK
 
 #define BGQ_HM_ZLINE_ZLINEINDENT 0
 #include "bgq_HoppingMatrix_zline.inc.c"
@@ -168,9 +170,10 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield
 //#pragma omp parallel for schedule(static,1)
 	for (int xyz = 0; xyz < BODY_ZLINES / 2; xyz += 1) {
 		WORKLOAD_DECL(xyz, BODY_ZLINES/2);
-		const int y = WORKLOAD_PARAM((PHYSICAL_LY-2)/2) * 2 + !isOdd + 1;
-		const int x = WORKLOAD_PARAM(PHYSICAL_LX-2) + 1;
-		const int t = WORKLOAD_PARAM(PHYSICAL_LT-2) + 1;
+		const int t = WORKLOAD_CHUNK(PHYSICAL_LT-2) + 1;
+		const int x = WORKLOAD_CHUNK(PHYSICAL_LX-2) + 1;
+		const int y = WORKLOAD_CHUNK((PHYSICAL_LY-2)/2)*2 + ((t+x+isOdd)&1) + 1;
+		WORKLOAD_CHECK
 
 #define BGQ_HM_ZLINE_ZLINEINDENT 1
 #include "bgq_HoppingMatrix_zline.inc.c"
@@ -240,7 +243,7 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield
 		assert(xyz_total == 1);
 		assert(xyz == 0);
 
-		BGQ_HM_BORDERZLINE_NAME (isOdd, spinorfield, targetfield, gaugefield, t, x, y);
+		BGQ_HM_BORDERZLINE_NAME(isOdd, spinorfield, targetfield, gaugefield, t, x, y);
 	}
 }
 
