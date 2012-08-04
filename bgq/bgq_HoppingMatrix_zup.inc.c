@@ -16,13 +16,6 @@
 #define BGQ_HM_ZUP_ACCUMULATE 0
 #endif
 
-#ifndef BGQ_HM_ZUP_READCARRY
-#define BGQ_HM_ZUP_READCARRY 0
-#endif
-
-#ifndef BGQ_HM_ZUP_WRITECARRY
-#define BGQ_HM_ZUP_WRITECARRY 0
-#endif
 
 #ifndef BGQ_HM_NOFUNC
 #include "bgq.h"
@@ -42,10 +35,7 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 		const int zv_right = mod(zv + 1, PHYSICAL_LZV);
 #endif
 
-		bgq_su3_weyl_decl(weyl_zup);
-#if BGQ_HM_ZUP_READCARRY
-		bgq_su3_weyl_mov(weyl_zup, weyl_zcarry);
-#else
+
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_zup);
 		// # = stencil site to update (either even or odd sites, depending on what isOdd says)
@@ -53,7 +43,6 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 		// (  2  ) = vector site with tv-number
 		// top line = vector sites of isOdd sites
 		// bottom line = vector sites of !isOdd sites
-
 #if (BGQ_HM_ZUP_ZLINEINDENT==-1)
 		if (((t + x + y)&1) == isOdd) {
 #endif
@@ -93,18 +82,11 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 		}
 #endif
 
-#if BGQ_HM_ZUP_WRITECARRY
-		// Compute the halfspinor for the zdown of the next iteration
-		bgq_su3_vsub(weyl_zcarry_v0, spinor_zup_v0, spinor_zup_v3);
-		bgq_su3_vadd(weyl_zcarry_v1, spinor_zup_v1, spinor_zup_v2);
-#endif
-
-#if BGQ_HM_ZUP_ACCUMULATE /* unused otherwise */
 		// Compute its halfspinor
+		bgq_su3_weyl_decl(weyl_zup);
 		bgq_su3_vadd(weyl_zup_v0, spinor_zup_v0, spinor_zup_v3);
 		bgq_su3_vsub(weyl_zup_v1, spinor_zup_v1, spinor_zup_v2);
-#endif
-#endif
+
 
 #if BGQ_HM_ZUP_COMPUTE
 		bgq_gaugesite_double *gaugesite_zup = BGQ_GAUGESITE(gaugefield, isOdd, t, x, y, zv, Z_UP);
@@ -135,4 +117,3 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 #undef BGQ_HM_ZUP_ZLINEINDENT
 #undef BGQ_HM_ZUP_COMPUTE
 #undef BGQ_HM_ZUP_ACCUMULATE
-#undef BGQ_HM_ZUP_WRITECARRY

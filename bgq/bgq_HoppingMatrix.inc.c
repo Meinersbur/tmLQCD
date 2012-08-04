@@ -30,20 +30,8 @@
 #define BGQ_HM_SITE_NOFUNC 1
 #define BGQ_HM_DIR_NOFUNC 1
 
-
-#define BGQ_HM_BORDERZLINE_NAME CONCAT(bgq_HoppingMatrix_borderzline_ ,BGQ_HM_SUFFIX)
 #define BGQ_HM_NAME CONCAT(bgq_HoppingMatrix_ ,BGQ_HM_SUFFIX)
 
-void BGQ_HM_BORDERZLINE_NAME (bool isOdd, bgq_spinorfield_double spinorfield, bgq_spinorfield_double targetfield, bgq_gaugefield_double gaugefield, int t, int x, int y) {
-	#define BGQ_HM_ZLINE_ZLINEINDENT -1
-#define BGQ_HM_ZUP_WEYLREAD -1
-#define BGQ_HM_ZDOWN_WEYLREAD -1
-#define BGQ_HM_XUP_WEYLREAD -1
-#define BGQ_HM_XDOWN_WEYLREAD -1
-#define BGQ_HM_YUP_WEYLREAD -1
-#define BGQ_HM_YDOWN_WEYLREAD -+1
-#include "bgq_HoppingMatrix_zline.inc.c"
-}
 
 
 // isOdd refers to the oddness of targetfield; spinorfield will have the opposite oddness
@@ -58,6 +46,15 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield
 	MPI_CHECK(MPI_Barrier(g_cart_grid)); // To ensure that all ranks started the receive requests (necessary? how expensive is this?)
 #endif
 
+	// Load constants
+	bgq_vector4double_decl(qka0); // t
+	bgq_cconst(qka0, ka0.re, ka0.im);
+	bgq_vector4double_decl(qka1); // x
+	bgq_cconst(qka1, ka1.re, ka1.im);
+	bgq_vector4double_decl(qka2); // y
+	bgq_cconst(qka2, ka2.re, ka2.im);
+	bgq_vector4double_decl(qka3); // z
+	bgq_cconst(qka3, ka3.re, ka3.im);
 
 #pragma omp parallel for schedule(static)
 	for (int xyz = 0; xyz < SURFACE_ZLINES_TOTAL*PHYSICAL_LZV; xyz+=1) {
@@ -243,7 +240,14 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield
 		assert(xyz_total == 1);
 		assert(xyz == 0);
 
-		BGQ_HM_BORDERZLINE_NAME(isOdd, spinorfield, targetfield, gaugefield, t, x, y);
+		#define BGQ_HM_ZLINE_ZLINEINDENT -1
+		#define BGQ_HM_ZUP_WEYLREAD -1
+		#define BGQ_HM_ZDOWN_WEYLREAD -1
+		#define BGQ_HM_XUP_WEYLREAD -1
+		#define BGQ_HM_XDOWN_WEYLREAD -1
+		#define BGQ_HM_YUP_WEYLREAD -1
+		#define BGQ_HM_YDOWN_WEYLREAD -+1
+		#include "bgq_HoppingMatrix_zline.inc.c"
 	}
 }
 
@@ -254,7 +258,6 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield
 #undef BGQ_HM_NOCOM
 
 #undef BGQ_HM_NAME
-#undef BGQ_HM_BORDERZLINE_NAME
 
 #undef BGQ_HM_NOFUNC
 #undef BGQ_HM_ZLINE_NOFUNC

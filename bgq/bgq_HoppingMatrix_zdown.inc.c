@@ -16,13 +16,6 @@
 #define BGQ_HM_ZDOWN_ACCUMULATE 0
 #endif
 
-#ifndef BGQ_HM_ZDOWN_READCARRY
-#define BGQ_HM_ZDOWN_READCARRY 0
-#endif
-
-#ifndef BGQ_HM_ZDOWN_WRITECARRY
-#define BGQ_HM_ZDOWN_WRITECARRY 0
-#endif
 
 #ifndef BGQ_HM_DIR_NOFUNC
 #include "bgq.h"
@@ -42,10 +35,7 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		const int zv_left = mod(zv - 1, PHYSICAL_LZV);
 #endif
 
-		bgq_su3_weyl_decl(weyl_zdown);
-#if BGQ_HM_ZDOWN_READCARRY
-		bgq_su3_weyl_mov(weyl_zdown, weyl_zcarry);
-#else
+
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_zdown);
 #if (BGQ_HM_ZDOWN_ZLINEINDENT==-1)
@@ -77,19 +67,12 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		}
 #endif
 
-#if BGQ_HM_ZDOWN_WRITECARRY
-		// Compute the halfspinor for the zup of the next (downwards-)iteration
-		//TODO: Confirm correct computation
-		bgq_su3_vadd(weyl_zcarry_v0, spinor_zdown_v0, spinor_zdown_v3);
-		bgq_su3_vsub(weyl_zcarry_v1, spinor_zdown_v1, spinor_zdown_v2);
-#endif
 
-#if BGQ_HM_ZDOWN_ACCUMULATE /* unused otherwise */
 		// Compute its halfspinor
+		bgq_su3_weyl_decl(weyl_zdown);
 		bgq_su3_vsub(weyl_zdown_v0, spinor_zdown_v0, spinor_zdown_v3);
 		bgq_su3_vadd(weyl_zdown_v1, spinor_zdown_v1, spinor_zdown_v2);
-#endif
-#endif
+
 
 #if BGQ_HM_ZDOWN_COMPUTE
 		bgq_su3_mdecl(gauge_zdown);
@@ -105,6 +88,7 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 #endif
 #endif
 
+
 #if BGQ_HM_ZDOWN_ACCUMULATE
 		bgq_su3_vadd(result_v0, result_v0, weyl_zdown_v0);
 		bgq_su3_vadd(result_v1, result_v1, weyl_zdown_v1);
@@ -112,10 +96,12 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		bgq_su3_vsub(result_v3, result_v3, weyl_zdown_v0);
 #endif
 
+
 	}
 #ifndef BGQ_HM_DIR_NOFUNC
 }
 #endif
+
 
 #undef BGQ_HM_ZDOWN_ZLINEINDENT
 #undef BGQ_HM_ZDOWN_COMPUTE

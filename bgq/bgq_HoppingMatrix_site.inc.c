@@ -1,15 +1,7 @@
-#ifndef BGQ_HM_SITE_ZUP_FIRST
-#define BGQ_HM_SITE_ZUP_FIRST 0
-#endif
-
-#ifndef BGQ_HM_SITE_ZDOWN_FIRST
-#define BGQ_HM_SITE_ZDOWN_FIRST 0
-#endif
 
 #ifndef BGQ_HM_SITE_NOFUNC
 #include "bgq.h"
 #include "bgq_field.h"
-
 
 void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z1, int z2. int tv, int k) {
 #define BGQ_HM_DIR_NOFUNC 1
@@ -17,24 +9,10 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 	{
 		bgq_su3_spinor_decl(result);
 
-		// direction T_UP /////////////////////////////////////////////////////////////
+// direction T_UP /////////////////////////////////////////////////////////////
 #define BGQ_HM_TUP_COMPUTE 1
 #define BGQ_HM_TUP_ACCUMULATE 1
 #include "bgq_HoppingMatrix_tup.inc.c"
-
-#if BGQ_HM_SITE_ZUP_FIRST
-		// direction Z_UP /////////////////////////////////////////////////////////////
-#define BGQ_HM_ZUP_COMPUTE 1
-#define BGQ_HM_ZUP_ACCUMULATE 1
-#include "bgq_HoppingMatrix_zup.inc.c"
-#endif
-
-#if BGQ_HM_SITE_ZDOWN_FIRST
-		// direction Z_DOWN /////////////////////////////////////////////////////////////
-#define BGQ_HM_ZDOWN_COMPUTE 1
-#define BGQ_HM_zDOWN_ACCUMULATE 1
-#include "bgq_HoppingMatrix_zdown.inc.c"
-#endif
 
 // direction T_DOWN ///////////////////////////////////////////////////////////
 #define BGQ_HM_TDOWN_COMPUTE 1
@@ -61,19 +39,15 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 #define BGQ_HM_YDOWN_ACCUMULATE 1
 #include "bgq_HoppingMatrix_ydown.inc.c"
 
-#if !BGQ_HM_SITE_ZUP_FIRST
 // direction Z_UP /////////////////////////////////////////////////////////////
 #define BGQ_HM_ZUP_COMPUTE 1
 #define BGQ_HM_ZUP_ACCUMULATE 1
 #include "bgq_HoppingMatrix_zup.inc.c"
-#endif
 
-#if !BGQ_HM_SITE_ZDOWN_FIRST
 // direction Z_DOWN /////////////////////////////////////////////////////////////
 #define BGQ_HM_ZDOWN_COMPUTE 1
 #define BGQ_HM_zDOWN_ACCUMULATE 1
 #include "bgq_HoppingMatrix_zdown.inc.c"
-#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // Store the spinor
