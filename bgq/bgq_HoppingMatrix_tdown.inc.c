@@ -23,30 +23,32 @@ void bgq_HoppingMatrix_site_tdown(bgq_spinorfield_double targetfield, bgq_spinor
 #endif
 	{
 
+
 		bgq_su3_weyl_decl(weyl_tdown);
 #if BGQ_HM_TDOWN_WEYLREAD==-1
-		if (x==0) {
+		if (t==0) {
 #endif
 #if (BGQ_HM_TDOWN_WEYLREAD==-1) || (BGQ_HM_TDOWN_WEYLREAD==1)
-		bgq_weylsite_double *weylsite_xdown = BGQ_WEYLSITE_X(weylxchange_recv_double[T_DOWN], !isOdd, x-1, y, z, tv);
-		bgq_su3_weyl_double_load(weyl_xdown, weylsite_xdown);
+			bgq_weylsite_double *weylsite_tdown = BGQ_WEYLSITE_T(weylxchange_recv_double[T_DOWN], !isOdd, t-1, x, y, zv);
+			bgq_su3_weyl_double_load(weyl_tdown, weylsite_tdown);
 #endif
 #if BGQ_HM_TDOWN_WEYLREAD==-1
-	} else {
+		} else {
 #endif
 #if (BGQ_HM_TDOWN_WEYLREAD==-1) || (BGQ_HM_TDOWN_WEYLREAD==0)
-		// Load the input spinor
-		bgq_su3_spinor_decl(spinor_tdown);
-		bgq_spinorsite_double *spinorsite_tdown = BGQ_SPINORSITE(spinorfield, !isOdd, t-1, x, y, zv, z1,z2);
-		bgq_su3_spinor_double_load(spinor_tdown, spinorsite_tdown);
+			// Load the input spinor
+			bgq_su3_spinor_decl(spinor_tdown);
+			bgq_spinorsite_double *spinorsite_tdown = BGQ_SPINORSITE(spinorfield, !isOdd, t-1, x, y, zv, z1,z2);
+			bgq_su3_spinor_double_load(spinor_tdown, spinorsite_tdown);
 
-		// Compute its halfspinor
-		bgq_su3_vsub(weyl_tdown_v0, spinor_tdown_v0, spinor_tdown_v2);
-		bgq_su3_vsub(weyl_tdown_v1, spinor_tdown_v1, spinor_tdown_v3);
+			// Compute its halfspinor
+			bgq_su3_vsub(weyl_tdown_v0, spinor_tdown_v0, spinor_tdown_v2);
+			bgq_su3_vsub(weyl_tdown_v1, spinor_tdown_v1, spinor_tdown_v3);
 #endif
 #if BGQ_HM_TDOWN_WEYLREAD==-1
 	}
 #endif
+
 
 #if BGQ_HM_TDOWN_COMPUTE
 		bgq_su3_mdecl(gauge_tdown);
@@ -57,8 +59,8 @@ void bgq_HoppingMatrix_site_tdown(bgq_spinorfield_double targetfield, bgq_spinor
 		bgq_su3_mvinvmul(weyl_tdown_v1, gauge_tdown, weyl_tdown_v1);
 
 #ifndef BGQ_HM_NOKAMUL
-		bgq_su3_cvmul(weyl_tdown_v0, qka3, weyl_tdown_v0);
-		bgq_su3_cvmul(weyl_tdown_v1, qka3, weyl_tdown_v1);
+		bgq_su3_cvmul(weyl_tdown_v0, qka0, weyl_tdown_v0);
+		bgq_su3_cvmul(weyl_tdown_v1, qka0, weyl_tdown_v1);
 #endif
 #endif
 

@@ -42,13 +42,13 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 		bgq_su3_spinor_double_load(spinor_ydown, spinorsite_ydown);
 
 		// Compute its halfspinor
-
 		bgq_su3_vsub(weyl_ydown_v0, spinor_ydown_v0, spinor_ydown_v3);
 		bgq_su3_vadd(weyl_ydown_v1, spinor_ydown_v1, spinor_ydown_v2);
 #endif
 #if BGQ_HM_YDOWN_WEYLREAD==-1
 	}
 #endif
+
 
 
 #if BGQ_HM_YDOWN_COMPUTE
@@ -60,8 +60,8 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 		bgq_su3_mvinvmul(weyl_ydown_v1, gauge_ydown, weyl_ydown_v1);
 
 #ifndef BGQ_HM_NOKAMUL
-		bgq_su3_cvmul(weyl_ydown_v0, qka1, weyl_ydown_v0);
-		bgq_su3_cvmul(weyl_ydown_v1, qka1, weyl_ydown_v1);
+		bgq_su3_cvmul(weyl_ydown_v0, qka2, weyl_ydown_v0);
+		bgq_su3_cvmul(weyl_ydown_v1, qka2, weyl_ydown_v1);
 #endif
 #endif
 

@@ -64,7 +64,7 @@ void bgq_hm_free() {
 #define BGQ_HM_BORDER_NOFUNC 1
 #define BGQ_HM_BORDERDIST_NOFUNC 1
 
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+//#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 //#pragma GCC diagnostic ignored "-Wunused-variable"
 
 

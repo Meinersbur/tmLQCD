@@ -151,7 +151,7 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield
 #endif
 
 	// Body volume kernel, flush lines, wavefronting
-//#pragma omp parallel for schedule(static,1)
+#pragma omp parallel for schedule(static,1)
 	for (int xyz = 0; xyz < BODY_ZLINES/2; xyz += 1) {
 		WORKLOAD_DECL(xyz, BODY_ZLINES/2);
 		const int t = WORKLOAD_CHUNK(PHYSICAL_LT-2) + 1;
@@ -164,7 +164,7 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield
 	}
 
 	// Body volume kernel, ragged lines, wavefronting
-//#pragma omp parallel for schedule(static,1)
+#pragma omp parallel for schedule(static,1)
 	for (int xyz = 0; xyz < BODY_ZLINES / 2; xyz += 1) {
 		WORKLOAD_DECL(xyz, BODY_ZLINES/2);
 		const int t = WORKLOAD_CHUNK(PHYSICAL_LT-2) + 1;
@@ -186,7 +186,7 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield
 #endif
 #endif
 
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
 	for (int xyz = 0; xyz < BORDER_ZLINES_TOTAL; xyz += 1) {
 		WORKLOAD_DECL(xyz, BORDER_ZLINES_TOTAL);
 
@@ -195,16 +195,16 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield
 		int y;
 		if (WORKLOAD_SPLIT(BORDER_ZLINES_ALLFACES)) {
 			const bool p = WORKLOAD_CHUNK(2);
-			if (WORKLOAD_SPLIT(2*BORDER_ZLINES_T)) {
+			if (WORKLOAD_SPLIT(BORDER_ZLINES_T)) {
 				y = WORKLOAD_PARAM((PHYSICAL_LY-2)/2) * 2 + p + 1;
 				x = WORKLOAD_PARAM(PHYSICAL_LX-2) + 1;
 				t = WORKLOAD_CHUNK(2) * (PHYSICAL_LT - 1);
-			} else if (WORKLOAD_SPLIT(2*BORDER_ZLINES_X)) {
+			} else if (WORKLOAD_SPLIT(BORDER_ZLINES_X)) {
 				y = WORKLOAD_PARAM((PHYSICAL_LY-2)/2) * 2 + p + 1;
 				t = WORKLOAD_PARAM(PHYSICAL_LT-2) + 1;
 				x = WORKLOAD_CHUNK(2) * (PHYSICAL_LX - 1);
 			} else {
-				WORKLOAD_SPLIT(2*BORDER_ZLINES_Y);
+				WORKLOAD_SPLIT(BORDER_ZLINES_Y);
 
 				x = WORKLOAD_PARAM((PHYSICAL_LX-2)/2) * 2 + p + 1;
 				t = WORKLOAD_PARAM(PHYSICAL_LT-2) + 1;
@@ -212,18 +212,16 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield
 			}
 		} else if (WORKLOAD_SPLIT(BORDER_ZLINES_ALLEDGES)) {
 			const bool p = WORKLOAD_CHUNK(2);
-			if (WORKLOAD_SPLIT(4*BORDER_ZLINES_TX)) {
-				const bool p = WORKLOAD_TILE(2);
+			if (WORKLOAD_SPLIT(4*BORDER_ZLINES_TX/2)) {
 				y = WORKLOAD_PARAM((PHYSICAL_LY-2)/2) * 2 + p + 1;
 				x = WORKLOAD_CHUNK(2) * (PHYSICAL_LX - 1);
 				t = WORKLOAD_CHUNK(2) * (PHYSICAL_LT - 1);
-			} else if (WORKLOAD_SPLIT(4*BORDER_ZLINES_TY)) {
-				const bool p = WORKLOAD_TILE(2);
+			} else if (WORKLOAD_SPLIT(4*BORDER_ZLINES_TY/2)) {
 				x = WORKLOAD_PARAM((PHYSICAL_LX-2)/2) * 2 + p + 1;
 				y = WORKLOAD_CHUNK(2) * (PHYSICAL_LY - 1);
 				t = WORKLOAD_CHUNK(2) * (PHYSICAL_LT - 1);
 			} else {
-				WORKLOAD_SPLIT(4*BORDER_ZLINES_XY);
+				WORKLOAD_SPLIT(4*BORDER_ZLINES_XY/2);
 
 				t = WORKLOAD_PARAM((PHYSICAL_LT-2)/2) * 2 + p + 1;
 				y = WORKLOAD_CHUNK(2) * (PHYSICAL_LY - 1);
@@ -233,20 +231,20 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield
 			// vertices
 			int bits = WORKLOAD_PARAM(8);
 
-			y = (bits & 0x4) * (PHYSICAL_LY - 1);
-			x = (bits & 0x2) * (PHYSICAL_LX - 1);
-			t = (bits & 0x1) * (PHYSICAL_LT - 1);
+			y = ((bits>>2) & 0x1) * (PHYSICAL_LY - 1);
+			x = ((bits>>1) & 0x1) * (PHYSICAL_LX - 1);
+			t = ((bits>>0) & 0x1) * (PHYSICAL_LT - 1);
 		}
-		assert(xyz_total == 1);
-		assert(xyz == 0);
+		WORKLOAD_CHECK
+
 
 		#define BGQ_HM_ZLINE_ZLINEINDENT -1
-		#define BGQ_HM_ZUP_WEYLREAD -1
-		#define BGQ_HM_ZDOWN_WEYLREAD -1
+		#define BGQ_HM_TUP_WEYLREAD -1
+		#define BGQ_HM_TDOWN_WEYLREAD -1
 		#define BGQ_HM_XUP_WEYLREAD -1
 		#define BGQ_HM_XDOWN_WEYLREAD -1
 		#define BGQ_HM_YUP_WEYLREAD -1
-		#define BGQ_HM_YDOWN_WEYLREAD -+1
+		#define BGQ_HM_YDOWN_WEYLREAD -1
 		#include "bgq_HoppingMatrix_zline.inc.c"
 	}
 }

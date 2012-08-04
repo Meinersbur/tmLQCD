@@ -73,7 +73,7 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 			bgq_su3_spinor_double_load_right_torightonly(spinor_zup_mid, spinorsite_zup_mid);
 
 			bgq_su3_spinor_decl_leftonly(spinor_zup_right);
-			bgq_spinorsite_double *spinorsite_zup_right = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y, zv_right, z2-1,z2+1);
+			bgq_spinorsite_double *spinorsite_zup_right = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y, zv_right, z2+1,z2+3);
 			bgq_su3_spinor_double_load_left_toleftonly(spinor_zup_right, spinorsite_zup_right);
 
 			bgq_su3_spinor_merge(spinor_zup, spinor_zup_mid, spinor_zup_right);

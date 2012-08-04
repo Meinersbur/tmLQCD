@@ -1,3 +1,4 @@
+
 #ifndef BGQ_HM_TUP_WEYLREAD
 #define BGQ_HM_TUP_WEYLREAD 0
 #endif
@@ -23,30 +24,32 @@ void HoppingMatrix_site_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_
 #endif
 	{
 
+
 		bgq_su3_weyl_decl(weyl_tup);
 #if BGQ_HM_TUP_WEYLREAD==-1
 		if (t==PHYSICAL_LT-1) {
 #endif
 #if (BGQ_HM_TUP_WEYLREAD==-1) || (BGQ_HM_TUP_WEYLREAD==1)
-		bgq_weylsite_double *weylsite_tup = BGQ_WEYLSITE_X(weylxchange_recv_double[T_UP], !isOdd, t+1, x, y, zv);
-		bgq_su3_weyl_double_load(weyl_tup, weylsite_tup);
+			bgq_weylsite_double *weylsite_tup = BGQ_WEYLSITE_T(weylxchange_recv_double[T_UP], !isOdd, t+1, x, y, zv);
+			bgq_su3_weyl_double_load(weyl_tup, weylsite_tup);
 #endif
 #if BGQ_HM_TUP_WEYLREAD==-1
-	} else {
+		} else {
 #endif
 #if (BGQ_HM_TUP_WEYLREAD==-1) || (BGQ_HM_TUP_WEYLREAD==0)
-		// Load the input spinor
-		bgq_su3_spinor_decl(spinor_tup);
-		bgq_spinorsite_double *spinorsite_tup = BGQ_SPINORSITE(spinorfield, !isOdd, t+1, x, y, zv, z1,z2);
-		bgq_su3_spinor_double_load(spinor_tup, spinorsite_tup);
+			// Load the input spinor
+			bgq_su3_spinor_decl(spinor_tup);
+			bgq_spinorsite_double *spinorsite_tup = BGQ_SPINORSITE(spinorfield, !isOdd, t+1, x, y, zv, z1,z2);
+			bgq_su3_spinor_double_load(spinor_tup, spinorsite_tup);
 
-		// Compute its halfspinor
-		bgq_su3_vadd(weyl_tup_v0, spinor_tup_v0, spinor_tup_v2);
-		bgq_su3_vadd(weyl_tup_v1, spinor_tup_v1, spinor_tup_v3);
+			// Compute its halfspinor
+			bgq_su3_vadd(weyl_tup_v0, spinor_tup_v0, spinor_tup_v2);
+			bgq_su3_vadd(weyl_tup_v1, spinor_tup_v1, spinor_tup_v3);
 #endif
 #if (BGQ_HM_TUP_WEYLREAD==-1)
-	}
+		}
 #endif
+
 
 #if BGQ_HM_TUP_COMPUTE
 		bgq_su3_mdecl(gauge_tup);
@@ -57,8 +60,8 @@ void HoppingMatrix_site_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_
 		bgq_su3_mvmul(weyl_tup_v1, gauge_tup, weyl_tup_v1);
 
 #ifndef BGQ_HM_NOKAMUL
-		bgq_su3_cvmul(weyl_tup_v0, qka3, weyl_tup_v0);
-		bgq_su3_cvmul(weyl_tup_v1, qka3, weyl_tup_v1);
+		bgq_su3_cvmul(weyl_tup_v0, qka0, weyl_tup_v0);
+		bgq_su3_cvmul(weyl_tup_v1, qka0, weyl_tup_v1);
 #endif
 #endif
 

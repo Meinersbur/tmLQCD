@@ -122,7 +122,7 @@ EXTERN_INLINE bgq_spinorfield_double bgq_translate_spinorfield(spinor * const fi
 EXTERN_FIELD int g_num_spinorfields;
 EXTERN_FIELD int *g_spinorfield_isOdd;
 
-EXTERN_INLINE int assert_spinorcoord(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int zv, int k) {
+EXTERN_INLINE bool assert_spinorcoord(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int zv, int k) {
 	assert(spinorfield);
 	assert(false <= isOdd && isOdd <= true);
 	assert(0 <= t && t < LOCAL_LT);
@@ -134,12 +134,16 @@ EXTERN_INLINE int assert_spinorcoord(bgq_spinorfield_double spinorfield, bool is
 	assert(0 <= k && k < PHYSICAL_LK);
 
 	// Get the index of the used spinorfield
-	const int fieldsize = sizeof(bgq_spinorsite_double) * VOLUME; // alignment???
-	long long offset = (char*)g_spinorfields_doubledata - (char*)spinorfield;
+	const int fieldsize = sizeof(bgq_spinorsite_double) * VOLUME/2; // alignment???
+	long long offset = (char*)spinorfield - (char*)g_spinorfields_doubledata;
 	assert(offset >= 0);
 	assert(offset % fieldsize == 0);
 	int index = offset / fieldsize;
 	assert(index < g_num_spinorfields);
+
+	// Check that the coordinate is really an odd/even coordinate
+	assert(((t+x+y+z)&1) == isOdd);
+	assert(((t+x+y)&1) == (isOdd!=(z&1)));
 
 	// Check that field is used as an odd/even field
 	if (g_spinorfield_isOdd[index] == -1) {
@@ -149,17 +153,19 @@ EXTERN_INLINE int assert_spinorcoord(bgq_spinorfield_double spinorfield, bool is
 		assert(g_spinorfield_isOdd[index] == isOdd);
 	}
 
-	// Check that the coordinate is really an odd/even coordinate
-	assert(((t+x+y+z)&1) == isOdd);
-	assert(((t+x+y)&1) == (isOdd!=(z&1)));
-
 	int zeo = z/PHYSICAL_LP;
 
 	// Check that zv and k match the coordinate
 	assert(zeo/PHYSICAL_LK == zv);
 	assert(mod(zeo,PHYSICAL_LK) == k);
 
-	return 1; // All checks passed
+	int idx = ((t*PHYSICAL_LX + x)*PHYSICAL_LY + y)*PHYSICAL_LZV + zv;
+	bgq_spinorsite_double *address = &spinorfield[idx];
+	assert(g_spinorfields_double[index] <= address);
+	assert(address < (g_spinorfields_double[index] + VOLUME/2));
+	assert(((size_t)address)%32==0);
+
+	return true; // All checks passed
 }
 
 
@@ -187,15 +193,12 @@ void bgq_transfer_gaugefield(bgq_gaugefield_double targetfield, su3 **sourcefiel
 
 
 
-#ifndef NDEBUG
-#define BGQ_SPINORSITE(spinorfield, isOdd, t, x, y, zv, z1, z2)                   \
-		(assert_spinorcoord(spinorfield, isOdd, t, x, y, z1, zv, 0),			  \
-		 assert_spinorcoord(spinorfield, isOdd, t, x, y, z2, zv, 1),			  \
-		 &spinorfield[((t*PHYSICAL_LX + x)*PHYSICAL_LY + y)*PHYSICAL_LZV + zv]);
-#else
-#define BGQ_SPINORSITE(spinorfield, isOdd, t, x, y, zv, z1, z2)                    \
-		 (&spinorfield[((t*PHYSICAL_LX + x)*PHYSICAL_LY + y)*PHYSICAL_LZV + zv]);
-#endif
+
+#define BGQ_SPINORSITE(spinorfield, isOdd, t, x, y, zv, z1, z2)                           \
+		(assert(assert_spinorcoord(spinorfield, isOdd, t, x, y, z1, zv, 0)),			  \
+		 assert(assert_spinorcoord(spinorfield, isOdd, t, x, y, z2, zv, 1)),			  \
+		 &spinorfield[(((t)*PHYSICAL_LX + (x))*PHYSICAL_LY + (y))*PHYSICAL_LZV + (zv)]);
+
 
 EXTERN_INLINE double _Complex *bgq_spinorfield_double_local_to_physical(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int s, int c) {
 	assert(spinorfield);

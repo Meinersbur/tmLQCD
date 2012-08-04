@@ -61,8 +61,8 @@ void HoppingMatrix_site_yup(bgq_spinorfield_double targetfield, bgq_spinorfield_
 		bgq_su3_mvmul(weyl_yup_v1, gauge_yup, weyl_yup_v1);
 
 #ifndef BGQ_HM_NOKAMUL
-		bgq_su3_cvmul(weyl_yup_v0, qka1, weyl_yup_v0);
-		bgq_su3_cvmul(weyl_yup_v1, qka1, weyl_yup_v1);
+		bgq_su3_cvmul(weyl_yup_v0, qka2, weyl_yup_v0);
+		bgq_su3_cvmul(weyl_yup_v1, qka2, weyl_yup_v1);
 #endif
 #endif
 

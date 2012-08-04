@@ -26,13 +26,14 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 #endif
 	{
 
+
 #if (BGQ_HM_ZDOWN_LEFTWRAPAROUND==0)
 		const int zv_left = zv-1;
 #elif (BGQ_HM_ZDOWN_LEFTWRAPAROUND==1)
 		assert(zv==0);
 		const int zv_left = PHYSICAL_LZV-1;
 #elif (BGQ_HM_ZDOWN_LEFTWRAPAROUND==-1)
-		const int zv_left = mod(zv - 1, PHYSICAL_LZV);
+		const int zv_left = mod(zv-1, PHYSICAL_LZV);
 #endif
 
 
@@ -45,11 +46,11 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 			assert(((t+x+y)&1) == isOdd);
 
 			bgq_su3_spinor_decl_rightonly(spinor_zdown_left);
-			bgq_spinorsite_double *spinorsite_zdown_left = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y, zv_left, z2-1, z2+1);
+			bgq_spinorsite_double *spinorsite_zdown_left = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y, zv_left, z1-3, z1-1);
 			bgq_su3_spinor_double_load_right_torightonly(spinor_zdown_left, spinorsite_zdown_left);
 
 			bgq_su3_spinor_decl_leftonly(spinor_zdown_mid);
-			bgq_spinorsite_double *spinorsite_zdown_mid = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y, zv, z1-3, z1-1);
+			bgq_spinorsite_double *spinorsite_zdown_mid = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y, zv, z2-1, z2+1);
 			bgq_su3_spinor_double_load_left_toleftonly(spinor_zdown_mid, spinorsite_zdown_mid);
 
 			bgq_su3_spinor_merge(spinor_zdown, spinor_zdown_left, spinor_zdown_mid);

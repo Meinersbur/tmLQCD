@@ -22,6 +22,9 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 #endif
 	{
 
+
+		int z1;
+		int z2;
 #if (BGQ_HM_ZLINE_ZLINEINDENT==-1)
 		if (((t + x + y)&1) == isOdd) {
 #endif
@@ -29,18 +32,8 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 			assert(((t+x+y)&1)==isOdd);
 			// zline indention == 0
 			// iterate from zbottom to ztop
-
-			int z1 = 0;
-			int z2 = 2;
-			for (int zv = 0; zv < PHYSICAL_LZV-1; zv+=1) {
-				#define BGQ_HM_ZUP_ZLINEINDENT 0
-				#define BGQ_HM_ZDOWN_ZLINEINDENT 0
-				#include "bgq_HoppingMatrix_site.inc.c"
-
-				z1 += PHYSICAL_LP * PHYSICAL_LK;
-				z2 += PHYSICAL_LP * PHYSICAL_LK;
-			}
-
+			z1 = 0;
+			z2 = 2;
 #endif
 #if (BGQ_HM_ZLINE_ZLINEINDENT==-1)
 			} else {
@@ -48,25 +41,26 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 #if (BGQ_HM_ZLINE_ZLINEINDENT==-1) || (BGQ_HM_ZLINE_ZLINEINDENT==1)
 				assert(((t+x+y)&1)==!isOdd);
 				// zline indention == 1
-
-				int z1 = 0;
-				int z2 = 2;
-				for (int zv = 0; zv < PHYSICAL_LZV-1; zv+=1) {
-					#define BGQ_HM_ZUP_ZLINEINDENT 1
-					#define BGQ_HM_ZDOWN_ZLINEINDENT 1
-					#include "bgq_HoppingMatrix_site.inc.c"
-
-					z1 += PHYSICAL_LP * PHYSICAL_LK;
-					z2 += PHYSICAL_LP * PHYSICAL_LK;
-				}
-
+				z1 = 1;
+				z2 = 3;
 #endif
 #if (BGQ_HM_ZLINE_ZLINEINDENT==-1)
 			}
 #endif
 
 
+		for (int zv = 0; zv < PHYSICAL_LZV-1; zv+=1) {
+			#define BGQ_HM_ZUP_ZLINEINDENT BGQ_HM_ZLINE_ZLINEINDENT
+			#define BGQ_HM_ZDOWN_ZLINEINDENT BGQ_HM_ZLINE_ZLINEINDENT
+			#include "bgq_HoppingMatrix_site.inc.c"
+
+			z1 += PHYSICAL_LP * PHYSICAL_LK;
+			z2 += PHYSICAL_LP * PHYSICAL_LK;
 		}
+
+
+
+	}
 #ifndef BGQ_HM_ZLINE_NOFUNC
 }
 #undef BGQ_HM_SITE_NOFUNC

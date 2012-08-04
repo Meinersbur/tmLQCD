@@ -60,8 +60,8 @@ void bgq_HoppingMatrix_site_xdn(bgq_spinorfield_double targetfield, bgq_spinorfi
 		bgq_su3_mvinvmul(weyl_xdown_v1, gauge_xdown, weyl_xdown_v1);
 
 #ifndef BGQ_HM_NOKAMUL
-		bgq_su3_cvmul(weyl_xdown_v0, qka0, weyl_xdown_v0);
-		bgq_su3_cvmul(weyl_xdown_v1, qka0, weyl_xdown_v1);
+		bgq_su3_cvmul(weyl_xdown_v0, qka1, weyl_xdown_v0);
+		bgq_su3_cvmul(weyl_xdown_v1, qka1, weyl_xdown_v1);
 #endif
 #endif
 
@@ -78,9 +78,9 @@ void bgq_HoppingMatrix_site_xdn(bgq_spinorfield_double targetfield, bgq_spinorfi
 		bgq_su3_vpiadd(result_v2, result_v2, weyl_xdown_v1);
 		bgq_su3_vpiadd(result_v3, result_v3, weyl_xdown_v0);
 #endif
+
+
 	}
-
-
 #ifndef BGQ_HM_DIR_NOFUNC
 }
 #endif

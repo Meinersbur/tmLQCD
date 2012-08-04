@@ -46,13 +46,13 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 
 // direction Z_DOWN /////////////////////////////////////////////////////////////
 #define BGQ_HM_ZDOWN_COMPUTE 1
-#define BGQ_HM_zDOWN_ACCUMULATE 1
+#define BGQ_HM_ZDOWN_ACCUMULATE 1
 #include "bgq_HoppingMatrix_zdown.inc.c"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Store the spinor
 
-		bgq_spinorsite_double * targetsite = BGQ_SPINORSITE(targetfield, isOdd, t, x, y, zv, z1, z2);
+		bgq_spinorsite_double *targetsite = BGQ_SPINORSITE(targetfield, isOdd, t, x, y, zv, z1, z2);
 		bgq_su3_spinor_double_store(targetsite, result);
 
 	}

@@ -25,14 +25,14 @@ void *malloc_aligned(size_t size, size_t alignment) {
 
 void bgq_init_spinorfields(int count) {
 	g_num_spinorfields = count;
-	int datasize = count * sizeof(*g_spinorfields_doubledata) * VOLUME;
+	int datasize = count * sizeof(*g_spinorfields_doubledata) * VOLUME/2;
 	g_spinorfields_doubledata = malloc_aligned(datasize, 128);
-	memset(g_spinorfields_doubledata, 0, datasize);
+
 
 	g_spinorfields_double = malloc(count * sizeof(*g_spinorfields_double));
-	g_spinorfield_isOdd = malloc(count * sizeof(g_spinorfield_isOdd));
+	g_spinorfield_isOdd = malloc(count * sizeof(*g_spinorfield_isOdd));
 	for (int i = 0; i < count; i += 1) {
-		g_spinorfields_double[i] = g_spinorfields_doubledata + i * VOLUME;
+		g_spinorfields_double[i] = g_spinorfields_doubledata + i * VOLUME/2;
 		g_spinorfield_isOdd[i] = -1; // Unknown yet
 	}
 }
