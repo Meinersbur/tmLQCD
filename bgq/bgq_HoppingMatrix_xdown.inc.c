@@ -15,15 +15,17 @@
 #define BGQ_HM_XDOWN_ACCUMULATE 0
 #endif
 
+
 #ifndef BGQ_HM_DIR_NOFUNC
 #include "bgq.h"
 #include "bgq_field.h"
-
-void bgq_HoppingMatrix_site_xdn(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int tv, int k, int z1, int z2) {
-	bgq_su3_spinor_decl(result);
+void bgq_HoppingMatrix_site_xdn(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int x, int y, int z, int tv, int k, int z1, int z2)
 #endif
+{
 
-	{
+	bgq_su3_spinor_decl(result);
+
+
 		bgq_su3_weyl_decl(weyl_xdown);
 #if BGQ_HM_XDOWN_WEYLREAD==-1
 		if (x==0) {
@@ -80,10 +82,7 @@ void bgq_HoppingMatrix_site_xdn(bgq_spinorfield_double targetfield, bgq_spinorfi
 #endif
 
 
-	}
-#ifndef BGQ_HM_DIR_NOFUNC
 }
-#endif
 
 
 #undef BGQ_HM_XDOWN_WEYLREAD

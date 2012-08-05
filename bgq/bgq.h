@@ -193,10 +193,10 @@ typedef struct {
 	dst = vec_xxnpmadd(a,b,c)
 
 #define bgq_iadd(dst,lhs,rhs) \
-	dst = bgq_xxnpmadd(dst,(vector4double)(1),rhs,lhs)
+	bgq_xxnpmadd(dst,(vector4double)(1),rhs,lhs)
 
 #define bgq_isub(dst,lhs,rhs) \
-	dst = bgq_xxcpnmadd(dst, b,(vector4double)(1),a)
+	bgq_xxcpnmadd(dst,rhs,(vector4double)(1),lhs)
 
 #define bgq_merge2(dst, a23_to01, b01_to23) \
 	dst = vec_perm(a23_to01, b01_to23, vec_gpci(02345))
@@ -215,6 +215,9 @@ typedef struct {
 
 #define bgq_xxcpnmadd(dst,a,b,c) \
 	dst = vec_xxcpnmadd(a,b,c)
+
+#define bgq_cconst(dst,re,im) \
+	dst = (vector4double){re,im,re,im}
 
 #endif
 
@@ -382,138 +385,138 @@ typedef struct {
 	bgq_su3_vdecl(name##_v1)
 
 #define bgq_su3_spinor_double_load(dst, addr) \
-	bgq_lda(NAME3(dst,v0,c0),   0, addr);          \
-	bgq_lda(NAME3(dst,v0,c1),  32, addr);          \
-	bgq_lda(NAME3(dst,v0,c2),  64, addr);          \
-	bgq_lda(NAME3(dst,v1,c0),  96, addr);          \
-	bgq_lda(NAME3(dst,v1,c1), 128, addr);          \
-	bgq_lda(NAME3(dst,v1,c2), 160, addr);          \
-	bgq_lda(NAME3(dst,v2,c0), 192, addr);          \
-	bgq_lda(NAME3(dst,v2,c1), 224, addr);          \
-	bgq_lda(NAME3(dst,v2,c2), 256, addr);          \
-	bgq_lda(NAME3(dst,v3,c0), 288, addr);          \
-	bgq_lda(NAME3(dst,v3,c1), 320, addr);          \
-	bgq_lda(NAME3(dst,v3,c2), 352, addr)
+	bgq_lda(NAME3(dst,v0,c0),   0, (double _Complex*)(addr));          \
+	bgq_lda(NAME3(dst,v0,c1),  32, (double _Complex*)(addr));          \
+	bgq_lda(NAME3(dst,v0,c2),  64, (double _Complex*)(addr));          \
+	bgq_lda(NAME3(dst,v1,c0),  96, (double _Complex*)(addr));          \
+	bgq_lda(NAME3(dst,v1,c1), 128, (double _Complex*)(addr));          \
+	bgq_lda(NAME3(dst,v1,c2), 160, (double _Complex*)(addr));          \
+	bgq_lda(NAME3(dst,v2,c0), 192, (double _Complex*)(addr));          \
+	bgq_lda(NAME3(dst,v2,c1), 224, (double _Complex*)(addr));          \
+	bgq_lda(NAME3(dst,v2,c2), 256, (double _Complex*)(addr));          \
+	bgq_lda(NAME3(dst,v3,c0), 288, (double _Complex*)(addr));          \
+	bgq_lda(NAME3(dst,v3,c1), 320, (double _Complex*)(addr));          \
+	bgq_lda(NAME3(dst,v3,c2), 352, (double _Complex*)(addr))
 // NOTE: qvlfdux is possibly more effective, but no compiler built-in exists
 
 #define bgq_su3_weyl_double_load(dest, addr) \
-	bgq_lda(dest##_v0_c0,   0, addr);        \
-	bgq_lda(dest##_v0_c1,  32, addr);        \
-	bgq_lda(dest##_v0_c2,  64, addr);        \
-	bgq_lda(dest##_v1_c0,  96, addr);        \
-	bgq_lda(dest##_v1_c1, 128, addr);        \
-	bgq_lda(dest##_v1_c2, 160, addr)
+	bgq_lda(dest##_v0_c0,   0, (double _Complex*)(addr));        \
+	bgq_lda(dest##_v0_c1,  32, (double _Complex*)(addr));        \
+	bgq_lda(dest##_v0_c2,  64, (double _Complex*)(addr));        \
+	bgq_lda(dest##_v1_c0,  96, (double _Complex*)(addr));        \
+	bgq_lda(dest##_v1_c1, 128, (double _Complex*)(addr));        \
+	bgq_lda(dest##_v1_c2, 160, (double _Complex*)(addr))
 
 #define bgq_su3_matrix_double_load(dest, addr)   \
-	bgq_lda(dest##_c00,   0, addr); \
-	bgq_lda(dest##_c01,  32, addr); \
-	bgq_lda(dest##_c02,  64, addr); \
-	bgq_lda(dest##_c10,  96, addr); \
-	bgq_lda(dest##_c11, 128, addr); \
-	bgq_lda(dest##_c12, 160, addr); \
-	bgq_lda(dest##_c20, 192, addr); \
-	bgq_lda(dest##_c21, 224, addr); \
-	bgq_lda(dest##_c22, 256, addr)
+	bgq_lda(dest##_c00,   0, (double _Complex*)(addr)); \
+	bgq_lda(dest##_c01,  32, (double _Complex*)(addr)); \
+	bgq_lda(dest##_c02,  64, (double _Complex*)(addr)); \
+	bgq_lda(dest##_c10,  96, (double _Complex*)(addr)); \
+	bgq_lda(dest##_c11, 128, (double _Complex*)(addr)); \
+	bgq_lda(dest##_c12, 160, (double _Complex*)(addr)); \
+	bgq_lda(dest##_c20, 192, (double _Complex*)(addr)); \
+	bgq_lda(dest##_c21, 224, (double _Complex*)(addr)); \
+	bgq_lda(dest##_c22, 256, (double _Complex*)(addr))
 
 #define bgq_su3_matrix_double_load_left(dest, addr)   \
-	dest##_c00 = vec_ld2a(  0, addr); \
-	dest##_c01 = vec_ld2a( 32, addr); \
-	dest##_c02 = vec_ld2a( 64, addr); \
-	dest##_c10 = vec_ld2a( 96, addr); \
-	dest##_c11 = vec_ld2a(128, addr); \
-	dest##_c12 = vec_ld2a(160, addr); \
-	dest##_c20 = vec_ld2a(192, addr); \
-	dest##_c21 = vec_ld2a(224, addr); \
-	dest##_c22 = vec_ld2a(256, addr)
+	dest##_c00 = vec_ld2a(  0, (double _Complex*)(addr)); \
+	dest##_c01 = vec_ld2a( 32, (double _Complex*)(addr)); \
+	dest##_c02 = vec_ld2a( 64, (double _Complex*)(addr)); \
+	dest##_c10 = vec_ld2a( 96, (double _Complex*)(addr)); \
+	dest##_c11 = vec_ld2a(128, (double _Complex*)(addr)); \
+	dest##_c12 = vec_ld2a(160, (double _Complex*)(addr)); \
+	dest##_c20 = vec_ld2a(192, (double _Complex*)(addr)); \
+	dest##_c21 = vec_ld2a(224, (double _Complex*)(addr)); \
+	dest##_c22 = vec_ld2a(256, (double _Complex*)(addr))
 
 #define bgq_su3_matrix_double_load_right(dest, addr)   \
-	dest##_c00 = vec_ld2a(16+  0, addr); \
-	dest##_c01 = vec_ld2a(16+ 32, addr); \
-	dest##_c02 = vec_ld2a(16+ 64, addr); \
-	dest##_c10 = vec_ld2a(16+ 96, addr); \
-	dest##_c11 = vec_ld2a(16+128, addr); \
-	dest##_c12 = vec_ld2a(16+160, addr); \
-	dest##_c20 = vec_ld2a(16+192, addr); \
-	dest##_c21 = vec_ld2a(16+224, addr); \
-	dest##_c22 = vec_ld2a(16+256, addr)
+	dest##_c00 = vec_ld2a(16+  0, (double _Complex*)(addr)); \
+	dest##_c01 = vec_ld2a(16+ 32, (double _Complex*)(addr)); \
+	dest##_c02 = vec_ld2a(16+ 64, (double _Complex*)(addr)); \
+	dest##_c10 = vec_ld2a(16+ 96, (double _Complex*)(addr)); \
+	dest##_c11 = vec_ld2a(16+128, (double _Complex*)(addr)); \
+	dest##_c12 = vec_ld2a(16+160, (double _Complex*)(addr)); \
+	dest##_c20 = vec_ld2a(16+192, (double _Complex*)(addr)); \
+	dest##_c21 = vec_ld2a(16+224, (double _Complex*)(addr)); \
+	dest##_c22 = vec_ld2a(16+256, (double _Complex*)(addr))
 
 #define bgq_su3_spinor_double_load_left(dst,addr) \
-	bgq_ld2a(dst##_v0_c0,   0, addr); \
-	bgq_ld2a(dst##_v0_c1,  32, addr); \
-	bgq_ld2a(dst##_v0_c2,  64, addr); \
-	bgq_ld2a(dst##_v1_c0,  96, addr); \
-	bgq_ld2a(dst##_v1_c1, 128, addr); \
-	bgq_ld2a(dst##_v1_c2, 160, addr); \
-	bgq_ld2a(dst##_v2_c0, 192, addr); \
-	bgq_ld2a(dst##_v2_c1, 224, addr); \
-	bgq_ld2a(dst##_v2_c2, 256, addr); \
-	bgq_ld2a(dst##_v3_c0, 288, addr); \
-	bgq_ld2a(dst##_v3_c1, 320, addr); \
-	bgq_ld2a(dst##_v3_c2, 352, addr)
+	bgq_ld2a(dst##_v0_c0,   0, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v0_c1,  32, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v0_c2,  64, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v1_c0,  96, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v1_c1, 128, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v1_c2, 160, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v2_c0, 192, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v2_c1, 224, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v2_c2, 256, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v3_c0, 288, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v3_c1, 320, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v3_c2, 352, (double _Complex*)(addr))
 
 #define bgq_su3_spinor_double_load_left_toleftonly(dst,addr) \
-	bgq_ld2a_leftonly(dst##_v0_c0,   0, addr); \
-	bgq_ld2a_leftonly(dst##_v0_c1,  32, addr); \
-	bgq_ld2a_leftonly(dst##_v0_c2,  64, addr); \
-	bgq_ld2a_leftonly(dst##_v1_c0,  96, addr); \
-	bgq_ld2a_leftonly(dst##_v1_c1, 128, addr); \
-	bgq_ld2a_leftonly(dst##_v1_c2, 160, addr); \
-	bgq_ld2a_leftonly(dst##_v2_c0, 192, addr); \
-	bgq_ld2a_leftonly(dst##_v2_c1, 224, addr); \
-	bgq_ld2a_leftonly(dst##_v2_c2, 256, addr); \
-	bgq_ld2a_leftonly(dst##_v3_c0, 288, addr); \
-	bgq_ld2a_leftonly(dst##_v3_c1, 320, addr); \
-	bgq_ld2a_leftonly(dst##_v3_c2, 352, addr)
+	bgq_ld2a_leftonly(dst##_v0_c0,   0, (double*)(addr)); \
+	bgq_ld2a_leftonly(dst##_v0_c1,  32, (double*)(addr)); \
+	bgq_ld2a_leftonly(dst##_v0_c2,  64, (double*)(addr)); \
+	bgq_ld2a_leftonly(dst##_v1_c0,  96, (double*)(addr)); \
+	bgq_ld2a_leftonly(dst##_v1_c1, 128, (double*)(addr)); \
+	bgq_ld2a_leftonly(dst##_v1_c2, 160, (double*)(addr)); \
+	bgq_ld2a_leftonly(dst##_v2_c0, 192, (double*)(addr)); \
+	bgq_ld2a_leftonly(dst##_v2_c1, 224, (double*)(addr)); \
+	bgq_ld2a_leftonly(dst##_v2_c2, 256, (double*)(addr)); \
+	bgq_ld2a_leftonly(dst##_v3_c0, 288, (double*)(addr)); \
+	bgq_ld2a_leftonly(dst##_v3_c1, 320, (double*)(addr)); \
+	bgq_ld2a_leftonly(dst##_v3_c2, 352, (double*)(addr))
 
 #define bgq_su3_spinor_double_load_right(dst,addr) \
-	bgq_ld2a(dst##_v0_c0,   0+16, addr); \
-	bgq_ld2a(dst##_v0_c1,  32+16, addr); \
-	bgq_ld2a(dst##_v0_c2,  64+16, addr); \
-	bgq_ld2a(dst##_v1_c0,  96+16, addr); \
-	bgq_ld2a(dst##_v1_c1, 128+16, addr); \
-	bgq_ld2a(dst##_v1_c2, 160+16, addr); \
-	bgq_ld2a(dst##_v2_c0, 192+16, addr); \
-	bgq_ld2a(dst##_v2_c1, 224+16, addr); \
-	bgq_ld2a(dst##_v2_c2, 256+16, addr); \
-	bgq_ld2a(dst##_v3_c0, 288+16, addr); \
-	bgq_ld2a(dst##_v3_c1, 320+16, addr); \
-	bgq_ld2a(dst##_v3_c2, 352+16, addr)
+	bgq_ld2a(dst##_v0_c0,   0+16, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v0_c1,  32+16, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v0_c2,  64+16, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v1_c0,  96+16, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v1_c1, 128+16, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v1_c2, 160+16, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v2_c0, 192+16, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v2_c1, 224+16, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v2_c2, 256+16, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v3_c0, 288+16, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v3_c1, 320+16, (double _Complex*)(addr)); \
+	bgq_ld2a(dst##_v3_c2, 352+16, (double _Complex*)(addr))
 
 #define bgq_su3_spinor_double_load_right_torightonly(dst,addr) \
-	bgq_ld2a_rightonly(dst##_v0_c0,   0+16, addr); \
-	bgq_ld2a_rightonly(dst##_v0_c1,  32+16, addr); \
-	bgq_ld2a_rightonly(dst##_v0_c2,  64+16, addr); \
-	bgq_ld2a_rightonly(dst##_v1_c0,  96+16, addr); \
-	bgq_ld2a_rightonly(dst##_v1_c1, 128+16, addr); \
-	bgq_ld2a_rightonly(dst##_v1_c2, 160+16, addr); \
-	bgq_ld2a_rightonly(dst##_v2_c0, 192+16, addr); \
-	bgq_ld2a_rightonly(dst##_v2_c1, 224+16, addr); \
-	bgq_ld2a_rightonly(dst##_v2_c2, 256+16, addr); \
-	bgq_ld2a_rightonly(dst##_v3_c0, 288+16, addr); \
-	bgq_ld2a_rightonly(dst##_v3_c1, 320+16, addr); \
-	bgq_ld2a_rightonly(dst##_v3_c2, 352+16, addr)
+	bgq_ld2a_rightonly(dst##_v0_c0,   0+16, (double*)(addr)); \
+	bgq_ld2a_rightonly(dst##_v0_c1,  32+16, (double*)(addr)); \
+	bgq_ld2a_rightonly(dst##_v0_c2,  64+16, (double*)(addr)); \
+	bgq_ld2a_rightonly(dst##_v1_c0,  96+16, (double*)(addr)); \
+	bgq_ld2a_rightonly(dst##_v1_c1, 128+16, (double*)(addr)); \
+	bgq_ld2a_rightonly(dst##_v1_c2, 160+16, (double*)(addr)); \
+	bgq_ld2a_rightonly(dst##_v2_c0, 192+16, (double*)(addr)); \
+	bgq_ld2a_rightonly(dst##_v2_c1, 224+16, (double*)(addr)); \
+	bgq_ld2a_rightonly(dst##_v2_c2, 256+16, (double*)(addr)); \
+	bgq_ld2a_rightonly(dst##_v3_c0, 288+16, (double*)(addr)); \
+	bgq_ld2a_rightonly(dst##_v3_c1, 320+16, (double*)(addr)); \
+	bgq_ld2a_rightonly(dst##_v3_c2, 352+16, (double*)(addr))
 
 #define bgq_su3_spinor_double_store(addr,src) \
-	bgq_sta(src##_v0_c0,   0, addr);          \
-	bgq_sta(src##_v0_c1,  32, addr);          \
-	bgq_sta(src##_v0_c2,  64, addr);          \
-	bgq_sta(src##_v1_c0,  96, addr);          \
-	bgq_sta(src##_v1_c1, 128, addr);          \
-	bgq_sta(src##_v1_c2, 160, addr);          \
-	bgq_sta(src##_v2_c0, 192, addr);          \
-	bgq_sta(src##_v2_c1, 224, addr);          \
-	bgq_sta(src##_v2_c2, 256, addr);          \
-	bgq_sta(src##_v3_c0, 288, addr);          \
-	bgq_sta(src##_v3_c1, 320, addr);          \
-	bgq_sta(src##_v3_c2, 352, addr)
+	bgq_sta(src##_v0_c0,   0, (double _Complex*)(addr));          \
+	bgq_sta(src##_v0_c1,  32, (double _Complex*)(addr));          \
+	bgq_sta(src##_v0_c2,  64, (double _Complex*)(addr));          \
+	bgq_sta(src##_v1_c0,  96, (double _Complex*)(addr));          \
+	bgq_sta(src##_v1_c1, 128, (double _Complex*)(addr));          \
+	bgq_sta(src##_v1_c2, 160, (double _Complex*)(addr));          \
+	bgq_sta(src##_v2_c0, 192, (double _Complex*)(addr));          \
+	bgq_sta(src##_v2_c1, 224, (double _Complex*)(addr));          \
+	bgq_sta(src##_v2_c2, 256, (double _Complex*)(addr));          \
+	bgq_sta(src##_v3_c0, 288, (double _Complex*)(addr));          \
+	bgq_sta(src##_v3_c1, 320, (double _Complex*)(addr));          \
+	bgq_sta(src##_v3_c2, 352, (double _Complex*)(addr))
 
 #define bgq_su3_weyl_double_store(addr,src) \
-	bgq_sta(src##_v0_c0,   0, addr);          \
-	bgq_sta(src##_v0_c1,  32, addr);          \
-	bgq_sta(src##_v0_c2,  64, addr);          \
-	bgq_sta(src##_v1_c0,  96, addr);          \
-	bgq_sta(src##_v1_c1, 128, addr);          \
-	bgq_sta(src##_v1_c2, 160, addr)
+	bgq_sta(src##_v0_c0,   0, (double _Complex*)(addr));          \
+	bgq_sta(src##_v0_c1,  32, (double _Complex*)(addr));          \
+	bgq_sta(src##_v0_c2,  64, (double _Complex*)(addr));          \
+	bgq_sta(src##_v1_c0,  96, (double _Complex*)(addr));          \
+	bgq_sta(src##_v1_c1, 128, (double _Complex*)(addr));          \
+	bgq_sta(src##_v1_c2, 160, (double _Complex*)(addr))
 
 #define bgq_su3_spinor_merge(dst,a,b)         \
 	bgq_su3_vmerge(dst##_v0, a##_v0, b##_v0); \
