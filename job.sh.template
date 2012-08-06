@@ -1,0 +1,5 @@
+#! /usr/bin/bash
+
+make -j16 benchmark invert hmc_tm
+
+llsubmit job.ll
