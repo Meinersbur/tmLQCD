@@ -8,4 +8,3 @@
 
 #define BGQ_UTILS_C_
 #include "bgq_utils.h"
-

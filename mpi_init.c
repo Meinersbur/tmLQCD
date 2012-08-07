@@ -265,9 +265,10 @@ void tmlqcd_mpi_init(int argc,char *argv[]) {
   MPI_Comm_size(MPI_COMM_WORLD, &g_nproc);
   MPI_Comm_rank(MPI_COMM_WORLD, &g_proc_id);
   MPI_Get_processor_name(processor_name, &namelen);
+  //fprintf(stderr, "MK input dims %d, %d, %d, %d\n", dims[0], dims[1], dims[2], dims[3]);
   MPI_Dims_create(g_nproc, nalldims, dims);
   if(g_proc_id == 0){
-    printf("Creating the following cartesian grid for a %d dimensional parallelisation:\n%d x %d x %d x %d\n"
+    printf("Creating the following cartesian grid for a %d dimensional parallelization:\n%d x %d x %d x %d\n"
 	   , ndims, dims[0], dims[1], dims[2], dims[3]);
   }
 
@@ -288,6 +289,10 @@ void tmlqcd_mpi_init(int argc,char *argv[]) {
     exit(-1);
   }
 
+  if(g_proc_id == 0) {
+	  fprintf(stderr, "MK global size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
+  }
+
 #  ifndef FIXEDVOLUME
   N_PROC_T = g_nproc_t;
   N_PROC_X = g_nproc_x;
@@ -298,6 +303,11 @@ void tmlqcd_mpi_init(int argc,char *argv[]) {
   LY = LY/g_nproc_y;
   LZ = LZ/g_nproc_z;
   VOLUME = (T*LX*LY*LZ);
+
+  if(g_proc_id == 0) {
+	  fprintf(stderr, "MK local size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
+  }
+
 #    ifdef _USE_TSPLITPAR
   TEOSLICE = (LX*LY*LZ)/2;
 #    endif

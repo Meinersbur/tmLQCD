@@ -1,11 +1,10 @@
- #! /usr/bin/env python
+ #! /usr/bin/python
  
 import sys
 import operator
-import numbthy
 import getopt
 import os
-import argparse
+import optparse
 import shutil
 import fnmatch
 
@@ -20,57 +19,63 @@ workfs = os.path.realpath(os.path.expandvars('${WORK}'))
 
 
 def isInDir(dir, ancestor):
-    return ancestor.startswith(dir)
+    return os.path.realpath(ancestor).startswith(os.path.realpath(dir))
 
 def genJobname(i):
-    if i==0:
-        return jobname
-    else:
-        return jobname + '_' + i
+    return jobname + '_' + ("%03d"%i)
     
     
     
 def instTemplate(file):
-    fr=open(file, 'r')
-    template=fr.read()
+    sext = os.path.splitext(file);
+    newfile = sext[0]
+    
+    print "Configure " + file + " to " + newfile + " ..."
+    fr = open(file, 'r')
+    template = fr.read()
     fr.close()
     
     # do replacements
     
-    sext = os.path.splitext(file);
-    newfile = sext[0]
-    fw.open(newfile, 'w')
+    fw = open(newfile, 'w')
     fw.write(template)
     fw.close()
     
+    shutil.copystat(file, newfile)
+    
+    
 def prepareJob():
     # replace the variable in all .template files
+    print "Configuration..."
     for root, dirs, files in os.walk(jobdir):
         for file in fnmatch.filter(files, '*.template'):
-            absfile = os.path.join(root,file)
+            absfile = os.path.join(root, file)
             instTemplate(absfile)
 
     # Execute the pre-submit script; it should also submit the job
-    os.system('job.sh')
+    print "Run the jobscript"
+    os.system(jobscript)
 
 
-def submitJob():
-    pass
+
+   
 
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--jobscript', help="A script that prepares and then submits the job")
-    args = parser.parse_args()
+    parser = optparse.OptionParser()
+    parser.add_option('--jobscript', help="A script that prepares and then submits the job")
+    (options, args) = parser.parse_args()
     
     global jobscript
     global jobdir
-    if args.jobscript:
+    global jobname
+    if options.jobscript:
         jobscript = os.path.realpath(args.jobscript)
     else:
         jobscript = os.path.join(os.path.realpath(os.curdir), 'job.sh')
     jobdir = os.path.split(jobscript)[0]
+    jobname = os.path.split(jobdir)[1]
     
     if not isInDir(workfs, jobdir):
         # copy everything into the workfs before continuing
@@ -85,16 +90,21 @@ def main():
             i += 1
             
         # Copy everything to that new dir
-        shutil.copytree(jobdir, newjobdir,  symlinks=True)
+        print "Copying job files to " + newjobdir + "..."
+        shutil.copytree(jobdir, newjobdir, symlinks=True)
         
         # start the script in the new directory
+        jobscript = os.path.join(newjobdir, os.path.relpath(jobscript, jobdir))
         jobdir = newjobdir
         jobname = newjobname
-        jobscript = os.path.relpath(jobscript, start)
+        
+    print "Jobdir: " + jobdir
+    print "Jobname: " + jobname
+    print "Jobscript: " + jobscript
         
     os.chdir(jobdir)
     prepareJob()
-    startJob()
+    
         
 
 if __name__ == "__main__":

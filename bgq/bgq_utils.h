@@ -15,9 +15,11 @@
 #ifndef BGQ_UTILS_C_
 #define EXTERN_INLINE inline
 #define EXTERN_FIELD extern
+#define EXTERN_INIT(val)
 #else
 #define EXTERN_INLINE extern inline
 #define EXTERN_FIELD
+#define EXTERN_INIT(val) = val
 #endif
 
 
@@ -236,6 +238,25 @@ static inline int mod(const int dividend, const int divisor) {
 #endif
 }
 #endif
+
+
+
+#define BGQ_ENTER_FUNC                                     \
+	if (g_proc_id==0) {                                    \
+		fprintf(stderr, "MK ENTER_FUNC %s\n",  __func__);  \
+	}
+
+EXTERN_FIELD double bgq_g_wtick EXTERN_INIT(0);
+
+EXTERN_INLINE void bgq_init_wtime() {
+	bgq_g_wtick = MPI_Wtick();
+}
+
+// return wall clock time in seconds
+EXTERN_INLINE double bgq_wtime() {
+	assert(bgq_g_wtick != 0);
+	return MPI_Wtime();
+}
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

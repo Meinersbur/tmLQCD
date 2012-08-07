@@ -1,5 +1,10 @@
 #! /usr/bin/bash
 
 make -j16 benchmark invert hmc_tm
+if [ "$?" -ne "0" ]; then
+  echo "Make failed, not submitting job"
+  exit 1
+fi
 
 llsubmit job.ll
+

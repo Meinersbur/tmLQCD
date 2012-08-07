@@ -4191,6 +4191,7 @@ static inline void rmQuotes(char *str){
   int cstring_caller;
   int solver_caller;
 
+ //fprintf(stderr, "MK parse_config global size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
   /* declaration of input parameters */
   int i=0;
   int line_of_file = 1;
@@ -4210,8 +4211,8 @@ static inline void rmQuotes(char *str){
   char name[100];
   char * type;
 
-  int verbose = 0;
-  int myverbose = 0;
+  int verbose = 1;
+  int myverbose = 1;
   int startoption;
   int Ntherm;
   int Nmeas;
@@ -4636,6 +4637,7 @@ extern int tmlqcdlex (void);
  */
 YY_DECL
 {
+ fprintf(stderr, "MK parse_config global size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
 	register yy_state_type yy_current_state;
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
@@ -8351,6 +8353,7 @@ tmlqcdin = yyinfg;
    ********************************************/
   reread = 0;
 #ifndef FIXEDVOLUME
+  fprintf(stderr, "MK parsing file\n");
   T_global = _default_T_global;
   L = _default_L;
   LX = _default_LX;
@@ -8461,7 +8464,9 @@ tmlqcdin = yyinfg;
   }
 
 /* GG */
-#ifndef MPIO
+ fprintf(stderr, "MK3 read_input global size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
+//#ifndef MPIO
+#if 0
   if ((tmlqcdin = fopen(conf_file, "rt")) == NULL){
     return(2);
   }
@@ -8474,7 +8479,9 @@ tmlqcdin = yyinfg;
 
   tmlqcdout = fopen("/dev/null", "w");
 
+ fprintf(stderr, "MK2 read_input global size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
   parse_config();  
+ fprintf(stderr, "MK4 read_input global size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
 #ifndef FIXEDVOLUME
   if(LX == 0) {
     LX = L;
@@ -8494,6 +8501,7 @@ tmlqcdin = yyinfg;
 #ifndef MPIO
   fclose(tmlqcdin);
 #endif
+ fprintf(stderr, "MK read_input global size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
   return(0);
 }
 
@@ -8538,7 +8546,8 @@ tmlqcdin = yyinfg;
   /********************************************/
 
 /* GG */
-#ifndef MPIO
+//#ifndef MPIO
+#if 0
   if ((tmlqcdin = fopen(conf_file, "rt")) == NULL){
     return(2);
   }

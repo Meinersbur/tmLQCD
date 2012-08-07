@@ -150,21 +150,10 @@ double gatime, getime;
 #  define SLICE ((LY*LZ*T/2) + (LX*LZ*T/2) + (LX*LY*T/2))
 #endif
 
-#if (defined BGL && !defined BGP)
-static double clockspeed=1.0e-6/700.0;
 
-double bgl_wtime() {
-	return ( rts_get_timebase() * clockspeed );
-}
-#else
-# ifdef MPI
 double bgl_wtime() {
 	return (MPI_Wtime());
 }
-# else
-double bgl_wtime() {return(0);}
-# endif
-#endif
 
 int check_xchange();
 
@@ -225,6 +214,7 @@ int main(int argc, char *argv[])
 	/* Read the input file */
 	/*   read_input("benchmark.input"); */
 	if (input_filename == NULL ) {
+		fprintf(stderr, "MK You forgot to specify a benchamrk.input\n");
 		strcpy(input_filename, "benchmark.input");
 	}
 
@@ -238,14 +228,22 @@ int main(int argc, char *argv[])
 	yybufgg = (void *) malloc(8192*sizeof(char));
 	yyingg = (FILE*) malloc(sizeof(FILE*));
 	if (g_proc_id == 0) {
+		fprintf(stderr, "MK input_filename='%s'\n", input_filename);
 		yyfd = open(input_filename, O_RDONLY);
+		if (!yyfd)
+			fprintf(stderr, "MK Cannot open file\n");
 		yyCount = read(yyfd, yybufgg, 8192);
+		fprintf(stderr, "MK yyCount %d %s\n", yyCount, yybufgg);
 		intrig = close(yyfd);
 	}
 	intrig = MPI_Bcast(yybufgg, 8192, MPI_CHAR, 0, MPI_COMM_WORLD );
 	yyingg = fmemopen(yybufgg, strlen(yybufgg), "r");
+	if (!yyingg) {
+		fprintf(stderr, "MK unable to read config file %s\n", yybufgg);
+	}
 	intrig = read_input_fh(yyingg);
 #endif
+	 fprintf(stderr, "MK %d benchmark global size: %dx%dx%dx%d=%d\n", intrig, T, LX, LY, LZ,VOLUME);
 
 	/* GG */
 	if (g_proc_id)
@@ -398,9 +396,10 @@ int main(int argc, char *argv[])
 #endif
 
 	if (even_odd_flag) {
+		fprintf(stderr, "MK even_odd_flag\n");
 		/*initialize the pseudo-fermion fields*/
 		j_max = 1;
-		sdt = 0.;
+		sdt = 0.0;
 		for (k = 0; k < k_max; k++) {
 			random_spinor_field(g_spinor_field[k], VOLUME / 2, 0);
 #if BGQ
@@ -409,6 +408,7 @@ int main(int argc, char *argv[])
 		}
 
 		int again = 0;
+		int iterations = 0;
 		while (sdt < 30.) {
 			if (again && !g_proc_id)
 				fprintf(stderr, "MK_Running again %d-th time, sdt=%f\n", again, sdt);
@@ -418,7 +418,7 @@ int main(int argc, char *argv[])
 #endif
 			if (sdt > 17)
 				mypapi_start();
-#if defined BGL
+#if 1
 			t1 = bgl_wtime();
 #else
 			t1 = (double) clock();
@@ -429,9 +429,10 @@ int main(int argc, char *argv[])
 					Hopping_Matrix(0, g_spinor_field[k + k_max], g_spinor_field[k]);
 					Hopping_Matrix(1, g_spinor_field[2 * k_max], g_spinor_field[k + k_max]);
 					antioptaway += g_spinor_field[2 * k_max][0].s0.c0.re;
+					iterations += 1;
 				}
 			}
-#if defined BGL
+#if 1
 			t2 = bgl_wtime();
 			dt = t2 - t1;
 #else
@@ -442,13 +443,13 @@ int main(int argc, char *argv[])
 				mypapi_stop();
 			}
 #ifdef MPI
-			MPI_Allreduce(&dt, &sdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+			MPI_Allreduce(&dt, &sdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 #else
 			sdt = dt;
 #endif
 			qdt = dt * dt;
 #ifdef MPI
-			MPI_Allreduce(&qdt, &sqdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+			MPI_Allreduce(&qdt, &sqdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 #else
 			sqdt = qdt;
 #endif
@@ -457,16 +458,19 @@ int main(int argc, char *argv[])
 			j_max *= 2;
 		}
 		j_max = j_max / 2;
+		double sdtsave = sdt;
 		dts = dt;
-		sdt = 1.0e6f * sdt / ((double) (k_max * j_max * (VOLUME)));
-		sqdt = 1.0e6f * sqdt / ((double) (k_max * j_max * (VOLUME)));
+		sdt = 1.0e6 * sdt / ((double) (k_max * j_max * (VOLUME)));
+		sqdt = 1.0e6 * sqdt / ((double) (k_max * j_max * (VOLUME)));
 
 		if (g_proc_id == 0) {
+			printf("MK VOLUME=%d\n", VOLUME);
+			printf("MK %d full iterations in %f secs avg\n", iterations, sdtsave/(double)iterations);
 			printf("Print 1 result, to make sure that the calculation is not optimized away: %e  \n", antioptaway);
-			printf("total time %e sec, Variance of the time %e sec. (itarations=%d). \n", sdt, sqdt, j_max);
+			printf("total time %e secs, Variance of the time %e sec. (iterations=%d). \n", sdt, sqdt, j_max);
 			printf("\n");
 			printf(" (%d Mflops [%d bit arithmetic])\n",
-			        (int) (1320.0f / sdt), (int) sizeof(spinor) / 3);
+			        (int) (1320.0 / sdt), (int) sizeof(spinor) / 3);
 			printf("\n");
 			fflush(stdout);
 		}
@@ -474,20 +478,22 @@ int main(int argc, char *argv[])
 		mypapi_start();
 #ifdef MPI
 		/* isolated computation */
-#if defined BGL
+#if 1
 		t1 = bgl_wtime();
 #else
 		t1 = (double) clock();
 #endif
+		iterations = 0;
 		antioptaway = 0.0;
 		for (j = 0; j < j_max; j++) {
 			for (k = 0; k < k_max; k++) {
 				Hopping_Matrix_nocom(0, g_spinor_field[k + k_max], g_spinor_field[k]);
 				Hopping_Matrix_nocom(1, g_spinor_field[2 * k_max], g_spinor_field[k + k_max]);
 				antioptaway += g_spinor_field[2 * k_max][0].s0.c0.re;
+				iterations += 1;
 			}
 		}
-#if defined BGL
+#if 1
 		t2 = bgl_wtime();
 		dt2 = t2 - t1;
 #else
@@ -505,6 +511,7 @@ int main(int argc, char *argv[])
 		dt = dt / ((double) g_nproc);
 		dt = 1.0e6f * dt / ((double) (k_max * j_max * (VOLUME)));
 		if (g_proc_id == 0) {
+			printf("MKnocom %d iterations in %f secs svg\n", iterations, sdt/iterations);
 			printf("Print 1 result, to make sure that the calculation is not optimized away: %e  \n", antioptaway);
 			printf("communication switched off \n");
 			printf("total time %e sec, Variance of the time %e sec. (iterations=%d). \n", sdt, sqdt, j_max);
@@ -532,6 +539,8 @@ int main(int argc, char *argv[])
 		fflush(stdout);
 	}
 	else {
+		fprintf(stderr, "MK !even_odd_flag\n");
+
 		/* the non even/odd case now */
 		/*initialize the pseudo-fermion fields*/
 		j_max = 1;
@@ -544,7 +553,7 @@ int main(int argc, char *argv[])
 #ifdef MPI
 			MPI_Barrier(MPI_COMM_WORLD );
 #endif
-#if defined BGL
+#if 1
 			t1 = bgl_wtime();
 #else
 			t1 = (double) clock();
@@ -555,7 +564,7 @@ int main(int argc, char *argv[])
 					antioptaway += g_spinor_field[k + k_max][0].s0.c0.re;
 				}
 			}
-#if defined BGL
+#if 1
 			t2 = bgl_wtime();
 			dt = t2 - t1;
 #else

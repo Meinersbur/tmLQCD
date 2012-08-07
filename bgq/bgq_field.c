@@ -24,6 +24,7 @@ void *malloc_aligned(size_t size, size_t alignment) {
 
 
 void bgq_init_spinorfields(int count) {
+	BGQ_ENTER_FUNC
 	g_num_spinorfields = count;
 	int datasize = count * sizeof(*g_spinorfields_doubledata) * VOLUME/2;
 	g_spinorfields_doubledata = malloc_aligned(datasize, 128);
@@ -50,6 +51,7 @@ void bgq_free_spinofields() {
 
 
 void bgq_init_gaugefield() {
+	BGQ_ENTER_FUNC
 	for (int isOdd = false; isOdd <= true; isOdd += 1) {
 		for (direction dir = T_UP; dir <= Z_UP_SHIFT; dir += 2) {
 			int zlinelength = PHYSICAL_LZV;
@@ -77,6 +79,7 @@ typedef struct {
 } su3_array64;
 
 void bgq_transfer_gaugefield(bgq_gaugefield_double const targetfield, su3 ** const sourcefield) {
+	BGQ_ENTER_FUNC
 	assert(targetfield);
 	assert(sourcefield);
 

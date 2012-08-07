@@ -68,6 +68,7 @@ void bgq_hm_free() {
 //#pragma GCC diagnostic ignored "-Wunused-variable"
 
 
+#define BGQ_HM_NOCOM 1
 #define BGQ_HM_SUFFIX double
 #include "bgq_HoppingMatrix.inc.c"
 
@@ -78,6 +79,8 @@ void bgq_hm_free() {
 
 // Hopping_Matrix.c compatibility layer
 void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k) {
+	//return;
+	//BGQ_ENTER_FUNC
 	bool isOdd = (ieo!=0);
 	bgq_spinorfield_double target = bgq_translate_spinorfield(l);
 	bgq_spinorfield_double source = bgq_translate_spinorfield(k);
@@ -87,6 +90,7 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k) {
 
 
 void Hopping_Matrix_nocom(const int ieo, spinor * const l, spinor * const k) {
+	//BGQ_ENTER_FUNC
 	bool isOdd = (ieo!=0);
 	bgq_spinorfield_double target = bgq_translate_spinorfield(l);
 	bgq_spinorfield_double source = bgq_translate_spinorfield(k);

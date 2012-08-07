@@ -103,8 +103,8 @@ static inline void rmQuotes(char *str){
   char name[100];
   char * type;
 
-  int verbose = 0;
-  int myverbose = 0;
+  int verbose = 1;
+  int myverbose = 1;
   int startoption;
   int Ntherm;
   int Nmeas;
@@ -1654,6 +1654,7 @@ yyin = yyinfg;
    ********************************************/
   reread = 0;
 #ifndef FIXEDVOLUME
+  fprintf(stderr, "MK parsing file\n");
   T_global = _default_T_global;
   L = _default_L;
   LX = _default_LX;
@@ -1797,6 +1798,7 @@ yyin = yyinfg;
 #ifndef MPIO
   fclose(yyin);
 #endif
+ fprintf(stderr, "MK read_input global size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
   return(0);
 }
 
