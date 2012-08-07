@@ -39,8 +39,8 @@
 void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield) {
 
 #if !BGQ_HM_NOCOM && defined(MPI)
-	if (g_proc_id == 0)
-		fprintf(stderr, "MK HM Irecv\n");
+	//if (g_proc_id == 0)
+	//	fprintf(stderr, "MK HM Irecv\n");
 	MPI_Request request_recv[6];
 	for (int d = T_UP; d <= Y_DOWN; d += 1) {
 		MPI_CHECK(MPI_Irecv(weylxchange_recv_double[d], weylxchange_size_double[d/2], MPI_BYTE, weylexchange_destination[d], d^1, MPI_COMM_WORLD, &request_recv[d]));
@@ -63,7 +63,7 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield
 	for (int xyz = 0; xyz < SURFACE_ZLINES_TOTAL*PHYSICAL_LZV; xyz+=1) {
 		WORKLOAD_DECL(xyz, SURFACE_ZLINES_TOTAL*PHYSICAL_LZV);
 
-		if (WORKLOAD_SPLIT(2*SURFACE_ZLINES_T)) {
+		if (WORKLOAD_SPLIT(2*SURFACE_ZLINES_T*PHYSICAL_LZV)) {
 			const int zv = WORKLOAD_PARAM(PHYSICAL_LZV);
 
 			if (WORKLOAD_SPLIT(SURFACE_ZLINES_T)) {
@@ -85,11 +85,10 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield
 				#define BGQ_HM_XDOWN_WEYL_SEND 1
 				#include "bgq_HoppingMatrix_xdown.inc.c"
 			}
-		} else if (WORKLOAD_SPLIT(2*SURFACE_ZLINES_X)) {
+		} else if (WORKLOAD_SPLIT(2*SURFACE_ZLINES_X*PHYSICAL_LZV)) {
 			const int zv = WORKLOAD_PARAM(PHYSICAL_LZV);
 
 			if (WORKLOAD_SPLIT(SURFACE_ZLINES_X)) {
-				const int zv = WORKLOAD_PARAM(PHYSICAL_LZV);
 				const int y = WORKLOAD_PARAM(PHYSICAL_LY);
 				const int x = PHYSICAL_LX;
 				const int t = WORKLOAD_PARAM(PHYSICAL_LT);
@@ -109,7 +108,7 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield
 				#include "bgq_HoppingMatrix_xup.inc.c"
 			}
 		} else {
-			WORKLOAD_SPLIT(2*SURFACE_ZLINES_Y);
+			WORKLOAD_SPLIT(2*SURFACE_ZLINES_Y*PHYSICAL_LZV);
 			const int zv = WORKLOAD_PARAM(PHYSICAL_LZV);
 
 			if (WORKLOAD_SPLIT(SURFACE_ZLINES_Y)) {
@@ -137,8 +136,8 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield
 
 
 #if !BGQ_HM_NOCOM && defined(MPI)
-	if (g_proc_id == 0)
-		fprintf(stderr, "MK HM Isend\n");
+	//if (g_proc_id == 0)
+	//	fprintf(stderr, "MK HM Isend\n");
 	MPI_Request request_send[6];
 	for (int d = T_UP; d <= Y_DOWN; d += 1) {
 		MPI_CHECK(MPI_Isend(weylxchange_send_double[d], weylxchange_size_double[d/2], MPI_BYTE, weylexchange_destination[d], d, MPI_COMM_WORLD, &request_send[d]));
@@ -172,13 +171,14 @@ void BGQ_HM_NAME(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield
 	}
 
 #if !BGQ_HM_NOCOM && defined(MPI)
-	if (g_proc_id == 0)
-		fprintf(stderr, "MK HM Waitall\n");
+	//if (g_proc_id == 0)
+	//	fprintf(stderr, "MK HM Waitall\n");
 	MPI_Status weylxchange_recv_status[6];
 	MPI_CHECK(MPI_Waitall(6, request_recv, weylxchange_recv_status));
 #ifndef NDEBUG
 	for (int d = T_UP; d <= Y_DOWN; d += 1) {
-		assert(get_MPI_count(&weylxchange_recv_status[d]) == weylxchange_size_double[d]);
+		//fprintf(stderr, "MK(rank: %d) Waitall got: %d, expected: %d\n", g_proc_id, get_MPI_count(&weylxchange_recv_status[d]), weylxchange_size_double[d]);
+		assert(get_MPI_count(&weylxchange_recv_status[d]) == weylxchange_size_double[d/2]);
 	}
 #endif
 #endif

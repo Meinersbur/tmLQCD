@@ -68,7 +68,7 @@ void bgq_hm_free() {
 //#pragma GCC diagnostic ignored "-Wunused-variable"
 
 
-#define BGQ_HM_NOCOM 1
+//#define BGQ_HM_NOCOM 1
 #define BGQ_HM_SUFFIX double
 #include "bgq_HoppingMatrix.inc.c"
 
