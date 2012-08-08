@@ -11,6 +11,7 @@
 #include <mpi.h>
 #include "complex_c99.h"
 //#include <complex.h>
+#include <assert.h>
 
 #ifndef BGQ_UTILS_C_
 #define EXTERN_INLINE inline
@@ -115,7 +116,7 @@ EXTERN_INLINE int get_MPI_count(MPI_Status *status) {
  */
 
 #define WORKLOAD_PARAM(LENGTH)            \
-	(assert(((xyz_total % (LENGTH))==0) && "Loop bounds must be a multiple of this parameter"), \
+	(assert((mod(xyz_total,(LENGTH))==0) && "Loop bounds must be a multiple of this parameter"), \
 	 xyz_param = (LENGTH),                \
 	 xyz_orig = xyz_counter,                      \
 	 xyz_torig = xyz_total,               \
@@ -188,7 +189,7 @@ EXTERN_INLINE int get_MPI_count(MPI_Status *status) {
  */
 
 #define WORKLOAD_CHUNK(LENGTH)                 \
-	(assert(((xyz_total % (LENGTH))==0) && "Loop bounds must be a multiple of this parameter"), \
+	(assert((mod(xyz_total, (LENGTH))==0) && "Loop bounds must be a multiple of this parameter"), \
 	 xyz_param = (LENGTH),                     \
 	 xyz_orig = xyz_counter,                           \
 	 xyz_torig = xyz_total,                    \
