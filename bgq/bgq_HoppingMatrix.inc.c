@@ -218,13 +218,14 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 
 
 #if !BGQ_HM_NOCOM && defined(MPI)
-	if (g_proc_id == 0)
-		fprintf(stderr, "MK HM Waitall\n");
+	//if (g_proc_id == 0)
+	//	fprintf(stderr, "MK HM Waitall\n");
 	MPI_Status weylxchange_recv_status[6];
 	MPI_CHECK(MPI_Waitall(6, request_recv, weylxchange_recv_status));
 #ifndef NDEBUG
 	for (int d = T_UP; d <= Y_DOWN; d += 1) {
-		assert(get_MPI_count(&weylxchange_recv_status[d]) == weylxchange_size_double[d]);
+		//fprintf(stderr, "MK(rank: %d) Waitall got: %d, expected: %d\n", g_proc_id, get_MPI_count(&weylxchange_recv_status[d]), weylxchange_size_double[d]);
+		assert(get_MPI_count(&weylxchange_recv_status[d]) == weylxchange_size_double[d/2]);
 	}
 #endif
 #endif
