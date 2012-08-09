@@ -308,7 +308,7 @@ typedef
 			unsigned z : 8;
 			unsigned writes : 8;
 			unsigned reads : 8;
-			unsigned dir : 4; // T_UP..Z_UP
+			unsigned dir : 4; // T_UP..ZUP
 			unsigned i : 2; // 0..3
 			unsigned l : 2; // 0..3
 			bool isOdd : 1;
@@ -339,7 +339,7 @@ static bgq_gaugecoord bgq_gaugecoord_encode(bool isOdd, int t, int x, int y, int
 
 static bgq_gaugecoord *bgq_gaugefield_coordref(_Complex double *site) {
 	for (int isOdd = false; isOdd <= true; isOdd += 1) {
-		for (direction dir = T_UP; dir <= T_UP_SHIFT; dir += 2) {
+		for (direction dir = TUP; dir <= TUP_SHIFT; dir += 2) {
 			bgq_gaugesite_double *eodata = g_gaugefield_doubledata.eodir[isOdd][dir/2];
 			if ((void*)eodata <= (void*)site && (void*)site < (void*)(eodata + GAUGE_EOVOLUME)) {
 				// found!, get equivialent debug site
@@ -415,13 +415,13 @@ void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_re
 		const int z = WORKLOAD_PARAM(LOCAL_LZ);
 		WORKLOAD_CHECK
 
-		for (direction dir = T_UP; dir <= Z_UP; dir += 2) {
-			// Overflow is only needed for T_DOWN, X_DOWN, Y_DOWN into their dimension
-			if ((t == -1) && (dir != T_UP))
+		for (direction dir = TUP; dir <= ZUP; dir += 2) {
+			// Overflow is only needed for TDOWN, XDOWN, YDOWN into their dimension
+			if ((t == -1) && (dir != TUP))
 				continue;
-			if ((x == -1) && (dir != X_UP))
+			if ((x == -1) && (dir != XUP))
 				continue;
-			if ((y == -1) && (dir != Y_UP))
+			if ((y == -1) && (dir != YUP))
 				continue;
 
 			const bool isOdd = (t+x+y+z)&1;
@@ -436,18 +436,18 @@ void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_re
 						bgq_gaugefield_resetcoord_checkval(gaugefield, isOdd, t,x,y,z, tv,k, dir, i, l, value, expected_reads, expected_writes);
 					}
 
-					if (dir == Z_UP && z == LOCAL_LZ-1) {
+					if (dir == ZUP && z == LOCAL_LZ-1) {
 						_Complex double *wrapvalue = BGQ_GAUGEVAL(gaugefield,isOdd,t,x,y,-1,tv,k, dir,i,l,false,false);
 						bgq_gaugefield_resetcoord_checkval(gaugefield, isOdd, t,x,y,-1, tv,k, dir, i, l, wrapvalue, expected_reads, expected_writes);
 					}
 
-					if (dir == T_UP) {
+					if (dir == TUP) {
 						const int teo_shift = mod(teo+1, 1+LOCAL_LT/PHYSICAL_LP);
 						const int tv_shift = teo_shift / PHYSICAL_LK;
 						const int k_shift = mod(teo_shift, PHYSICAL_LK);
 
-						_Complex double *shiftvalue = BGQ_GAUGEVAL(gaugefield, isOdd, t, x, y, z, tv_shift, k_shift, T_UP_SHIFT, i, l, false, false);
-						bgq_gaugefield_resetcoord_checkval(gaugefield, isOdd, t, x, y, z, tv_shift, k_shift, T_UP_SHIFT, i, l, shiftvalue, expected_reads, expected_writes);
+						_Complex double *shiftvalue = BGQ_GAUGEVAL(gaugefield, isOdd, t, x, y, z, tv_shift, k_shift, TUP_SHIFT, i, l, false, false);
+						bgq_gaugefield_resetcoord_checkval(gaugefield, isOdd, t, x, y, z, tv_shift, k_shift, TUP_SHIFT, i, l, shiftvalue, expected_reads, expected_writes);
 					}
 				}
 			}
@@ -458,7 +458,7 @@ void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_re
 
 void bgq_init_gaugefield() {
 	for (int isOdd = false; isOdd <= true; isOdd += 1) {
-		for (direction dir = T_UP; dir <= T_UP_SHIFT; dir += 2) {
+		for (direction dir = TUP; dir <= TUP_SHIFT; dir += 2) {
 			g_gaugefield_doubledata.eodir[isOdd][dir/2] = malloc_aligned(GAUGE_EOVOLUME * sizeof(bgq_gaugesite_double), 128 /*L2 cache line size*/);
 		}
 	}
@@ -467,7 +467,7 @@ void bgq_init_gaugefield() {
 
 #ifndef NDEBUG
 	for (int isOdd = false; isOdd <= true; isOdd += 1) {
-		for (direction dir = T_UP; dir <= T_UP_SHIFT; dir += 2) {
+		for (direction dir = TUP; dir <= TUP_SHIFT; dir += 2) {
 			g_gaugefield_doubledata_debug.eodir[isOdd][dir/2] = malloc_aligned(GAUGE_EOVOLUME * sizeof(bgq_gaugesite_double), 128 /*L2 cache line size*/);
 		}
 	}
@@ -481,7 +481,7 @@ void bgq_init_gaugefield() {
 
 void bgq_free_gaugefield() {
 	for (int isOdd = false; isOdd <= true; isOdd += 1) {
-		for (int dir = T_UP; dir <= T_UP_SHIFT; dir += 2) {
+		for (int dir = TUP; dir <= TUP_SHIFT; dir += 2) {
 			free(g_gaugefield_doubledata.eodir[isOdd][dir/2]);
 			g_gaugefield_doubledata.eodir[isOdd][dir/2] = NULL;
 		}
@@ -490,7 +490,7 @@ void bgq_free_gaugefield() {
 
 #ifndef NDEBUG
 	for (int isOdd = false; isOdd <= true; isOdd += 1) {
-		for (int dir = T_UP; dir <= T_UP_SHIFT; dir += 2) {
+		for (int dir = TUP; dir <= TUP_SHIFT; dir += 2) {
 			free(g_gaugefield_doubledata_debug.eodir[isOdd][dir/2]);
 			g_gaugefield_doubledata_debug.eodir[isOdd][dir/2] = NULL;
 		}
@@ -519,14 +519,14 @@ void bgq_transfer_gaugefield(bgq_gaugefield_double const targetfield, su3 ** con
 		WORKLOAD_CHECK
 
 		if ((t == -1) + (x == -1) + (z == -1) > 1) {
-			// Overflow is only needed for T_DOWN, X_DOWN, Y_DOWN into their dimension
+			// Overflow is only needed for TDOWN, XDOWN, YDOWN into their dimension
 			continue;
 		}
 
 		const bool isOdd =(t+x+y+z)&1;
 		const int ix = Index(t, x, y, z); /* lexic coordinate */
 
-		for (direction d = T_UP; d <= Z_UP; d += 2) {
+		for (direction d = TUP; d <= ZUP; d += 2) {
 			su3_array64 *m = (su3_array64*) &g_gauge_field[ix][d / 2];
 			for (int i = 0; i < 3; i += 1) {
 				for (int l = 0; l < 3; l += 1) {
@@ -568,7 +568,7 @@ bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x,
 	assert(-1 <= z && z < PHYSICAL_LZ);
 	assert(0 <= tv && tv <= PHYSICAL_LTV);
 	assert(0 <= k && k < PHYSICAL_LK);
-	assert(T_UP <= dir && dir <= T_DOWN_SHIFT);
+	assert(TUP <= dir && dir <= TDOWN_SHIFT);
 	assert(0 <= i && i < 3);
 	assert(0 <= l && l < 3);
 
@@ -581,7 +581,7 @@ bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x,
 	// Check that the coordinate is really an odd/even coordinate
 	assert(((t+x+y+z)&1) == isOdd);
 	int teo = (t+1)/PHYSICAL_LP; // Because t=-1 is a valid index, shift everything right
-	if (dir == T_UP_SHIFT) {
+	if (dir == TUP_SHIFT) {
 		teo = mod(teo+1, 1+LOCAL_LT/PHYSICAL_LP);
 	}
 
@@ -633,8 +633,8 @@ bool assert_weylfield_t(bgq_weylfield_double weylfield, bool isOdd, int t, int x
 	assert(0 <= k && k < PHYSICAL_LK);
 
 	// Only 4 fields of this type actually exist
-	assert((weylfield == weylxchange_recv_double[T_UP]) || (weylfield == weylxchange_recv_double[T_DOWN])
-			|| (weylfield == weylxchange_send_double[T_UP]) || (weylfield == weylxchange_send_double[T_DOWN]) );
+	assert((weylfield == weylxchange_recv_double[TUP]) || (weylfield == weylxchange_recv_double[TDOWN])
+			|| (weylfield == weylxchange_send_double[TUP]) || (weylfield == weylxchange_send_double[TDOWN]) );
 
 	// Check that the coordinate is really an odd/even coordinate
 	assert(((t+x+y+z)&1) == isOdd);
@@ -668,8 +668,8 @@ bool assert_weylfield_x(bgq_weylfield_double weylfield, bool isOdd, int t, int x
 	assert(0 <= k && k < PHYSICAL_LK);
 
 	// Only 4 fields of this type actually exist
-	assert((weylfield == weylxchange_recv_double[X_UP]) || (weylfield == weylxchange_recv_double[X_DOWN])
-			|| (weylfield == weylxchange_send_double[X_UP]) || (weylfield == weylxchange_send_double[X_DOWN]) );
+	assert((weylfield == weylxchange_recv_double[XUP]) || (weylfield == weylxchange_recv_double[XDOWN])
+			|| (weylfield == weylxchange_send_double[XUP]) || (weylfield == weylxchange_send_double[XDOWN]) );
 
 	// Check that the coordinate is really an odd/even coordinate
 	assert(((t+x+y+z)&1) == isOdd);
@@ -703,8 +703,8 @@ bool assert_weylfield_y(bgq_weylfield_double weylfield, bool isOdd, int t, int x
 	assert(0 <= k && k < PHYSICAL_LK);
 
 	// Only 4 fields of this type actually exist
-	assert((weylfield == weylxchange_recv_double[Y_UP]) || (weylfield == weylxchange_recv_double[Y_DOWN])
-			|| (weylfield == weylxchange_send_double[Y_UP]) || (weylfield == weylxchange_send_double[Y_DOWN]));
+	assert((weylfield == weylxchange_recv_double[YUP]) || (weylfield == weylxchange_recv_double[YDOWN])
+			|| (weylfield == weylxchange_send_double[YUP]) || (weylfield == weylxchange_send_double[YDOWN]));
 
 	// Check that the coordinate is really an odd/even coordinate
 	assert(((t+x+y+z)&1) == isOdd);

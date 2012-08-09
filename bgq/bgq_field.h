@@ -97,17 +97,17 @@ typedef bgq_gaugeeodir_double (*bgq_gaugefield_double);
 
 
 typedef enum {
-	T_UP = 0,
-	T_DOWN = 1,
-	X_UP = 2,
-	X_DOWN = 3,
-	Y_UP = 4,
-	Y_DOWN = 5,
-	Z_UP = 6,
-	Z_DOWN = 7,
+	TUP = 0,
+	TDOWN = 1,
+	XUP = 2,
+	XDOWN = 3,
+	YUP = 4,
+	YDOWN = 5,
+	ZUP = 6,
+	ZDOWN = 7,
 
-	T_UP_SHIFT = 8,
-	T_DOWN_SHIFT = 9,
+	TUP_SHIFT = 8,
+	TDOWN_SHIFT = 9,
 
 	DIR_UP = 0,
 	DIR_DOWN = 1
@@ -261,7 +261,7 @@ EXTERN_INLINE _Complex double *bgq_gaugefield_double_ref(bgq_gaugefield_double g
 	assert(-1 <= x && x < LOCAL_LX);
 	assert(-1 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
-	assert(T_UP <= d && d <= Z_DOWN);
+	assert(TUP <= d && d <= ZDOWN);
 	assert(0 <= i && i < 3);
 	assert(0 <= l && l < 3);
 	assert((d&1)==0); // Must be up-direction
@@ -281,33 +281,33 @@ EXTERN_INLINE _Complex double *bgq_gaugefield_double_ref(bgq_gaugefield_double g
 EXTERN_INLINE _Complex double bgq_gaugefield_double_get(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, direction d, int i, int l) {
 	bool adjoint = false;
 	switch (d) {
-	case T_DOWN:
-	case T_DOWN_SHIFT:
+	case TDOWN:
+	case TDOWN_SHIFT:
 		t -= 1;
 		isOdd = !isOdd;
 		adjoint = true;
-		d = T_UP;
+		d = TUP;
 		break;
-	case X_DOWN:
+	case XDOWN:
 		x -= 1;
 		isOdd = !isOdd;
 		adjoint = true;
-		d = X_UP;
+		d = XUP;
 		break;
-	case Y_DOWN:
+	case YDOWN:
 		y -= 1;
 		isOdd = !isOdd;
 		adjoint = true;
-		d = Y_UP;
+		d = YUP;
 		break;
-	case Z_DOWN:
+	case ZDOWN:
 		z -= 1;
 		isOdd = !isOdd;
 		adjoint = true;
-		d = Z_UP;
+		d = ZUP;
 		break;
-	case T_UP_SHIFT:
-		d = T_UP;
+	case TUP_SHIFT:
+		d = TUP;
 		break;
 	default:
 		break;
@@ -336,39 +336,39 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 	assert(-1 <= x && x < LOCAL_LX);
 	assert(-1 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
-	assert(T_UP <= d && d <= Z_DOWN);
+	assert(TUP <= d && d <= ZDOWN);
 	assert(0 <= i && i < 3);
 	assert(0 <= l && l < 3);
 
 	bool adjoint = false;
 	switch (d) {
-	case T_DOWN:
-	case T_DOWN_SHIFT:
+	case TDOWN:
+	case TDOWN_SHIFT:
 		t -= 1;
 		isOdd = !isOdd;
 		adjoint = true;
-		d = T_UP;
+		d = TUP;
 		break;
-	case X_DOWN:
+	case XDOWN:
 		x -= 1;
 		isOdd = !isOdd;
 		adjoint = true;
-		d = X_UP;
+		d = XUP;
 		break;
-	case Y_DOWN:
+	case YDOWN:
 		y -= 1;
 		isOdd = !isOdd;
 		adjoint = true;
-		d = Y_UP;
+		d = YUP;
 		break;
-	case Z_DOWN:
+	case ZDOWN:
 		z -= 1;
 		isOdd = !isOdd;
 		adjoint = true;
-		d = Z_UP;
+		d = ZUP;
 		break;
-	case T_UP_SHIFT:
-		d = T_UP;
+	case TUP_SHIFT:
+		d = TUP;
 		break;
 	default:
 		break;
@@ -391,7 +391,7 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 	bgq_gaugesite_double *site = BGQ_GAUGESITE_ACCESS(gaugefield, isOdd, tv,x,y,z,d);
 	site->c[i][l][k] = value;
 
-	if (d == Z_UP) {
+	if (d == ZUP) {
 		// For z-direction...
 		if (z==LOCAL_LZ-1) {
 			// wraparound, also store as z=-1 coordinate
@@ -401,7 +401,7 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 		}
 	}
 
-	if (d == T_UP) {
+	if (d == TUP) {
 			// For t-direction...
 			// also store as shifted
 
@@ -419,8 +419,8 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 				assert(k_shift == 0);
 			}
 
-			assert(assert_gaugeval(gaugefield, isOdd, t,x,y,z,tv_shift,k,T_UP_SHIFT,i,l,false,true));
-			bgq_gaugesite_double *raggedsite = BGQ_GAUGESITE_ACCESS(gaugefield, isOdd, tv_shift,x,y,z,T_UP_SHIFT);
+			assert(assert_gaugeval(gaugefield, isOdd, t,x,y,z,tv_shift,k,TUP_SHIFT,i,l,false,true));
+			bgq_gaugesite_double *raggedsite = BGQ_GAUGESITE_ACCESS(gaugefield, isOdd, tv_shift,x,y,z,TUP_SHIFT);
 			raggedsite->c[i][l][k_shift] = value;
 		}
 }

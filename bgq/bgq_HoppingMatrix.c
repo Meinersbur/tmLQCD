@@ -28,26 +28,26 @@ size_t weylxchange_size_double[3];
 int weylexchange_destination[6];
 
 void bgq_hm_init() {
-	weylxchange_size_double[T_UP / 2] = PHYSICAL_LXV * PHYSICAL_LY * PHYSICAL_LZ * sizeof(bgq_weylsite_double);
-	weylxchange_size_double[X_UP / 2] = PHYSICAL_LTV * PHYSICAL_LY * PHYSICAL_LZ * sizeof(bgq_weylsite_double);
-	weylxchange_size_double[Y_UP / 2] = PHYSICAL_LTV * PHYSICAL_LX * PHYSICAL_LZ * sizeof(bgq_weylsite_double);
+	weylxchange_size_double[TUP / 2] = PHYSICAL_LXV * PHYSICAL_LY * PHYSICAL_LZ * sizeof(bgq_weylsite_double);
+	weylxchange_size_double[XUP / 2] = PHYSICAL_LTV * PHYSICAL_LY * PHYSICAL_LZ * sizeof(bgq_weylsite_double);
+	weylxchange_size_double[YUP / 2] = PHYSICAL_LTV * PHYSICAL_LX * PHYSICAL_LZ * sizeof(bgq_weylsite_double);
 
-	for (int d = T_UP; d <= Y_DOWN; d += 1) {
+	for (int d = TUP; d <= YDOWN; d += 1) {
 		size_t size = weylxchange_size_double[d/2];
 		weylxchange_recv_double[d] = (bgq_weylfield_double) malloc_aligned(size, 128);
 		weylxchange_send_double[d] = (bgq_weylfield_double) malloc_aligned(size, 128);
 	}
 
-	weylexchange_destination[T_UP] = g_nb_t_up;
-	weylexchange_destination[T_DOWN] = g_nb_t_dn;
-	weylexchange_destination[X_UP] = g_nb_x_up;
-	weylexchange_destination[X_DOWN] = g_nb_x_dn;
-	weylexchange_destination[Y_UP] = g_nb_y_up;
-	weylexchange_destination[Y_DOWN] = g_nb_y_dn;
+	weylexchange_destination[TUP] = g_nb_t_up;
+	weylexchange_destination[TDOWN] = g_nb_t_dn;
+	weylexchange_destination[XUP] = g_nb_x_up;
+	weylexchange_destination[XDOWN] = g_nb_x_dn;
+	weylexchange_destination[YUP] = g_nb_y_up;
+	weylexchange_destination[YDOWN] = g_nb_y_dn;
 }
 
 void bgq_hm_free() {
-	for (int d = T_UP; d <= Y_DOWN; d += 1) {
+	for (int d = TUP; d <= YDOWN; d += 1) {
 		free(weylxchange_recv_double[d]);
 		weylxchange_recv_double[d] = NULL;
 		free(weylxchange_send_double[d]);
@@ -60,7 +60,7 @@ void bgq_hm_free() {
 #define BGQ_HM_BORDERDIST_NOFUNC 1
 
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
-#pragma GCC diagnostic ignored "-Wunused-variable"
+//#pragma GCC diagnostic ignored "-Wunused-variable"
 
 
 #define HoppingMatrix bgq_HoppingMatrix_double

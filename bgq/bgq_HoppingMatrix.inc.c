@@ -34,7 +34,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	//if (g_proc_id == 0)
 	//	fprintf(stderr, "MK HM Irecv\n");
 	MPI_Request request_recv[6];
-	for (int d = T_UP; d <= Y_DOWN; d += 1) {
+	for (int d = TUP; d <= YDOWN; d += 1) {
 		MPI_CHECK(MPI_Irecv(weylxchange_recv_double[d], weylxchange_size_double[d/2], MPI_BYTE, weylexchange_destination[d], d^1, MPI_COMM_WORLD, &request_recv[d]));
 	}
 
@@ -80,7 +80,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		bgq_su3_vadd(weyl_tup_v1, spinor_tup_v1, spinor_tup_v3);
 
 		// Store the halfspinor to be transfered to the neighbor node
-		bgq_weylsite_double *weylsite_tup = BGQ_WEYLSITE_T(weylxchange_send_double[T_DOWN/*!!!*/], isOdd, t, xv, y, z, x1, x2);
+		bgq_weylsite_double *weylsite_tup = BGQ_WEYLSITE_T(weylxchange_send_double[TDOWN/*!!!*/], isOdd, t, xv, y, z, x1, x2);
 		bgq_su3_weyl_double_store(weylsite_tup, weyl_tup);
 	}
 
@@ -114,7 +114,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		bgq_su3_vsub(weyl_tdown_v1, spinor_tdown_v1, spinor_tdown_v3);
 
 		// Store the halfspinor to be transfered to the neighbor node
-		bgq_weylsite_double *weylsite_tdown = BGQ_WEYLSITE_T(weylxchange_send_double[T_UP/*!!!*/], isOdd, t, xv, y, z, x1, x2);
+		bgq_weylsite_double *weylsite_tdown = BGQ_WEYLSITE_T(weylxchange_send_double[TUP/*!!!*/], isOdd, t, xv, y, z, x1, x2);
 		bgq_su3_weyl_double_store(weylsite_tdown, weyl_tdown);
 	}
 
@@ -196,7 +196,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	//if (g_proc_id == 0)
 	//	fprintf(stderr, "MK HM Isend\n");
 	MPI_Request request_send[6];
-	for (int d = T_UP; d <= Y_DOWN; d += 1) {
+	for (int d = TUP; d <= YDOWN; d += 1) {
 		MPI_CHECK(MPI_Isend(weylxchange_send_double[d], weylxchange_size_double[d/2], MPI_BYTE, weylexchange_destination[d], d^1, MPI_COMM_WORLD, &request_send[d]));
 	}
 #endif
@@ -223,7 +223,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	MPI_Status weylxchange_recv_status[6];
 	MPI_CHECK(MPI_Waitall(6, request_recv, weylxchange_recv_status));
 #ifndef NDEBUG
-	for (int d = T_UP; d <= Y_DOWN; d += 1) {
+	for (int d = TUP; d <= YDOWN; d += 1) {
 		//fprintf(stderr, "MK(rank: %d) Waitall got: %d, expected: %d\n", g_proc_id, get_MPI_count(&weylxchange_recv_status[d]), weylxchange_size_double[d]);
 		assert(get_MPI_count(&weylxchange_recv_status[d]) == weylxchange_size_double[d/2]);
 	}

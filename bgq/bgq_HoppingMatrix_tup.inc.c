@@ -62,7 +62,7 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 
 #if BGQ_HM_TUP_COMPUTE
 		bgq_su3_mdecl(gauge_tup);
-		bgq_gaugesite_double *gaugesite_tup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, T_UP, t1+1, t2+1, false);
+		bgq_gaugesite_double *gaugesite_tup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, TUP, t1+1, t2+1, true,false);
 		bgq_su3_matrix_double_load(gauge_tup, gaugesite_tup);
 
 		bgq_su3_mvmul(weyl_tup_v0, gauge_tup, weyl_tup_v0);
