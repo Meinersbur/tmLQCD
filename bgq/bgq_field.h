@@ -26,7 +26,7 @@
 #define LOCAL_LZ LZ
 
 #define PHYSICAL_LP 2 /* Even/Odd */
-#define PHYSICAL_LTV (LOCAL_LZ/(PHYSICAL_LP*PHYSICAL_LK))
+#define PHYSICAL_LTV (LOCAL_LT/(PHYSICAL_LP*PHYSICAL_LK))
 #define PHYSICAL_LX LOCAL_LX
 #define PHYSICAL_LXV (LOCAL_LX/(PHYSICAL_LP*PHYSICAL_LK))
 #define PHYSICAL_LY LOCAL_LY
@@ -75,7 +75,7 @@
 
 
 #define GAUGE_VOLUME ((LOCAL_LT+1)*(LOCAL_LX+1)*(LOCAL_LY+1)*(LOCAL_LZ)) /* LOCAL volume */
-#define GAUGE_EOVOLUME ((PHYSICAL_LTV+1)*(PHYSICAL_LX+1)*(PHYSICAL_LY+1)*(PHYSICAL_LZ+1/*for wraparound*/)/2) /* This is not hole-free; we could also define an accessor function per direction*/
+#define GAUGE_EOVOLUME ((PHYSICAL_LTV+1)*(PHYSICAL_LX+1)*(PHYSICAL_LY+1)*(PHYSICAL_LZ+1/*for wraparound*/)) /* This is not hole-free; we could also define an accessor function per direction*/
 
 
 typedef struct {
@@ -225,24 +225,32 @@ void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_re
 
 
 bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, int tv, int k, direction dir, int i, int l, bool isRead, bool isWrite);
-
 bool assert_gaugesite(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, int tv, int k, direction dir, bool isRead, bool isWrite);
 
 #define BGQ_GAUGESITE_ACCESS(gaugefield,isOdd,tv,x,y,z,dir) \
-	(&gaugefield->eodir[(isOdd)][(dir)/2][(((tv)*PHYSICAL_LX + ((x)+1))*PHYSICAL_LY + ((y)+1))*PHYSICAL_LZ + ((z)+1)])
+	(assert(0 <= tv && tv <= PHYSICAL_LTV),        \
+	 assert(-1 <= x && x < PHYSICAL_LX),        \
+	 assert(-1 <= y && y < PHYSICAL_LY),        \
+	 assert(-1 <= z && z < PHYSICAL_LZ),        \
+	 &gaugefield->eodir[(isOdd)][(dir)/2][(((tv)*(PHYSICAL_LX+1) + ((x)+1))*(PHYSICAL_LY+1) + ((y)+1))*(PHYSICAL_LZ+1) + ((z)+1)])
 
-#define BGQ_GAUGESITE(gaugefield,isOdd,tv,x,y,z,dir,t1,t2,isWrite)         \
-	(assert(assert_gaugesite(gaugefield,isOdd,t1,x,y,z,tv,0,dir,!isWrite,isWrite)),  \
-	 assert(assert_gaugesite(gaugefield,isOdd,t2,x,y,z,tv,1,dir,!isWrite,isWrite)),  \
+#define BGQ_GAUGESITE(gaugefield,isOdd,tv,x,y,z,dir,t1,t2,isRead,isWrite)         \
+	(assert(assert_gaugesite(gaugefield,isOdd,t1,x,y,z,tv,0,dir,isRead,isWrite)),  \
+	 assert(assert_gaugesite(gaugefield,isOdd,t2,x,y,z,tv,1,dir,isRead,isWrite)),  \
 	 BGQ_GAUGESITE_ACCESS(gaugefield,isOdd,tv,x,y,z,dir))
 
-#define BGQ_GAUGESITE_LEFT(gaugefield,isOdd,tv,x,y,z,dir,t1,t2,isWrite)         \
-	(assert(assert_gaugesite(gaugefield,isOdd,t1,x,y,z,tv,0,dir,!isWrite,isWrite)),  \
+#define BGQ_GAUGESITE_LEFT(gaugefield,isOdd,tv,x,y,z,dir,t1,t2,isRead,isWrite)         \
+	(assert(assert_gaugesite(gaugefield,isOdd,t1,x,y,z,tv,0,dir,isRead,isWrite)),  \
 	 BGQ_GAUGESITE_ACCESS(gaugefield,isOdd,tv,x,y,z,dir))
 
-#define BGQ_GAUGESITE_RIGHT(gaugefield,isOdd,tv,x,y,z,dir,t1,t2,isWrite)      \
-	 assert(assert_gaugesite(gaugefield,isOdd,t2,x,y,z,tv,1,dir,!isWrite,isWrite)),  \
+#define BGQ_GAUGESITE_RIGHT(gaugefield,isOdd,tv,x,y,z,dir,t1,t2,isRead,isWrite)      \
+	(assert(assert_gaugesite(gaugefield,isOdd,t2,x,y,z,tv,1,dir,isRead,isWrite)),  \
 	 BGQ_GAUGESITE_ACCESS(gaugefield,isOdd,tv,x,y,z,dir))
+
+#define BGQ_GAUGEVAL(gaugefield,isOdd,t,x,y,z,tv,k,dir,i,l, isRead,isWrite) \
+	(assert(assert_gaugeval(gaugefield,isOdd,t,x,y,z,tv,k,dir,i,l,isRead,isWrite)), \
+	 &(BGQ_GAUGESITE_ACCESS(gaugefield,isOdd,tv,x,y,z,dir)->c[i][l][k]))
+
 
 //TODO: move to .c
 EXTERN_INLINE _Complex double *bgq_gaugefield_double_ref(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, direction d, int i, int l, bool isRead, bool isWrite) {
