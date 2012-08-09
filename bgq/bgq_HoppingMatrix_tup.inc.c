@@ -32,18 +32,18 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 	if (((tv+x+y+z+isOdd)&1) == 0) {
 #endif
 #if (BGQ_HM_TUP_TLINEINDENT==-1) || (BGQ_HM_TUP_TLINEINDENT==0)
-		bgq_spinorsite_double *spinorsite_tup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1+1, t2+1);
+		bgq_spinorsite_double *spinorsite_tup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1+1, t2+1, false);
 		bgq_su3_spinor_double_load(spinor_tup, spinorsite_tup);
 #endif
 #if (BGQ_HM_TUP_TLINEINDENT==-1)
 	} else {
 #endif
 #if (BGQ_HM_TUP_TLINEINDENT==-1) || (BGQ_HM_TUP_TLINEINDENT==1)
-		bgq_spinorsite_double *spinorsite_tup_mid = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1-1,t1+1);
+		bgq_spinorsite_double *spinorsite_tup_mid = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, tv, x, y, z, t1-1,t1+1,false);
 		bgq_su3_spinor_decl_rightonly(spinor_tup_mid);
 		bgq_su3_spinor_double_load_right_torightonly(spinor_tup_mid, spinorsite_tup_mid);
 
-		bgq_spinorsite_double *spinorsite_tup_right = BGQ_SPINORSITE(spinorfield, !isOdd, tv+1, x, y, z, t2+1,t2+3);
+		bgq_spinorsite_double *spinorsite_tup_right = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, tv+1, x, y, z, t2+1,t2+3,false);
 		bgq_su3_spinor_decl_leftonly(spinor_tup_right);
 		bgq_su3_spinor_double_load_left_toleftonly(spinor_tup_right, spinorsite_tup_right);
 
@@ -62,7 +62,7 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 
 #if BGQ_HM_TUP_COMPUTE
 		bgq_su3_mdecl(gauge_tup);
-		bgq_gaugesite_double *gaugesite_tup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, T_UP, t1+1, t2+1);
+		bgq_gaugesite_double *gaugesite_tup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, T_UP, t1+1, t2+1, false);
 		bgq_su3_matrix_double_load(gauge_tup, gaugesite_tup);
 
 		bgq_su3_mvmul(weyl_tup_v0, gauge_tup, weyl_tup_v0);

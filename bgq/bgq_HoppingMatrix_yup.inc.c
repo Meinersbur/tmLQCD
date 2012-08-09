@@ -39,7 +39,7 @@ void bgq_HoppingMatrix_yup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 #if (BGQ_HM_YUP_WEYLREAD==-1) || (BGQ_HM_YUP_WEYLREAD==0)
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_yup);
-		bgq_spinorsite_double *spinorsite_yup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y+1, z, t1,t2);
+		bgq_spinorsite_double *spinorsite_yup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y+1, z, t1,t2, false);
 		bgq_su3_spinor_double_load(spinor_yup, spinorsite_yup);
 
 		// Compute its halfspinor
@@ -54,7 +54,7 @@ void bgq_HoppingMatrix_yup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 #if BGQ_HM_YUP_COMPUTE
 		// Load the interaction matrix between the lattice sites
 		bgq_su3_mdecl(gauge_yup);
-		bgq_gaugesite_double *gaugesite_yup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, Y_UP, t1, t2);
+		bgq_gaugesite_double *gaugesite_yup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, Y_UP, t1, t2, false);
 		bgq_su3_matrix_double_load(gauge_yup, gaugesite_yup);
 
 		// Multiply the halfspinor with the matrix

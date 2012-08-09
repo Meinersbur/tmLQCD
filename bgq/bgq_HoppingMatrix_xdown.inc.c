@@ -40,7 +40,7 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 #if (BGQ_HM_XDOWN_WEYLREAD==-1) || (BGQ_HM_XDOWN_WEYLREAD==0)
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_xdown);
-		bgq_spinorsite_double *spinorsite_xdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x-1, y, z, t1, t2);
+		bgq_spinorsite_double *spinorsite_xdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x-1, y, z, t1, t2, false);
 		bgq_su3_spinor_double_load(spinor_xdown, spinorsite_xdown);
 
 		// Compute its halfspinor
@@ -55,7 +55,7 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 #if BGQ_HM_XDOWN_COMPUTE
 		// Load the between sites-interaction matrix
 		bgq_su3_mdecl(gauge_xdown);
-		bgq_gaugesite_double *gaugesite_xdown = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x-1, y, z, X_UP, t1, t2);
+		bgq_gaugesite_double *gaugesite_xdown = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x-1, y, z, X_UP, t1, t2, false);
 		bgq_su3_matrix_double_load(gauge_xdown, gaugesite_xdown);
 
 		// Multiply the halfspinor with the matrix

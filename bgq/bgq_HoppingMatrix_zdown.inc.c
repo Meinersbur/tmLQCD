@@ -35,7 +35,7 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_zdown);
-		bgq_spinorsite_double *spinorsite_zdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z_left, t1, t2);
+		bgq_spinorsite_double *spinorsite_zdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z_left, t1,t2, false);
 		bgq_su3_spinor_double_load(spinor_zdown, spinorsite_zdown);
 
 
@@ -47,7 +47,7 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 #if BGQ_HM_ZDOWN_COMPUTE
 		bgq_su3_mdecl(gauge_zdown);
-		bgq_gaugesite_double *gaugesite_zdown = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x, y, z, Z_UP, t1,t2);
+		bgq_gaugesite_double *gaugesite_zdown = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x, y, z, Z_UP, t1,t2, false);
 		bgq_su3_matrix_double_load(gauge_zdown, gaugesite_zdown);
 
 		bgq_su3_mvinvmul(weyl_zdown_v0, gauge_zdown, weyl_zdown_v0);
