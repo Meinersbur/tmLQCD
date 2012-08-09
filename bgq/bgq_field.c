@@ -36,7 +36,8 @@ typedef union {
 		bool isOdd : 1;
 		unsigned v : 2; // 0..3
 		unsigned c : 2; // 0..2
-		// 51 bits = 7 bytes
+		bool init : 1;
+		// 52 bits = 7 bytes
 	} coord;
 } bgq_spinorcoord;
 bgq_spinorcoord bgq_spinorcoord_encode(bool isOdd, int t, int x, int y, int z, int v, int c) {
@@ -71,10 +72,14 @@ void bgq_init_spinorfields(int count) {
 #endif
 
 	g_spinorfields_double = malloc(count * sizeof(*g_spinorfields_double));
+#ifndef NDEBUG
 	g_spinorfield_isOdd = malloc(count * sizeof(*g_spinorfield_isOdd));
+#endif
 	for (int i = 0; i < count; i += 1) {
 		g_spinorfields_double[i] = g_spinorfields_doubledata + i * VOLUME_SITES;
+#ifndef NDEBUG
 		g_spinorfield_isOdd[i] = -1; // Unknown yet
+#endif
 	}
 }
 
@@ -307,10 +312,12 @@ typedef
 			unsigned i : 2; // 0..3
 			unsigned l : 2; // 0..3
 			bool isOdd : 1;
-			// 57 bits = 8 bytes
+			bool init : 1;
+			// 58 bits = 8 bytes
 		} coord;
 } bgq_gaugecoord;
-bgq_gaugecoord bgq_gaugecoord_encode(bool isOdd, int t, int x, int y, int z, direction dir, int i, int l) {
+
+static bgq_gaugecoord bgq_gaugecoord_encode(bool isOdd, int t, int x, int y, int z, direction dir, int i, int l) {
 	bgq_gaugecoord result;
 	assert(sizeof(result) == sizeof(_Complex double));
 	result.val = 0; // Write zeros
@@ -327,6 +334,118 @@ bgq_gaugecoord bgq_gaugecoord_encode(bool isOdd, int t, int x, int y, int z, dir
 	result.coord.reads = 0;
 
 	return result;
+}
+
+
+static bgq_gaugecoord *bgq_gaugefield_coordref(_Complex double *site) {
+	for (int isOdd = false; isOdd <= true; isOdd += 1) {
+		for (direction dir = T_UP; dir <= T_UP_SHIFT; dir += 2) {
+			bgq_gaugesite_double *eodata = g_gaugefield_doubledata.eodir[isOdd][dir/2];
+			if ((void*)eodata <= (void*)site && (void*)site < (void*)(eodata + GAUGE_EOVOLUME)) {
+				// found!, get equivialent debug site
+				size_t offset = (char*)site - (char*)eodata;
+				char *debugdata = (char*)g_gaugefield_doubledata_debug.eodir[isOdd][dir/2];
+				bgq_gaugecoord *result = (bgq_gaugecoord*)(debugdata + offset);
+				return result;
+			}
+		}
+	}
+
+	assert(!"Pointer does not point to gaugefield");
+	return NULL;
+}
+
+
+static void bgq_gaugefield_resetcoord_checkval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, int tv, int k, direction dir, int i, int l,
+		_Complex double *val,
+		int expected_reads, int expected_writes) {
+
+	bgq_gaugecoord *coord = bgq_gaugefield_coordref(val);
+	if (coord->coord.init) {
+		if (expected_reads >= 0)
+			assert(coord->coord.reads == expected_reads);
+		if (expected_writes >= 0)
+			assert(coord->coord.writes == expected_writes);
+
+		assert(coord->coord.isOdd == isOdd);
+		assert(coord->coord.t == t);
+		assert(coord->coord.x == x);
+		assert(coord->coord.y == y);
+		assert(coord->coord.z == z);
+		assert(coord->coord.dir == dir);
+		assert(coord->coord.i == i);
+		assert(coord->coord.l == l);
+	} else {
+		assert(expected_reads == 0);
+		assert(expected_writes == 0);
+
+		coord->coord.init = true;
+		coord->coord.isOdd = isOdd;
+		coord->coord.t = t;
+		coord->coord.x = x;
+		coord->coord.y = y;
+		coord->coord.z = z;
+		coord->coord.dir = dir;
+		coord->coord.i = i;
+		coord->coord.l = l;
+		coord->coord.writes = 0;
+		coord->coord.reads = 0;
+	}
+}
+
+void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_reads, int expected_writes) {
+	assert(gaugefield);
+
+//#pragma omp parallel for schedule(static)
+	for (int txyz = 0; txyz < GAUGE_VOLUME; txyz += 1) {
+		WORKLOAD_DECL(txyz, GAUGE_VOLUME);
+		const int t = WORKLOAD_PARAM(LOCAL_LT+1) - 1;
+		const int x = WORKLOAD_PARAM(LOCAL_LX+1) - 1;
+		const int y = WORKLOAD_PARAM(LOCAL_LY+1) - 1;
+		const int z = WORKLOAD_PARAM(LOCAL_LZ);
+		WORKLOAD_CHECK
+
+		for (direction dir = T_UP; dir <= Z_UP; dir += 2) {
+			// Overflow is only needed for T_DOWN, X_DOWN, Y_DOWN into their dimension
+			if ((t == -1) && (dir != T_UP))
+				continue;
+			if ((x == -1) && (dir != X_UP))
+				continue;
+			if ((y == -1) && (dir != Y_UP))
+				continue;
+
+			const bool isOdd = (t+x+y+z)&1;
+			const int teo = (t+1) / PHYSICAL_LP;
+			const int tv = teo / PHYSICAL_LK;
+			const int k = mod(teo, PHYSICAL_LK);
+
+			for (int i = 0; i < 3; i += 1) {
+				for (int l = 0; l < 3; l += 1) {
+					{
+					bgq_gaugesite_double *site = BGQ_GAUGESITE_ACCESS(gaugefield,isOdd,tv,x,y,z,dir);
+					_Complex double *value = &site->c[i][l][k];
+					bgq_gaugefield_resetcoord_checkval(gaugefield, isOdd, t,x,y,z, tv,k, dir, i, l, value, expected_reads, expected_writes);
+					}
+
+					if (dir == Z_UP && z == LOCAL_LZ-1) {
+						bgq_gaugesite_double *wrapsite = BGQ_GAUGESITE_ACCESS(gaugefield,isOdd,tv,x,y,-1,dir);
+						_Complex double *wrapvalue = &wrapsite->c[i][l][k];
+						bgq_gaugefield_resetcoord_checkval(gaugefield, isOdd, t,x,y,z, tv,k, dir, i, l, wrapvalue, expected_reads, expected_writes);
+					}
+
+					if (dir == T_UP) {
+						const int teo_shift = mod(teo+1, (LOCAL_LT+1)/PHYSICAL_LP);
+						const int tv_shift = teo_shift / PHYSICAL_LK;
+						const int k_shift = mod(teo_shift, PHYSICAL_LK);
+
+						bgq_gaugesite_double *shiftsite = BGQ_GAUGESITE_ACCESS(gaugefield,isOdd,tv_shift,x,y,-1,dir);
+						_Complex double *shiftvalue = &shiftsite->c[i][l][k_shift];
+						bgq_gaugefield_resetcoord_checkval(gaugefield, isOdd, t,x,y,z, tv_shift,k_shift, dir, i, l, shiftvalue, expected_reads, expected_writes);
+					}
+				}
+			}
+		}
+	}
 }
 
 
@@ -348,23 +467,7 @@ void bgq_init_gaugefield() {
 #endif
 }
 
-static bgq_gaugecoord *bgq_gaugefield_coordref(_Complex double *site) {
-	for (int isOdd = false; isOdd <= true; isOdd += 1) {
-		for (direction dir = T_UP; dir <= T_UP_SHIFT; dir += 2) {
-			bgq_gaugesite_double *eodata = g_gaugefield_doubledata.eodir[isOdd][dir/2];
-			if ((void*)eodata <= (void*)site && (void*)site < (void*)(eodata + GAUGE_EOVOLUME)) {
-				// found!, get equivialent debug site
-				size_t offset = (char*)site - (char*)eodata;
-				char *debugdata = (char*)g_gaugefield_doubledata_debug.eodir[isOdd][dir/2];
-				bgq_gaugecoord *result = (bgq_gaugecoord*)(debugdata + offset);
-				return result;
-			}
-		}
-	}
 
-	assert(!"Pointer does not point to gaugefield");
-	return NULL;
-}
 
 
 void bgq_free_gaugefield() {
@@ -390,20 +493,28 @@ typedef struct {
 } su3_array64;
 
 void bgq_transfer_gaugefield(bgq_gaugefield_double const targetfield, su3 ** const sourcefield) {
-	BGQ_ENTER_FUNC
 	assert(targetfield);
 	assert(sourcefield);
 
-#pragma omp parallel for schedule(static)
+#ifndef NDEBUG
+	bgq_gaugefield_resetcoord(targetfield, -1, -1);
+#endif
+
+//#pragma omp parallel for schedule(static)
 	for (int tzy = 0; tzy < GAUGE_VOLUME; tzy += 1) {
 		WORKLOAD_DECL(tzy, GAUGE_VOLUME);
-		const int z = WORKLOAD_PARAM(LOCAL_LZ);
-		const int y = WORKLOAD_PARAM(LOCAL_LY+1) - 1;
-		const int x = WORKLOAD_PARAM(LOCAL_LX+1) - 1;
 		const int t = WORKLOAD_PARAM(LOCAL_LT+1) - 1;
+		const int x = WORKLOAD_PARAM(LOCAL_LX+1) - 1;
+		const int y = WORKLOAD_PARAM(LOCAL_LY+1) - 1;
+		const int z = WORKLOAD_PARAM(LOCAL_LZ);
 		WORKLOAD_CHECK
 
-		const bool isOdd = (8 + t + x + y + z) % 2;
+		if ((t == -1) + (x == -1) + (z == -1) > 1) {
+			// Overflow is only needed for T_DOWN, X_DOWN, Y_DOWN into their dimension
+			continue;
+		}
+
+		const bool isOdd =(t+x+y+z)&1;
 		const int ix = Index(t, x, y, z); /* lexic coordinate */
 
 		for (direction d = T_UP; d <= Z_UP; d += 2) {
@@ -413,14 +524,18 @@ void bgq_transfer_gaugefield(bgq_gaugefield_double const targetfield, su3 ** con
 					//complex *c = ((complex*)m)+i*3+l;
 					bgq_gaugefield_double_set(targetfield, isOdd, t, x, y, z, d, i, l, m->c[i][l]);
 #ifndef NDEBUG
-					_Complex double *val = bgq_gaugefield_double_ref(targetfield, isOdd, t,x,y,z,d,i,l,false,false,false);
-					bgq_gaugecoord *debugval = bgq_gaugefield_coordref(val );
+					_Complex double *val = bgq_gaugefield_double_ref(targetfield, isOdd, t,x,y,z,d,i,l,false,false);
+					bgq_gaugecoord *debugval = bgq_gaugefield_coordref(val);
 					*debugval = bgq_gaugecoord_encode(isOdd,t,x,y,z,d,i,l);
-			#endif
+#endif
 				}
 			}
 		}
 	}
+
+#ifndef NDEBUG
+	bgq_gaugefield_resetcoord(targetfield, 0, 1);
+#endif
 }
 
 
@@ -441,8 +556,8 @@ bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x,
 	assert(-1 <= t && t < LOCAL_LT);
 	assert(-1 <= x && x < LOCAL_LX);
 	assert(-1 <= y && y < LOCAL_LY);
-	assert(-1 <= z && z < LOCAL_LZ);
-	assert(-1 <= tv && tv < PHYSICAL_LTV);
+	assert(-1 <= z && z < PHYSICAL_LZ);
+	assert(0 <= tv && tv <= PHYSICAL_LTV);
 	assert(0 <= k && k < PHYSICAL_LK);
 	assert(T_UP <= dir && dir <= T_DOWN_SHIFT);
 	assert(0 <= i && i < 3);
@@ -453,7 +568,7 @@ bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x,
 
 	// Check that the coordinate is really an odd/even coordinate
 	assert(((t+x+y+z)&1) == isOdd);
-	const int teo = t/PHYSICAL_LP;
+	const int teo = (t+1)/PHYSICAL_LP; // Because t=-1 is a valid index, shift everything right
 
 	// Check that zv and k match the coordinate
 	assert(teo/PHYSICAL_LK == tv);
@@ -463,8 +578,8 @@ bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x,
 	assert((dir&1)==0);
 
 	// Get the index
-	const int idx = (((tv)*PHYSICAL_LX + ((x)+1))*PHYSICAL_LY + ((y)+1))*PHYSICAL_LZ + (z);
-	assert(0 <= idx && idx < (PHYSICAL_LTV+1)*(PHYSICAL_LX+1)*(PHYSICAL_LY+1)*(PHYSICAL_LZ));
+	const int idx = (((tv)*PHYSICAL_LX + ((x)+1))*PHYSICAL_LY + ((y)+1))*PHYSICAL_LZ + ((z)+1);
+	assert(0 <= idx && idx < (PHYSICAL_LTV+1)*(PHYSICAL_LX+1)*(PHYSICAL_LY+1)*(PHYSICAL_LZ+1));
 
 	// Get the address
 	bgq_gaugesite_double *eofield = gaugefield->eodir[isOdd][dir/2];
@@ -472,21 +587,23 @@ bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x,
 	_Complex double *address = site->c[i][l];
 	assert(mod((size_t)address,32)==0);
 
-	// get the debug data
-	bgq_gaugecoord *debugdata = bgq_gaugefield_coordref(address);
-	assert(debugdata->coord.isOdd == isOdd);
-	assert(debugdata->coord.t == t);
-	assert(debugdata->coord.x == x);
-	assert(debugdata->coord.y == y);
-	assert(debugdata->coord.z == z);
-	assert(debugdata->coord.dir == dir);
-	assert(debugdata->coord.i == i);
-	assert(debugdata->coord.l == l);
 
-	if (isRead)
-		debugdata->coord.reads += 1;
-	if (isWrite)
-		debugdata->coord.writes += 1;
+		// get the debug data
+		bgq_gaugecoord *debugdata = bgq_gaugefield_coordref(address);
+		assert(debugdata->coord.isOdd == isOdd);
+		assert(debugdata->coord.t == t);
+		assert(debugdata->coord.x == x);
+		assert(debugdata->coord.y == y);
+		assert(debugdata->coord.z == z);
+		assert(debugdata->coord.dir == dir);
+		assert(debugdata->coord.i == i);
+		assert(debugdata->coord.l == l);
+
+		if (isRead)
+			debugdata->coord.reads += 1;
+		if (isWrite)
+			debugdata->coord.writes += 1;
+
 
 	// All checks passed
 	return true;

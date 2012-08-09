@@ -74,8 +74,9 @@
 #define BODY_ZLINES ((PHYSICAL_LTV-2)*(PHYSICAL_LX-2)*(PHYSICAL_LY-2))
 
 
-#define GAUGE_VOLUME ((LOCAL_LT+1)*(LOCAL_LX+1)*(LOCAL_LY+1)*(LOCAL_LZ))
-#define GAUGE_EOVOLUME ((PHYSICAL_LTV+1)*(PHYSICAL_LX+1)*(PHYSICAL_LY+1)*PHYSICAL_LZ)
+#define GAUGE_VOLUME ((LOCAL_LT+1)*(LOCAL_LX+1)*(LOCAL_LY+1)*(LOCAL_LZ)) /* LOCAL volume */
+#define GAUGE_EOVOLUME ((PHYSICAL_LTV+1)*(PHYSICAL_LX+1)*(PHYSICAL_LY+1)*(PHYSICAL_LZ+1/*for wraparound*/)/2) /* This is not hole-free; we could also define an accessor function per direction*/
+
 
 typedef struct {
 	double _Complex s[4][3][PHYSICAL_LK];
@@ -169,6 +170,7 @@ bool assert_spinorcoord(bgq_spinorfield_double spinorfield, bool isOdd, int t, i
 		(assert(assert_spinorcoord(spinorfield, isOdd, tv, x, y, z, t2, 1, !isWrite, isWrite)), \
 		 BGQ_SPINORSITE_ACCESS(spinorfield, isOdd, tv, x, y, z))
 
+
 //TODO: move to .c
 EXTERN_INLINE _Complex double *bgq_spinorfield_double_ref(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int v, int c, bool isRead, bool isWrite, bool doCheck) {
 	const int teo = t / PHYSICAL_LP;
@@ -185,10 +187,12 @@ EXTERN_INLINE _Complex double *bgq_spinorfield_double_ref(bgq_spinorfield_double
 	return &site->s[v][c][k];
 }
 
+
 EXTERN_INLINE _Complex double bgq_spinorfield_double_get(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int v, int c) {
 	_Complex double *ptr = bgq_spinorfield_double_ref(spinorfield,isOdd,t,x,y,z,v,c,true,false,true);
 	return *ptr;
 }
+
 
 EXTERN_INLINE void bgq_spinorfield_double_set(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int v, int c, double _Complex value) {
 	const int teo = t / PHYSICAL_LP;
@@ -200,6 +204,7 @@ EXTERN_INLINE void bgq_spinorfield_double_set(bgq_spinorfield_double spinorfield
 	site->s[v][c][k] = value;
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////
 // Gaugefield
 
@@ -210,12 +215,13 @@ EXTERN_FIELD bgq_gaugeeodir_double g_gaugefield_doubledata_debug;
 EXTERN_FIELD bgq_gaugeeodir_double g_gaugefield_doubledata;
 EXTERN_FIELD bgq_gaugefield_double g_gaugefield_double;
 
+
 void bgq_init_gaugefield();
 void bgq_free_gaugefield();
 
 void bgq_transfer_gaugefield(bgq_gaugefield_double targetfield, su3 **sourcefield);
 
-
+void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_reads, int expected_writes);
 
 
 bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, int tv, int k, direction dir, int i, int l, bool isRead, bool isWrite);
@@ -223,7 +229,7 @@ bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x,
 bool assert_gaugesite(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, int tv, int k, direction dir, bool isRead, bool isWrite);
 
 #define BGQ_GAUGESITE_ACCESS(gaugefield,isOdd,tv,x,y,z,dir) \
-	(&gaugefield->eodir[(isOdd)][(dir)/2][(((tv)*PHYSICAL_LX + ((x)+1))*PHYSICAL_LY + ((y)+1))*PHYSICAL_LZ + (z)])
+	(&gaugefield->eodir[(isOdd)][(dir)/2][(((tv)*PHYSICAL_LX + ((x)+1))*PHYSICAL_LY + ((y)+1))*PHYSICAL_LZ + ((z)+1)])
 
 #define BGQ_GAUGESITE(gaugefield,isOdd,tv,x,y,z,dir,t1,t2,isWrite)         \
 	(assert(assert_gaugesite(gaugefield,isOdd,t1,x,y,z,tv,0,dir,!isWrite,isWrite)),  \
@@ -239,10 +245,10 @@ bool assert_gaugesite(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x
 	 BGQ_GAUGESITE_ACCESS(gaugefield,isOdd,tv,x,y,z,dir))
 
 //TODO: move to .c
-EXTERN_INLINE _Complex double *bgq_gaugefield_double_ref(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, direction d, int i, int l, bool isRead, bool isWrite, bool doCheck) {
+EXTERN_INLINE _Complex double *bgq_gaugefield_double_ref(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, direction d, int i, int l, bool isRead, bool isWrite) {
 	assert(gaugefield);
 	assert(false <= isOdd && isOdd <= true);
-	assert(isOdd == ((t+x+y+z)&2));
+	assert(isOdd == ((t+x+y+z)&1));
 	assert(-1 <= t && t < LOCAL_LT);
 	assert(-1 <= x && x < LOCAL_LX);
 	assert(-1 <= y && y < LOCAL_LY);
@@ -252,16 +258,12 @@ EXTERN_INLINE _Complex double *bgq_gaugefield_double_ref(bgq_gaugefield_double g
 	assert(0 <= l && l < 3);
 	assert((d&1)==0); // Must be up-direction
 
-	const int teo = t / PHYSICAL_LP;
+	const int teo = (t+1) / PHYSICAL_LP;
 	const int tv = teo / PHYSICAL_LK;
 	const int k = mod(teo, PHYSICAL_LK);
 
-	if (doCheck) {
-		assert(assert_gaugeval(gaugefield,isOdd,t,x,y,z,tv,k,d,i,l,isRead,isWrite));
-	} else {
-		assert(!isRead);
-		assert(!isWrite);
-	}
+
+	assert(assert_gaugeval(gaugefield,isOdd,t,x,y,z,tv,k,d,i,l,isRead,isWrite));
 	bgq_gaugesite_double *site = BGQ_GAUGESITE_ACCESS(gaugefield, isOdd, tv,x,y,z,d);
 	_Complex double *val = &site->c[i][l][k];
 
@@ -309,7 +311,7 @@ EXTERN_INLINE _Complex double bgq_gaugefield_double_get(bgq_gaugefield_double ga
 		l = tmp;
 	}
 
-	_Complex double result = *bgq_gaugefield_double_ref(gaugefield, isOdd, t,x,y,z,d,i,l, true, false,true);
+	_Complex double result = *bgq_gaugefield_double_ref(gaugefield, isOdd, t,x,y,z,d,i,l, true, false);
 	if (adjoint) {
 		result = conj(result);
 	}
@@ -317,10 +319,11 @@ EXTERN_INLINE _Complex double bgq_gaugefield_double_get(bgq_gaugefield_double ga
 }
 
 
+
 EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, direction d, int i, int l, double _Complex value) {
 	assert(gaugefield);
 	assert(false <= isOdd && isOdd <= true);
-	assert(isOdd == ((t+x+y+z)&2));
+	assert(isOdd == ((t+x+y+z)&1));
 	assert(-1 <= t && t < LOCAL_LT);
 	assert(-1 <= x && x < LOCAL_LX);
 	assert(-1 <= y && y < LOCAL_LY);
@@ -363,7 +366,7 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 		break;
 	}
 
-	const int teo = t / PHYSICAL_LP;
+	const int teo = (t+1) / PHYSICAL_LP;
 	const int tv = teo / PHYSICAL_LK;
 	const int k = mod(teo, PHYSICAL_LK);
 
@@ -375,35 +378,43 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 		value = conj(value);
 	}
 
+
 	assert(assert_gaugeval(gaugefield, isOdd, t,x,y,z,tv,k,d,i,l,false,true));
 	bgq_gaugesite_double *site = BGQ_GAUGESITE_ACCESS(gaugefield, isOdd, tv,x,y,z,d);
 	site->c[i][l][k] = value;
 
-	if (d == T_UP) {
-		// Do some special things for Z_UP, values exist in multiple places
-
-		// Move one to the right
-		const int tv_shift = (teo+1) / PHYSICAL_LK;
-		const int k_shift = mod(teo+1, PHYSICAL_LK);
-
-		assert(assert_gaugeval(gaugefield, isOdd, t,x,y,z,tv_shift,k,T_UP_SHIFT,i,l,false,true));
-		bgq_gaugesite_double *raggedsite = BGQ_GAUGESITE_ACCESS(gaugefield, isOdd, tv_shift,x,y,z,T_UP_SHIFT);
-		raggedsite->c[i][l][k_shift] = value;
-
-		if (t == LOCAL_LT-1) {
-			// wraparound
-			assert(assert_gaugeval(gaugefield, isOdd, t,x,y,z,0,0,T_UP_SHIFT,i,l,false,true));
-			bgq_gaugesite_double *wraparoundsite = BGQ_GAUGESITE_ACCESS(gaugefield, isOdd, 0,x,y,z,T_UP_SHIFT);
-			wraparoundsite->c[i][l][0] = value;
-		}
-
-		if (t == 0) {
-			// wraparound
-			assert(assert_gaugeval(gaugefield, isOdd, t,x,y,z,PHYSICAL_LTV,1,T_UP_SHIFT,i,l,false,true));
-			bgq_gaugesite_double *wraparoundsite = BGQ_GAUGESITE_ACCESS(gaugefield, isOdd, PHYSICAL_LTV,x,y,z,T_UP_SHIFT);
-			wraparoundsite->c[i][l][1] = value;
+	if (d == Z_UP) {
+		// For z-direction...
+		if (z==LOCAL_LZ-1) {
+			// wraparound, also store as z=-1 coordinate
+			assert(assert_gaugeval(gaugefield, isOdd, t,x,y,-1,tv,k,d,i,l,false,true));
+			bgq_gaugesite_double *site = BGQ_GAUGESITE_ACCESS(gaugefield, isOdd, tv,x,y,-1,d);
+			site->c[i][l][k] = value;
 		}
 	}
+
+	if (d == T_UP) {
+			// For t-direction...
+			// also store as shifted
+
+			// Move one to the right
+		    const int teo_shift = mod(teo+1, (LOCAL_LT+1)/PHYSICAL_LP);
+			const int tv_shift = teo_shift / PHYSICAL_LK;
+			const int k_shift = mod(teo_shift, PHYSICAL_LK);
+
+			if (t == -1) {
+				assert(tv_shift == PHYSICAL_LTV);
+				assert(k_shift == 0);
+			}
+			if (t == LOCAL_LT-1) {
+				assert(tv_shift == 0);
+				assert(k_shift == 0);
+			}
+
+			assert(assert_gaugeval(gaugefield, isOdd, t,x,y,z,tv_shift,k,T_UP_SHIFT,i,l,false,true));
+			bgq_gaugesite_double *raggedsite = BGQ_GAUGESITE_ACCESS(gaugefield, isOdd, tv_shift,x,y,z,T_UP_SHIFT);
+			raggedsite->c[i][l][k_shift] = value;
+		}
 }
 
 

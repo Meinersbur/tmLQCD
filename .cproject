@@ -44,7 +44,6 @@
 									<listOptionValue builtIn="false" value="BGQ=1"/>
 									<listOptionValue builtIn="false" value="_USE_HALFSPINOR=1"/>
 									<listOptionValue builtIn="false" value="PARALLELXYT=1"/>
-									<listOptionValue builtIn="false" value="BGQ_DEBUG_COORDS=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1186333786" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
