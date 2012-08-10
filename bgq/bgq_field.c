@@ -181,7 +181,7 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield_double const tar
 	assert(sourcefield);
 	assert(targetfield);
 
-#pragma omp parallel for schedule(static)
+//#pragma omp parallel for schedule(static)
 	for (int txy = 0; txy < VOLUME/2; txy+=1) {
 		WORKLOAD_DECL(txy, VOLUME/2);
 		const int t = WORKLOAD_CHUNK(LOCAL_LT);
@@ -317,25 +317,6 @@ typedef
 		} coord;
 } bgq_gaugecoord;
 
-static bgq_gaugecoord bgq_gaugecoord_encode(bool isOdd, int t, int x, int y, int z, direction dir, int i, int l) {
-	bgq_gaugecoord result;
-	assert(sizeof(result) == sizeof(_Complex double));
-	result.val = 0; // Write zeros
-
-	result.coord.isOdd = isOdd;
-	result.coord.t = t;
-	result.coord.x = x;
-	result.coord.y = y;
-	result.coord.z = z;
-	result.coord.dir = dir;
-	result.coord.i = i;
-	result.coord.l = l;
-	result.coord.writes = 0;
-	result.coord.reads = 0;
-
-	return result;
-}
-
 
 static bgq_gaugecoord *bgq_gaugefield_coordref(_Complex double *site) {
 	for (int isOdd = false; isOdd <= true; isOdd += 1) {
@@ -406,7 +387,7 @@ static void bgq_gaugefield_resetcoord_checkval(bgq_gaugefield_double gaugefield,
 void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_reads, int expected_writes) {
 	assert(gaugefield);
 
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
 	for (int txyz = 0; txyz < GAUGE_VOLUME; txyz += 1) {
 		WORKLOAD_DECL(txyz, GAUGE_VOLUME);
 		const int t = WORKLOAD_PARAM(LOCAL_LT+1) - 1;
@@ -414,6 +395,11 @@ void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_re
 		const int y = WORKLOAD_PARAM(LOCAL_LY+1) - 1;
 		const int z = WORKLOAD_PARAM(LOCAL_LZ);
 		WORKLOAD_CHECK
+
+		const bool isOdd = (t+x+y+z)&1;
+		const int teo = (t+1) / PHYSICAL_LP;
+		const int tv = teo / PHYSICAL_LK;
+		const int k = mod(teo, PHYSICAL_LK);
 
 		for (direction dir = TUP; dir <= ZUP; dir += 2) {
 			// Overflow is only needed for TDOWN, XDOWN, YDOWN into their dimension
@@ -423,11 +409,6 @@ void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_re
 				continue;
 			if ((y == -1) && (dir != YUP))
 				continue;
-
-			const bool isOdd = (t+x+y+z)&1;
-			const int teo = (t+1) / PHYSICAL_LP;
-			const int tv = teo / PHYSICAL_LK;
-			const int k = mod(teo, PHYSICAL_LK);
 
 			for (int i = 0; i < 3; i += 1) {
 				for (int l = 0; l < 3; l += 1) {
@@ -509,34 +490,31 @@ void bgq_transfer_gaugefield(bgq_gaugefield_double const targetfield, su3 ** con
 	bgq_gaugefield_resetcoord(targetfield, -1, -1);
 #endif
 
-//#pragma omp parallel for schedule(static)
-	for (int tzy = 0; tzy < GAUGE_VOLUME; tzy += 1) {
-		WORKLOAD_DECL(tzy, GAUGE_VOLUME);
+#pragma omp parallel for schedule(static)
+	for (int txyz = 0; txyz < GAUGE_VOLUME; txyz += 1) {
+		WORKLOAD_DECL(txyz, GAUGE_VOLUME);
 		const int t = WORKLOAD_PARAM(LOCAL_LT+1) - 1;
 		const int x = WORKLOAD_PARAM(LOCAL_LX+1) - 1;
 		const int y = WORKLOAD_PARAM(LOCAL_LY+1) - 1;
 		const int z = WORKLOAD_PARAM(LOCAL_LZ);
 		WORKLOAD_CHECK
 
-		if ((t == -1) + (x == -1) + (z == -1) > 1) {
-			// Overflow is only needed for TDOWN, XDOWN, YDOWN into their dimension
-			continue;
-		}
-
-		const bool isOdd =(t+x+y+z)&1;
+		const bool isOdd = (t+x+y+z)&1;
 		const int ix = Index(t, x, y, z); /* lexic coordinate */
 
-		for (direction d = TUP; d <= ZUP; d += 2) {
-			su3_array64 *m = (su3_array64*) &g_gauge_field[ix][d / 2];
+		for (direction dir = TUP; dir <= ZUP; dir += 2) {
+			// Overflow is only needed for TDOWN, XDOWN, YDOWN into their dimension
+			if ((t == -1) && (dir != TUP))
+				continue;
+			if ((x == -1) && (dir != XUP))
+				continue;
+			if ((y == -1) && (dir != YUP))
+				continue;
+
+			su3_array64 *m = (su3_array64*) &g_gauge_field[ix][dir / 2];
 			for (int i = 0; i < 3; i += 1) {
 				for (int l = 0; l < 3; l += 1) {
-					//complex *c = ((complex*)m)+i*3+l;
-					bgq_gaugefield_double_set(targetfield, isOdd, t, x, y, z, d, i, l, m->c[i][l]);
-#ifndef NDEBUG
-					_Complex double *val = bgq_gaugefield_double_ref(targetfield, isOdd, t,x,y,z,d,i,l,false,false);
-					bgq_gaugecoord *debugval = bgq_gaugefield_coordref(val);
-					*debugval = bgq_gaugecoord_encode(isOdd,t,x,y,z,d,i,l);
-#endif
+					bgq_gaugefield_double_set(targetfield, isOdd, t, x, y, z, dir, i, l, m->c[i][l]);
 				}
 			}
 		}

@@ -386,18 +386,17 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 		value = conj(value);
 	}
 
-
-	assert(assert_gaugeval(gaugefield, isOdd, t,x,y,z,tv,k,d,i,l,false,true));
-	bgq_gaugesite_double *site = BGQ_GAUGESITE_ACCESS(gaugefield, isOdd, tv,x,y,z,d);
-	site->c[i][l][k] = value;
+	{
+	_Complex double *valptr = BGQ_GAUGEVAL(gaugefield, isOdd, t,x,y,z, tv,k, d, i,l, false,true);
+	*valptr = value;
+	}
 
 	if (d == ZUP) {
 		// For z-direction...
 		if (z==LOCAL_LZ-1) {
 			// wraparound, also store as z=-1 coordinate
-			assert(assert_gaugeval(gaugefield, isOdd, t,x,y,-1,tv,k,d,i,l,false,true));
-			bgq_gaugesite_double *site = BGQ_GAUGESITE_ACCESS(gaugefield, isOdd, tv,x,y,-1,d);
-			site->c[i][l][k] = value;
+			_Complex double *wrapptr = BGQ_GAUGEVAL(gaugefield, isOdd, t,x,y,-1, tv,k, d, i,l, false,true);
+			*wrapptr = value;
 		}
 	}
 
@@ -406,22 +405,17 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 			// also store as shifted
 
 			// Move one to the right
-		    const int teo_shift = mod(teo+1, (LOCAL_LT+1)/PHYSICAL_LP);
+		    const int teo_shift = mod(teo+1, 1+LOCAL_LT/PHYSICAL_LP);
 			const int tv_shift = teo_shift / PHYSICAL_LK;
 			const int k_shift = mod(teo_shift, PHYSICAL_LK);
 
-			if (t == -1) {
-				assert(tv_shift == PHYSICAL_LTV);
-				assert(k_shift == 0);
-			}
 			if (t == LOCAL_LT-1) {
 				assert(tv_shift == 0);
 				assert(k_shift == 0);
+			} else {	assert((tv_shift==tv && k_shift==1) || (tv_shift==tv+1 && k_shift==0));
 			}
-
-			assert(assert_gaugeval(gaugefield, isOdd, t,x,y,z,tv_shift,k,TUP_SHIFT,i,l,false,true));
-			bgq_gaugesite_double *raggedsite = BGQ_GAUGESITE_ACCESS(gaugefield, isOdd, tv_shift,x,y,z,TUP_SHIFT);
-			raggedsite->c[i][l][k_shift] = value;
+			_Complex double *shiftptr = BGQ_GAUGEVAL(gaugefield, isOdd, t,x,y,z, tv_shift,k_shift, TUP_SHIFT, i,l, false,true);
+			*shiftptr = value;
 		}
 }
 

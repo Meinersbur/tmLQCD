@@ -393,7 +393,6 @@ int main(int argc, char *argv[])
 #endif
 
 	if (even_odd_flag) {
-		fprintf(stderr, "MK even_odd_flag\n");
 		/*initialize the pseudo-fermion fields*/
 		j_max = 1;
 		sdt = 0.0;
