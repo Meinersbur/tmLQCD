@@ -94,53 +94,43 @@ static void bgq_spinorfield_checkcoord(bgq_spinorfield_double spinorfield, bool 
 void bgq_spinorfield_resetcoord(bgq_spinorfield_double spinorfield, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max) {
 	assert(spinorfield);
 
-//#pragma omp parallel for schedule(static)
-	for (int txyz = 0; txyz < GAUGE_VOLUME; txyz += 1) {
-		WORKLOAD_DECL(txyz, GAUGE_VOLUME);
+#pragma omp parallel for schedule(static)
+	for (int txyz = 0; txyz < VOLUME; txyz += 1) {
+		WORKLOAD_DECL(txyz, VOLUME);
 		const int t = WORKLOAD_PARAM(LOCAL_LT);
 		const int x = WORKLOAD_PARAM(LOCAL_LX);
 		const int y = WORKLOAD_PARAM(LOCAL_LY);
 		const int z = WORKLOAD_PARAM(LOCAL_LZ);
 		WORKLOAD_CHECK
 
-		const bool isOdd = (t+x+y+z)&1;
-		const int teo = (t+1) / PHYSICAL_LP;
+		if ( ((t+x+y+z)&1) != isOdd ) // Very BAD for branch predictor
+			continue;
+
+		const int teo = t / PHYSICAL_LP;
 		const int tv = teo / PHYSICAL_LK;
 		const int k = mod(teo, PHYSICAL_LK);
 
-		for (direction dir = TUP; dir <= ZUP; dir += 2) {
-			// Overflow is only needed for TDOWN, XDOWN, YDOWN into their dimension
-			if ((t == -1) && (dir != TUP))
-				continue;
-			if ((x == -1) && (dir != XUP))
-				continue;
-			if ((y == -1) && (dir != YUP))
-				continue;
+		for (int v = 0; v < 4; v += 1) {
+			for (int c = 0; c < 3; c += 1) {
+				_Complex double *value = BGQ_SPINORVAL(spinorfield,isOdd,t,x,y,z,tv,k,v,c,false,false);
+				bgq_spinorcoord *coord = bgq_spinorfield_coordref(value);
 
-			for (int v = 0; v < 4; v += 1) {
-				for (int c = 0; c < 3; c += 1) {
-					_Complex double *value = BGQ_SPINORVAL(spinorfield,isOdd,t,x,y,z,tv,k,v,c,false,false);
-					bgq_spinorcoord *coord = bgq_spinorfield_coordref(value);
+				assert (coord->coord.init);
+				int reads = coord->coord.reads;
+				int writes = coord->coord.writes;
 
-					int reads = 0;
-					int writes = 0;
-					if (coord->coord.init) {
-						reads = coord->coord.reads;
-						writes = coord->coord.writes;
-					}
-					if (expected_reads_min >= 0)
-						assert(reads >= expected_reads_min);
-					if (expected_reads_max >= 0)
-						assert(reads <= expected_reads_max);
-					if (expected_writes_min >= 0)
-						assert(writes >= expected_writes_min);
-					if (expected_writes_max >= 0)
-						assert(writes <= expected_writes_max);
+				if (expected_reads_min >= 0)
+					assert(reads >= expected_reads_min);
+				if (expected_reads_max >= 0)
+					assert(reads <= expected_reads_max);
+				if (expected_writes_min >= 0)
+					assert(writes >= expected_writes_min);
+				if (expected_writes_max >= 0)
+					assert(writes <= expected_writes_max);
 
-					bgq_spinorfield_checkcoord(spinorfield,isOdd,t,x,y,z,tv,k,v,c,value);
-					coord->coord.writes = 0;
-					coord->coord.reads = 0;
-				}
+				//bgq_spinorfield_checkcoord(spinorfield,isOdd,t,x,y,z,tv,k,v,c,value);
+				coord->coord.writes = 0;
+				coord->coord.reads = 0;
 			}
 		}
 	}
@@ -213,12 +203,12 @@ static void bgq_check_spinorfield(bgq_spinorfield_double spinorfield, int expect
 		const int z = WORKLOAD_PARAM(LOCAL_LZ);
 		WORKLOAD_CHECK
 
+		if (((t+x+y+z)&1) != isOdd)
+			continue;
+
 		const int teo = t / PHYSICAL_LP;
 		const int tv = teo/PHYSICAL_LK;
 		const int k = mod(teo,PHYSICAL_LK);
-
-		if (((t+x+y+z)&1) != isOdd)
-			continue;
 
 		for (int v = 0; v < 4; v+=1)
 			for (int c = 0; c < 3; c += 1) {
@@ -298,8 +288,8 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield_double const tar
 #ifndef NDEBUG
 	bgq_spinorfield_resetcoord(targetfield, isOdd, 0, 0, 1, 1);
 #endif
-
 }
+
 
 
 bool assert_spinorfield_coord(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, bool isRead, bool isWrite) {
@@ -342,24 +332,20 @@ bool assert_spinorfield_coord(bgq_spinorfield_double spinorfield, bool isOdd, in
 	assert(0 <= idx && idx < PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ);
 
 	// Validate the address
-	bgq_spinorsite_double *address = &spinorfield[idx];
-	assert(g_spinorfields_double[index] <= address);
-	assert(address <= g_spinorfields_double[VOLUME/2]);
-	assert(mod((size_t)address,32)==0);
+	bgq_spinorsite_double *site = &spinorfield[idx];
+	assert(g_spinorfields_double[index] <= site && site < g_spinorfields_double[index+1]);
+	assert(mod((size_t)site,32)==0);
 
-	// Get the equivalent address in debug address space
-	bgq_spinorsite_double *debugsite = (bgq_spinorsite_double*)(((char*)g_spinorfields_doubledata_coords) + offset);
-    bgq_spinorcoord *coord = (bgq_spinorcoord*)&debugsite->s[v][c][k];
+	_Complex double *val = &site->s[v][c][k];
+	assert( (&g_spinorfields_double[index]->s[0][0][0] <= val) && (val < &g_spinorfields_double[index+1]->s[0][0][0]) );
+	assert(mod((size_t)site,16)==0);
+	assert(mod((size_t)&site->s[v][c][0],32)==0);
 
-	// Verify that we are really accessing the correct data
-	assert(coord->coord.isOdd == isOdd);
-	assert(coord->coord.t == t);
-	assert(coord->coord.x == x);
-	assert(coord->coord.y == y);
-	assert(coord->coord.z == z);
-	assert(coord->coord.v == v);
-	assert(coord->coord.c == c);
+	// Get the equivalent address in debug address space, and check it
+	bgq_spinorfield_checkcoord(spinorfield,isOdd,t,x,y,z,tv,k,v,c,val);
+	bgq_spinorcoord *coord = bgq_spinorfield_coordref(val);
 
+	// Mark uses of this value
 	if (isRead)
 		coord->coord.reads += 1;
 	if (isWrite)
@@ -585,7 +571,7 @@ void bgq_transfer_gaugefield(bgq_gaugefield_double const targetfield, su3 ** con
 		WORKLOAD_CHECK
 
 		const bool isOdd = (t+x+y+z)&1;
-		const int ix = Index(t, x, y, z); /* lexic coordinate */
+		const int ix = Index(t, x, y, z); /* lexic coordinate; g_ipt[t][x][y][z] is not defined for -1 coordinates */
 
 		for (direction dir = TUP; dir <= ZUP; dir += 2) {
 			// Overflow is only needed for TDOWN, XDOWN, YDOWN into their dimension

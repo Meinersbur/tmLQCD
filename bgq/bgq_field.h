@@ -1,5 +1,5 @@
-#ifndef BGQ_H_INCLUDED
-#define BGQ_H_INCLUDED
+#ifndef BGQ_FIELD_H_
+#define BGQ_FIELD_H_
 
 #include "bgq_utils.h"
 #include "complex_c99.h"
@@ -157,10 +157,10 @@ bool assert_spinorfield_coord(bgq_spinorfield_double spinorfield, bool isOdd, in
 bool assert_spinorcoord(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, bool isRead, bool isWrite);
 
 #define BGQ_SPINORSITE_ACCESS(spinorfield, isOdd, tv, x, y, z) \
-	(assert(tv <= 0 && tv < PHYSICAL_LTV),      \
-	 assert(x <= 0 && x < PHYSICAL_LX),         \
-	 assert(y <= 0 && y < PHYSICAL_LY),         \
-	 assert(z <= 0 && z < PHYSICAL_LZ),         \
+	(assert(0 <= tv && tv < PHYSICAL_LTV),                      \
+	 assert(0 <= x && x < PHYSICAL_LX),                         \
+	 assert(0 <= y && y < PHYSICAL_LY),                         \
+	 assert(0 <= z && z < PHYSICAL_LZ),                         \
 	 &spinorfield[(((tv)*PHYSICAL_LX + (x))*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)])
 
 #define BGQ_SPINORSITE(spinorfield, isOdd, tv, x, y, z, t1, t2, isWrite)                         \
@@ -198,7 +198,7 @@ EXTERN_INLINE _Complex double bgq_spinorfield_double_get(bgq_spinorfield_double 
 
 
 EXTERN_INLINE void bgq_spinorfield_double_set(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int v, int c, double _Complex value) {
-	_Complex double *ptr = bgq_spinorfield_double_ref(spinorfield,isOdd,t,x,y,z,v,c,true,false);
+	_Complex double *ptr = bgq_spinorfield_double_ref(spinorfield,isOdd,t,x,y,z,v,c,false,true);
 	*ptr = value;
 }
 
@@ -449,4 +449,4 @@ bool assert_weylfield_y(bgq_weylfield_double weylfield, bool isOdd, int t, int x
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD
-#endif // BGQ_H_INCLUDED
+#endif /* BGQ_FIELD_H_ */
