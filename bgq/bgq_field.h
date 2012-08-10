@@ -147,15 +147,21 @@ EXTERN_FIELD int *g_spinorfield_isOdd;
 
 
 void bgq_transfer_spinorfield(bool isOdd, bgq_spinorfield_double targetfield, spinor *sourcefield);
+void bgq_spinorfield_resetcoord(bgq_spinorfield_double spinorfield, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max);
 
 
 
-#define BGQ_SPINORSITE_ACCESS(spinorfield, isOdd, tv, x, y, z) \
-	(&spinorfield[(((tv)*PHYSICAL_LX + (x))*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)])
 
 
 bool assert_spinorfield_coord(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, bool isRead, bool isWrite);
 bool assert_spinorcoord(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, bool isRead, bool isWrite);
+
+#define BGQ_SPINORSITE_ACCESS(spinorfield, isOdd, tv, x, y, z) \
+	(assert(tv <= 0 && tv < PHYSICAL_LTV),      \
+	 assert(x <= 0 && x < PHYSICAL_LX),         \
+	 assert(y <= 0 && y < PHYSICAL_LY),         \
+	 assert(z <= 0 && z < PHYSICAL_LZ),         \
+	 &spinorfield[(((tv)*PHYSICAL_LX + (x))*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)])
 
 #define BGQ_SPINORSITE(spinorfield, isOdd, tv, x, y, z, t1, t2, isWrite)                         \
 		(assert(assert_spinorcoord(spinorfield, isOdd, tv, x, y, z, t1, 0, !isWrite, isWrite)), \
@@ -170,38 +176,30 @@ bool assert_spinorcoord(bgq_spinorfield_double spinorfield, bool isOdd, int t, i
 		(assert(assert_spinorcoord(spinorfield, isOdd, tv, x, y, z, t2, 1, !isWrite, isWrite)), \
 		 BGQ_SPINORSITE_ACCESS(spinorfield, isOdd, tv, x, y, z))
 
+#define BGQ_SPINORVAL(spinorfield,isOdd,t,x,y,z,tv,k, v,c, isRead,isWrite) \
+	(assert(assert_spinorfield_coord(spinorfield,isOdd,t,x,y,z,tv,k,v,c,isRead,isWrite)), \
+	 &(BGQ_SPINORSITE_ACCESS(spinorfield,isOdd,tv,x,y,z)->s[v][c][k]))
 
 //TODO: move to .c
-EXTERN_INLINE _Complex double *bgq_spinorfield_double_ref(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int v, int c, bool isRead, bool isWrite, bool doCheck) {
+EXTERN_INLINE _Complex double *bgq_spinorfield_double_ref(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int v, int c, bool isRead, bool isWrite) {
 	const int teo = t / PHYSICAL_LP;
 	const int tv = teo/PHYSICAL_LK;
 	const int k = mod(teo,PHYSICAL_LK);
 
-	if (doCheck) {
-		assert(assert_spinorfield_coord(spinorfield, isOdd, t, x, y, z, tv, k, v, c, isRead, isWrite));
-	} else {
-		assert(!isRead);
-		assert(!isWrite);
-	}
-	bgq_spinorsite_double *site = BGQ_SPINORSITE_ACCESS(spinorfield, bool, tv, x, y, z);
-	return &site->s[v][c][k];
+	_Complex double *val = BGQ_SPINORVAL(spinorfield, isOdd, t, x, y, z, tv, k, v, c, isRead, isWrite);
+	return val;
 }
 
 
 EXTERN_INLINE _Complex double bgq_spinorfield_double_get(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int v, int c) {
-	_Complex double *ptr = bgq_spinorfield_double_ref(spinorfield,isOdd,t,x,y,z,v,c,true,false,true);
+	_Complex double *ptr = bgq_spinorfield_double_ref(spinorfield,isOdd,t,x,y,z,v,c,true,false);
 	return *ptr;
 }
 
 
 EXTERN_INLINE void bgq_spinorfield_double_set(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int v, int c, double _Complex value) {
-	const int teo = t / PHYSICAL_LP;
-	const int tv = teo/PHYSICAL_LK;
-	const int k = mod(teo,PHYSICAL_LK);
-
-	assert(assert_spinorfield_coord(spinorfield, isOdd, t, x, y, z, tv, k, v, c, false, true));
-	bgq_spinorsite_double *site = BGQ_SPINORSITE_ACCESS(spinorfield, isOdd, t, x, y, z);
-	site->s[v][c][k] = value;
+	_Complex double *ptr = bgq_spinorfield_double_ref(spinorfield,isOdd,t,x,y,z,v,c,true,false);
+	*ptr = value;
 }
 
 

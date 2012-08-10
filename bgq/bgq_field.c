@@ -59,7 +59,92 @@ bgq_spinorcoord bgq_spinorcoord_encode(bool isOdd, int t, int x, int y, int z, i
 }
 
 
+static bgq_spinorcoord *bgq_spinorfield_coordref(_Complex double *site) {
+	size_t offset = (char*)site - (char*)g_spinorfields_doubledata;
+	bgq_spinorcoord *result = (bgq_spinorcoord*)((char*)g_spinorfields_doubledata_coords + offset);
+	return result;
+}
 
+
+static void bgq_spinorfield_checkcoord(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, _Complex double *value) {
+	bgq_spinorcoord *coord = bgq_spinorfield_coordref(value);
+	if (coord->coord.init) {
+		assert(coord->coord.isOdd == isOdd);
+		assert(coord->coord.t == t);
+		assert(coord->coord.x == x);
+		assert(coord->coord.y == y);
+		assert(coord->coord.z == z);
+		assert(coord->coord.v == v);
+		assert(coord->coord.c == c);
+	} else {
+		coord->coord.init = true;
+		coord->coord.isOdd = isOdd;
+		coord->coord.t = t;
+		coord->coord.x = x;
+		coord->coord.y = y;
+		coord->coord.z = z;
+		coord->coord.v = v;
+		coord->coord.c = c;
+		coord->coord.writes = 0;
+		coord->coord.reads = 0;
+	}
+}
+
+
+void bgq_spinorfield_resetcoord(bgq_spinorfield_double spinorfield, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max) {
+	assert(spinorfield);
+
+//#pragma omp parallel for schedule(static)
+	for (int txyz = 0; txyz < GAUGE_VOLUME; txyz += 1) {
+		WORKLOAD_DECL(txyz, GAUGE_VOLUME);
+		const int t = WORKLOAD_PARAM(LOCAL_LT);
+		const int x = WORKLOAD_PARAM(LOCAL_LX);
+		const int y = WORKLOAD_PARAM(LOCAL_LY);
+		const int z = WORKLOAD_PARAM(LOCAL_LZ);
+		WORKLOAD_CHECK
+
+		const bool isOdd = (t+x+y+z)&1;
+		const int teo = (t+1) / PHYSICAL_LP;
+		const int tv = teo / PHYSICAL_LK;
+		const int k = mod(teo, PHYSICAL_LK);
+
+		for (direction dir = TUP; dir <= ZUP; dir += 2) {
+			// Overflow is only needed for TDOWN, XDOWN, YDOWN into their dimension
+			if ((t == -1) && (dir != TUP))
+				continue;
+			if ((x == -1) && (dir != XUP))
+				continue;
+			if ((y == -1) && (dir != YUP))
+				continue;
+
+			for (int v = 0; v < 4; v += 1) {
+				for (int c = 0; c < 3; c += 1) {
+					_Complex double *value = BGQ_SPINORVAL(spinorfield,isOdd,t,x,y,z,tv,k,v,c,false,false);
+					bgq_spinorcoord *coord = bgq_spinorfield_coordref(value);
+
+					int reads = 0;
+					int writes = 0;
+					if (coord->coord.init) {
+						reads = coord->coord.reads;
+						writes = coord->coord.writes;
+					}
+					if (expected_reads_min >= 0)
+						assert(reads >= expected_reads_min);
+					if (expected_reads_max >= 0)
+						assert(reads <= expected_reads_max);
+					if (expected_writes_min >= 0)
+						assert(writes >= expected_writes_min);
+					if (expected_writes_max >= 0)
+						assert(writes <= expected_writes_max);
+
+					bgq_spinorfield_checkcoord(spinorfield,isOdd,t,x,y,z,tv,k,v,c,value);
+					coord->coord.writes = 0;
+					coord->coord.reads = 0;
+				}
+			}
+		}
+	}
+}
 
 
 
@@ -83,13 +168,8 @@ void bgq_init_spinorfields(int count) {
 	}
 }
 
-static bgq_spinorcoord *bgq_spinorfield_coordref(_Complex double *site) {
-	size_t offset = (char*)site - (char*)g_spinorfields_doubledata;
-	bgq_spinorcoord *result = (bgq_spinorcoord*)((char*)g_spinorfields_doubledata_coords + offset);
-	return result;
-}
 
-void bgq_reset_spinorfield(bgq_spinorfield_double spinorfield, bool isOdd) {
+static void bgq_reset_spinorfield(bgq_spinorfield_double spinorfield, bool isOdd) {
 	// Fill the fields with the coordinates
 	for (int txyz = 0; txyz < VOLUME; txyz += 1) {
 		WORKLOAD_DECL(txyz, GAUGE_VOLUME);
@@ -104,14 +184,15 @@ void bgq_reset_spinorfield(bgq_spinorfield_double spinorfield, bool isOdd) {
 
 		for (int v = 0; v < 4; v+=1)
 			for (int c = 0; c < 3; c += 1) {
-				_Complex double *val = bgq_spinorfield_double_ref(spinorfield, isOdd, t,x,y,z,v,c,false,false,false);
+				_Complex double *val = bgq_spinorfield_double_ref(spinorfield, isOdd, t,x,y,z,v,c,false,false);
 				bgq_spinorcoord *coord = bgq_spinorfield_coordref(val);
 				*coord = bgq_spinorcoord_encode(isOdd,t,x,y,z,v,c);
 			}
 	}
 }
 
-void bgq_check_spinorfield(bgq_spinorfield_double spinorfield, int expected_reads, int expected_writes) {
+
+static void bgq_check_spinorfield(bgq_spinorfield_double spinorfield, int expected_reads, int expected_writes) {
 	// Find out whether it was an even or odd field part
 	// Get the index of the used spinorfield
 	const int fieldsize = sizeof(bgq_spinorsite_double) * VOLUME_SITES; // alignment???
@@ -142,7 +223,7 @@ void bgq_check_spinorfield(bgq_spinorfield_double spinorfield, int expected_read
 		for (int v = 0; v < 4; v+=1)
 			for (int c = 0; c < 3; c += 1) {
 				assert(assert_spinorfield_coord(spinorfield, isOdd, t,x,y,z,tv,k,v,c,false,false));
-				_Complex double *site = bgq_spinorfield_double_ref(spinorfield, isOdd, t,x,y,z,v,c,false,false,true);
+				_Complex double *site = bgq_spinorfield_double_ref(spinorfield, isOdd, t,x,y,z,v,c,false,false);
 				bgq_spinorcoord *coord = bgq_spinorfield_coordref(site);
 
 				if (expected_reads >= 0)
@@ -181,16 +262,21 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield_double const tar
 	assert(sourcefield);
 	assert(targetfield);
 
+#ifndef NDEBUG
+	bgq_spinorfield_resetcoord(targetfield, isOdd, -1, -1, -1, -1);
+#endif
+
 //#pragma omp parallel for schedule(static)
-	for (int txy = 0; txy < VOLUME/2; txy+=1) {
-		WORKLOAD_DECL(txy, VOLUME/2);
+	for (int txyz = 0; txyz < VOLUME; txyz+=1) {
+		WORKLOAD_DECL(txyz, VOLUME);
 		const int t = WORKLOAD_CHUNK(LOCAL_LT);
 		const int x = WORKLOAD_CHUNK(LOCAL_LX);
 		const int y = WORKLOAD_CHUNK(LOCAL_LY);
-		const int z = WORKLOAD_CHUNK(LOCAL_LZ/2)*2 + (t+x+y+isOdd)%2;
+		const int z = WORKLOAD_CHUNK(LOCAL_LZ);
 		WORKLOAD_CHECK
 
-		assert((t+x+y+z)%2==isOdd);
+		if (((t+x+y+z)&1)!=isOdd)
+			continue;
 
 		const int ix = g_ipt[t][x][y][z]; /* lexic coordinate */
 		assert(ix == Index(t,x,y,z));
@@ -205,15 +291,14 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield_double const tar
 		for (int v = 0; v < 4; v+=1) {
 			for (int c = 0; c < 3; c+=1) {
 				bgq_spinorfield_double_set(targetfield,isOdd,t,x,y,z,v,c,sp->v[v].c[c]);
-#ifndef NDEBUG
-				_Complex double *val = bgq_spinorfield_double_ref(targetfield,isOdd,t,x,y,z,v,c,false,false,false);
-				bgq_spinorcoord *coord = bgq_spinorfield_coordref(val);
-
-				*coord = bgq_spinorcoord_encode(isOdd,t,x,y,z,v,c);
-#endif
 			}
 		}
 	}
+
+#ifndef NDEBUG
+	bgq_spinorfield_resetcoord(targetfield, isOdd, 0, 0, 1, 1);
+#endif
+
 }
 
 
@@ -267,18 +352,18 @@ bool assert_spinorfield_coord(bgq_spinorfield_double spinorfield, bool isOdd, in
     bgq_spinorcoord *coord = (bgq_spinorcoord*)&debugsite->s[v][c][k];
 
 	// Verify that we are really accessing the correct data
-			assert(coord->coord.isOdd == isOdd);
-			assert(coord->coord.t == t);
-			assert(coord->coord.x == x);
-			assert(coord->coord.y == y);
-			assert(coord->coord.z == z);
-			assert(coord->coord.v == v);
-			assert(coord->coord.c == c);
+	assert(coord->coord.isOdd == isOdd);
+	assert(coord->coord.t == t);
+	assert(coord->coord.x == x);
+	assert(coord->coord.y == y);
+	assert(coord->coord.z == z);
+	assert(coord->coord.v == v);
+	assert(coord->coord.c == c);
 
-			if (isRead)
-				coord->coord.reads += 1;
-			if (isWrite)
-				coord->coord.writes += 1;
+	if (isRead)
+		coord->coord.reads += 1;
+	if (isWrite)
+		coord->coord.writes += 1;
 
 	return true; // All checks passed
 }
@@ -375,9 +460,9 @@ static void bgq_gaugefield_resetcoord_checkval(bgq_gaugefield_double gaugefield,
 		writes = coord->coord.writes;
 	}
 	if (expected_reads >= 0)
-		assert(coord->coord.reads == reads);
+		assert(reads == reads);
 	if (expected_writes >= 0)
-		assert(coord->coord.writes == writes);
+		assert(writes == writes);
 
 	bgq_gaugefield_checkcoord(gaugefield,isOdd,t,x,y,z,tv,k,dir,i,l,val);
 	coord->coord.writes = 0;
