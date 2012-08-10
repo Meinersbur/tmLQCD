@@ -93,7 +93,7 @@ void bgq_hm_free() {
 
 
 static bgq_weylcoord *bgq_weylfield_coordref(_Complex double *val) {
-	assert( sizeof(bgq_weylcoord) == sizeof(bgq_weylsite_double) );
+	assert( sizeof(bgq_weylcoord) == sizeof(_Complex double) );
 
 	for (direction d = TUP; d <= YDOWN; d += 1) {
 		if ( ((char*)weylxchange_recv_double[d] <= (char*)val) && ((char*)val < (char*)weylxchange_recv_double[d] + weylxchange_size_double[d/2]) ) {
@@ -108,24 +108,25 @@ static bgq_weylcoord *bgq_weylfield_coordref(_Complex double *val) {
 	}
 
 	master_error(1, "Unknown Weylfield\n");
+	return NULL;
 }
 
 static void bgq_weylfield_checkcoord(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, _Complex double *value) {
 	bgq_weylcoord *coord = bgq_weylfield_coordref(value);
 	if (coord->coord.init) {
 		assert(coord->coord.isOdd == isOdd);
-		assert(coord->coord.t == t);
-		assert(coord->coord.x == x);
-		assert(coord->coord.y == y);
+		assert(coord->coord.t == t+1);
+		assert(coord->coord.x == x+1);
+		assert(coord->coord.y == y+1);
 		assert(coord->coord.z == z);
 		assert(coord->coord.v == v);
 		assert(coord->coord.c == c);
 	} else {
 		coord->coord.init = true;
 		coord->coord.isOdd = isOdd;
-		coord->coord.t = t;
-		coord->coord.x = x;
-		coord->coord.y = y;
+		coord->coord.t = t+1;
+		coord->coord.x = x+1;
+		coord->coord.y = y+1;
 		coord->coord.z = z;
 		coord->coord.v = v;
 		coord->coord.c = c;
@@ -140,8 +141,8 @@ void bgq_weylfield_t_resetcoord(bgq_weylfield_double weylfield, int t, bool isOd
 	assert(weylfield);
 
 //#pragma omp parallel for schedule(static)
-	for (int xyz = 0; xyz < VOLUME; xyz += 1) {
-		WORKLOAD_DECL(xyz, VOLUME);
+	for (int xyz = 0; xyz < LOCAL_LX*LOCAL_LY*LOCAL_LZ; xyz += 1) {
+		WORKLOAD_DECL(xyz, LOCAL_LX*LOCAL_LY*LOCAL_LZ);
 		const int x = WORKLOAD_PARAM(LOCAL_LX);
 		const int y = WORKLOAD_PARAM(LOCAL_LY);
 		const int z = WORKLOAD_PARAM(LOCAL_LZ);
@@ -150,7 +151,7 @@ void bgq_weylfield_t_resetcoord(bgq_weylfield_double weylfield, int t, bool isOd
 		if ( ((t+x+y+z)&1) != isOdd ) // Very BAD for branch predictor
 			continue;
 
-		const int xeo = t / PHYSICAL_LP;
+		const int xeo = x / PHYSICAL_LP;
 		const int xv = xeo / PHYSICAL_LK;
 		const int k = mod(xeo, PHYSICAL_LK);
 
@@ -184,7 +185,7 @@ void bgq_weylfield_t_resetcoord(bgq_weylfield_double weylfield, int t, bool isOd
 bool assert_weylvar_t(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int xv, int k, int v, int c, bool isRead, bool isWrite) {
 	assert(weylfield);
 	assert(false <= isOdd && isOdd <= true);
-	assert(0 <= t && t < LOCAL_LT);
+	assert( (t==-1) || (t == LOCAL_LT) ); /* We are one out of the volume, either up or down */
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
@@ -192,7 +193,7 @@ bool assert_weylvar_t(bgq_weylfield_double weylfield, bool isOdd, int t, int x, 
 	assert(0 <= k && k < PHYSICAL_LK);
 
 	// Only 4 fields of this type actually exist
-	assert((weylfield == weylxchange_recv_double[TUP]) || (weylfield == weylxchange_recv_double[TDOWN])
+	assert( (weylfield == weylxchange_recv_double[TUP]) || (weylfield == weylxchange_recv_double[TDOWN])
 			|| (weylfield == weylxchange_send_double[TUP]) || (weylfield == weylxchange_send_double[TDOWN]) );
 
 	// Check that the coordinate is really an odd/even coordinate
@@ -205,13 +206,13 @@ bool assert_weylvar_t(bgq_weylfield_double weylfield, bool isOdd, int t, int x, 
 	assert(mod(xeo,PHYSICAL_LK) == k);
 
 	// Get the memory address it points to
-	const int idx = (xv*PHYSICAL_LY + y)*PHYSICAL_LZ + z;
+	const int idx = ((xv)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z);
 	assert(0 <= idx && idx < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
 
 	// Validate the memory address
 	bgq_weylsite_double *site = &weylfield[idx];
 	assert(&weylfield[0] <= site && site < &weylfield[PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ]);
-	assert(mod((size_t)site->s[v][c][0],32)==0);
+	assert(mod((size_t)&site->s[v][c][0],32)==0);
 
 	_Complex double *val = &site->s[v][c][k];
 	assert(&weylfield[0].s[0][0][0] <= val && val < &weylfield[PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ].s[0][0][0]);
