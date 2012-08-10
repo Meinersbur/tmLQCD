@@ -28,6 +28,16 @@
 
 // isOdd refers to the oddness of targetfield; spinorfield will have the opposite oddness
 void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield) {
+#ifndef NDEBUG
+	bgq_spinorfield_resetcoord(targetfield, isOdd, -1, -1, -1, -1);
+	bgq_spinorfield_resetcoord(spinorfield, !isOdd, -1, -1, -1, -1);
+	bgq_gaugefield_resetcoord(gaugefield, -1, -1);
+
+	bgq_weylfield_t_resetcoord(weylxchange_recv_double[TUP], -1, isOdd, -1, -1, -1, -1);
+	bgq_weylfield_t_resetcoord(weylxchange_recv_double[TDOWN], LOCAL_LT, isOdd, -1, -1, -1, -1);
+	bgq_weylfield_t_resetcoord(weylxchange_send_double[TUP], -1, isOdd, -1, -1, -1, -1);
+	bgq_weylfield_t_resetcoord(weylxchange_send_double[TDOWN], LOCAL_LT, isOdd, -1, -1, -1, -1);
+#endif
 
 #if !BGQ_HM_NOCOM && defined(MPI)
 	//TODO: Persistent communication
@@ -62,12 +72,12 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		WORKLOAD_CHECK
 
 		const int x1 = ((isOdd+t+y+z)&1)+xv*2;
-		bgq_spinorsite_double *spinorsite1_tup = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, t+1, x1, y, z, 0, 2, true,false);
+		bgq_spinorsite_double *spinorsite1_tup = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, 0, x1, y, z, t+1, 2, true,false);
 		bgq_su3_spinor_decl(spinor1_tup);
 		bgq_su3_spinor_double_load_left(spinor1_tup, spinorsite1_tup);
 
 		const int x2 = x1+2;
-		bgq_spinorsite_double *spinorsite2_tup = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, t+1, x2, y, z, 0, 2, true,false);
+		bgq_spinorsite_double *spinorsite2_tup = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, 0, x2, y, z, t+1, 2, true,false);
 		bgq_su3_spinor_decl(spinor2_tup);
 		bgq_su3_spinor_double_load_left(spinor2_tup, spinorsite2_tup);
 
@@ -80,7 +90,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		bgq_su3_vadd(weyl_tup_v1, spinor_tup_v1, spinor_tup_v3);
 
 		// Store the halfspinor to be transfered to the neighbor node
-		bgq_weylsite_double *weylsite_tup = BGQ_WEYLSITE_T(weylxchange_send_double[TDOWN/*!!!*/], isOdd, t, xv, y, z, x1, x2);
+		bgq_weylsite_double *weylsite_tup = BGQ_WEYLSITE_T(weylxchange_send_double[TDOWN/*!!!*/], isOdd, t, xv, y, z, x1, x2, false, true);
 		bgq_su3_weyl_double_store(weylsite_tup, weyl_tup);
 	}
 
@@ -96,12 +106,12 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		WORKLOAD_CHECK
 
 		const int x1 = ((isOdd+t+y+z)&1)+xv*2;
-		bgq_spinorsite_double *spinorsite1_tdown = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, t-1, x1, y, z, LOCAL_LT-3, LOCAL_LT-1, true,false);
+		bgq_spinorsite_double *spinorsite1_tdown = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, PHYSICAL_LTV-1, x1, y, z, LOCAL_LT-3, t-1, true,false);
 		bgq_su3_spinor_decl(spinor1_tdown);
 		bgq_su3_spinor_double_load_right(spinor1_tdown, spinorsite1_tdown);
 
 		const int x2 = x1+2;
-		bgq_spinorsite_double *spinorsite2_tdown = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, t-1, x2, y, z, LOCAL_LT-3, LOCAL_LT-1, true,false);
+		bgq_spinorsite_double *spinorsite2_tdown = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, PHYSICAL_LTV-1, x2, y, z, LOCAL_LT-3, t-1, true,false);
 		bgq_su3_spinor_decl(spinor2_tdown);
 		bgq_su3_spinor_double_load_right(spinor2_tdown, spinorsite2_tdown);
 
@@ -114,7 +124,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		bgq_su3_vsub(weyl_tdown_v1, spinor_tdown_v1, spinor_tdown_v3);
 
 		// Store the halfspinor to be transfered to the neighbor node
-		bgq_weylsite_double *weylsite_tdown = BGQ_WEYLSITE_T(weylxchange_send_double[TUP/*!!!*/], isOdd, t, xv, y, z, x1, x2);
+		bgq_weylsite_double *weylsite_tdown = BGQ_WEYLSITE_T(weylxchange_send_double[TUP/*!!!*/], isOdd, t, xv, y, z, x1, x2, false, true);
 		bgq_su3_weyl_double_store(weylsite_tdown, weyl_tdown);
 	}
 

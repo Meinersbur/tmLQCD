@@ -164,16 +164,16 @@ bool assert_spinorcoord(bgq_spinorfield_double spinorfield, bool isOdd, int t, i
 	 &spinorfield[(((tv)*PHYSICAL_LX + (x))*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)])
 
 #define BGQ_SPINORSITE(spinorfield, isOdd, tv, x, y, z, t1, t2, isRead, isWrite)                         \
-		(assert(assert_spinorcoord(spinorfield, isOdd, tv, x, y, z, t1, 0, isRead, isWrite)), \
-		 assert(assert_spinorcoord(spinorfield, isOdd, tv, x, y, z, t2, 1, isRead, isWrite)), \
+		(assert(assert_spinorcoord(spinorfield, isOdd, t1, x, y, z, tv, 0, isRead, isWrite)), \
+		 assert(assert_spinorcoord(spinorfield, isOdd, t2, x, y, z, tv, 1, isRead, isWrite)), \
 		 BGQ_SPINORSITE_ACCESS(spinorfield, isOdd, tv, x, y, z))
 
 #define BGQ_SPINORSITE_LEFT(spinorfield, isOdd, tv, x, y, z, t1, t2, isRead, isWrite)                         \
-		(assert(assert_spinorcoord(spinorfield, isOdd, tv, x, y, z, t1, 0, isRead, isWrite)), \
+		(assert(assert_spinorcoord(spinorfield, isOdd, t1, x, y, z, tv, 0, isRead, isWrite)), \
 		 BGQ_SPINORSITE_ACCESS(spinorfield, isOdd, tv, x, y, z))
 
 #define BGQ_SPINORSITE_RIGHT(spinorfield, isOdd, tv, x, y, z, t1, t2, isRead, isWrite)                         \
-		(assert(assert_spinorcoord(spinorfield, isOdd, tv, x, y, z, t2, 1, isRead, isWrite)), \
+		(assert(assert_spinorcoord(spinorfield, isOdd, t2, x, y, z, tv, 1, isRead, isWrite)), \
 		 BGQ_SPINORSITE_ACCESS(spinorfield, isOdd, tv, x, y, z))
 
 #define BGQ_SPINORVAL(spinorfield,isOdd,t,x,y,z,tv,k, v,c, isRead,isWrite) \
@@ -416,35 +416,6 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 			*shiftptr = value;
 		}
 }
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Weylfields
-
-
-bool assert_weylfield_t(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int xv, int k);
-#define BGQ_WEYLSITE_T(weylfield, isOdd, t, xv, y, z, x1, x2)  \
-	(assert(assert_weylfield_t(weylfield,isOdd,t,x1,y,z,xv,0)), \
-	 assert(assert_weylfield_t(weylfield,isOdd,t,x2,y,z,xv,1)), \
-	 &weylfield[((xv)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)])
-
-bool assert_weylfield_x(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int tv, int k);
-#define BGQ_WEYLSITE_X(weylfield, isOdd, tv, x, y, z, t1, t2)  \
-	(assert(assert_weylfield_t(weylfield,isOdd,t1,x,y,z,tv,0)), \
-	 assert(assert_weylfield_t(weylfield,isOdd,t2,x,y,z,tv,1)), \
-	 &weylfield[((tv)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)])
-
-bool assert_weylfield_y(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int tv, int k);
-#define BGQ_WEYLSITE_Y(weylfield, isOdd, tv, x, y, z, t1, t2)  \
-	(assert(assert_weylfield_t(weylfield,isOdd,t1,x,y,z,tv,0)), \
-	 assert(assert_weylfield_t(weylfield,isOdd,t2,x,y,z,tv,1)), \
-	 &weylfield[((tv)*PHYSICAL_LX + (x))*PHYSICAL_LZ + (z)])
-
-
-
-
-
-
 
 
 #undef EXTERN_INLINE

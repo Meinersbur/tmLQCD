@@ -40,7 +40,7 @@ typedef union {
 		// 52 bits = 7 bytes
 	} coord;
 } bgq_spinorcoord;
-bgq_spinorcoord bgq_spinorcoord_encode(bool isOdd, int t, int x, int y, int z, int v, int c) {
+static bgq_spinorcoord bgq_spinorcoord_encode(bool isOdd, int t, int x, int y, int z, int v, int c) {
 	bgq_spinorcoord result;
 	assert(sizeof(result) == sizeof(_Complex double));
 	result.val = 0; // Write zeros
@@ -680,114 +680,5 @@ bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x,
 
 
 
-////////////////////////////////////////////////////////////////////////////////
-// Weylfields
 
-
-extern bgq_weylfield_double weylxchange_recv_double[6];
-extern bgq_weylfield_double weylxchange_send_double[6];
-
-bool assert_weylfield_t(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int xv, int k) {
-	assert(weylfield);
-	assert(false <= isOdd && isOdd <= true);
-	assert(0 <= t && t < LOCAL_LT);
-	assert(0 <= x && x < LOCAL_LX);
-	assert(0 <= y && y < LOCAL_LY);
-	assert(0 <= z && z < LOCAL_LZ);
-	assert(0 <= xv && xv < PHYSICAL_LXV);
-	assert(0 <= k && k < PHYSICAL_LK);
-
-	// Only 4 fields of this type actually exist
-	assert((weylfield == weylxchange_recv_double[TUP]) || (weylfield == weylxchange_recv_double[TDOWN])
-			|| (weylfield == weylxchange_send_double[TUP]) || (weylfield == weylxchange_send_double[TDOWN]) );
-
-	// Check that the coordinate is really an odd/even coordinate
-	assert(((t+x+y+z)&1) == isOdd);
-
-	const int xeo = x/PHYSICAL_LP;
-
-	// Check that zv and k match the coordinate
-	assert(xeo/PHYSICAL_LK == xv);
-	assert(mod(xeo,PHYSICAL_LK) == k);
-
-	// Get the memory address it points to
-	const int idx = (xv*PHYSICAL_LY + y)*PHYSICAL_LZ + z;
-	assert(0 <= idx && idx < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
-
-	// Validate the memory address
-	bgq_weylsite_double *address = &weylfield[idx];
-	assert(&weylfield[0] <= address && address < &weylfield[PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ]);
-	assert(mod((size_t)address,32)==0);
-
-	return true;
-}
-
-bool assert_weylfield_x(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int tv, int k){
-	assert(weylfield);
-	assert(false <= isOdd && isOdd <= true);
-	assert(0 <= t && t < LOCAL_LT);
-	assert(0 <= x && x < LOCAL_LX);
-	assert(0 <= y && y < LOCAL_LY);
-	assert(0 <= z && z < LOCAL_LZ);
-	assert(0 <= tv && tv < PHYSICAL_LTV);
-	assert(0 <= k && k < PHYSICAL_LK);
-
-	// Only 4 fields of this type actually exist
-	assert((weylfield == weylxchange_recv_double[XUP]) || (weylfield == weylxchange_recv_double[XDOWN])
-			|| (weylfield == weylxchange_send_double[XUP]) || (weylfield == weylxchange_send_double[XDOWN]) );
-
-	// Check that the coordinate is really an odd/even coordinate
-	assert(((t+x+y+z)&1) == isOdd);
-
-	const int teo = t/PHYSICAL_LP;
-
-	// Check that zv and k match the coordinate
-	assert(teo/PHYSICAL_LK == tv);
-	assert(mod(teo,PHYSICAL_LK) == k);
-
-	// Get the memory address it points to
-	const int idx = (tv*PHYSICAL_LY + y)*PHYSICAL_LZ + z;
-	assert(0 <= idx && idx < PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ);
-
-	// Validate the memory address
-	bgq_weylsite_double *address = &weylfield[idx];
-	assert(&weylfield[0] <= address && address < &weylfield[PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ]);
-	assert(mod((size_t)address,32)==0);
-
-	return true;
-}
-
-bool assert_weylfield_y(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int tv, int k) {
-	assert(weylfield);
-	assert(false <= isOdd && isOdd <= true);
-	assert(0 <= t && t < LOCAL_LT);
-	assert(0 <= x && x < LOCAL_LX);
-	assert(0 <= y && y < LOCAL_LY);
-	assert(0 <= z && z < LOCAL_LZ);
-	assert(0 <= tv && tv < PHYSICAL_LTV);
-	assert(0 <= k && k < PHYSICAL_LK);
-
-	// Only 4 fields of this type actually exist
-	assert((weylfield == weylxchange_recv_double[YUP]) || (weylfield == weylxchange_recv_double[YDOWN])
-			|| (weylfield == weylxchange_send_double[YUP]) || (weylfield == weylxchange_send_double[YDOWN]));
-
-	// Check that the coordinate is really an odd/even coordinate
-	assert(((t+x+y+z)&1) == isOdd);
-	const int teo = t/PHYSICAL_LP;
-
-	// Check that zv and k match the coordinate
-	assert(teo/PHYSICAL_LK == tv);
-	assert(mod(teo,PHYSICAL_LK) == k);
-
-	// Get the memory address it points to
-	const int idx = (tv*PHYSICAL_LX + x)*PHYSICAL_LZ + z;
-	assert(0 <= idx && idx < PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ);
-
-	// Validate the memory address
-	bgq_weylsite_double *address = &weylfield[idx];
-	assert(&weylfield[0] <= address && address < &weylfield[PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ]);
-	assert(mod((size_t)address,32)==0);
-
-	return true;
-}
 

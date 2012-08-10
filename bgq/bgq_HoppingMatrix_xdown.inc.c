@@ -31,7 +31,7 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		if (x==0) {
 #endif
 #if (BGQ_HM_XDOWN_WEYLREAD==-1) || (BGQ_HM_XDOWN_WEYLREAD==1)
-		bgq_weylsite_double *weylsite_xdown = BGQ_WEYLSITE_X(weylxchange_recv_double[XDOWN], !isOdd, tv, x-1, y, z, t1, t2);
+		bgq_weylsite_double *weylsite_xdown = BGQ_WEYLSITE_X(weylxchange_recv_double[XDOWN], !isOdd, tv, x-1, y, z, t1, t2, true,false);
 		bgq_su3_weyl_double_load(weyl_xdown, weylsite_xdown);
 #endif
 #if BGQ_HM_XDOWN_WEYLREAD==-1
@@ -71,7 +71,7 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 #if BGQ_HM_XDOWN_WEYL_SEND
 		// Store the halfspinor to be transfered to the neighbor node
-		bgq_weylsite_double *weylsite_xdown = BGQ_WEYLSITE_X(weylxchange_send_double[XUP/*!!!*/], isOdd, tv, x, y, z, t1,t2);
+		bgq_weylsite_double *weylsite_xdown = BGQ_WEYLSITE_X(weylxchange_send_double[XUP/*!!!*/], isOdd, tv, x, y, z, t1,t2, false,true);
 		bgq_su3_weyl_double_store(weylsite_xdown, weyl_xdown);
 #endif
 
