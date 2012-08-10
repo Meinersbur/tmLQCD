@@ -611,8 +611,15 @@ typedef struct {
 	bgq_su3_vmov(dst##_v1,src##_v1)
 
 
+#define master_print(...)           \
+	if (g_proc_id == 0)              \
+		fprintf(stderr, __VA_ARGS__)
 
-
+#define master_error(errcode, ...) \
+	do {                            \
+		master_print(__VA_ARGS__);  \
+		exit(errcode);              \
+	} while (0)
 
 #endif /* BGQ_H_ */
 

@@ -139,6 +139,22 @@ void bgq_spinorfield_resetcoord(bgq_spinorfield_double spinorfield, bool isOdd, 
 
 
 void bgq_init_spinorfields(int count) {
+	// preconditions
+	assert(LOCAL_LT >= 8); /* even/odd, 2-complex vectors, left and right border cannot be the same */
+	assert(mod(LOCAL_LT,4)==0); /* even/odd, 2-complex vectors, */
+	assert(LOCAL_LX >= 2); /* border up- and down- surfaces cannot collapse */
+	assert(mod(LOCAL_LX,2)==0); /* even/odd */
+	assert(LOCAL_LY >= 2); /* border up- and down- surfaces cannot collapse */
+	assert(mod(LOCAL_LY,2)==0); /* even/odd */
+	assert(LOCAL_LZ >= 0);
+	assert(mod(LOCAL_LZ,2)==0); /* even/odd */
+
+	if (BODY_SITES < 0)
+		master_error(1, "ERROR: negative body volume\n");
+
+	if (BODY_SITES == 0)
+		master_print("WARNING: Local lattice consists of surface only\n");
+
 	g_num_spinorfields = count;
 	int datasize = count * sizeof(*g_spinorfields_doubledata) * VOLUME_SITES;
 	g_spinorfields_doubledata = malloc_aligned(datasize, 128);
@@ -306,7 +322,7 @@ bool assert_spinorfield_coord(bgq_spinorfield_double spinorfield, bool isOdd, in
 	const int fieldsize = sizeof(bgq_spinorsite_double) * VOLUME_SITES; // alignment???
 	long long offset = (char*)spinorfield - (char*)g_spinorfields_doubledata;
 	assert(offset >= 0);
-	assert(offset % fieldsize == 0);
+	assert(mod(offset, fieldsize) == 0);
 	int index = offset / fieldsize;
 	assert(index < g_num_spinorfields);
 

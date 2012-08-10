@@ -52,9 +52,9 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	bgq_cconst(qka3, ka3.re, ka3.im);
 
 // TDOWN
-#pragma omp parallel for schedule(static)
-	for (int xy = 0; xy < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ; xy+=1) {
-		WORKLOAD_DECL(xy,PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
+//#pragma omp parallel for schedule(static)
+	for (int xyz = 0; xyz < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ; xyz+=1) {
+		WORKLOAD_DECL(xyz, PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int t = -1;
 		const int y = WORKLOAD_PARAM(PHYSICAL_LY);
 		const int z = WORKLOAD_PARAM(PHYSICAL_LZ);
@@ -62,12 +62,12 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		WORKLOAD_CHECK
 
 		const int x1 = ((isOdd+t+y+z)&1)+xv*2;
-		bgq_spinorsite_double *spinorsite1_tup = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, t+1, x1, y, z, 0, 2, false);
+		bgq_spinorsite_double *spinorsite1_tup = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, t+1, x1, y, z, 0, 2, true,false);
 		bgq_su3_spinor_decl(spinor1_tup);
 		bgq_su3_spinor_double_load_left(spinor1_tup, spinorsite1_tup);
 
 		const int x2 = x1+2;
-		bgq_spinorsite_double *spinorsite2_tup = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, t+1, x2, y, z, 0, 2, false);
+		bgq_spinorsite_double *spinorsite2_tup = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, t+1, x2, y, z, 0, 2, true,false);
 		bgq_su3_spinor_decl(spinor2_tup);
 		bgq_su3_spinor_double_load_left(spinor2_tup, spinorsite2_tup);
 
@@ -86,7 +86,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 
 
 	// TUP
-#pragma omp parallel for schedule(static)
+//#pragma omp parallel for schedule(static)
 	for (int xyz = 0; xyz < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ; xyz+=1) {
 		WORKLOAD_DECL(xyz,PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int t = LOCAL_LT;
@@ -96,12 +96,12 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		WORKLOAD_CHECK
 
 		const int x1 = ((isOdd+t+y+z)&1)+xv*2;
-		bgq_spinorsite_double *spinorsite1_tdown = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, t-1, x1, y, z, LOCAL_LT-3, LOCAL_LT-1,false);
+		bgq_spinorsite_double *spinorsite1_tdown = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, t-1, x1, y, z, LOCAL_LT-3, LOCAL_LT-1, true,false);
 		bgq_su3_spinor_decl(spinor1_tdown);
 		bgq_su3_spinor_double_load_right(spinor1_tdown, spinorsite1_tdown);
 
 		const int x2 = x1+2;
-		bgq_spinorsite_double *spinorsite2_tdown = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, t-1, x2, y, z, LOCAL_LT-3, LOCAL_LT-1,false);
+		bgq_spinorsite_double *spinorsite2_tdown = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, t-1, x2, y, z, LOCAL_LT-3, LOCAL_LT-1, true,false);
 		bgq_su3_spinor_decl(spinor2_tdown);
 		bgq_su3_spinor_double_load_right(spinor2_tdown, spinorsite2_tdown);
 

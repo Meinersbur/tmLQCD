@@ -163,17 +163,17 @@ bool assert_spinorcoord(bgq_spinorfield_double spinorfield, bool isOdd, int t, i
 	 assert(0 <= z && z < PHYSICAL_LZ),                         \
 	 &spinorfield[(((tv)*PHYSICAL_LX + (x))*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)])
 
-#define BGQ_SPINORSITE(spinorfield, isOdd, tv, x, y, z, t1, t2, isWrite)                         \
-		(assert(assert_spinorcoord(spinorfield, isOdd, tv, x, y, z, t1, 0, !isWrite, isWrite)), \
-		 assert(assert_spinorcoord(spinorfield, isOdd, tv, x, y, z, t2, 1, !isWrite, isWrite)), \
+#define BGQ_SPINORSITE(spinorfield, isOdd, tv, x, y, z, t1, t2, isRead, isWrite)                         \
+		(assert(assert_spinorcoord(spinorfield, isOdd, tv, x, y, z, t1, 0, isRead, isWrite)), \
+		 assert(assert_spinorcoord(spinorfield, isOdd, tv, x, y, z, t2, 1, isRead, isWrite)), \
 		 BGQ_SPINORSITE_ACCESS(spinorfield, isOdd, tv, x, y, z))
 
-#define BGQ_SPINORSITE_LEFT(spinorfield, isOdd, tv, x, y, z, t1, t2, isWrite)                         \
-		(assert(assert_spinorcoord(spinorfield, isOdd, tv, x, y, z, t1, 0, !isWrite, isWrite)), \
+#define BGQ_SPINORSITE_LEFT(spinorfield, isOdd, tv, x, y, z, t1, t2, isRead, isWrite)                         \
+		(assert(assert_spinorcoord(spinorfield, isOdd, tv, x, y, z, t1, 0, isRead, isWrite)), \
 		 BGQ_SPINORSITE_ACCESS(spinorfield, isOdd, tv, x, y, z))
 
-#define BGQ_SPINORSITE_RIGHT(spinorfield, isOdd, tv, x, y, z, t1, t2, isWrite)                         \
-		(assert(assert_spinorcoord(spinorfield, isOdd, tv, x, y, z, t2, 1, !isWrite, isWrite)), \
+#define BGQ_SPINORSITE_RIGHT(spinorfield, isOdd, tv, x, y, z, t1, t2, isRead, isWrite)                         \
+		(assert(assert_spinorcoord(spinorfield, isOdd, tv, x, y, z, t2, 1, isRead, isWrite)), \
 		 BGQ_SPINORSITE_ACCESS(spinorfield, isOdd, tv, x, y, z))
 
 #define BGQ_SPINORVAL(spinorfield,isOdd,t,x,y,z,tv,k, v,c, isRead,isWrite) \

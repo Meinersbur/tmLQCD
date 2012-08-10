@@ -35,7 +35,7 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_zdown);
-		bgq_spinorsite_double *spinorsite_zdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z_left, t1,t2, false);
+		bgq_spinorsite_double *spinorsite_zdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z_left, t1,t2, true,false);
 		bgq_su3_spinor_double_load(spinor_zdown, spinorsite_zdown);
 
 

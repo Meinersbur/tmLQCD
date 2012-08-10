@@ -223,7 +223,7 @@ EXTERN_INLINE int get_MPI_count(MPI_Status *status) {
 
 #if 1
 #define mod(dividend,divisor) \
-		(int)(((unsigned int)dividend)%((unsigned int)divisor))
+		(int)(((unsigned int)(dividend))%((unsigned int)(divisor)))
 #else
 static inline int mod(const int dividend, const int divisor) {
 	// Compilers can therefore optimize it to bit-operations specific to the target machine
