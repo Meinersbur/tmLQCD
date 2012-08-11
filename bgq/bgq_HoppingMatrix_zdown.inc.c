@@ -47,7 +47,7 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 #if BGQ_HM_ZDOWN_COMPUTE
 		bgq_su3_mdecl(gauge_zdown);
-		bgq_gaugesite_double *gaugesite_zdown = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x, y, z, ZUP, t1,t2, true,false);
+		bgq_gaugesite_double *gaugesite_zdown = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x, y, z-1, ZUP, t1,t2, true,false);
 		bgq_su3_matrix_double_load(gauge_zdown, gaugesite_zdown);
 
 		bgq_su3_mvinvmul(weyl_zdown_v0, gauge_zdown, weyl_zdown_v0);

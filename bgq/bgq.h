@@ -141,12 +141,6 @@ typedef struct {
 	NAME2(dst,q2) = NAME2(src,q2); \
 	NAME2(dst,q3) = NAME2(src,q3)
 
-#define bgq_cconst(dst,re,im) \
-	dst##_q0 = re;            \
-	dst##_q1 = im;            \
-	dst##_q2 = re;            \
-	dst##_q3 = im
-
 #define bgq_xxcpnmadd(dst,a,b,c)                      \
 	{                                                 \
 		bgq_vector4double_decl(MAKENAME5(xmul,dst,a,b,c));   \
@@ -156,6 +150,18 @@ typedef struct {
 		MAKENAME6(xmul,dst,a,b,c,q3) = - (CONCAT(a,_q2) * CONCAT(b,_q3) - CONCAT(c,_q3)); \
 		bgq_mov(dst,MAKENAME5(xmul,dst,a,b,c));                                           \
 	}
+
+#define bgq_cconst(dst,re,im) \
+	dst##_q0 = re;            \
+	dst##_q1 = im;            \
+	dst##_q2 = re;            \
+	dst##_q3 = im
+
+#define bgq_zero(dst) \
+	NAME2(dst,q0) = 0;     \
+	NAME2(dst,q1) = 0;     \
+	NAME2(dst,q2) = 0;     \
+	NAME2(dst,q3) = 0
 
 #else
 
@@ -218,6 +224,11 @@ typedef struct {
 
 #define bgq_cconst(dst,re,im) \
 	dst = (vector4double){re,im,re,im}
+
+#define bgq_zero(dst) \
+	dst = (vector4double)(0)
+//	dst = (vector4double){0,0,0,0}
+//	dst = vec_logical(dst, dst, 0);
 
 #endif
 
@@ -363,10 +374,10 @@ typedef struct {
 	bgq_vector4double_decl(name##_c22)
 
 #define bgq_su3_spinor_decl(name) \
-	bgq_su3_vdecl(name##_v0);     \
-	bgq_su3_vdecl(name##_v1);     \
-	bgq_su3_vdecl(name##_v2);     \
-	bgq_su3_vdecl(name##_v3)
+	bgq_su3_vdecl(NAME2(name,v0));     \
+	bgq_su3_vdecl(NAME2(name,v1));     \
+	bgq_su3_vdecl(NAME2(name,v2));     \
+	bgq_su3_vdecl(NAME2(name,v3))
 
 #define bgq_su3_spinor_decl_leftonly(name) \
 	bgq_su3_vdecl_leftonly(name##_v0);     \
@@ -383,6 +394,17 @@ typedef struct {
 #define bgq_su3_weyl_decl(name) \
 	bgq_su3_vdecl(name##_v0);	\
 	bgq_su3_vdecl(name##_v1)
+
+#define bgq_su3_vzero(dst) \
+	bgq_zero(NAME2(dst,c0)); \
+	bgq_zero(NAME2(dst,c1)); \
+	bgq_zero(NAME2(dst,c2))
+
+#define bgq_su3_spinor_zero(dst) \
+	bgq_su3_vzero(NAME2(dst,v0));     \
+	bgq_su3_vzero(NAME2(dst,v1));     \
+	bgq_su3_vzero(NAME2(dst,v2));     \
+	bgq_su3_vzero(NAME2(dst,v3))
 
 #define bgq_su3_spinor_double_load(dst, addr) \
 	bgq_lda(NAME3(dst,v0,c0),   0, (double _Complex*)(addr));          \

@@ -1,6 +1,6 @@
 
 #ifndef BGQ_HM_TUP_FIRST
-#define BGQ_HM_TUP_FIRST 1
+#define BGQ_HM_TUP_FIRST 0
 #endif
 
 #ifndef BGQ_HM_TUP_TLINEINDENT
@@ -22,8 +22,9 @@
 
 void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int tv, int x, int y, int z, int t1, int t2) {
 	bgq_su3_spinor_decl(result);
+#else
+{
 #endif
-	{
 
 
 	// Load the input spinor
@@ -61,16 +62,32 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 
 
 #if BGQ_HM_TUP_COMPUTE
-		bgq_su3_mdecl(gauge_tup);
-		bgq_gaugesite_double *gaugesite_tup = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x, y, z, TUP, t1+1, t2+1, true,false);
-		bgq_su3_matrix_double_load(gauge_tup, gaugesite_tup);
+	bgq_gaugesite_double *gaugesite_tup;
+	#if (BGQ_HM_TUP_TLINEINDENT==-1)
+	if ( ((tv+x+y+z)&1) == isOdd ) {
+	#endif
+	#if (BGQ_HM_TUP_TLINEINDENT==-1) || (BGQ_HM_TUP_TLINEINDENT==0)
+		gaugesite_tup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, TUP, t1, t2, true,false);
+	#endif
+	#if (BGQ_HM_TUP_TLINEINDENT==-1)
+	} else {
+	#endif
+	#if (BGQ_HM_TUP_TLINEINDENT==-1) || (BGQ_HM_TUP_TLINEINDENT==1)
+		gaugesite_tup = BGQ_GAUGESITE(gaugefield, isOdd, tv+1, x, y, z, TUP_SHIFT, t1, t2, true,false);
+	#endif
+	#if (BGQ_HM_TUP_TLINEINDENT==-1)
+	}
+	#endif
 
-		bgq_su3_mvmul(weyl_tup_v0, gauge_tup, weyl_tup_v0);
-		bgq_su3_mvmul(weyl_tup_v1, gauge_tup, weyl_tup_v1);
+	bgq_su3_mdecl(gauge_tup);
+	bgq_su3_matrix_double_load(gauge_tup, gaugesite_tup);
+
+	bgq_su3_mvmul(weyl_tup_v0, gauge_tup, weyl_tup_v0);
+	bgq_su3_mvmul(weyl_tup_v1, gauge_tup, weyl_tup_v1);
 
 #ifndef BGQ_HM_NOKAMUL
-		bgq_su3_cvmul(weyl_tup_v0, qka0, weyl_tup_v0);
-		bgq_su3_cvmul(weyl_tup_v1, qka0, weyl_tup_v1);
+	bgq_su3_cvmul(weyl_tup_v0, qka0, weyl_tup_v0);
+	bgq_su3_cvmul(weyl_tup_v1, qka0, weyl_tup_v1);
 #endif
 #endif
 
@@ -90,10 +107,7 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 #endif
 
 
-	}
-#ifndef BGQ_HM_DIR_NOFUNC
 }
-#endif
 
 
 #undef BGQ_HM_TUP_FIRST

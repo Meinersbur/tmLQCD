@@ -6,11 +6,13 @@
 void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z1, int z2. int tv, int k) {
 #define BGQ_HM_DIR_NOFUNC 1
 #endif
-	{
-		bgq_su3_spinor_decl(result);
+{
+	bgq_su3_spinor_decl(result);
+	bgq_su3_spinor_zero(result);
 
 
 // direction T_UP /////////////////////////////////////////////////////////////
+#define BGQ_HM_TUP_FIRST 1
 #define BGQ_HM_TUP_COMPUTE 1
 #define BGQ_HM_TUP_ACCUMULATE 1
 #include "bgq_HoppingMatrix_tup.inc.c"
@@ -53,11 +55,11 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 ///////////////////////////////////////////////////////////////////////////////
 // Store the spinor
 
-		bgq_spinorsite_double *targetsite = BGQ_SPINORSITE(targetfield, isOdd, tv, x, y, z, t1,t2, false,true);
-		bgq_su3_spinor_double_store(targetsite, result);
+	bgq_spinorsite_double *targetsite = BGQ_SPINORSITE(targetfield, isOdd, tv, x, y, z, t1,t2, false,true);
+	bgq_su3_spinor_double_store(targetsite, result);
 
 
-	}
+}
 #ifndef BGQ_HM_SITE_NOFUNC
 }
 #undef BGQ_HM_DIR_NOFUNC 1

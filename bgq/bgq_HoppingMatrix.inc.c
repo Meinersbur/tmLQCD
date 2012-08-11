@@ -244,8 +244,8 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	for (int txy = 0; txy < BODY_ZLINES; txy +=1) {
 		WORKLOAD_DECL(txy, BODY_ZLINES);
 		const int tv = WORKLOAD_CHUNK(PHYSICAL_LTV-2) + 1;
-		const int x = WORKLOAD_CHUNK(PHYSICAL_LX-2) + 1;
-		const int y = WORKLOAD_CHUNK(PHYSICAL_LY-2) + 1;
+		const int x = WORKLOAD_PARAM(PHYSICAL_LX-2) + 1;
+		const int y = WORKLOAD_PARAM(PHYSICAL_LY-2) + 1;
 		WORKLOAD_CHECK
 		int t1 = tv*PHYSICAL_LP*PHYSICAL_LK;
 		int t2 = t1 + 2;
