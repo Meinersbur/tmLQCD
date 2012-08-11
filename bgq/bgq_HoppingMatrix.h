@@ -26,19 +26,28 @@ bool assert_weylfield_t(bgq_weylfield_double weylfield, bool isOdd, int t, int x
 	 &weylfield[((xv)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)].s[v][c][k])
 
 
+bool assert_weylval_x(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, bool isRead, bool isWrite);
 bool assert_weylfield_x(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int tv, int k, bool isRead, bool isWrite);
 #define BGQ_WEYLSITE_X(weylfield, isOdd, tv, x, y, z, t1, t2, isRead, isWrite)  \
-	(assert(assert_weylfield_t(weylfield,isOdd,t1,x,y,z,tv,0, isRead, isWrite)), \
-	 assert(assert_weylfield_t(weylfield,isOdd,t2,x,y,z,tv,1, isRead, isWrite)), \
+	(assert(assert_weylfield_x(weylfield,isOdd,t1,x,y,z,tv,0, isRead, isWrite)), \
+	 assert(assert_weylfield_x(weylfield,isOdd,t2,x,y,z,tv,1, isRead, isWrite)), \
 	 &weylfield[((tv)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)])
 
+#define BGQ_WEYLVAL_X(weylfield, isOdd, t, x, y, z, tv, k, v, c, isRead, isWrite)  \
+	(assert(assert_weylfield_x(weylfield,isOdd,t,x,y,z,tv,k, isRead, isWrite)), \
+	 &weylfield[((tv)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)].s[v][c][k])
 
-bool assert_weylfield_y(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int tv, int k,  bool isRead, bool isWrite);
+
+bool assert_weylval_y(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, bool isRead, bool isWrite);
+bool assert_weylfield_y(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int tv, int k, bool isRead, bool isWrite);
 #define BGQ_WEYLSITE_Y(weylfield, isOdd, tv, x, y, z, t1, t2, isRead, isWrite)  \
-	(assert(assert_weylfield_t(weylfield,isOdd,t1,x,y,z,tv,0, isRead, isWrite)), \
-	 assert(assert_weylfield_t(weylfield,isOdd,t2,x,y,z,tv,1, isRead, isWrite)), \
+	(assert(assert_weylfield_y(weylfield,isOdd,t1,x,y,z,tv,0, isRead, isWrite)), \
+	 assert(assert_weylfield_y(weylfield,isOdd,t2,x,y,z,tv,1, isRead, isWrite)), \
 	 &weylfield[((tv)*PHYSICAL_LX + (x))*PHYSICAL_LZ + (z)])
 
+#define BGQ_WEYLVAL_Y(weylfield, isOdd, t, x, y, z, tv, k, v, c, isRead, isWrite)  \
+	(assert(assert_weylfield_y(weylfield,isOdd,t,x,y,z,tv,k, isRead, isWrite)), \
+	 &weylfield[((tv)*PHYSICAL_LX + (x))*PHYSICAL_LZ + (z)].s[v][c][k])
 
 
 #endif /* BGQ_HOPPINGMATRIX_H_ */

@@ -37,6 +37,16 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	bgq_weylfield_t_resetcoord(weylxchange_recv_double[TDOWN], -1, isOdd, -1, -1, -1, -1);
 	bgq_weylfield_t_resetcoord(weylxchange_send_double[TUP], LOCAL_LT, isOdd, -1, -1, -1, -1);
 	bgq_weylfield_t_resetcoord(weylxchange_send_double[TDOWN], -1, isOdd, -1, -1, -1, -1);
+
+	bgq_weylfield_x_resetcoord(weylxchange_recv_double[XUP], LOCAL_LX, isOdd, -1, -1, -1, -1);
+	bgq_weylfield_x_resetcoord(weylxchange_recv_double[XDOWN], -1, isOdd, -1, -1, -1, -1);
+	bgq_weylfield_x_resetcoord(weylxchange_send_double[XUP], LOCAL_LX, isOdd, -1, -1, -1, -1);
+	bgq_weylfield_x_resetcoord(weylxchange_send_double[XDOWN], -1, isOdd, -1, -1, -1, -1);
+
+	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YUP], LOCAL_LY, isOdd, -1, -1, -1, -1);
+	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YDOWN], -1, isOdd, -1, -1, -1, -1);
+	bgq_weylfield_y_resetcoord(weylxchange_send_double[YUP], LOCAL_LY, isOdd, -1, -1, -1, -1);
+	bgq_weylfield_y_resetcoord(weylxchange_send_double[YDOWN], -1, isOdd, -1, -1, -1, -1);
 #endif
 
 #if !BGQ_HM_NOCOM && defined(MPI)
@@ -71,7 +81,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		const int xv = WORKLOAD_PARAM(PHYSICAL_LXV);
 		WORKLOAD_CHECK
 
-		const int x1 = ((isOdd+t+y+z)&1)+xv*4;
+		const int x1 = ((isOdd+t+y+z)&1)+xv*PHYSICAL_LP*PHYSICAL_LK;
 		bgq_spinorsite_double *spinorsite1_tup = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, 0, x1, y, z, t+1, 2, true,false);
 		bgq_su3_spinor_decl(spinor1_tup);
 		bgq_su3_spinor_double_load_left(spinor1_tup, spinorsite1_tup);
@@ -108,7 +118,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		const int xv = WORKLOAD_PARAM(PHYSICAL_LXV);
 		WORKLOAD_CHECK
 
-		const int x1 = ((isOdd+t+y+z)&1)+xv*4;
+		const int x1 = ((isOdd+t+y+z)&1)+xv*PHYSICAL_LP*PHYSICAL_LK;
 		bgq_spinorsite_double *spinorsite1_tdown = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, PHYSICAL_LTV-1, x1, y, z, LOCAL_LT-3, t-1, true,false);
 		bgq_su3_spinor_decl(spinor1_tdown);
 		bgq_su3_spinor_double_load_right(spinor1_tdown, spinorsite1_tdown);
@@ -136,7 +146,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #endif
 
 	// XDOWN
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
 	for (int tyz = 0; tyz < PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ; tyz += 1) {
 		WORKLOAD_DECL(tyz,PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
@@ -145,16 +155,19 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		const int z = WORKLOAD_PARAM(PHYSICAL_LZ);
 		WORKLOAD_CHECK
 
-		const int t1 = ((isOdd+x+y+z)&1)+tv*2;
+		const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
 		const int t2 = t1 + 2;
 
 #define BGQ_HM_XUP_WEYL_SEND 1
 #include "bgq_HoppingMatrix_xup.inc.c"
 	}
 
+#ifndef NDEBUG
+	bgq_weylfield_x_resetcoord(weylxchange_send_double[XDOWN], -1, isOdd, 0, 0, 1, 1);
+#endif
 
 	// XUP
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
 	for (int tyz = 0; tyz < PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ; tyz += 1) {
 		WORKLOAD_DECL(tyz,PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
@@ -163,14 +176,16 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		const int z = WORKLOAD_PARAM(PHYSICAL_LZ);
 		WORKLOAD_CHECK
 
-		const int t1 = ((isOdd+x+y+z)&1)+tv*2;
+		const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
 		const int t2 = t1 + 2;
 
 #define BGQ_HM_XDOWN_WEYL_SEND 1
 #include "bgq_HoppingMatrix_xdown.inc.c"
 	}
 
-
+#ifndef NDEBUG
+	bgq_weylfield_x_resetcoord(weylxchange_send_double[XUP], LOCAL_LX, isOdd, 0, 0, 1, 1);
+#endif
 
 	// YDOWN
 #pragma omp parallel for schedule(static)
@@ -182,13 +197,16 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		const int z = WORKLOAD_PARAM(PHYSICAL_LZ);
 		WORKLOAD_CHECK
 
-		const int t1 = ((isOdd+x+y+z)&1)+tv*2;
+		const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
 		const int t2 = t1 + 2;
 
 #define BGQ_HM_YUP_WEYL_SEND 1
 #include "bgq_HoppingMatrix_yup.inc.c"
 	}
 
+#ifndef NDEBUG
+	bgq_weylfield_y_resetcoord(weylxchange_send_double[YDOWN], -1, isOdd, 0, 0, 1, 1);
+#endif
 
 	// YUP
 #pragma omp parallel for schedule(static)
@@ -200,12 +218,16 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		const int z = WORKLOAD_PARAM(PHYSICAL_LZ);
 		WORKLOAD_CHECK
 
-		const int t1 = ((isOdd+x+y+z)&1)+tv*2;
+		const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
 		const int t2 = t1 + 2;
 
 #define BGQ_HM_YDOWN_WEYL_SEND 1
 #include "bgq_HoppingMatrix_ydown.inc.c"
 	}
+
+#ifndef NDEBUG
+	bgq_weylfield_y_resetcoord(weylxchange_send_double[YUP], LOCAL_LY, isOdd, 0, 0, 1, 1);
+#endif
 
 
 #if !BGQ_HM_NOCOM && defined(MPI)
@@ -218,15 +240,15 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #endif
 
 
-#pragma omp parallel for schedule(static,1)
-	for (int txy = 0; txy < (PHYSICAL_LTV-2)*(PHYSICAL_LX-2)*(PHYSICAL_LY-2); txy +=1) {
-		WORKLOAD_DECL(txy, (PHYSICAL_LTV-2)*(PHYSICAL_LX-2)*(PHYSICAL_LY-2));
+//#pragma omp parallel for schedule(static,1)
+	for (int txy = 0; txy < BODY_ZLINES; txy +=1) {
+		WORKLOAD_DECL(txy, BODY_ZLINES);
 		const int tv = WORKLOAD_CHUNK(PHYSICAL_LTV-2) + 1;
 		const int x = WORKLOAD_CHUNK(PHYSICAL_LX-2) + 1;
 		const int y = WORKLOAD_CHUNK(PHYSICAL_LY-2) + 1;
-
+		WORKLOAD_CHECK
 		int t1 = tv*PHYSICAL_LP*PHYSICAL_LK;
-		int t2 = tv*PHYSICAL_LP*PHYSICAL_LK + 2;
+		int t2 = t1 + 2;
 
 #define BGQ_HM_ZLINE_ID KERNEL
 #include "bgq_HoppingMatrix_zline.inc.c"
@@ -247,7 +269,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #endif
 
 
-#pragma omp parallel for schedule(static)
+//#pragma omp parallel for schedule(static)
 	for (int xyzt = 0; xyzt < SURFACE_ZLINES; xyzt+=1) {
 		WORKLOAD_DECL(xyzt, SURFACE_ZLINES);
 		int tv;

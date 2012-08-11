@@ -33,7 +33,7 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 		int z = 0;
 
 #if (BGQ_HM_ZLINE_STARTINDENT==-1)
-		if (((x+y)&1)==isOdd) {
+		if ( ((x+y)&1) == isOdd ) {
 #endif
 #if (BGQ_HM_ZLINE_STARTINDENT==-1) || (BGQ_HM_ZLINE_STARTINDENT==0)
 			goto STARTFLUSH;
@@ -48,7 +48,7 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 		}
 #endif
 
-		// A 2-unrolled for loop
+		// A 2-unrolled for-loop
 		while (true) {
 			// Begin with flush line
 			STARTFLUSH:

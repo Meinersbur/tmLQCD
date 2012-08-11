@@ -644,7 +644,7 @@ bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x,
 	assert((dir&1)==0);
 
 	// Check that the coordinate is really an odd/even coordinate
-	assert(((t+x+y+z)&1) == isOdd);
+	assert( ((t+x+y+z)&1) == isOdd );
 	int teo = (t+1)/PHYSICAL_LP; // Because t=-1 is a valid index, shift everything right
 	if (dir == TUP_SHIFT) {
 		teo = mod(teo+1, 1+LOCAL_LT/PHYSICAL_LP);
