@@ -240,14 +240,14 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #endif
 
 
-//#pragma omp parallel for schedule(static,1)
+#pragma omp parallel for schedule(static,1)
 	for (int txy = 0; txy < BODY_ZLINES; txy +=1) {
 		WORKLOAD_DECL(txy, BODY_ZLINES);
 		const int tv = WORKLOAD_CHUNK(PHYSICAL_LTV-2) + 1;
 		const int x = WORKLOAD_PARAM(PHYSICAL_LX-2) + 1;
 		const int y = WORKLOAD_PARAM(PHYSICAL_LY-2) + 1;
 		WORKLOAD_CHECK
-		int t1 = tv*PHYSICAL_LP*PHYSICAL_LK;
+		int t1 = tv*PHYSICAL_LP*PHYSICAL_LK + ((x+y+isOdd)&1);
 		int t2 = t1 + 2;
 
 #define BGQ_HM_ZLINE_ID KERNEL

@@ -402,16 +402,17 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 			// also store as shifted
 
 			// Move one to the right
-		    const int teo_shift = mod(teo+1+1, 1+LOCAL_LT/PHYSICAL_LP)-1;
+		    const int teo_shift = mod(teo, 1+LOCAL_LT/PHYSICAL_LP)-1;
 			const int tv_shift = divdown(teo_shift, PHYSICAL_LK);
 			const int k_shift = mod(teo_shift, PHYSICAL_LK);
-
+#if 0
 			if ( (t == LOCAL_LT-1) || (t == LOCAL_LT-2) ) {
 				assert(tv_shift == -1);
 				assert(k_shift == 1);
 			} else {
 				assert( (tv_shift==tv && k_shift==1) || (tv_shift==tv+1 && k_shift==0) );
 			}
+#endif
 			_Complex double *shiftptr = BGQ_GAUGEVAL(gaugefield, isOdd, t,x,y,z, tv_shift,k_shift, TUP_SHIFT, i,l, false,true);
 			*shiftptr = value;
 		}

@@ -18,8 +18,9 @@
 
 void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int tv, int x, int y, int z, int t1, int t2) {
 	bgq_su3_spinor_decl(result);
-#endif
+#else
 {
+#endif
 
 	// Load the input spinor
 	bgq_su3_spinor_decl(spinor_tdown);
@@ -57,21 +58,21 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 #if BGQ_HM_TDOWN_COMPUTE
 	bgq_gaugesite_double *gaugesite_tdown;
-	//#if (BGQ_HM_TDOWN_TLINEINDENT==-1)
-	//if ( ((tv+x+y+z)&1) == isOdd ) {
-	//#endif
-	//#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==0)
+	#if (BGQ_HM_TDOWN_TLINEINDENT==-1)
+	if ( ((tv+x+y+z)&1) == isOdd ) {
+	#endif
+	#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==0)
+		gaugesite_tdown = BGQ_GAUGESITE(gaugefield, !isOdd, tv-1, x, y, z, TUP_SHIFT, t1-1, t2-1, true,false);
+	#endif
+	#if (BGQ_HM_TDOWN_TLINEINDENT==-1)
+	} else {
+	#endif
+	#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==1)
 		gaugesite_tdown = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x, y, z, TUP, t1-1, t2-1, true,false);
-	//#endif
-	//#if (BGQ_HM_TDOWN_TLINEINDENT==-1)
-	//} else {
-	//#endif
-	//#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==1)
-	//	gaugesite_tdown = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x, y, z, TUP, t1-1, t2-1, true,false);
-	//#endif
-	//#if (BGQ_HM_TDOWN_TLINEINDENT==-1)
-	//}
-	//#endif
+	#endif
+	#if (BGQ_HM_TDOWN_TLINEINDENT==-1)
+	}
+	#endif
 
 	bgq_su3_mdecl(gauge_tdown);
 	bgq_su3_matrix_double_load(gauge_tdown, gaugesite_tdown);
@@ -95,9 +96,6 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 
 }
-#ifndef BGQ_HM_NOFUNC
-}
-#endif
 
 
 #undef BGQ_HM_TDOWN_TLINEINDENT

@@ -425,7 +425,7 @@ void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_re
 					}
 
 					if (dir == TUP) {
-						const int teo_shift = mod(teo+1+1, 1+LOCAL_LT/PHYSICAL_LP) - 1;
+						const int teo_shift = mod(teo, 1+LOCAL_LT/PHYSICAL_LP) - 1;
 						const int tv_shift = divdown(teo_shift,PHYSICAL_LK);
 						const int k_shift = mod(teo_shift, PHYSICAL_LK);
 
@@ -562,7 +562,7 @@ bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x,
 	assert( ((t+x+y+z)&1) == isOdd );
 	int teo = divdown(t,PHYSICAL_LP); // Because t=-1 is a valid index, shift everything right
 	if (dir == TUP_SHIFT) {
-		teo = mod(teo+1+1, 1+LOCAL_LT/PHYSICAL_LP)-1;
+		teo = mod(teo, 1+LOCAL_LT/PHYSICAL_LP)-1;
 	}
 
 	// Check that zv and k match the coordinate
