@@ -40,23 +40,6 @@ typedef union {
 		// 52 bits = 7 bytes
 	} coord;
 } bgq_spinorcoord;
-static bgq_spinorcoord bgq_spinorcoord_encode(bool isOdd, int t, int x, int y, int z, int v, int c) {
-	bgq_spinorcoord result;
-	assert(sizeof(result) == sizeof(_Complex double));
-	result.val = 0; // Write zeros
-
-	result.coord.isOdd = isOdd;
-	result.coord.t = t;
-	result.coord.x = x;
-	result.coord.y = y;
-	result.coord.z = z;
-	result.coord.v = v;
-	result.coord.c = c;
-	result.coord.writes = 0;
-	result.coord.reads = 0;
-
-	return result;
-}
 
 
 static bgq_spinorcoord *bgq_spinorfield_coordref(_Complex double *site) {
@@ -406,7 +389,7 @@ static void bgq_gaugefield_resetcoord_checkval(bgq_gaugefield_double gaugefield,
 void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_reads, int expected_writes) {
 	assert(gaugefield);
 
-#pragma omp parallel for schedule(static)
+//#pragma omp parallel for schedule(static)
 	for (int txyz = 0; txyz < GAUGE_VOLUME; txyz += 1) {
 		WORKLOAD_DECL(txyz, GAUGE_VOLUME);
 		const int t = WORKLOAD_PARAM(LOCAL_LT+1) - 1;
@@ -416,8 +399,8 @@ void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_re
 		WORKLOAD_CHECK
 
 		const bool isOdd = (t+x+y+z)&1;
-		const int teo = (t+1) / PHYSICAL_LP;
-		const int tv = teo / PHYSICAL_LK;
+		const int teo = divdown(t, PHYSICAL_LP);
+		const int tv = divdown(teo, PHYSICAL_LK);
 		const int k = mod(teo, PHYSICAL_LK);
 
 		for (direction dir = TUP; dir <= ZUP; dir += 2) {
@@ -442,8 +425,8 @@ void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_re
 					}
 
 					if (dir == TUP) {
-						const int teo_shift = mod(teo+1, 1+LOCAL_LT/PHYSICAL_LP);
-						const int tv_shift = teo_shift / PHYSICAL_LK;
+						const int teo_shift = mod(teo+1+1, 1+LOCAL_LT/PHYSICAL_LP) - 1;
+						const int tv_shift = divdown(teo_shift,PHYSICAL_LK);
 						const int k_shift = mod(teo_shift, PHYSICAL_LK);
 
 						_Complex double *shiftvalue = BGQ_GAUGEVAL(gaugefield, isOdd, t, x, y, z, tv_shift, k_shift, TUP_SHIFT, i, l, false, false);
@@ -563,7 +546,7 @@ bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x,
 	assert(-1 <= x && x < LOCAL_LX);
 	assert(-1 <= y && y < LOCAL_LY);
 	assert(-1 <= z && z < PHYSICAL_LZ);
-	assert(0 <= tv && tv <= PHYSICAL_LTV);
+	assert(-1 <= tv && tv < PHYSICAL_LTV);
 	assert(0 <= k && k < PHYSICAL_LK);
 	assert(TUP <= dir && dir <= TDOWN_SHIFT);
 	assert(0 <= i && i < 3);
@@ -577,17 +560,17 @@ bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x,
 
 	// Check that the coordinate is really an odd/even coordinate
 	assert( ((t+x+y+z)&1) == isOdd );
-	int teo = (t+1)/PHYSICAL_LP; // Because t=-1 is a valid index, shift everything right
+	int teo = divdown(t,PHYSICAL_LP); // Because t=-1 is a valid index, shift everything right
 	if (dir == TUP_SHIFT) {
-		teo = mod(teo+1, 1+LOCAL_LT/PHYSICAL_LP);
+		teo = mod(teo+1+1, 1+LOCAL_LT/PHYSICAL_LP)-1;
 	}
 
 	// Check that zv and k match the coordinate
-	assert(teo/PHYSICAL_LK == tv);
+	assert(divdown(teo,PHYSICAL_LK) == tv);
 	assert(mod(teo,PHYSICAL_LK) == k);
 
 	// Get the index
-	const int idx = (((tv)*(PHYSICAL_LX+1) + ((x)+1))*(PHYSICAL_LY+1) + ((y)+1))*(PHYSICAL_LZ+1) + ((z)+1);
+	const int idx = ((((tv)+1)*(PHYSICAL_LX+1) + ((x)+1))*(PHYSICAL_LY+1) + ((y)+1))*(PHYSICAL_LZ+1) + ((z)+1);
 	assert((0 <= idx) && (idx < GAUGE_EOVOLUME));
 
 	// Get the address

@@ -17,7 +17,6 @@
 #define EXTERN_FIELD
 #endif
 
-#define VECTOR_WIDTH 2 /* 2 complex values = 4 reals */
 
 #define LOCAL_LP 2 /* Even/Odd */
 #define LOCAL_LT T
@@ -75,7 +74,7 @@
 
 
 #define GAUGE_VOLUME ((LOCAL_LT+1)*(LOCAL_LX+1)*(LOCAL_LY+1)*(LOCAL_LZ)) /* LOCAL volume */
-#define GAUGE_EOVOLUME ((PHYSICAL_LTV+1)*(PHYSICAL_LX+1)*(PHYSICAL_LY+1)*(PHYSICAL_LZ+1/*for wraparound*/)) /* This is not hole-free; we could also define an accessor function per direction*/
+#define GAUGE_EOVOLUME ((PHYSICAL_LTV+1)*(PHYSICAL_LX+1)*(PHYSICAL_LY+1)*(PHYSICAL_LZ+1/*for wraparound*/)) /* This is not tight/hole-free; we could also define an accessor function per direction*/
 
 
 typedef struct {
@@ -226,11 +225,11 @@ bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x,
 bool assert_gaugesite(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, int tv, int k, direction dir, bool isRead, bool isWrite);
 
 #define BGQ_GAUGESITE_ACCESS(gaugefield,isOdd,tv,x,y,z,dir) \
-	(assert(0 <= tv && tv <= PHYSICAL_LTV),        \
+	(assert(-1 <= tv && tv < PHYSICAL_LTV),        \
 	 assert(-1 <= x && x < PHYSICAL_LX),        \
 	 assert(-1 <= y && y < PHYSICAL_LY),        \
 	 assert(-1 <= z && z < PHYSICAL_LZ),        \
-	 &gaugefield->eodir[(isOdd)][(dir)/2][(((tv)*(PHYSICAL_LX+1) + ((x)+1))*(PHYSICAL_LY+1) + ((y)+1))*(PHYSICAL_LZ+1) + ((z)+1)])
+	 &gaugefield->eodir[(isOdd)][(dir)/2][((((tv)+1)*(PHYSICAL_LX+1) + ((x)+1))*(PHYSICAL_LY+1) + ((y)+1))*(PHYSICAL_LZ+1) + ((z)+1)])
 
 #define BGQ_GAUGESITE(gaugefield,isOdd,tv,x,y,z,dir,t1,t2,isRead,isWrite)         \
 	(assert(assert_gaugesite(gaugefield,isOdd,t1,x,y,z,tv,0,dir,isRead,isWrite)),  \
@@ -264,8 +263,8 @@ EXTERN_INLINE _Complex double *bgq_gaugefield_double_ref(bgq_gaugefield_double g
 	assert(0 <= l && l < 3);
 	assert((d&1)==0); // Must be up-direction
 
-	const int teo = (t+1) / PHYSICAL_LP;
-	const int tv = teo / PHYSICAL_LK;
+	const int teo = divdown(t, PHYSICAL_LP);
+	const int tv = divdown(teo, PHYSICAL_LK);
 	const int k = mod(teo, PHYSICAL_LK);
 
 
@@ -372,8 +371,8 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 		break;
 	}
 
-	const int teo = (t+1) / PHYSICAL_LP;
-	const int tv = teo / PHYSICAL_LK;
+	const int teo = divdown(t, PHYSICAL_LP);
+	const int tv = divdown(teo, PHYSICAL_LK);
 	const int k = mod(teo, PHYSICAL_LK);
 
 	if (adjoint) {
@@ -403,14 +402,15 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 			// also store as shifted
 
 			// Move one to the right
-		    const int teo_shift = mod(teo+1, 1+LOCAL_LT/PHYSICAL_LP);
-			const int tv_shift = teo_shift / PHYSICAL_LK;
+		    const int teo_shift = mod(teo+1+1, 1+LOCAL_LT/PHYSICAL_LP)-1;
+			const int tv_shift = divdown(teo_shift, PHYSICAL_LK);
 			const int k_shift = mod(teo_shift, PHYSICAL_LK);
 
-			if (t == LOCAL_LT-1) {
-				assert(tv_shift == 0);
-				assert(k_shift == 0);
-			} else {	assert((tv_shift==tv && k_shift==1) || (tv_shift==tv+1 && k_shift==0));
+			if ( (t == LOCAL_LT-1) || (t == LOCAL_LT-2) ) {
+				assert(tv_shift == -1);
+				assert(k_shift == 1);
+			} else {
+				assert( (tv_shift==tv && k_shift==1) || (tv_shift==tv+1 && k_shift==0) );
 			}
 			_Complex double *shiftptr = BGQ_GAUGEVAL(gaugefield, isOdd, t,x,y,z, tv_shift,k_shift, TUP_SHIFT, i,l, false,true);
 			*shiftptr = value;
