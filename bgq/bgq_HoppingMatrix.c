@@ -96,6 +96,7 @@ void bgq_hm_free() {
 }
 
 
+#ifndef NDEBUG
 static bgq_weylcoord *bgq_weylfield_coordref(bool isOdd, _Complex double *val) {
 	assert( sizeof(bgq_weylcoord) == sizeof(_Complex double) );
 	// Logically, odd and even sites are different locations
@@ -450,7 +451,7 @@ bool assert_weylfield_y(bgq_weylfield_double weylfield, bool isOdd, int t, int x
 	}
 	return true;
 }
-
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -469,11 +470,13 @@ bool assert_weylfield_y(bgq_weylfield_double weylfield, bool isOdd, int t, int x
 
 #define HoppingMatrix bgq_HoppingMatrix_double
 #include "bgq_HoppingMatrix.inc.c"
+#undef HoppingMatrix
 
-//#define BGQ_HM_NOCOM 1
-//#define BGQ_HM_SUFFIX double_nocom
-//#include "bgq_HoppingMatrix.inc.c"
 
+#define BGQ_HM_NOCOM 1
+#define HoppingMatrix bgq_HoppingMatrix_double_nocom
+#include "bgq_HoppingMatrix.inc.c"
+#undef HoppingMatrix
 
 // Hopping_Matrix.c compatibility layer
 void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k) {
@@ -490,7 +493,7 @@ void Hopping_Matrix_nocom(const int ieo, spinor * const l, spinor * const k) {
 	bgq_spinorfield_double target = bgq_translate_spinorfield(l);
 	bgq_spinorfield_double source = bgq_translate_spinorfield(k);
 
-	//bgq_HoppingMatrix_double_nocom(isOdd, target, source, g_gaugefield_double);
+	bgq_HoppingMatrix_double_nocom(isOdd, target, source, g_gaugefield_double);
 }
 
 

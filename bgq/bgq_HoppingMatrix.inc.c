@@ -31,22 +31,22 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #ifndef NDEBUG
 	bgq_spinorfield_resetcoord(targetfield, isOdd, -1, -1, -1, -1);
 	bgq_spinorfield_resetcoord(spinorfield, !isOdd, -1, -1, -1, -1);
-	bgq_gaugefield_resetcoord(gaugefield, -1, -1);
+	bgq_gaugefield_resetcoord(gaugefield, -1,-1,-1,-1);
 
-	bgq_weylfield_t_resetcoord(weylxchange_send_double[TUP], LOCAL_LT-1, isOdd, -1, -1, -1, -1);
-	bgq_weylfield_t_resetcoord(weylxchange_send_double[TDOWN], 0, isOdd, -1, -1, -1, -1);
-	bgq_weylfield_t_resetcoord(weylxchange_recv_double[TUP], LOCAL_LT, isOdd, -1, -1, -1, -1);
-	bgq_weylfield_t_resetcoord(weylxchange_recv_double[TDOWN], -1, isOdd, -1, -1, -1, -1);
+	bgq_weylfield_t_resetcoord(weylxchange_send_double[TUP], LOCAL_LT-1, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_t_resetcoord(weylxchange_send_double[TDOWN], 0, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_t_resetcoord(weylxchange_recv_double[TUP], LOCAL_LT, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_t_resetcoord(weylxchange_recv_double[TDOWN], -1, !isOdd, -1, -1, -1, -1);
 
-	bgq_weylfield_x_resetcoord(weylxchange_send_double[XUP], LOCAL_LX-1, isOdd, -1, -1, -1, -1);
-	bgq_weylfield_x_resetcoord(weylxchange_send_double[XDOWN], 0, isOdd, -1, -1, -1, -1);
-	bgq_weylfield_x_resetcoord(weylxchange_recv_double[XUP], LOCAL_LX, isOdd, -1, -1, -1, -1);
-	bgq_weylfield_x_resetcoord(weylxchange_recv_double[XDOWN], -1, isOdd, -1, -1, -1, -1);
+	bgq_weylfield_x_resetcoord(weylxchange_send_double[XUP], LOCAL_LX-1, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_x_resetcoord(weylxchange_send_double[XDOWN], 0, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_x_resetcoord(weylxchange_recv_double[XUP], LOCAL_LX, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_x_resetcoord(weylxchange_recv_double[XDOWN], -1, !isOdd, -1, -1, -1, -1);
 
-	bgq_weylfield_y_resetcoord(weylxchange_send_double[YUP], LOCAL_LY-1, isOdd, -1, -1, -1, -1);
-	bgq_weylfield_y_resetcoord(weylxchange_send_double[YDOWN], 0, isOdd, -1, -1, -1, -1);
-	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YUP], LOCAL_LY, isOdd, -1, -1, -1, -1);
-	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YDOWN], -1, isOdd, -1, -1, -1, -1);
+	bgq_weylfield_y_resetcoord(weylxchange_send_double[YUP], LOCAL_LY-1, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_y_resetcoord(weylxchange_send_double[YDOWN], 0, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YUP], LOCAL_LY, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YDOWN], -1, !isOdd, -1, -1, -1, -1);
 #endif
 
 #if !BGQ_HM_NOCOM && defined(MPI)
@@ -269,7 +269,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #endif
 
 
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
 	for (int xyz = 0; xyz < SURFACE_ZLINES; xyz += 1) {
 		WORKLOAD_DECL(xyz, SURFACE_ZLINES);
 		int tv;
@@ -320,15 +320,36 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		int t1 = ((isOdd+x+y)&1) + tv*PHYSICAL_LP*PHYSICAL_LK;
 		int t2 = t1 + 2;
 
-#define BGQ_HM_ZLINE_ID SURFACE
-#define BGQ_HM_ZLINE_TUP_WEYLREAD -1
-#define BGQ_HM_ZLINE_TDOWN_WEYLREAD -1
-#define BGQ_HM_ZLINE_XUP_WEYLREAD -1
-#define BGQ_HM_ZLINE_XDOWN_WEYLREAD -1
-#define BGQ_HM_ZLINE_YUP_WEYLREAD -1
-#define BGQ_HM_ZLINE_YDOWN_WEYLREAD -1
-#include "bgq_HoppingMatrix_zline.inc.c"
+		#define BGQ_HM_ZLINE_ID SURFACE
+		#define BGQ_HM_ZLINE_TUP_WEYLREAD -1
+		#define BGQ_HM_ZLINE_TDOWN_WEYLREAD -1
+		#define BGQ_HM_ZLINE_XUP_WEYLREAD -1
+		#define BGQ_HM_ZLINE_XDOWN_WEYLREAD -1
+		#define BGQ_HM_ZLINE_YUP_WEYLREAD -1
+		#define BGQ_HM_ZLINE_YDOWN_WEYLREAD -1
+		#include "bgq_HoppingMatrix_zline.inc.c"
 	}
+
+#ifndef NDEBUG
+	bgq_spinorfield_resetcoord(targetfield, isOdd, 0,0,1,1);
+	bgq_spinorfield_resetcoord(spinorfield, !isOdd, 8,8,0,0);
+	bgq_gaugefield_resetcoord(gaugefield, 0/*every second -1 coordinate is not read in even/odd iteration*/,1,0,0);
+
+	bgq_weylfield_t_resetcoord(weylxchange_send_double[TUP], LOCAL_LT-1, !isOdd, 0,0,0,0);
+	bgq_weylfield_t_resetcoord(weylxchange_send_double[TDOWN], 0, !isOdd, 0,0,0,0);
+	bgq_weylfield_t_resetcoord(weylxchange_recv_double[TUP], LOCAL_LT, !isOdd, 2,2,0,0);
+	bgq_weylfield_t_resetcoord(weylxchange_recv_double[TDOWN], -1, !isOdd, 2,2,0,0);
+
+	bgq_weylfield_x_resetcoord(weylxchange_send_double[XUP], LOCAL_LX-1, !isOdd, 0,0,0,0);
+	bgq_weylfield_x_resetcoord(weylxchange_send_double[XDOWN], 0, !isOdd, 0,0,0,0);
+	bgq_weylfield_x_resetcoord(weylxchange_recv_double[XUP], LOCAL_LX, !isOdd, 1,1,0,0);
+	bgq_weylfield_x_resetcoord(weylxchange_recv_double[XDOWN], -1, !isOdd, 1,1,0,0);
+
+	bgq_weylfield_y_resetcoord(weylxchange_send_double[YUP], LOCAL_LY-1, !isOdd, 0,0,0,0);
+	bgq_weylfield_y_resetcoord(weylxchange_send_double[YDOWN], 0, !isOdd, 0,0,0,0);
+	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YUP], LOCAL_LY, !isOdd, 1,1,0,0);
+	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YDOWN], -1, !isOdd, 1,1,0,0);
+#endif
 }
 
 

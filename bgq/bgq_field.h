@@ -142,8 +142,9 @@ EXTERN_INLINE bgq_spinorfield_double bgq_translate_spinorfield(spinor * const fi
 }
 
 EXTERN_FIELD int g_num_spinorfields;
+#ifndef NDEBUG
 EXTERN_FIELD int *g_spinorfield_isOdd;
-
+#endif
 
 void bgq_transfer_spinorfield(bool isOdd, bgq_spinorfield_double targetfield, spinor *sourcefield);
 void bgq_spinorfield_resetcoord(bgq_spinorfield_double spinorfield, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max);
@@ -218,7 +219,7 @@ void bgq_free_gaugefield();
 
 void bgq_transfer_gaugefield(bgq_gaugefield_double targetfield, su3 **sourcefield);
 
-void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_reads, int expected_writes);
+void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max);
 
 
 bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, int tv, int k, direction dir, int i, int l, bool isRead, bool isWrite);

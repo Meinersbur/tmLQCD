@@ -24,6 +24,7 @@ void *malloc_aligned(size_t size, size_t alignment) {
 ////////////////////////////////////////////////////////////////////////////////
 // Spinorfield
 
+#ifndef NDEBUG
 typedef union {
 	_Complex double val;
 	struct {
@@ -77,7 +78,12 @@ static void bgq_spinorfield_checkcoord(bgq_spinorfield_double spinorfield, bool 
 void bgq_spinorfield_resetcoord(bgq_spinorfield_double spinorfield, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max) {
 	assert(spinorfield);
 
-//#pragma omp parallel for schedule(static)
+	bool expected_reads_min_reached = false;
+	bool expected_reads_max_reached = false;
+	bool expected_writes_min_reached = false;
+	bool expected_writes_max_reached = false;
+
+#pragma omp parallel for schedule(static)
 	for (int txyz = 0; txyz < VOLUME; txyz += 1) {
 		WORKLOAD_DECL(txyz, VOLUME);
 		const int t = WORKLOAD_PARAM(LOCAL_LT);
@@ -102,14 +108,26 @@ void bgq_spinorfield_resetcoord(bgq_spinorfield_double spinorfield, bool isOdd, 
 				int reads = coord->coord.reads;
 				int writes = coord->coord.writes;
 
-				if (expected_reads_min >= 0)
+				if (expected_reads_min >= 0) {
 					assert(reads >= expected_reads_min);
-				if (expected_reads_max >= 0)
+					if (reads == expected_reads_min)
+						expected_reads_min_reached = true;
+				}
+				if (expected_reads_max >= 0) {
 					assert(reads <= expected_reads_max);
-				if (expected_writes_min >= 0)
+					if (reads == expected_reads_max)
+						expected_reads_max_reached = true;
+				}
+				if (expected_writes_min >= 0) {
 					assert(writes >= expected_writes_min);
-				if (expected_writes_max >= 0)
+					if (writes == expected_writes_min)
+						expected_writes_min_reached = true;
+				}
+				if (expected_writes_max >= 0) {
 					assert(writes <= expected_writes_max);
+					if (writes <= expected_writes_max)
+						expected_writes_max_reached = true;
+				}
 
 
 				coord->coord.writes = 0;
@@ -117,8 +135,13 @@ void bgq_spinorfield_resetcoord(bgq_spinorfield_double spinorfield, bool isOdd, 
 			}
 		}
 	}
-}
 
+	assert(expected_reads_min < 0 || expected_reads_min_reached);
+	assert(expected_reads_max < 0 || expected_reads_max_reached);
+	assert(expected_writes_min < 0 || expected_writes_min_reached);
+	assert(expected_writes_max < 0 || expected_writes_max_reached);
+}
+#endif
 
 
 void bgq_init_spinorfields(int count) {
@@ -164,8 +187,13 @@ void bgq_free_spinofields() {
 	free(g_spinorfields_doubledata);
 	g_spinorfields_doubledata = NULL;
 	g_num_spinorfields = 0;
+
+#ifndef NDEBUG
 	free(g_spinorfield_isOdd);
 	g_spinorfield_isOdd = NULL;
+	free(g_spinorfields_doubledata_coords);
+	g_spinorfields_doubledata_coords = NULL;
+#endif
 }
 
 
@@ -187,7 +215,7 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield_double const tar
 	bgq_spinorfield_resetcoord(targetfield, isOdd, -1, -1, -1, -1);
 #endif
 
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
 	for (int txyz = 0; txyz < VOLUME; txyz+=1) {
 		WORKLOAD_DECL(txyz, VOLUME);
 		const int t = WORKLOAD_CHUNK(LOCAL_LT);
@@ -222,7 +250,7 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield_double const tar
 }
 
 
-
+#ifndef NDEBUG
 bool assert_spinorfield_coord(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, bool isRead, bool isWrite) {
 	assert(spinorfield);
 	assert(false <= isOdd && isOdd <= true);
@@ -276,6 +304,10 @@ bool assert_spinorfield_coord(bgq_spinorfield_double spinorfield, bool isOdd, in
 	bgq_spinorfield_checkcoord(spinorfield,isOdd,t,x,y,z,tv,k,v,c,val);
 	bgq_spinorcoord *coord = bgq_spinorfield_coordref(val);
 
+	if ( x==0 && y==0 && z==0 && t==1 && isRead && v == 0 && c == 0) {
+		int x = 0;
+	}
+
 	// Mark uses of this value
 	if (isRead)
 		coord->coord.reads += 1;
@@ -284,6 +316,7 @@ bool assert_spinorfield_coord(bgq_spinorfield_double spinorfield, bool isOdd, in
 
 	return true; // All checks passed
 }
+
 
 bool assert_spinorcoord(bgq_spinorfield_double spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, bool isRead, bool isWrite) {
 	for (int v = 0; v < 4; v += 1) {
@@ -294,12 +327,13 @@ bool assert_spinorcoord(bgq_spinorfield_double spinorfield, bool isOdd, int t, i
 
 	return true;
 }
-
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // Gaugefield
 
+#ifndef NDEBUG
 typedef
 	union {
 		_Complex double val;
@@ -367,7 +401,7 @@ static void bgq_gaugefield_checkcoord(bgq_gaugefield_double gaugefield, bool isO
 
 static void bgq_gaugefield_resetcoord_checkval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, int tv, int k, direction dir, int i, int l,
 		_Complex double *val,
-		int expected_reads, int expected_writes) {
+		int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max) {
 
 	bgq_gaugecoord *coord = bgq_gaugefield_coordref(val);
 	int reads = 0;
@@ -376,20 +410,24 @@ static void bgq_gaugefield_resetcoord_checkval(bgq_gaugefield_double gaugefield,
 		reads = coord->coord.reads;
 		writes = coord->coord.writes;
 	}
-	if (expected_reads >= 0)
-		assert(reads == reads);
-	if (expected_writes >= 0)
-		assert(writes == writes);
+	if (expected_reads_min >= 0)
+		assert(reads >= expected_reads_min);
+	if (expected_reads_max >= 0)
+		assert(expected_reads_max >= reads);
+	if (expected_writes_min >= 0)
+		assert(writes >= expected_writes_min);
+	if (expected_writes_max >= 0)
+		assert(expected_writes_max >= writes);
 
 	bgq_gaugefield_checkcoord(gaugefield,isOdd,t,x,y,z,tv,k,dir,i,l,val);
 	coord->coord.writes = 0;
 	coord->coord.reads = 0;
 }
 
-void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_reads, int expected_writes) {
+void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max) {
 	assert(gaugefield);
 
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
 	for (int txyz = 0; txyz < GAUGE_VOLUME; txyz += 1) {
 		WORKLOAD_DECL(txyz, GAUGE_VOLUME);
 		const int t = WORKLOAD_PARAM(LOCAL_LT+1) - 1;
@@ -416,12 +454,12 @@ void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_re
 				for (int l = 0; l < 3; l += 1) {
 					{
 						_Complex double *value = BGQ_GAUGEVAL(gaugefield,isOdd,t,x,y,z,tv,k, dir,i,l,false,false);
-						bgq_gaugefield_resetcoord_checkval(gaugefield, isOdd, t,x,y,z, tv,k, dir, i, l, value, expected_reads, expected_writes);
+						bgq_gaugefield_resetcoord_checkval(gaugefield, isOdd, t,x,y,z, tv,k, dir, i, l, value, expected_reads_min, expected_reads_max, expected_writes_min, expected_writes_max);
 					}
 
 					if (dir == ZUP && z == LOCAL_LZ-1) {
 						_Complex double *wrapvalue = BGQ_GAUGEVAL(gaugefield,isOdd,t,x,y,-1,tv,k, dir,i,l,false,false);
-						bgq_gaugefield_resetcoord_checkval(gaugefield, isOdd, t,x,y,-1, tv,k, dir, i, l, wrapvalue, expected_reads, expected_writes);
+						bgq_gaugefield_resetcoord_checkval(gaugefield, isOdd, t,x,y,-1, tv,k, dir, i, l, wrapvalue, expected_reads_min, expected_reads_max, expected_writes_min, expected_writes_max);
 					}
 
 					if (dir == TUP) {
@@ -430,13 +468,14 @@ void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_re
 						const int k_shift = moddown(teo_shift, PHYSICAL_LK);
 
 						_Complex double *shiftvalue = BGQ_GAUGEVAL(gaugefield, isOdd, t, x, y, z, tv_shift, k_shift, TUP_SHIFT, i, l, false, false);
-						bgq_gaugefield_resetcoord_checkval(gaugefield, isOdd, t, x, y, z, tv_shift, k_shift, TUP_SHIFT, i, l, shiftvalue, expected_reads, expected_writes);
+						bgq_gaugefield_resetcoord_checkval(gaugefield, isOdd, t, x, y, z, tv_shift, k_shift, TUP_SHIFT, i, l, shiftvalue, expected_reads_min, expected_reads_max, expected_writes_min, expected_writes_max);
 					}
 				}
 			}
 		}
 	}
 }
+#endif
 
 
 void bgq_init_gaugefield() {
@@ -455,7 +494,7 @@ void bgq_init_gaugefield() {
 		}
 	}
 
-	bgq_gaugefield_resetcoord(g_gaugefield_double, -1, -1);
+	bgq_gaugefield_resetcoord(g_gaugefield_double, -1,-1,-1,-1);
 #endif
 }
 
@@ -489,7 +528,7 @@ void bgq_transfer_gaugefield(bgq_gaugefield_double const targetfield, su3 ** con
 	assert(sourcefield);
 
 #ifndef NDEBUG
-	bgq_gaugefield_resetcoord(targetfield, -1, -1);
+	bgq_gaugefield_resetcoord(targetfield, -1,-1,-1,-1);
 #endif
 
 #pragma omp parallel for schedule(static)
@@ -523,11 +562,12 @@ void bgq_transfer_gaugefield(bgq_gaugefield_double const targetfield, su3 ** con
 	}
 
 #ifndef NDEBUG
-	bgq_gaugefield_resetcoord(targetfield, 0, 1);
+	bgq_gaugefield_resetcoord(targetfield, 0,0,1,1);
 #endif
 }
 
 
+#ifndef NDEBUG
 bool assert_gaugesite(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, int tv, int k, direction dir, bool isRead, bool isWrite) {
 	for (int i = 0; i < 3; i += 1) {
 		for (int l = 0; l < 3; l += 1) {
@@ -592,7 +632,7 @@ bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x,
 	// All checks passed
 	return true;
 }
-
+#endif
 
 
 
