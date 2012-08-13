@@ -15,6 +15,7 @@
 
 export OMP_NUM_THREADS=64
 export PAMID_RZV=2147483647
+export BG_COREDUMPDISABLED=0
 env
 
 runjob --ranks-per-node 1 --env-all : ./benchmark -f benchmark.input

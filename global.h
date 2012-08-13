@@ -264,6 +264,7 @@ static char const g_rcsid[] = "$Id$";
 
 
 void *nalloc(size_t size, const char *term, const char *file, const char* func, int line);
+int nposix_memalign(void **memptr, size_t alignment, size_t size, const char *term, const char *file, const char* func, int line);
 #ifndef STRINGIFY
 #define STRINGIFY(x) #x
 #endif
@@ -272,5 +273,9 @@ void *nalloc(size_t size, const char *term, const char *file, const char* func, 
 #endif
 #define malloc(size) nalloc(size, TOSTRING(size), __FILE__, __PRETTY_FUNCTION__, __LINE__)
 #define calloc(num, size) nalloc((num) * (size), TOSTRING(num) " * " TOSTRING(size), __FILE__, __PRETTY_FUNCTION__, __LINE__)
+
+#define posix_memalign(memptr, alignment, size) \
+		nposix_memalign((memptr), (alignment), (size), TOSTRING(num) " * " TOSTRING(size), __FILE__, __PRETTY_FUNCTION__, __LINE__)
+
 
 
