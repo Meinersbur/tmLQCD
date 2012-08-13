@@ -1654,7 +1654,6 @@ yyin = yyinfg;
    ********************************************/
   reread = 0;
 #ifndef FIXEDVOLUME
-  fprintf(stderr, "MK parsing file\n");
   T_global = _default_T_global;
   L = _default_L;
   LX = _default_LX;
@@ -1798,7 +1797,6 @@ yyin = yyinfg;
 #ifndef MPIO
   fclose(yyin);
 #endif
- fprintf(stderr, "MK read_input global size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
   return(0);
 }
 

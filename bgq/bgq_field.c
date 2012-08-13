@@ -126,7 +126,7 @@ void bgq_spinorfield_resetcoord(bgq_spinorfield_double spinorfield, bool isOdd, 
 				}
 				if (expected_writes_max >= 0) {
 					assert(writes <= expected_writes_max);
-					if (writes <= expected_writes_max)
+					if (writes == expected_writes_max)
 						expected_writes_max_reached = true;
 				}
 

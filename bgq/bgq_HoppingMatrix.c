@@ -149,7 +149,7 @@ static void bgq_weylfield_checkcoord(bgq_weylfield_double weylfield, bool isOdd,
 void bgq_weylfield_t_resetcoord(bgq_weylfield_double weylfield, int t, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max) {
 	assert(weylfield);
 
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
 	for (int xyz = 0; xyz < LOCAL_LX*LOCAL_LY*LOCAL_LZ; xyz += 1) {
 		WORKLOAD_DECL(xyz, LOCAL_LX*LOCAL_LY*LOCAL_LZ);
 		const int x = WORKLOAD_PARAM(LOCAL_LX);
@@ -252,7 +252,7 @@ bool assert_weylfield_t(bgq_weylfield_double weylfield, bool isOdd, int t, int x
 void bgq_weylfield_x_resetcoord(bgq_weylfield_double weylfield, int x, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max) {
 	assert(weylfield);
 
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
 	for (int tyz = 0; tyz < LOCAL_LT*LOCAL_LY*LOCAL_LZ; tyz += 1) {
 		WORKLOAD_DECL(tyz, LOCAL_LT*LOCAL_LY*LOCAL_LZ);
 		const int t = WORKLOAD_PARAM(LOCAL_LT);
@@ -356,7 +356,7 @@ bool assert_weylfield_x(bgq_weylfield_double weylfield, bool isOdd, int t, int x
 void bgq_weylfield_y_resetcoord(bgq_weylfield_double weylfield, int y, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max) {
 	assert(weylfield);
 
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
 	for (int txz = 0; txz < LOCAL_LT*LOCAL_LX*LOCAL_LZ; txz += 1) {
 		WORKLOAD_DECL(txz, LOCAL_LT*LOCAL_LX*LOCAL_LZ);
 		const int t = WORKLOAD_PARAM(LOCAL_LT);

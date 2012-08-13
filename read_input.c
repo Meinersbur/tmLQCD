@@ -72,7 +72,6 @@ typedef int flex_int32_t;
 typedef unsigned char flex_uint8_t; 
 typedef unsigned short int flex_uint16_t;
 typedef unsigned int flex_uint32_t;
-#endif /* ! C99 */
 
 /* Limits of integral types. */
 #ifndef INT8_MIN
@@ -102,6 +101,8 @@ typedef unsigned int flex_uint32_t;
 #ifndef UINT32_MAX
 #define UINT32_MAX             (4294967295U)
 #endif
+
+#endif /* ! C99 */
 
 #endif /* ! FLEXINT_H */
 
@@ -159,7 +160,15 @@ typedef unsigned int flex_uint32_t;
 
 /* Size of default input buffer. */
 #ifndef YY_BUF_SIZE
+#ifdef __ia64__
+/* On IA-64, the buffer size is 16k, not 8k.
+ * Moreover, YY_BUF_SIZE is 2*YY_READ_BUF_SIZE in the general case.
+ * Ditto for the __ia64__ case accordingly.
+ */
+#define YY_BUF_SIZE 32768
+#else
 #define YY_BUF_SIZE 16384
+#endif /* __ia64__ */
 #endif
 
 /* The state buf must be large enough to hold one state per character in the main buffer.
@@ -4191,7 +4200,6 @@ static inline void rmQuotes(char *str){
   int cstring_caller;
   int solver_caller;
 
- //fprintf(stderr, "MK parse_config global size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
   /* declaration of input parameters */
   int i=0;
   int line_of_file = 1;
@@ -4359,7 +4367,7 @@ static inline void rmQuotes(char *str){
 
 
 
-#line 4362 "<stdout>"
+#line 4371 "<stdout>"
 
 #define INITIAL 0
 #define STARTCOND 1
@@ -4537,7 +4545,12 @@ static int input (void );
 
 /* Amount of stuff to slurp up with each read. */
 #ifndef YY_READ_BUF_SIZE
+#ifdef __ia64__
+/* On IA-64, the buffer size is 16k, not 8k */
+#define YY_READ_BUF_SIZE 16384
+#else
 #define YY_READ_BUF_SIZE 8192
+#endif /* __ia64__ */
 #endif
 
 /* Copy whatever the last rule matched to the standard output. */
@@ -4556,7 +4569,7 @@ static int input (void );
 	if ( YY_CURRENT_BUFFER_LVALUE->yy_is_interactive ) \
 		{ \
 		int c = '*'; \
-		unsigned n; \
+		size_t n; \
 		for ( n = 0; n < max_size && \
 			     (c = getc( tmlqcdin )) != EOF && c != '\n'; ++n ) \
 			buf[n] = (char) c; \
@@ -4637,14 +4650,13 @@ extern int tmlqcdlex (void);
  */
 YY_DECL
 {
- fprintf(stderr, "MK parse_config global size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
 	register yy_state_type yy_current_state;
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
 #line 268 "read_input.l"
 
-#line 4646 "<stdout>"
+#line 4660 "<stdout>"
 
 	if ( !(yy_init) )
 		{
@@ -7218,7 +7230,7 @@ YY_RULE_SETUP
 #line 1619 "read_input.l"
 ECHO;
 	YY_BREAK
-#line 7220 "<stdout>"
+#line 7234 "<stdout>"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(STARTCOND):
 case YY_STATE_EOF(THERMSWEEPS):
@@ -8073,8 +8085,8 @@ YY_BUFFER_STATE tmlqcd_scan_string (yyconst char * yystr )
 
 /** Setup the input buffer state to scan the given bytes. The next call to tmlqcdlex() will
  * scan from a @e copy of @a bytes.
- * @param bytes the byte buffer to scan
- * @param len the number of bytes in the buffer pointed to by @a bytes.
+ * @param yybytes the byte buffer to scan
+ * @param _yybytes_len the number of bytes in the buffer pointed to by @a bytes.
  * 
  * @return the newly allocated buffer state object.
  */
@@ -8353,7 +8365,6 @@ tmlqcdin = yyinfg;
    ********************************************/
   reread = 0;
 #ifndef FIXEDVOLUME
-  fprintf(stderr, "MK parsing file\n");
   T_global = _default_T_global;
   L = _default_L;
   LX = _default_LX;
@@ -8464,9 +8475,7 @@ tmlqcdin = yyinfg;
   }
 
 /* GG */
- fprintf(stderr, "MK3 read_input global size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
-//#ifndef MPIO
-#if 0
+#ifndef MPIO
   if ((tmlqcdin = fopen(conf_file, "rt")) == NULL){
     return(2);
   }
@@ -8479,9 +8488,7 @@ tmlqcdin = yyinfg;
 
   tmlqcdout = fopen("/dev/null", "w");
 
- fprintf(stderr, "MK2 read_input global size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
   parse_config();  
- fprintf(stderr, "MK4 read_input global size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
 #ifndef FIXEDVOLUME
   if(LX == 0) {
     LX = L;
@@ -8501,7 +8508,6 @@ tmlqcdin = yyinfg;
 #ifndef MPIO
   fclose(tmlqcdin);
 #endif
- fprintf(stderr, "MK read_input global size: %dx%dx%dx%d=%d\n", T, LX, LY, LZ,VOLUME);
   return(0);
 }
 
@@ -8546,8 +8552,7 @@ tmlqcdin = yyinfg;
   /********************************************/
 
 /* GG */
-//#ifndef MPIO
-#if 0
+#ifndef MPIO
   if ((tmlqcdin = fopen(conf_file, "rt")) == NULL){
     return(2);
   }
