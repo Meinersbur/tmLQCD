@@ -226,7 +226,7 @@ EXTERN_INLINE int get_MPI_count(MPI_Status *status) {
 // dividend >= -1
 // divisor > 0
 // 0 <= result < divisor
-EXTERN_INLINE int mod(const int dividend, const int divisor) {
+EXTERN_INLINE int moddown(const int dividend, const int divisor) {
 #if BGQMOD==0
 	// Compilers can therefore optimize it to bit-operations specific to the target machine
 	// This is not possible with the %-operator on signed operands because it required the result to have the sign of the dividend (hence its the remainder, not a modulus)
@@ -247,6 +247,16 @@ EXTERN_INLINE int mod(const int dividend, const int divisor) {
 	return ((dividend % divisor) + divisor) % divisor;
 #endif
 }
+
+ // dividend >= 0
+ // divisor > 0
+ // 0 <= result < divisor
+EXTERN_INLINE int mod(const int dividend, const int divisor) {
+  	unsigned int udividend = dividend;
+ 	unsigned int udivisor = divisor;
+ 	return udividend % udivisor; // Use unsigned operation here to enable the optimizer to use bit-tricks (like dividend&1 if divisor==2)
+}
+
 
 #ifndef BGQDIV
 #define BGQDIV 0

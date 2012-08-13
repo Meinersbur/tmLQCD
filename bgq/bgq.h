@@ -40,24 +40,24 @@ typedef struct {
 //TODO: setting the 5 least significant bits to zero
 
 #define bgq_ld2a(dst,offset,addr) \
-	assert( (((size_t)addr) + offset) % 16 == 0);                \
-	dst##_q0 = ((vector4double*)(((char*)addr) + offset))->q[0]; \
-	dst##_q1 = ((vector4double*)(((char*)addr) + offset))->q[1]; \
-	dst##_q2 = dst##_q0;                                         \
-	dst##_q3 = dst##_q1
+	assert( (((size_t)(addr)) + (offset)) % 16 == 0);                \
+	NAME2(dst,q0) = ((vector4double*)(((char*)addr) + offset))->q[0]; \
+	NAME2(dst,q1) = ((vector4double*)(((char*)addr) + offset))->q[1]; \
+	NAME2(dst,q2) = NAME2(dst,q0);                                         \
+	NAME2(dst,q3) = NAME2(dst,q1)
 
 #define bgq_ld2a_leftonly(dst,offset,addr) \
-	assert( (((size_t)addr) + offset) % 16 == 0);                \
-	dst##_q0 = ((vector4double*)(((char*)addr) + offset))->q[0]; \
-	dst##_q1 = ((vector4double*)(((char*)addr) + offset))->q[1]
+	assert( (((size_t)(addr)) + (offset)) % 16 == 0);                \
+	NAME2(dst,q0) = ((vector4double*)(((char*)addr) + offset))->q[0]; \
+	NAME2(dst,q1) = ((vector4double*)(((char*)addr) + offset))->q[1]
 
 #define bgq_ld2a_rightonly(dst,offset,addr) \
-	assert( (((size_t)addr) + offset) % 16 == 0);                \
-	dst##_q2 = ((vector4double*)(((char*)addr) + offset))->q[0]; \
-	dst##_q3 = ((vector4double*)(((char*)addr) + offset))->q[1]
+	assert( (((size_t)(addr)) + (offset)) % 16 == 0);                \
+	NAME2(dst,q2) = ((vector4double*)(((char*)addr) + offset))->q[0]; \
+	NAME2(dst,q3) = ((vector4double*)(((char*)addr) + offset))->q[1]
 
 #define bgq_sta(src,offset,addr) \
-	assert( (((size_t)addr) + offset) % 32 == 0);                \
+	assert( (((size_t)(addr)) + (offset)) % 32 == 0);                \
 	((vector4double*)(((char*)addr) + offset))->q[0] = src##_q0; \
 	((vector4double*)(((char*)addr) + offset))->q[1] = src##_q1; \
 	((vector4double*)(((char*)addr) + offset))->q[2] = src##_q2; \
@@ -422,12 +422,30 @@ typedef struct {
 // NOTE: qvlfdux is possibly more effective, but no compiler built-in exists
 
 #define bgq_su3_weyl_double_load(dest, addr) \
-	bgq_lda(dest##_v0_c0,   0, (double _Complex*)(addr));        \
-	bgq_lda(dest##_v0_c1,  32, (double _Complex*)(addr));        \
-	bgq_lda(dest##_v0_c2,  64, (double _Complex*)(addr));        \
-	bgq_lda(dest##_v1_c0,  96, (double _Complex*)(addr));        \
-	bgq_lda(dest##_v1_c1, 128, (double _Complex*)(addr));        \
-	bgq_lda(dest##_v1_c2, 160, (double _Complex*)(addr))
+	bgq_lda(NAME3(dest,v0,c0),   0, (double _Complex*)(addr));        \
+	bgq_lda(NAME3(dest,v0,c1),  32, (double _Complex*)(addr));        \
+	bgq_lda(NAME3(dest,v0,c2),  64, (double _Complex*)(addr));        \
+	bgq_lda(NAME3(dest,v1,c0),  96, (double _Complex*)(addr));        \
+	bgq_lda(NAME3(dest,v1,c1), 128, (double _Complex*)(addr));        \
+	bgq_lda(NAME3(dest,v1,c2), 160, (double _Complex*)(addr))
+
+#define bgq_su3_weyl_double_load_left(dest, addr) \
+	bgq_ld2a(NAME3(dest,v0,c0),   0, (double _Complex*)(addr));        \
+	bgq_ld2a(NAME3(dest,v0,c1),  32, (double _Complex*)(addr));        \
+	bgq_ld2a(NAME3(dest,v0,c2),  64, (double _Complex*)(addr));        \
+	bgq_ld2a(NAME3(dest,v1,c0),  96, (double _Complex*)(addr));        \
+	bgq_ld2a(NAME3(dest,v1,c1), 128, (double _Complex*)(addr));        \
+	bgq_ld2a(NAME3(dest,v1,c2), 160, (double _Complex*)(addr))
+
+
+#define bgq_su3_weyl_double_load_left_leftonly(dest, addr) \
+	bgq_ld2a_leftonly(NAME3(dest,v0,c0),   0, (double _Complex*)(addr));        \
+	bgq_ld2a_leftonly(NAME3(dest,v0,c1),  32, (double _Complex*)(addr));        \
+	bgq_ld2a_leftonly(NAME3(dest,v0,c2),  64, (double _Complex*)(addr));        \
+	bgq_ld2a_leftonly(NAME3(dest,v1,c0),  96, (double _Complex*)(addr));        \
+	bgq_ld2a_leftonly(NAME3(dest,v1,c1), 128, (double _Complex*)(addr));        \
+	bgq_ld2a_leftonly(NAME3(dest,v1,c2), 160, (double _Complex*)(addr))
+
 
 #define bgq_su3_matrix_double_load(dest, addr)   \
 	bgq_lda(dest##_c00,   0, (double _Complex*)(addr)); \
@@ -545,6 +563,10 @@ typedef struct {
 	bgq_su3_vmerge(dst##_v1, a##_v1, b##_v1); \
 	bgq_su3_vmerge(dst##_v2, a##_v2, b##_v2); \
 	bgq_su3_vmerge(dst##_v3, a##_v3, b##_v3)
+
+#define bgq_su3_weyl_merge(dst,a,b)         \
+	bgq_su3_vmerge(dst##_v0, a##_v0, b##_v0); \
+	bgq_su3_vmerge(dst##_v1, a##_v1, b##_v1)
 
 #define bgq_su3_vmov(dst,src)    \
 	bgq_mov(NAME2(dst,c0), NAME2(src,c0)); \

@@ -265,7 +265,7 @@ EXTERN_INLINE _Complex double *bgq_gaugefield_double_ref(bgq_gaugefield_double g
 
 	const int teo = divdown(t, PHYSICAL_LP);
 	const int tv = divdown(teo, PHYSICAL_LK);
-	const int k = mod(teo, PHYSICAL_LK);
+	const int k = moddown(teo, PHYSICAL_LK);
 
 
 	assert(assert_gaugeval(gaugefield,isOdd,t,x,y,z,tv,k,d,i,l,isRead,isWrite));
@@ -373,7 +373,7 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 
 	const int teo = divdown(t, PHYSICAL_LP);
 	const int tv = divdown(teo, PHYSICAL_LK);
-	const int k = mod(teo, PHYSICAL_LK);
+	const int k = moddown(teo, PHYSICAL_LK);
 
 	if (adjoint) {
 		int tmp = i;
@@ -402,9 +402,9 @@ EXTERN_INLINE void bgq_gaugefield_double_set(bgq_gaugefield_double gaugefield, b
 			// also store as shifted
 
 			// Move one to the right
-		    const int teo_shift = mod(teo, 1+LOCAL_LT/PHYSICAL_LP)-1;
+		    const int teo_shift = moddown(teo, 1+LOCAL_LT/PHYSICAL_LP)-1;
 			const int tv_shift = divdown(teo_shift, PHYSICAL_LK);
-			const int k_shift = mod(teo_shift, PHYSICAL_LK);
+			const int k_shift = moddown(teo_shift, PHYSICAL_LK);
 #if 0
 			if ( (t == LOCAL_LT-1) || (t == LOCAL_LT-2) ) {
 				assert(tv_shift == -1);

@@ -21,6 +21,14 @@ bool assert_weylfield_t(bgq_weylfield_double weylfield, bool isOdd, int t, int x
 	 assert(assert_weylfield_t(weylfield,isOdd,t,x2,y,z,xv,1, isRead, isWrite)), \
 	 &weylfield[((xv)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)])
 
+#define BGQ_WEYLSITE_T_LEFT(weylfield, isOdd, t, xv, y, z, x1, x2, isRead, isWrite)  \
+	(assert(assert_weylfield_t(weylfield,isOdd,t,x1,y,z,xv,0, isRead, isWrite)), \
+	 &weylfield[((xv)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)])
+
+#define BGQ_WEYLSITE_T_RIGHT(weylfield, isOdd, t, xv, y, z, x1, x2, isRead, isWrite)  \
+	(assert(assert_weylfield_t(weylfield,isOdd,t,x2,y,z,xv,1, isRead, isWrite)), \
+	 &weylfield[((xv)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)])
+
 #define BGQ_WEYLVAL_T(weylfield, isOdd, t, x, y, z, xv, k, v, c, isRead, isWrite)  \
 	(assert(assert_weylfield_t(weylfield,isOdd,t,x,y,z,xv,k, isRead, isWrite)), \
 	 &weylfield[((xv)*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)].s[v][c][k])

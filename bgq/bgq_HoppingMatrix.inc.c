@@ -72,7 +72,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	bgq_cconst(qka3, ka3.re, ka3.im);
 
 // TDOWN
-#pragma omp parallel for schedule(static)
+//#pragma omp parallel for schedule(static)
 	for (int xyz = 0; xyz < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ; xyz+=1) {
 		WORKLOAD_DECL(xyz, PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int t = -1;
@@ -109,7 +109,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #endif
 
 	// TUP
-#pragma omp parallel for schedule(static)
+//#pragma omp parallel for schedule(static)
 	for (int xyz = 0; xyz < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ; xyz+=1) {
 		WORKLOAD_DECL(xyz,PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int t = LOCAL_LT;
@@ -270,8 +270,8 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 
 
 //#pragma omp parallel for schedule(static)
-	for (int xyzt = 0; xyzt < SURFACE_ZLINES; xyzt+=1) {
-		WORKLOAD_DECL(xyzt, SURFACE_ZLINES);
+	for (int xyz = 0; xyz < SURFACE_ZLINES; xyz += 1) {
+		WORKLOAD_DECL(xyz, SURFACE_ZLINES);
 		int tv;
 		int x;
 		int y;
@@ -317,16 +317,16 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		}
 		WORKLOAD_CHECK
 
-		int t1 = ((isOdd+x+y)&1) + 2*tv;
+		int t1 = ((isOdd+x+y)&1) + 4*tv;
 		int t2 = t1 + 2;
 
 #define BGQ_HM_ZLINE_ID SURFACE
-#define BGQ_HM_TUP_WEYLREAD -1
-#define BGQ_HM_TDOWN_WEYLREAD -1
-#define BGQ_HM_XUP_WEYLREAD -1
-#define BGQ_HM_XDOWN_WEYLREAD -1
-#define BGQ_HM_YUP_WEYLREAD -1
-#define BGQ_HM_YDOWN_WEYLREAD -1
+#define BGQ_HM_ZLINE_TUP_WEYLREAD -1
+#define BGQ_HM_ZLINE_TDOWN_WEYLREAD -1
+#define BGQ_HM_ZLINE_XUP_WEYLREAD -1
+#define BGQ_HM_ZLINE_XDOWN_WEYLREAD -1
+#define BGQ_HM_ZLINE_YUP_WEYLREAD -1
+#define BGQ_HM_ZLINE_YDOWN_WEYLREAD -1
 #include "bgq_HoppingMatrix_zline.inc.c"
 	}
 }

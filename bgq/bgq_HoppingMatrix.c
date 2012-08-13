@@ -47,8 +47,8 @@ size_t weylxchange_size_double[3];
 int weylexchange_destination[6];
 
 #ifndef NDEBUG
-bgq_weylcoord *weylxchange_recv_double_debug[6];
-bgq_weylcoord *weylxchange_send_double_debug[6];
+bgq_weylcoord *weylxchange_recv_double_debug[PHYSICAL_LP][6];
+bgq_weylcoord *weylxchange_send_double_debug[PHYSICAL_LP][6];
 #endif
 
 
@@ -63,8 +63,10 @@ void bgq_hm_init() {
 		weylxchange_recv_double[d] = (bgq_weylfield_double) malloc_aligned(size, 128);
 		weylxchange_send_double[d] = (bgq_weylfield_double) malloc_aligned(size, 128);
 #ifndef NDEBUG
-		weylxchange_recv_double_debug[d] = (bgq_weylcoord*) malloc_aligned(size, 128);
-		weylxchange_send_double_debug[d] = (bgq_weylcoord*) malloc_aligned(size, 128);
+		for (int isOdd = false; isOdd <= true; isOdd += 1) {
+			weylxchange_recv_double_debug[isOdd][d] = (bgq_weylcoord*) malloc_aligned(size, 128);
+			weylxchange_send_double_debug[isOdd][d] = (bgq_weylcoord*) malloc_aligned(size, 128);
+		}
 #endif
 	}
 
@@ -83,27 +85,33 @@ void bgq_hm_free() {
 		free(weylxchange_send_double[d]);
 		weylxchange_send_double[d] = NULL;
 #ifndef NDEBUG
-		free(weylxchange_recv_double_debug[d]);
-		weylxchange_recv_double_debug[d] = NULL;
-		free(weylxchange_send_double_debug[d]);
-		weylxchange_send_double_debug[d] = NULL;
+		for (int isOdd = false; isOdd <= true; isOdd += 1) {
+			free(weylxchange_recv_double_debug[isOdd][d]);
+			weylxchange_recv_double_debug[isOdd][d] = NULL;
+			free(weylxchange_send_double_debug[isOdd][d]);
+			weylxchange_send_double_debug[isOdd][d] = NULL;
+		}
 #endif
 	}
 }
 
 
-static bgq_weylcoord *bgq_weylfield_coordref(_Complex double *val) {
+static bgq_weylcoord *bgq_weylfield_coordref(bool isOdd, _Complex double *val) {
 	assert( sizeof(bgq_weylcoord) == sizeof(_Complex double) );
+	// Logically, odd and even sites are different locations
+	// But in HoppingMatrix, only one of them is used in a time, odd and even computation/communication do not interleave
+	// Therefore we coalesce even and odd fields to the same physical memory location
+	// But logically these sites are still distinct, so we need different debug infos for them
 
 	for (direction d = TUP; d <= YDOWN; d += 1) {
 		if ( ((char*)weylxchange_recv_double[d] <= (char*)val) && ((char*)val < (char*)weylxchange_recv_double[d] + weylxchange_size_double[d/2]) ) {
 			size_t offset = (char*)val - (char*)(weylxchange_recv_double[d]);
-			return (bgq_weylcoord*)((char*)weylxchange_recv_double_debug[d] + offset);
+			return (bgq_weylcoord*)((char*)weylxchange_recv_double_debug[isOdd][d] + offset);
 		}
 
 		if ( ((char*)weylxchange_send_double[d] <= (char*)val) && ((char*)val < (char *)weylxchange_send_double[d] + weylxchange_size_double[d/2]) ) {
 			size_t offset = (char*)val - (char*)(weylxchange_send_double[d]);
-			return (bgq_weylcoord*)((char*)weylxchange_send_double_debug[d] + offset);
+			return (bgq_weylcoord*)((char*)weylxchange_send_double_debug[isOdd][d] + offset);
 		}
 	}
 
@@ -112,7 +120,7 @@ static bgq_weylcoord *bgq_weylfield_coordref(_Complex double *val) {
 }
 
 static void bgq_weylfield_checkcoord(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int v, int c, _Complex double *value) {
-	bgq_weylcoord *coord = bgq_weylfield_coordref(value);
+	bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, value);
 	if (coord->coord.init) {
 		assert(coord->coord.isOdd == isOdd);
 		assert(coord->coord.t == t+1);
@@ -158,7 +166,7 @@ void bgq_weylfield_t_resetcoord(bgq_weylfield_double weylfield, int t, bool isOd
 		for (int v = 0; v < 2; v += 1) {
 			for (int c = 0; c < 3; c += 1) {
 				_Complex double *value = BGQ_WEYLVAL_T(weylfield,isOdd,t,x,y,z,xv,k,v,c,false,false);
-				bgq_weylcoord *coord = bgq_weylfield_coordref(value);
+				bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, value);
 
 				assert(coord->coord.init);
 				int reads = coord->coord.reads;
@@ -184,7 +192,7 @@ void bgq_weylfield_t_resetcoord(bgq_weylfield_double weylfield, int t, bool isOd
 
 bool assert_weylval_t(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int xv, int k, int v, int c, bool isRead, bool isWrite) {
 	assert(weylfield);
-	assert(false <= isOdd && isOdd <= true);
+	assert(false <= isOdd && isOdd <= true); // bogus
 	assert( (t==-1) || (t == LOCAL_LT) ); /* We are one out of the volume, either up or down */
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
@@ -217,7 +225,7 @@ bool assert_weylval_t(bgq_weylfield_double weylfield, bool isOdd, int t, int x, 
 	_Complex double *val = &site->s[v][c][k];
 	assert(&weylfield[0].s[0][0][0] <= val && val < &weylfield[PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ].s[0][0][0]);
 
-	bgq_weylcoord *coord = bgq_weylfield_coordref(val);
+	bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, val);
 	bgq_weylfield_checkcoord(weylfield, isOdd, t, x, y, z, v, c, val);
 
 	assert(coord->coord.init);
@@ -261,7 +269,7 @@ void bgq_weylfield_x_resetcoord(bgq_weylfield_double weylfield, int x, bool isOd
 		for (int v = 0; v < 2; v += 1) {
 			for (int c = 0; c < 3; c += 1) {
 				_Complex double *value = BGQ_WEYLVAL_X(weylfield,isOdd,t,x,y,z,tv,k,v,c,false,false);
-				bgq_weylcoord *coord = bgq_weylfield_coordref(value);
+				bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, value);
 
 				assert(coord->coord.init);
 				int reads = coord->coord.reads;
@@ -320,7 +328,7 @@ bool assert_weylval_x(bgq_weylfield_double weylfield, bool isOdd, int t, int x, 
 	_Complex double *val = &site->s[v][c][k];
 	assert(&weylfield[0].s[0][0][0] <= val && val < &weylfield[PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ].s[0][0][0]);
 
-	bgq_weylcoord *coord = bgq_weylfield_coordref(val);
+	bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, val);
 	bgq_weylfield_checkcoord(weylfield, isOdd, t, x, y, z, v, c, val);
 
 	assert(coord->coord.init);
@@ -365,7 +373,7 @@ void bgq_weylfield_y_resetcoord(bgq_weylfield_double weylfield, int y, bool isOd
 		for (int v = 0; v < 2; v += 1) {
 			for (int c = 0; c < 3; c += 1) {
 				_Complex double *value = BGQ_WEYLVAL_Y(weylfield,isOdd,t,x,y,z,tv,k,v,c,false,false);
-				bgq_weylcoord *coord = bgq_weylfield_coordref(value);
+				bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, value);
 
 				assert(coord->coord.init);
 				int reads = coord->coord.reads;
@@ -422,7 +430,7 @@ bool assert_weylval_y(bgq_weylfield_double weylfield, bool isOdd, int t, int x, 
 	_Complex double *val = &site->s[v][c][k];
 	assert(&weylfield[0].s[0][0][0] <= val && val < &weylfield[PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ].s[0][0][0]);
 
-	bgq_weylcoord *coord = bgq_weylfield_coordref(val);
+	bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, val);
 	bgq_weylfield_checkcoord(weylfield, isOdd, t, x, y, z, v, c, val);
 
 	assert(coord->coord.init);
