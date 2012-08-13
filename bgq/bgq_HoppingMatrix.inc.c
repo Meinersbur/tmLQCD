@@ -33,20 +33,20 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	bgq_spinorfield_resetcoord(spinorfield, !isOdd, -1, -1, -1, -1);
 	bgq_gaugefield_resetcoord(gaugefield, -1, -1);
 
+	bgq_weylfield_t_resetcoord(weylxchange_send_double[TUP], LOCAL_LT-1, isOdd, -1, -1, -1, -1);
+	bgq_weylfield_t_resetcoord(weylxchange_send_double[TDOWN], 0, isOdd, -1, -1, -1, -1);
 	bgq_weylfield_t_resetcoord(weylxchange_recv_double[TUP], LOCAL_LT, isOdd, -1, -1, -1, -1);
 	bgq_weylfield_t_resetcoord(weylxchange_recv_double[TDOWN], -1, isOdd, -1, -1, -1, -1);
-	bgq_weylfield_t_resetcoord(weylxchange_send_double[TUP], LOCAL_LT, isOdd, -1, -1, -1, -1);
-	bgq_weylfield_t_resetcoord(weylxchange_send_double[TDOWN], -1, isOdd, -1, -1, -1, -1);
 
+	bgq_weylfield_x_resetcoord(weylxchange_send_double[XUP], LOCAL_LX-1, isOdd, -1, -1, -1, -1);
+	bgq_weylfield_x_resetcoord(weylxchange_send_double[XDOWN], 0, isOdd, -1, -1, -1, -1);
 	bgq_weylfield_x_resetcoord(weylxchange_recv_double[XUP], LOCAL_LX, isOdd, -1, -1, -1, -1);
 	bgq_weylfield_x_resetcoord(weylxchange_recv_double[XDOWN], -1, isOdd, -1, -1, -1, -1);
-	bgq_weylfield_x_resetcoord(weylxchange_send_double[XUP], LOCAL_LX, isOdd, -1, -1, -1, -1);
-	bgq_weylfield_x_resetcoord(weylxchange_send_double[XDOWN], -1, isOdd, -1, -1, -1, -1);
 
+	bgq_weylfield_y_resetcoord(weylxchange_send_double[YUP], LOCAL_LY-1, isOdd, -1, -1, -1, -1);
+	bgq_weylfield_y_resetcoord(weylxchange_send_double[YDOWN], 0, isOdd, -1, -1, -1, -1);
 	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YUP], LOCAL_LY, isOdd, -1, -1, -1, -1);
 	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YDOWN], -1, isOdd, -1, -1, -1, -1);
-	bgq_weylfield_y_resetcoord(weylxchange_send_double[YUP], LOCAL_LY, isOdd, -1, -1, -1, -1);
-	bgq_weylfield_y_resetcoord(weylxchange_send_double[YDOWN], -1, isOdd, -1, -1, -1, -1);
 #endif
 
 #if !BGQ_HM_NOCOM && defined(MPI)
@@ -72,7 +72,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	bgq_cconst(qka3, ka3.re, ka3.im);
 
 // TDOWN
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
 	for (int xyz = 0; xyz < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ; xyz+=1) {
 		WORKLOAD_DECL(xyz, PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int t = -1;
@@ -100,18 +100,18 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		bgq_su3_vadd(weyl_tup_v1, spinor_tup_v1, spinor_tup_v3);
 
 		// Store the halfspinor to be transfered to the neighbor node
-		bgq_weylsite_double *weylsite_tup = BGQ_WEYLSITE_T(weylxchange_send_double[TDOWN/*!!!*/], isOdd, t, xv, y, z, x1, x2, false, true);
+		bgq_weylsite_double *weylsite_tup = BGQ_WEYLSITE_T(weylxchange_send_double[TDOWN/*!!!*/], !isOdd, t+1, xv, y, z, x1, x2, false, true);
 		bgq_su3_weyl_double_store(weylsite_tup, weyl_tup);
 	}
 
 #ifndef NDEBUG
-	bgq_weylfield_t_resetcoord(weylxchange_send_double[TDOWN], -1, isOdd, 0, 0, 1, 1);
+	bgq_weylfield_t_resetcoord(weylxchange_send_double[TDOWN], 0, !isOdd, 0, 0, 1, 1);
 #endif
 
 	// TUP
-//#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
 	for (int xyz = 0; xyz < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ; xyz+=1) {
-		WORKLOAD_DECL(xyz,PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
+		WORKLOAD_DECL(xyz, PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int t = LOCAL_LT;
 		const int y = WORKLOAD_PARAM(PHYSICAL_LY);
 		const int z = WORKLOAD_PARAM(PHYSICAL_LZ);
@@ -137,12 +137,12 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		bgq_su3_vsub(weyl_tdown_v1, spinor_tdown_v1, spinor_tdown_v3);
 
 		// Store the halfspinor to be transfered to the neighbor node
-		bgq_weylsite_double *weylsite_tdown = BGQ_WEYLSITE_T(weylxchange_send_double[TUP/*!!!*/], isOdd, t, xv, y, z, x1, x2, false, true);
+		bgq_weylsite_double *weylsite_tdown = BGQ_WEYLSITE_T(weylxchange_send_double[TUP/*!!!*/], !isOdd, t-1, xv, y, z, x1, x2, false, true);
 		bgq_su3_weyl_double_store(weylsite_tdown, weyl_tdown);
 	}
 
 #ifndef NDEBUG
-	bgq_weylfield_t_resetcoord(weylxchange_send_double[TUP], LOCAL_LT, isOdd, 0, 0, 1, 1);
+	bgq_weylfield_t_resetcoord(weylxchange_send_double[TUP], LOCAL_LT-1, !isOdd, 0, 0, 1, 1);
 #endif
 
 	// XDOWN
@@ -163,7 +163,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	}
 
 #ifndef NDEBUG
-	bgq_weylfield_x_resetcoord(weylxchange_send_double[XDOWN], -1, isOdd, 0, 0, 1, 1);
+	bgq_weylfield_x_resetcoord(weylxchange_send_double[XDOWN], 0, !isOdd, 0, 0, 1, 1);
 #endif
 
 	// XUP
@@ -184,7 +184,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	}
 
 #ifndef NDEBUG
-	bgq_weylfield_x_resetcoord(weylxchange_send_double[XUP], LOCAL_LX, isOdd, 0, 0, 1, 1);
+	bgq_weylfield_x_resetcoord(weylxchange_send_double[XUP], LOCAL_LX-1, !isOdd, 0, 0, 1, 1);
 #endif
 
 	// YDOWN
@@ -205,7 +205,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	}
 
 #ifndef NDEBUG
-	bgq_weylfield_y_resetcoord(weylxchange_send_double[YDOWN], -1, isOdd, 0, 0, 1, 1);
+	bgq_weylfield_y_resetcoord(weylxchange_send_double[YDOWN], 0, !isOdd, 0, 0, 1, 1);
 #endif
 
 	// YUP
@@ -226,7 +226,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	}
 
 #ifndef NDEBUG
-	bgq_weylfield_y_resetcoord(weylxchange_send_double[YUP], LOCAL_LY, isOdd, 0, 0, 1, 1);
+	bgq_weylfield_y_resetcoord(weylxchange_send_double[YUP], LOCAL_LY-1, !isOdd, 0, 0, 1, 1);
 #endif
 
 
@@ -280,28 +280,28 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 				tv = WORKLOAD_PARAM(2)*(PHYSICAL_LTV-1);
 				x = WORKLOAD_PARAM(PHYSICAL_LX-2)+1;
 				y = WORKLOAD_PARAM(PHYSICAL_LY-2)+1;
-			} else if (WORKLOAD_SPLIT(2*SURFACE_X_SITES)) {
+			} else if (WORKLOAD_SPLIT(2*SURFACE_X_ZLINES)) {
 				tv = WORKLOAD_PARAM(PHYSICAL_LTV-2)+1;
 				x = WORKLOAD_PARAM(2)*(PHYSICAL_LX-1);
 				y = WORKLOAD_PARAM(PHYSICAL_LY-2)+1;
 			} else {
-				WORKLOAD_SPLIT(2*SURFACE_Y_SITES);
+				WORKLOAD_SPLIT(2*SURFACE_Y_ZLINES);
 
 				tv = WORKLOAD_PARAM(PHYSICAL_LTV-2)+1;
 				x = WORKLOAD_PARAM(PHYSICAL_LX-2)+1;
 				y = WORKLOAD_PARAM(2)*(PHYSICAL_LY-1);
 			}
-		} else if (WORKLOAD_SPLIT(SURFACE_EDGE_SITES)) {
-			if (WORKLOAD_SPLIT(4*SURFACE_TX_SITES)) {
+		} else if (WORKLOAD_SPLIT(SURFACE_EDGE_ZLINES)) {
+			if (WORKLOAD_SPLIT(4*SURFACE_TX_ZLINES)) {
 				tv = WORKLOAD_PARAM(2)*(PHYSICAL_LTV-1);
 				x = WORKLOAD_PARAM(2)*(PHYSICAL_LX-1);
 				y = WORKLOAD_PARAM(PHYSICAL_LY-2)+1;
-			} else if (WORKLOAD_SPLIT(4*SURFACE_TY_SITES)) {
+			} else if (WORKLOAD_SPLIT(4*SURFACE_TY_ZLINES)) {
 				tv = WORKLOAD_PARAM(2)*(PHYSICAL_LTV-1);
 				x = WORKLOAD_PARAM(PHYSICAL_LX-2)+1;
 				y = WORKLOAD_PARAM(2)*(PHYSICAL_LY-1);
 			} else {
-				WORKLOAD_SPLIT(4*SURFACE_XY_SITES);
+				WORKLOAD_SPLIT(4*SURFACE_XY_ZLINES);
 
 				tv = WORKLOAD_PARAM(PHYSICAL_LTV-2)+1;
 				x = WORKLOAD_PARAM(2)*(PHYSICAL_LX-1);
@@ -309,15 +309,15 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 			}
 		} else {
 			// vertices
-			int bits = WORKLOAD_PARAM(SURFACE_VERTICE_SITES);
+			int bits = WORKLOAD_PARAM(SURFACE_VERTICE_ZLINES);
 
-			tv = ((bits>>0)&1) * (PHYSICAL_LTV - 1);
-			x = ((bits>>1)&1) * (PHYSICAL_LX - 1);
-			y = ((bits>>2)&1) * (PHYSICAL_LY - 1);
+			tv = ((bits>>0)&1) * (PHYSICAL_LTV-1);
+			x = ((bits>>1)&1) * (PHYSICAL_LX-1);
+			y = ((bits>>2)&1) * (PHYSICAL_LY-1);
 		}
 		WORKLOAD_CHECK
 
-		int t1 = ((isOdd+x+y)&1) + 4*tv;
+		int t1 = ((isOdd+x+y)&1) + tv*PHYSICAL_LP*PHYSICAL_LK;
 		int t2 = t1 + 2;
 
 #define BGQ_HM_ZLINE_ID SURFACE

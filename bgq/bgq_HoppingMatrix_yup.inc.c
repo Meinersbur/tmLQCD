@@ -70,7 +70,7 @@ void bgq_HoppingMatrix_yup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 
 #if BGQ_HM_YUP_WEYL_SEND
 		// Store the halfspinor to be transfered to the neighbor node
-		bgq_weylsite_double *weylsite_yup = BGQ_WEYLSITE_Y(weylxchange_send_double[YDOWN/*!!!*/], isOdd, tv, x, y, z, t1,t2, false,true);
+		bgq_weylsite_double *weylsite_yup = BGQ_WEYLSITE_Y(weylxchange_send_double[YDOWN/*!!!*/], !isOdd, tv, x, y+1, z, t1,t2, false,true);
 		bgq_su3_weyl_double_store(weylsite_yup, weyl_yup);
 #endif
 

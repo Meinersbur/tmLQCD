@@ -193,7 +193,7 @@ void bgq_weylfield_t_resetcoord(bgq_weylfield_double weylfield, int t, bool isOd
 bool assert_weylval_t(bgq_weylfield_double weylfield, bool isOdd, int t, int x, int y, int z, int xv, int k, int v, int c, bool isRead, bool isWrite) {
 	assert(weylfield);
 	assert(false <= isOdd && isOdd <= true); // bogus
-	assert( (t==-1) || (t == LOCAL_LT) ); /* We are one out of the volume, either up or down */
+	assert( (t == -1) || (t == 0) || (t == LOCAL_LT-1) || (t == LOCAL_LT) ); /* We are one out of the volume, either up or down */
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
@@ -297,7 +297,7 @@ bool assert_weylval_x(bgq_weylfield_double weylfield, bool isOdd, int t, int x, 
 	assert(weylfield);
 	assert(false <= isOdd && isOdd <= true);
 	assert(0 <= t && t < LOCAL_LT);
-	assert( (-1 == x) || (x == LOCAL_LX) );
+	assert( (x == -1) || (x == 0) || (x == LOCAL_LX-1) || (x == LOCAL_LX) );
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
 	assert(0 <= tv && tv < PHYSICAL_LTV);
@@ -401,7 +401,7 @@ bool assert_weylval_y(bgq_weylfield_double weylfield, bool isOdd, int t, int x, 
 	assert(false <= isOdd && isOdd <= true);
 	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= x && x < LOCAL_LX);
-	assert( (-1 == y) || (y == LOCAL_LY) );
+	assert( (-1 == y) || (y == 0) || (y == LOCAL_LY-1) || (y == LOCAL_LY) );
 	assert(0 <= z && z < LOCAL_LZ);
 	assert(0 <= tv && tv < PHYSICAL_LTV);
 	assert(0 <= k && k < PHYSICAL_LK);

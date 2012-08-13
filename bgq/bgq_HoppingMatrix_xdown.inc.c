@@ -71,7 +71,7 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 #if BGQ_HM_XDOWN_WEYL_SEND
 		// Store the halfspinor to be transfered to the neighbor node
-		bgq_weylsite_double *weylsite_xdown = BGQ_WEYLSITE_X(weylxchange_send_double[XUP/*!!!*/], isOdd, tv, x, y, z, t1,t2, false,true);
+		bgq_weylsite_double *weylsite_xdown = BGQ_WEYLSITE_X(weylxchange_send_double[XUP/*!!!*/], !isOdd, tv, x-1, y, z, t1,t2, false,true);
 		bgq_su3_weyl_double_store(weylsite_xdown, weyl_xdown);
 #endif
 

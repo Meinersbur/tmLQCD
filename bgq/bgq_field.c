@@ -77,7 +77,7 @@ static void bgq_spinorfield_checkcoord(bgq_spinorfield_double spinorfield, bool 
 void bgq_spinorfield_resetcoord(bgq_spinorfield_double spinorfield, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max) {
 	assert(spinorfield);
 
-#pragma omp parallel for schedule(static)
+//#pragma omp parallel for schedule(static)
 	for (int txyz = 0; txyz < VOLUME; txyz += 1) {
 		WORKLOAD_DECL(txyz, VOLUME);
 		const int t = WORKLOAD_PARAM(LOCAL_LT);
@@ -111,7 +111,7 @@ void bgq_spinorfield_resetcoord(bgq_spinorfield_double spinorfield, bool isOdd, 
 				if (expected_writes_max >= 0)
 					assert(writes <= expected_writes_max);
 
-				//bgq_spinorfield_checkcoord(spinorfield,isOdd,t,x,y,z,tv,k,v,c,value);
+
 				coord->coord.writes = 0;
 				coord->coord.reads = 0;
 			}
@@ -264,11 +264,11 @@ bool assert_spinorfield_coord(bgq_spinorfield_double spinorfield, bool isOdd, in
 
 	// Validate the address
 	bgq_spinorsite_double *site = &spinorfield[idx];
-	assert(g_spinorfields_double[index] <= site && site < g_spinorfields_double[index+1]);
+	assert(g_spinorfields_double[index] <= site && site < g_spinorfields_double[index] + VOLUME_SITES);
 	assert(mod((size_t)site,32)==0);
 
 	_Complex double *val = &site->s[v][c][k];
-	assert( (&g_spinorfields_double[index]->s[0][0][0] <= val) && (val < &g_spinorfields_double[index+1]->s[0][0][0]) );
+	assert( (&g_spinorfields_double[index]->s[0][0][0] <= val) && (val < &(g_spinorfields_double[index]+VOLUME_SITES)->s[0][0][0]) );
 	assert(mod((size_t)site,16)==0);
 	assert(mod((size_t)&site->s[v][c][0],32)==0);
 
@@ -425,7 +425,7 @@ void bgq_gaugefield_resetcoord(bgq_gaugefield_double gaugefield, int expected_re
 					}
 
 					if (dir == TUP) {
-						const int teo_shift = moddown(teo, 1+LOCAL_LT/PHYSICAL_LP) - 1;
+						const int teo_shift = moddown(teo+2, 1+LOCAL_LT/PHYSICAL_LP) - 1;
 						const int tv_shift = divdown(teo_shift,PHYSICAL_LK);
 						const int k_shift = moddown(teo_shift, PHYSICAL_LK);
 
@@ -560,9 +560,9 @@ bool assert_gaugeval(bgq_gaugefield_double gaugefield, bool isOdd, int t, int x,
 
 	// Check that the coordinate is really an odd/even coordinate
 	assert( ((t+x+y+z)&1) == isOdd );
-	int teo = divdown(t,PHYSICAL_LP); // Because t=-1 is a valid index, shift everything right
+	int teo = divdown(t,PHYSICAL_LP);
 	if (dir == TUP_SHIFT) {
-		teo = moddown(teo, 1+LOCAL_LT/PHYSICAL_LP)-1;
+		teo = moddown(teo+2, 1+LOCAL_LT/PHYSICAL_LP)-1;
 	}
 
 	// Check that zv and k match the coordinate

@@ -22,6 +22,7 @@
 
 void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int tv, int x, int y, int z, int t1, int t2) {
 	bgq_su3_spinor_decl(result);
+	bgq_vector4double_decl(qka0);
 #else
 {
 #endif
@@ -75,11 +76,11 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 			// Read the left component from the weyl receive region
 			const int xeo = x / PHYSICAL_LP;
-			const int xv = xeo / PHYSICAL_LD;
-			const int kx = mod(xeo, PHYSICAL_LD);
+			const int xv = xeo / PHYSICAL_LK;
+			const int kx = mod(xeo, PHYSICAL_LK);
 
-			bgq_weylsite_double *weylsite_tdown_left = BGQ_WEYLSITE_T(weylxchange_recv_double[TDOWN], isOdd, t1, xv, y, z, kx==0 ? x : x-2, kx==1 ? x : x+2, true, false);
-			weylsite_tdown_left = (bgq_weylsite_double*) ((char*)weylsite_tdown_left + kx*sizeof(_Complex double)); // Some trick: if we are supposed to read k=1, shift the pointer to the right to match k=0, so we avoid some conditional
+			bgq_weylsite_double *weylsite_tdown_left = BGQ_WEYLSITE_T(weylxchange_recv_double[TDOWN], !isOdd, t1-1, xv, y, z, kx==0 ? x : x-2, kx==1 ? x : x+2, true, false);
+			weylsite_tdown_left = (bgq_weylsite_double*) ((char*)weylsite_tdown_left + kx*sizeof(_Complex double)); // Some trick: if we are supposed to read kx=1, shift the pointer to the right to match k=0, so we avoid some conditional
 			bgq_su3_weyl_decl(weyl_tdown_left);
 			bgq_su3_weyl_double_load_left(weyl_tdown_left, weylsite_tdown_left);
 
@@ -88,7 +89,7 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 			bgq_su3_spinor_decl(spinor_tdown_mid);
 			bgq_su3_spinor_double_load_left(spinor_tdown_mid, spinorsite_tdown_mid);
 
-			// Compute the halfspinor og the left component, i.e. the result of the right component is to be ignored
+			// Compute the halfspinor og the left component, i.e. the result of the right component is to be ignored (it will be the same)
 			bgq_su3_weyl_decl(weyl_tdown_mid);
 			bgq_su3_vsub(weyl_tdown_mid_v0, spinor_tdown_mid_v0, spinor_tdown_mid_v2);
 			bgq_su3_vsub(weyl_tdown_mid_v1, spinor_tdown_mid_v1, spinor_tdown_mid_v3);
@@ -125,7 +126,7 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		if ( ((tv+x+y+z)&1) == isOdd ) {
 		#endif
 		#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==0)
-			gaugesite_tdown = BGQ_GAUGESITE(gaugefield, !isOdd, tv-1, x, y, z, TUP_SHIFT, t1-1, t2-1, true,false);
+			gaugesite_tdown = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x, y, z, TUP_SHIFT, t1-1, t2-1, true,false);
 		#endif
 		#if (BGQ_HM_TDOWN_TLINEINDENT==-1)
 		} else {
@@ -143,10 +144,10 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		bgq_su3_mvinvmul(weyl_tdown_v0, gauge_tdown, weyl_tdown_v0);
 		bgq_su3_mvinvmul(weyl_tdown_v1, gauge_tdown, weyl_tdown_v1);
 
-	#ifndef BGQ_HM_NOKAMUL
-		bgq_su3_cvmul(weyl_tdown_v0, qka0, weyl_tdown_v0);
-		bgq_su3_cvmul(weyl_tdown_v1, qka0, weyl_tdown_v1);
-	#endif
+		#ifndef BGQ_HM_NOKAMUL
+			bgq_su3_cvmul(weyl_tdown_v0, qka0, weyl_tdown_v0);
+			bgq_su3_cvmul(weyl_tdown_v1, qka0, weyl_tdown_v1);
+		#endif
 	#endif
 
 

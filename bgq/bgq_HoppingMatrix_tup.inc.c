@@ -98,19 +98,19 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 			// Read in the left part of the site like normal
 			bgq_spinorsite_double *spinorsite_tup_mid = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, tv, x, y, z, t1-1, t1+1, true,false);
 			bgq_su3_spinor_decl(spinor_tup_mid);
-			bgq_su3_spinor_double_load_right(spinor_tup_mid, spinorsite_tup_mid);
+			bgq_su3_spinor_double_load_left(spinor_tup_mid, spinorsite_tup_mid);
 
-			// Also compute its halfspinor, but this we have only a left part, hence wasting a few flops
+			// Also compute its halfspinor, but this we have only a right part, hence wasting a few flops
 			bgq_su3_weyl_decl(weyl_tup_mid);
 			bgq_su3_vadd(weyl_tup_mid_v0, spinor_tup_mid_v0, spinor_tup_mid_v2);
 			bgq_su3_vadd(weyl_tup_mid_v1, spinor_tup_mid_v1, spinor_tup_mid_v3);
 
 			// Read the other halfspinor from what the neighbor node sent us
 			const int xeo = x / PHYSICAL_LP;
-			const int xv = xeo / PHYSICAL_LD;
-			const int kx = mod(xeo, PHYSICAL_LD);
+			const int xv = xeo / PHYSICAL_LK;
+			const int kx = mod(xeo, PHYSICAL_LK);
 
-			bgq_weylsite_double *weylsite_tup_right = BGQ_WEYLSITE_T(weylxchange_recv_double[TUP], isOdd, t2, xv, y, z, kx==0 ? x : x-2, kx==1 ? x : x+2, true, false);
+			bgq_weylsite_double *weylsite_tup_right = BGQ_WEYLSITE_T(weylxchange_recv_double[TUP], !isOdd, t2+1, xv, y, z, kx==0 ? x : x-2, kx==1 ? x : x+2, true, false);
 			weylsite_tup_right = (bgq_weylsite_double*) ((char*)weylsite_tup_right + kx*sizeof(_Complex double)); // Some trick: if we are supposed to read k=1, shift the pointer to the right to match k=0, so we avoid some conditional
 			bgq_su3_weyl_decl(weyl_tup_right);
 			bgq_su3_weyl_double_load_left(weyl_tup_right, weylsite_tup_right);
