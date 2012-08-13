@@ -84,6 +84,7 @@ extern FILE *fmemopen(void *__s, size_t __len, __const char *__modes) __THROW;
 
 #ifdef BGQ
 #include "bgq/bgq_field.h"
+#include "bgq/bgq_HoppingMatrix.h"
 #endif
 
 /* GG */
@@ -228,22 +229,18 @@ int main(int argc, char *argv[])
 	yybufgg = (void *) malloc(8192*sizeof(char));
 	yyingg = (FILE*) malloc(sizeof(FILE*));
 	if (g_proc_id == 0) {
-		fprintf(stderr, "MK input_filename='%s'\n", input_filename);
 		yyfd = open(input_filename, O_RDONLY);
-		if (!yyfd)
-			fprintf(stderr, "MK Cannot open file\n");
+		if (!yyfd) {
+			fprintf(stderr, "MK Cannot open file %s\n", input_filename);
+			exit(2);
+		}
 		yyCount = read(yyfd, yybufgg, 8192);
-		fprintf(stderr, "MK yyCount %d %s\n", yyCount, yybufgg);
 		intrig = close(yyfd);
 	}
 	intrig = MPI_Bcast(yybufgg, 8192, MPI_CHAR, 0, MPI_COMM_WORLD );
 	yyingg = fmemopen(yybufgg, strlen(yybufgg), "r");
-	if (!yyingg) {
-		fprintf(stderr, "MK unable to read config file %s\n", yybufgg);
-	}
 	intrig = read_input_fh(yyingg);
 #endif
-	 fprintf(stderr, "MK %d benchmark global size: %dx%dx%dx%d=%d\n", intrig, T, LX, LY, LZ,VOLUME);
 
 	/* GG */
 	if (g_proc_id)
@@ -396,14 +393,13 @@ int main(int argc, char *argv[])
 #endif
 
 	if (even_odd_flag) {
-		fprintf(stderr, "MK even_odd_flag\n");
 		/*initialize the pseudo-fermion fields*/
 		j_max = 1;
 		sdt = 0.0;
 		for (k = 0; k < k_max; k++) {
 			random_spinor_field(g_spinor_field[k], VOLUME / 2, 0);
 #if BGQ
-			bgq_transfer_spinorfield(k<k_max, g_spinorfields_double[k], g_spinor_field[k]);
+			bgq_transfer_spinorfield(true, g_spinorfields_double[k], g_spinor_field[k]);
 #endif
 		}
 

@@ -11,6 +11,7 @@
 #include <mpi.h>
 #include "complex_c99.h"
 //#include <complex.h>
+#include <assert.h>
 
 #ifndef BGQ_UTILS_C_
 #define EXTERN_INLINE inline
@@ -85,7 +86,7 @@ EXTERN_INLINE int get_MPI_count(MPI_Status *status) {
 	int xyz_orig;            \
 	int xyz_torig;           \
 	int xyz_total = (TOTAL); \
-	int xyz_param;
+	int xyz_param
 
 // true:  xyz = 0            .. TRUE_COUNT -> 0 .. TRUE_COUNT
 // false: xyz = TRUE_COUNT+1 .. xyz_total  -> 0 .. xyz_total-TRUE_COUNT
@@ -218,26 +219,67 @@ EXTERN_INLINE int get_MPI_count(MPI_Status *status) {
 	assert(xyz_total==1);
 
 
+#ifndef BGQMOD
+#define BGQMOD 0
+#endif
 
-
-#if 1
-#define mod(dividend,divisor) \
-		(int)(((unsigned int)dividend)%((unsigned int)divisor))
-#else
-static inline int mod(const int dividend, const int divisor) {
+// dividend >= -1
+// divisor > 0
+// 0 <= result < divisor
+EXTERN_INLINE int moddown(const int dividend, const int divisor) {
+#if BGQMOD==0
 	// Compilers can therefore optimize it to bit-operations specific to the target machine
 	// This is not possible with the %-operator on signed operands because it required the result to have the sign of the dividend (hence its the remainder, not a modulus)
-#if 1
-	return (int)(((unsigned int)dividend)%((unsigned int)divisor));
-#elif 0
-	return (dividend%divisor + divisor)%divisor;
-#elif 0
-	int tmp = dividend%divisor;
-	if (tmp < 0) tmp+=divisor;
-	return tmp;
+	unsigned int udividend = dividend + divisor;
+	unsigned int udivisor = divisor;
+	return udividend % udivisor; // Use unsigned operation here to enable the optimizer to use bit-tricks (like dividend&1 if divisor==2)
+#elif BGQMOD==1
+	int result = dividend % divisor;
+	if (result < 0)
+		result += divisor;
+	return result;
+#elif BGQMOD==2
+	if (dividend >= 0)
+		return dividend % divisor;
+	else
+		return dividend % divisor + divisor;
+#elif BGQMOD==3
+	return ((dividend % divisor) + divisor) % divisor;
 #endif
 }
+
+ // dividend >= 0
+ // divisor > 0
+ // 0 <= result < divisor
+EXTERN_INLINE int mod(const int dividend, const int divisor) {
+  	unsigned int udividend = dividend;
+ 	unsigned int udivisor = divisor;
+ 	return udividend % udivisor; // Use unsigned operation here to enable the optimizer to use bit-tricks (like dividend&1 if divisor==2)
+}
+
+
+#ifndef BGQDIV
+#define BGQDIV 0
 #endif
+
+// Always round towards negative infinity
+// dividend >= -1
+// divisor > 0
+// result >= -1
+EXTERN_INLINE int divdown(const int dividend, const int divisor) {
+#if BGQDIV==0
+	unsigned int udividend = dividend + divisor; // Dividend can be -1
+	unsigned int udivisor = divisor;
+	return (int)(udividend / udivisor) - 1;
+#elif BGQDIV==1
+	return (dividend - mod(dividend,divisor)) / divisor;
+#elif BGQDIV==2
+	if (dividend >= 0)
+		return dividend / divisor;
+	else
+		return (dividend - divisor + 1) / divisor;
+#endif
+}
 
 
 
@@ -257,6 +299,18 @@ EXTERN_INLINE double bgq_wtime() {
 	assert(bgq_g_wtick != 0);
 	return MPI_Wtime();
 }
+
+
+#define master_print(...)           \
+	if (g_proc_id == 0)              \
+		fprintf(stderr, __VA_ARGS__)
+
+#define master_error(errcode, ...) \
+	do {                            \
+		master_print(__VA_ARGS__);  \
+		exit(errcode);              \
+	} while (0)
+
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

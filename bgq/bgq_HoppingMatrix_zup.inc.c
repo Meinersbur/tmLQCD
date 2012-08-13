@@ -1,9 +1,4 @@
 
-#ifndef BGQ_HM_ZUP_ZLINEINDENT
-#error Must define the line indention (0, 1 or -1 for runtime-conditional)
-#define BGQ_HM_ZUP_ZLINEINDENT -1
-#endif
-
 #ifndef BGQ_HM_ZUP_RIGHTWRAPAROUND
 #define BGQ_HM_ZUP_RIGHTWRAPAROUND -1 /* Runtime-conditional */
 #endif
@@ -17,70 +12,32 @@
 #endif
 
 
-#ifndef BGQ_HM_NOFUNC
+#ifndef BGQ_HM_DIR_NOFUNC
 #include "bgq.h"
 #include "bgq_field.h"
 
-void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y, int z, int zv, int z1, int z2) {
+void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int tv, int x, int y, int z, int t1, int t2) {
 	bgq_su3_spinor_decl(result);
 #endif
 	{
 
+
 #if (BGQ_HM_ZUP_RIGHTWRAPAROUND==0)
-		const int zv_right = zv+1;
+		assert(z!=PHYSICAL_LZ-1);
+		const int z_right = z+1;
 #elif (BGQ_HM_ZUP_RIGHTWRAPAROUND==1)
-		assert(zv==PHYSICAL_LZV-1);
-		const int zv_right = 0;
+		assert(z==PHYSICAL_LZ-1);
+		const int z_right = 0;
 #else
-		const int zv_right = mod(zv + 1, PHYSICAL_LZV);
+		const int z_right = mod(z+1, PHYSICAL_LZ);
 #endif
 
 
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_zup);
-		// # = stencil site to update (either even or odd sites, depending on what isOdd says)
-		// _ = neighbor sites to read (therefore !isOdd)
-		// (  2  ) = vector site with tv-number
-		// top line = vector sites of isOdd sites
-		// bottom line = vector sites of !isOdd sites
-#if (BGQ_HM_ZUP_ZLINEINDENT==-1)
-		if (((t + x + y)&1) == isOdd) {
-#endif
-#if (BGQ_HM_ZUP_ZLINEINDENT==-1) || (BGQ_HM_ZUP_ZLINEINDENT==0)
-			// (  0  ) (  1  ) (  2  )
-			// |# _ # _ # _ # _ # _ # _|
-			//   (  0  ) (  1  ) (  2  )
-			// T_UP = zv
-			// T_DOWN = merge2(zv, zv-1)
-			assert(((t+x+y)&1) == isOdd);
+		bgq_spinorsite_double *spinorsite_zup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z_right, t1,t2, true,false);
+		bgq_su3_spinor_double_load(spinor_zup, spinorsite_zup);
 
-			bgq_spinorsite_double *spinorsite_zup = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y, zv, z1+1, z2+1);
-			bgq_su3_spinor_double_load(spinor_zup, spinorsite_zup);
-#endif
-#if BGQ_HM_ZUP_ZLINEINDENT==-1
-		} else {
-#endif
-#if (BGQ_HM_ZUP_ZLINEINDENT==-1) || (BGQ_HM_ZUP_ZLINEINDENT==1)
-			//   (  0  ) (  1  ) (  2  )
-			// |_ # _ # _ # _ # _ # _ #|
-			// (  0  ) (  1  ) (  2  )
-			// T_UP = half tv, half tv+1
-			// T_DOWN = tv
-			assert(((t+x+y)&1) == !isOdd);
-
-			bgq_su3_spinor_decl_rightonly(spinor_zup_mid);
-			bgq_spinorsite_double *spinorsite_zup_mid = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y, zv, z1-1,z1+1);
-			bgq_su3_spinor_double_load_right_torightonly(spinor_zup_mid, spinorsite_zup_mid);
-
-			bgq_su3_spinor_decl_leftonly(spinor_zup_right);
-			bgq_spinorsite_double *spinorsite_zup_right = BGQ_SPINORSITE(spinorfield, !isOdd, t, x, y, zv_right, z2+1,z2+3);
-			bgq_su3_spinor_double_load_left_toleftonly(spinor_zup_right, spinorsite_zup_right);
-
-			bgq_su3_spinor_merge(spinor_zup, spinor_zup_mid, spinor_zup_right);
-#endif
-#if (BGQ_HM_ZUP_ZLINEINDENT==-1)
-		}
-#endif
 
 		// Compute its halfspinor
 		bgq_su3_weyl_decl(weyl_zup);
@@ -89,7 +46,7 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 
 
 #if BGQ_HM_ZUP_COMPUTE
-		bgq_gaugesite_double *gaugesite_zup = BGQ_GAUGESITE(gaugefield, isOdd, t, x, y, zv, Z_UP);
+		bgq_gaugesite_double *gaugesite_zup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, ZUP, t1,t2, true,false);
 		bgq_su3_mdecl(gauge_zup);
 		bgq_su3_matrix_double_load(gauge_zup, gaugesite_zup);
 
@@ -112,11 +69,10 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 
 
 	}
-#ifndef BGQ_HM_NOFUNC
+#ifndef BGQ_HM_DIR_NOFUNC
 }
 #endif
 
 
-#undef BGQ_HM_ZUP_ZLINEINDENT
 #undef BGQ_HM_ZUP_COMPUTE
 #undef BGQ_HM_ZUP_ACCUMULATE

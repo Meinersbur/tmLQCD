@@ -44,6 +44,8 @@
 									<listOptionValue builtIn="false" value="BGQ=1"/>
 									<listOptionValue builtIn="false" value="_USE_HALFSPINOR=1"/>
 									<listOptionValue builtIn="false" value="PARALLELXYT=1"/>
+									<listOptionValue builtIn="false" value="PACKAGE_VERSION=1"/>
+									<listOptionValue builtIn="false" value="PACKAGE_BUGREPORT=tmlqcd_debug@meinersbur.de"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1186333786" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
@@ -89,8 +91,10 @@
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.exe.release.255593301" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.release">
 								<option defaultValue="gnu.c.optimization.level.most" id="gnu.c.compiler.exe.release.option.optimization.level.1227129543" name="Optimization Level" superClass="gnu.c.compiler.exe.release.option.optimization.level" valueType="enumerated"/>
 								<option id="gnu.c.compiler.exe.release.option.debugging.level.1706749778" name="Debug Level" superClass="gnu.c.compiler.exe.release.option.debugging.level" value="gnu.c.debugging.level.none" valueType="enumerated"/>
-								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1251309352" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1251309352" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="PARALLELXYT=1"/>
+									<listOptionValue builtIn="false" value="PACKAGE_VERSION=1"/>
+									<listOptionValue builtIn="false" value="PACKAGE_BUGREPORT=tmlqcd_debug@meinersbur.de"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1151568539" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>

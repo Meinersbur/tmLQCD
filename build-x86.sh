@@ -19,7 +19,7 @@ make
 
 cd $ROOTPATH
 
-./configure --with-lapack="-llapack" --with-limedir="${ROOTPATH}/lime" --enable-mpi --with-mpidimension=3 --enable-halfspinor CC="mpicc" CFLAGS="-g -O0 -fopenmp -Wall -Wundef -DBGQ" OPTARGS="-O0 -g eart " SOPTARGS="-O0 -g badfg" --enable-optimize=no LDFLAGS="-lgomp"
+./configure --with-lapack="-llapack" --with-limedir="${ROOTPATH}/lime" --enable-mpi --with-mpidimension=3 --enable-halfspinor CC="mpicc" CFLAGS="-g -O0 -fopenmp -Wall -Wundef -DBGQ" OPTARGS="-O0 -g eart " SOPTARGS="-O0 -g badfg" --enable-optimize=no LDFLAGS="-lgomp -lblas"
 make -j4 benchmark hmc_tm invert
 
 # mpirun -np 16 hmc_tm -v -f input.inp
