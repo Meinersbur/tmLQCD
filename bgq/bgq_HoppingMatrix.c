@@ -464,7 +464,7 @@ bool assert_weylfield_y(bgq_weylfield_double weylfield, bool isOdd, int t, int x
 #define BGQ_HM_BORDER_NOFUNC 1
 #define BGQ_HM_BORDERDIST_NOFUNC 1
 
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+//#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 //#pragma GCC diagnostic ignored "-Wunused-variable"
 
 
