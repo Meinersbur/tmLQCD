@@ -8,6 +8,7 @@
 
 #include <string.h>
 #include <stdbool.h>
+#include <omp.h>
 
 void *malloc_aligned(size_t size, size_t alignment) {
 	void *result = NULL;
@@ -146,20 +147,48 @@ void bgq_spinorfield_resetcoord(bgq_spinorfield_double spinorfield, bool isOdd, 
 
 void bgq_init_spinorfields(int count) {
 	// preconditions
-	assert(LOCAL_LT >= 8); /* even/odd, 2-complex vectors, left and right border cannot be the same */
-	assert(mod(LOCAL_LT,4)==0); /* even/odd, 2-complex vectors, */
-	assert(LOCAL_LX >= 2); /* border up- and down- surfaces cannot collapse */
-	assert(mod(LOCAL_LX,2)==0); /* even/odd */
-	assert(LOCAL_LY >= 2); /* border up- and down- surfaces cannot collapse */
-	assert(mod(LOCAL_LY,2)==0); /* even/odd */
-	assert(LOCAL_LZ >= 0);
-	assert(mod(LOCAL_LZ,2)==0); /* even/odd */
+	if (LOCAL_LT < 8) /* even/odd, 2-complex vectors, left and right border cannot be the same */
+		master_error(1, "ERROR: Local T-dimension must be at least 8 such that left and right (vectorized) surface do not overlap\n");
+
+	if (mod(LOCAL_LT,4)!=0) /* even/odd, 2-complex vectors, */
+		master_error(1, "ERROR: Local T-dimension must be a multiple of 4 (vector width * 2 for even/odd)\n");
+
+	if (LOCAL_LX < 2) /* border up- and down- surfaces cannot collapse */
+		master_error(1, "ERROR: Local X-dimension must be larger than 2, such that surfaces do not overlap\n");
+
+	if (mod(LOCAL_LX,2)!=0) /* even/odd */
+		master_error(1, "ERROR: Local X-dimension must be a multiple of 2 for even/odd\n");
+
+	if (LOCAL_LY < 2) /* border up- and down- surfaces cannot collapse */
+		master_error(1, "ERROR: Local Y-dimension must be larger than 2, such that surfaces do not overlap\n");
+
+	if (mod(LOCAL_LY,2)!=0) /* even/odd */
+		master_error(1, "ERROR: Local Y-dimension must be a multiple of 2 for even/odd\n");
+
+	if (LOCAL_LZ < 2) /* border up- and down- surfaces cannot collapse */
+		master_error(1, "ERROR: Local X-dimension must be larger than 2, such that surfaces do not overlap\n");
+
+	if (mod(LOCAL_LZ,2)!=0) /* even/odd */
+		master_error(1, "ERROR: Local X-dimension must be a multiple of 2 for even/odd\n");
 
 	if (BODY_SITES < 0)
 		master_error(1, "ERROR: negative body volume\n");
 
 	if (BODY_SITES == 0)
 		master_print("WARNING: Local lattice consists of surface only\n");
+
+	if ( pow(PHYSICAL_LTV*LOCAL_LX*LOCAL_LZ,1.0/3.0) >=  LOCAL_LZ)
+		master_print("WARNING: Make the local Z-dimension the longest, data reuse has been optimized for it\n");
+
+	master_print("INFO: Body-to-volume site ration: %f (the higher the better)\n", (double)BODY_SITES / (double)VOLUME_SITES);
+
+	master_print("INFO: OMP_NUM_THREADS=%d\n", omp_get_num_threads());
+
+	if (PHYSICAL_LTV*LOCAL_LX*LOCAL_LZ < omp_get_num_threads()) {
+		master_print("WARNING: Less z-lines than threads to process them\n");
+	} else if ((double)mod(PHYSICAL_LTV*LOCAL_LX*LOCAL_LZ, omp_get_num_threads())/(double)omp_get_num_threads() > 0.5) {
+		master_print("WARNING: z-lines to threads imbalance\n");
+	}
 
 	g_num_spinorfields = count;
 	int datasize = count * sizeof(*g_spinorfields_doubledata) * VOLUME_SITES;
@@ -303,10 +332,6 @@ bool assert_spinorfield_coord(bgq_spinorfield_double spinorfield, bool isOdd, in
 	// Get the equivalent address in debug address space, and check it
 	bgq_spinorfield_checkcoord(spinorfield,isOdd,t,x,y,z,tv,k,v,c,val);
 	bgq_spinorcoord *coord = bgq_spinorfield_coordref(val);
-
-	if ( x==0 && y==0 && z==0 && t==1 && isRead && v == 0 && c == 0) {
-		int x = 0;
-	}
 
 	// Mark uses of this value
 	if (isRead)
