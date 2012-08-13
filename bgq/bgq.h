@@ -430,12 +430,12 @@ typedef struct {
 	bgq_lda(NAME3(dest,v1,c2), 160, (double _Complex*)(addr))
 
 #define bgq_su3_weyl_double_load_left(dest, addr) \
-	bgq_ld2a(NAME3(dest,v0,c0),   0, (double _Complex*)(addr));        \
-	bgq_ld2a(NAME3(dest,v0,c1),  32, (double _Complex*)(addr));        \
-	bgq_ld2a(NAME3(dest,v0,c2),  64, (double _Complex*)(addr));        \
-	bgq_ld2a(NAME3(dest,v1,c0),  96, (double _Complex*)(addr));        \
-	bgq_ld2a(NAME3(dest,v1,c1), 128, (double _Complex*)(addr));        \
-	bgq_ld2a(NAME3(dest,v1,c2), 160, (double _Complex*)(addr))
+	bgq_ld2a(NAME3(dest,v0,c0),   0, (double*)(addr));        \
+	bgq_ld2a(NAME3(dest,v0,c1),  32, (double*)(addr));        \
+	bgq_ld2a(NAME3(dest,v0,c2),  64, (double*)(addr));        \
+	bgq_ld2a(NAME3(dest,v1,c0),  96, (double*)(addr));        \
+	bgq_ld2a(NAME3(dest,v1,c1), 128, (double*)(addr));        \
+	bgq_ld2a(NAME3(dest,v1,c2), 160, (double*)(addr))
 
 
 #define bgq_su3_weyl_double_load_left_leftonly(dest, addr) \
@@ -481,18 +481,18 @@ typedef struct {
 	dest##_c22 = vec_ld2a(16+256, (double _Complex*)(addr))
 
 #define bgq_su3_spinor_double_load_left(dst,addr) \
-	bgq_ld2a(dst##_v0_c0,   0, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v0_c1,  32, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v0_c2,  64, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v1_c0,  96, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v1_c1, 128, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v1_c2, 160, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v2_c0, 192, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v2_c1, 224, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v2_c2, 256, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v3_c0, 288, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v3_c1, 320, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v3_c2, 352, (double _Complex*)(addr))
+	bgq_ld2a(dst##_v0_c0,   0, (double*)(addr)); \
+	bgq_ld2a(dst##_v0_c1,  32, (double*)(addr)); \
+	bgq_ld2a(dst##_v0_c2,  64, (double*)(addr)); \
+	bgq_ld2a(dst##_v1_c0,  96, (double*)(addr)); \
+	bgq_ld2a(dst##_v1_c1, 128, (double*)(addr)); \
+	bgq_ld2a(dst##_v1_c2, 160, (double*)(addr)); \
+	bgq_ld2a(dst##_v2_c0, 192, (double*)(addr)); \
+	bgq_ld2a(dst##_v2_c1, 224, (double*)(addr)); \
+	bgq_ld2a(dst##_v2_c2, 256, (double*)(addr)); \
+	bgq_ld2a(dst##_v3_c0, 288, (double*)(addr)); \
+	bgq_ld2a(dst##_v3_c1, 320, (double*)(addr)); \
+	bgq_ld2a(dst##_v3_c2, 352, (double*)(addr))
 
 #define bgq_su3_spinor_double_load_left_toleftonly(dst,addr) \
 	bgq_ld2a_leftonly(dst##_v0_c0,   0, (double*)(addr)); \
@@ -509,18 +509,18 @@ typedef struct {
 	bgq_ld2a_leftonly(dst##_v3_c2, 352, (double*)(addr))
 
 #define bgq_su3_spinor_double_load_right(dst,addr) \
-	bgq_ld2a(dst##_v0_c0,   0+16, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v0_c1,  32+16, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v0_c2,  64+16, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v1_c0,  96+16, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v1_c1, 128+16, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v1_c2, 160+16, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v2_c0, 192+16, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v2_c1, 224+16, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v2_c2, 256+16, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v3_c0, 288+16, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v3_c1, 320+16, (double _Complex*)(addr)); \
-	bgq_ld2a(dst##_v3_c2, 352+16, (double _Complex*)(addr))
+	bgq_ld2a(dst##_v0_c0,   0+16, (double*)(addr)); \
+	bgq_ld2a(dst##_v0_c1,  32+16, (double*)(addr)); \
+	bgq_ld2a(dst##_v0_c2,  64+16, (double*)(addr)); \
+	bgq_ld2a(dst##_v1_c0,  96+16, (double*)(addr)); \
+	bgq_ld2a(dst##_v1_c1, 128+16, (double*)(addr)); \
+	bgq_ld2a(dst##_v1_c2, 160+16, (double*)(addr)); \
+	bgq_ld2a(dst##_v2_c0, 192+16, (double*)(addr)); \
+	bgq_ld2a(dst##_v2_c1, 224+16, (double*)(addr)); \
+	bgq_ld2a(dst##_v2_c2, 256+16, (double*)(addr)); \
+	bgq_ld2a(dst##_v3_c0, 288+16, (double*)(addr)); \
+	bgq_ld2a(dst##_v3_c1, 320+16, (double*)(addr)); \
+	bgq_ld2a(dst##_v3_c2, 352+16, (double*)(addr))
 
 #define bgq_su3_spinor_double_load_right_torightonly(dst,addr) \
 	bgq_ld2a_rightonly(dst##_v0_c0,   0+16, (double*)(addr)); \

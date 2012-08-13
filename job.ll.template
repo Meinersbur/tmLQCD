@@ -13,8 +13,10 @@
 #@ bg_connectivity = TORUS
 #@ queue
 
+export OMP_NUM_THREADS=64
+export PAMID_RZV=2147483647
+export BG_COREDUMPDISABLED=0
 env
 
-export OMP_NUM_THREADS=64
-runjob --ranks-per-node 1 : ./benchmark -f benchmark.input
+runjob --ranks-per-node 1 --env-all : ./benchmark -f benchmark.input
 
