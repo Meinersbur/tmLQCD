@@ -11,11 +11,12 @@
 #include <mpi.h>
 #include "complex_c99.h"
 
-#ifndef XLC
+#if 1
+
 //typedef double vector4double[4];
 typedef struct {
 	double q[4];
-} vector4double;
+} vector4double2;
 
 #define bgq_vector4double_decl(name) \
 	double NAME2(name,q0); \
@@ -33,35 +34,35 @@ typedef struct {
 
 #define bgq_lda(dst,offset,addr)                                 \
 	assert( (((size_t)addr) + offset) % 32 == 0);                \
-	NAME2(dst,q0) = ((vector4double*)(((char*)addr) + offset))->q[0]; \
-	NAME2(dst,q1) = ((vector4double*)(((char*)addr) + offset))->q[1]; \
-	NAME2(dst,q2) = ((vector4double*)(((char*)addr) + offset))->q[2]; \
-	NAME2(dst,q3) = ((vector4double*)(((char*)addr) + offset))->q[3]
+	NAME2(dst,q0) = ((vector4double2*)(((char*)addr) + offset))->q[0]; \
+	NAME2(dst,q1) = ((vector4double2*)(((char*)addr) + offset))->q[1]; \
+	NAME2(dst,q2) = ((vector4double2*)(((char*)addr) + offset))->q[2]; \
+	NAME2(dst,q3) = ((vector4double2*)(((char*)addr) + offset))->q[3]
 //TODO: setting the 5 least significant bits to zero
 
 #define bgq_ld2a(dst,offset,addr) \
 	assert( (((size_t)addr) + offset) % 16 == 0);                \
-	dst##_q0 = ((vector4double*)(((char*)addr) + offset))->q[0]; \
-	dst##_q1 = ((vector4double*)(((char*)addr) + offset))->q[1]; \
+	dst##_q0 = ((vector4double2*)(((char*)addr) + offset))->q[0]; \
+	dst##_q1 = ((vector4double2*)(((char*)addr) + offset))->q[1]; \
 	dst##_q2 = dst##_q0;                                         \
 	dst##_q3 = dst##_q1
 
 #define bgq_ld2a_leftonly(dst,offset,addr) \
 	assert( (((size_t)addr) + offset) % 16 == 0);                \
-	dst##_q0 = ((vector4double*)(((char*)addr) + offset))->q[0]; \
-	dst##_q1 = ((vector4double*)(((char*)addr) + offset))->q[1]
+	dst##_q0 = ((vector4double2*)(((char*)addr) + offset))->q[0]; \
+	dst##_q1 = ((vector4double2*)(((char*)addr) + offset))->q[1]
 
 #define bgq_ld2a_rightonly(dst,offset,addr) \
 	assert( (((size_t)addr) + offset) % 16 == 0);                \
-	dst##_q2 = ((vector4double*)(((char*)addr) + offset))->q[0]; \
-	dst##_q3 = ((vector4double*)(((char*)addr) + offset))->q[1]
+	dst##_q2 = ((vector4double2*)(((char*)addr) + offset))->q[0]; \
+	dst##_q3 = ((vector4double2*)(((char*)addr) + offset))->q[1]
 
 #define bgq_sta(src,offset,addr) \
 	assert( (((size_t)addr) + offset) % 32 == 0);                \
-	((vector4double*)(((char*)addr) + offset))->q[0] = src##_q0; \
-	((vector4double*)(((char*)addr) + offset))->q[1] = src##_q1; \
-	((vector4double*)(((char*)addr) + offset))->q[2] = src##_q2; \
-	((vector4double*)(((char*)addr) + offset))->q[3] = src##_q3; \
+	((vector4double2*)(((char*)addr) + offset))->q[0] = src##_q0; \
+	((vector4double2*)(((char*)addr) + offset))->q[1] = src##_q1; \
+	((vector4double2*)(((char*)addr) + offset))->q[2] = src##_q2; \
+	((vector4double2*)(((char*)addr) + offset))->q[3] = src##_q3; \
 
 #define bgq_add(dst,lhs,rhs)        \
 	dst##_q0 = lhs##_q0 + rhs##_q0; \
