@@ -288,6 +288,14 @@ EXTERN_INLINE int divdown(const int dividend, const int divisor) {
 		fprintf(stderr, "MK ENTER_FUNC %s\n",  __func__);  \
 	}
 
+#define BGQ_BECON \
+	{  \
+	static bool CONCAT(beacon, __LINE__); \
+	if (!CONCAT(beacon, __LINE__)) \
+		master_print("BEACON: File: %s, line %d, func: %s\n", __FILE__, __LINE__, __func__); \
+	CONCAT(beacon, __LINE__) = true; \
+	}
+
 EXTERN_FIELD double bgq_g_wtick EXTERN_INIT(0);
 
 EXTERN_INLINE void bgq_init_wtime() {
