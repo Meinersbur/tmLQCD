@@ -288,7 +288,7 @@ EXTERN_INLINE int divdown(const int dividend, const int divisor) {
 		fprintf(stderr, "MK ENTER_FUNC %s\n",  __func__);  \
 	}
 
-#define BGQ_BECON \
+#define BGQ_BEACON \
 	{  \
 	static bool CONCAT(beacon, __LINE__); \
 	if (!CONCAT(beacon, __LINE__)) \

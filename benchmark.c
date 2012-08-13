@@ -383,10 +383,8 @@ int main(int argc, char *argv[])
 #ifdef BGQ
   bgq_init_gaugefield();
   bgq_init_spinorfields(2 * k_max + 1);
-  BGQ_BECON
   bgq_hm_init();
 
-  BGQ_BECON
   update_backward_gauge();
 #endif
 
@@ -396,22 +394,18 @@ int main(int argc, char *argv[])
 
 	if (even_odd_flag) {
 		/*initialize the pseudo-fermion fields*/
-		BGQ_BECON
 		j_max = 1;
 		sdt = 0.0;
 		for (k = 0; k < k_max; k++) {
 			random_spinor_field(g_spinor_field[k], VOLUME / 2, 0);
-			BGQ_BECON
 #if BGQ
 			bgq_transfer_spinorfield(true, g_spinorfields_double[k], g_spinor_field[k]);
 #endif
 		}
 
-		BGQ_BECON
 		int again = 0;
 		int iterations = 0;
 		while (sdt < 30.) {
-			BGQ_BECON
 			if (again && !g_proc_id)
 				fprintf(stderr, "MK_Running again %d-th time, sdt=%f\n", again, sdt);
 			again++;
@@ -428,14 +422,12 @@ int main(int argc, char *argv[])
 			antioptaway = 0.0;
 			for (j = 0; j < j_max; j++) {
 				for (k = 0; k < k_max; k++) {
-					BGQ_BECON
 					Hopping_Matrix(0, g_spinor_field[k + k_max], g_spinor_field[k]);
 					Hopping_Matrix(1, g_spinor_field[2 * k_max], g_spinor_field[k + k_max]);
 					antioptaway += g_spinor_field[2 * k_max][0].s0.c0.re;
 					iterations += 1;
 				}
 			}
-			BGQ_BECON
 #if 1
 			t2 = bgl_wtime();
 			dt = t2 - t1;
@@ -461,7 +453,6 @@ int main(int argc, char *argv[])
 			sqdt = sqrt(sqdt / g_nproc - sdt * sdt);
 			j_max *= 2;
 		}
-		BGQ_BECON
 		j_max = j_max / 2;
 		double sdtsave = sdt;
 		dts = dt;

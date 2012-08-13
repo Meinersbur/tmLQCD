@@ -103,8 +103,8 @@ static inline void rmQuotes(char *str){
   char name[100];
   char * type;
 
-  int verbose = 1;
-  int myverbose = 1;
+  int verbose = 0;
+  int myverbose = 0;
   int startoption;
   int Ntherm;
   int Nmeas;
