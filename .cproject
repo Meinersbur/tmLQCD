@@ -36,6 +36,7 @@
 								<option id="gnu.c.compiler.option.include.paths.1404730510" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="/usr/lib/openmpi/include"/>
 									<listOptionValue builtIn="false" value="/usr/lib/openmpi/include/openmpi"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/tmLQCD}&quot;"/>
 								</option>
 								<option id="gnu.c.compiler.option.preprocessor.nostdinc.1723427150" name="Do not search system directories (-nostdinc)" superClass="gnu.c.compiler.option.preprocessor.nostdinc" value="false" valueType="boolean"/>
 								<option id="gnu.c.compiler.option.preprocessor.def.symbols.70584467" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">

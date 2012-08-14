@@ -15,6 +15,8 @@
 #include "boundary.h"
 #include <mpi.h>
 #include <omp.h>
+#include <l1p/pprefetch.h>
+#include <l1p/sprefetch.h>
 
 #define BGQ_HOPPINGMATRIX_C_
 #include "bgq_HoppingMatrix.h"
@@ -51,6 +53,7 @@ bgq_weylcoord *weylxchange_recv_double_debug[PHYSICAL_LP][6];
 bgq_weylcoord *weylxchange_send_double_debug[PHYSICAL_LP][6];
 #endif
 
+static bool l1p_first = true;
 
 
 void bgq_hm_init() {
@@ -76,6 +79,14 @@ void bgq_hm_init() {
 	weylexchange_destination[XDOWN] = g_nb_x_dn;
 	weylexchange_destination[YUP] = g_nb_y_up;
 	weylexchange_destination[YDOWN] = g_nb_y_dn;
+
+#pragma omp parallel
+	{
+		//L1P_PatternConfigure(BODY_SITES * 128 /*???*/);
+	}
+	l1p_first = true;
+
+	L1P_SetStreamPolicy(L1P_stream_optimistic);
 }
 
 void bgq_hm_free() {
@@ -92,6 +103,11 @@ void bgq_hm_free() {
 			weylxchange_send_double_debug[isOdd][d] = NULL;
 		}
 #endif
+	}
+
+#pragma omp parallel
+	{
+		L1P_PatternUnconfigure();
 	}
 }
 

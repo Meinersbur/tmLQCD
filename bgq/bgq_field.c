@@ -182,7 +182,13 @@ void bgq_init_spinorfields(int count) {
 
 	master_print("INFO: Body-to-volume site ration: %f (the higher the better)\n", (double)BODY_SITES / (double)VOLUME_SITES);
 
-	master_print("INFO: OMP_NUM_THREADS=%d\n", omp_get_num_threads());
+	#pragma omp parallel
+	{
+		#pragma omp master
+		{
+			master_print("INFO: OMP_NUM_THREADS=%d\n", omp_get_num_threads());
+		}
+	}
 
 	if (PHYSICAL_LTV*LOCAL_LX*LOCAL_LZ < omp_get_num_threads()) {
 		master_print("WARNING: Less z-lines than threads to process them\n");

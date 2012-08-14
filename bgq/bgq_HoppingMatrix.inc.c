@@ -49,6 +49,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YDOWN], -1, !isOdd, -1, -1, -1, -1);
 #endif
 
+
 #if !BGQ_HM_NOCOM && defined(MPI)
 	//TODO: Persistent communication
 	//if (g_proc_id == 0)
@@ -71,8 +72,11 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	bgq_vector4double_decl(qka3); // z
 	bgq_cconst(qka3, ka3.re, ka3.im);
 
+#pragma omp parallel
+{
+
 // TDOWN
-#pragma omp parallel for schedule(static)
+#pragma omp for schedule(static) nowait
 	for (int xyz = 0; xyz < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ; xyz+=1) {
 		WORKLOAD_DECL(xyz, PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int t = -1;
@@ -104,12 +108,8 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		bgq_su3_weyl_double_store(weylsite_tup, weyl_tup);
 	}
 
-#ifndef NDEBUG
-	bgq_weylfield_t_resetcoord(weylxchange_send_double[TDOWN], 0, !isOdd, 0, 0, 1, 1);
-#endif
-
 	// TUP
-#pragma omp parallel for schedule(static)
+#pragma omp for schedule(static) nowait
 	for (int xyz = 0; xyz < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ; xyz+=1) {
 		WORKLOAD_DECL(xyz, PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int t = LOCAL_LT;
@@ -141,12 +141,9 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		bgq_su3_weyl_double_store(weylsite_tdown, weyl_tdown);
 	}
 
-#ifndef NDEBUG
-	bgq_weylfield_t_resetcoord(weylxchange_send_double[TUP], LOCAL_LT-1, !isOdd, 0, 0, 1, 1);
-#endif
 
 	// XDOWN
-#pragma omp parallel for schedule(static)
+#pragma omp for schedule(static) nowait
 	for (int tyz = 0; tyz < PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ; tyz += 1) {
 		WORKLOAD_DECL(tyz,PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
@@ -162,12 +159,9 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #include "bgq_HoppingMatrix_xup.inc.c"
 	}
 
-#ifndef NDEBUG
-	bgq_weylfield_x_resetcoord(weylxchange_send_double[XDOWN], 0, !isOdd, 0, 0, 1, 1);
-#endif
 
 	// XUP
-#pragma omp parallel for schedule(static)
+#pragma omp for schedule(static) nowait
 	for (int tyz = 0; tyz < PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ; tyz += 1) {
 		WORKLOAD_DECL(tyz,PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
@@ -183,12 +177,9 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #include "bgq_HoppingMatrix_xdown.inc.c"
 	}
 
-#ifndef NDEBUG
-	bgq_weylfield_x_resetcoord(weylxchange_send_double[XUP], LOCAL_LX-1, !isOdd, 0, 0, 1, 1);
-#endif
 
 	// YDOWN
-#pragma omp parallel for schedule(static)
+#pragma omp for schedule(static) nowait
 	for (int txz = 0; txz < PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ; txz += 1) {
 		WORKLOAD_DECL(txz,PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ);
 		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
@@ -204,12 +195,10 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #include "bgq_HoppingMatrix_yup.inc.c"
 	}
 
-#ifndef NDEBUG
-	bgq_weylfield_y_resetcoord(weylxchange_send_double[YDOWN], 0, !isOdd, 0, 0, 1, 1);
-#endif
+
 
 	// YUP
-#pragma omp parallel for schedule(static)
+#pragma omp for schedule(static) nowait
 	for (int txz = 0; txz < PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ; txz += 1) {
 		WORKLOAD_DECL(txz,PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ);
 		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
@@ -225,10 +214,18 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #include "bgq_HoppingMatrix_ydown.inc.c"
 	}
 
+
+
+#pragma omp master
+{
 #ifndef NDEBUG
+	bgq_weylfield_t_resetcoord(weylxchange_send_double[TDOWN], 0, !isOdd, 0, 0, 1, 1);
+	bgq_weylfield_t_resetcoord(weylxchange_send_double[TUP], LOCAL_LT-1, !isOdd, 0, 0, 1, 1);
+	bgq_weylfield_x_resetcoord(weylxchange_send_double[XDOWN], 0, !isOdd, 0, 0, 1, 1);
+	bgq_weylfield_x_resetcoord(weylxchange_send_double[XUP], LOCAL_LX-1, !isOdd, 0, 0, 1, 1);
+	bgq_weylfield_y_resetcoord(weylxchange_send_double[YDOWN], 0, !isOdd, 0, 0, 1, 1);
 	bgq_weylfield_y_resetcoord(weylxchange_send_double[YUP], LOCAL_LY-1, !isOdd, 0, 0, 1, 1);
 #endif
-
 
 #if !BGQ_HM_NOCOM && defined(MPI)
 	//if (g_proc_id == 0)
@@ -238,9 +235,13 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		MPI_CHECK(MPI_Isend(weylxchange_send_double[d], weylxchange_size_double[d/2], MPI_BYTE, weylexchange_destination[d], d, MPI_COMM_WORLD, &request_send[d]));
 	}
 #endif
+}
 
+////////////////////////////////////////////////////////////////////////////////
+// Body kernel
 
-#pragma omp parallel for schedule(static,1)
+	//L1P_PatternStart(l1p_first);
+	#pragma omp for schedule(static,1) nowait
 	for (int txy = 0; txy < BODY_ZLINES; txy +=1) {
 		WORKLOAD_DECL(txy, BODY_ZLINES);
 		const int tv = WORKLOAD_CHUNK(PHYSICAL_LTV-2) + 1;
@@ -250,11 +251,16 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		int t1 = tv*PHYSICAL_LP*PHYSICAL_LK + ((x+y+isOdd)&1);
 		int t2 = t1 + 2;
 
-#define BGQ_HM_ZLINE_ID KERNEL
-#include "bgq_HoppingMatrix_zline.inc.c"
+		#define BGQ_HM_ZLINE_ID KERNEL
+		#include "bgq_HoppingMatrix_zline.inc.c"
 	}
+	//L1P_PatternStop();
+	//l1p_first = false;
 
+////////////////////////////////////////////////////////////////////////////////
 
+#pragma omp master
+{
 #if !BGQ_HM_NOCOM && defined(MPI)
 	//if (g_proc_id == 0)
 	//	fprintf(stderr, "MK HM Waitall\n");
@@ -267,9 +273,10 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	}
 #endif
 #endif
+}
 
 
-#pragma omp parallel for schedule(static)
+#pragma omp for schedule(static) nowait
 	for (int xyz = 0; xyz < SURFACE_ZLINES; xyz += 1) {
 		WORKLOAD_DECL(xyz, SURFACE_ZLINES);
 		int tv;
@@ -329,6 +336,8 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		#define BGQ_HM_ZLINE_YDOWN_WEYLREAD -1
 		#include "bgq_HoppingMatrix_zline.inc.c"
 	}
+} /* #pragma omp parallel */
+
 
 #ifndef NDEBUG
 	bgq_spinorfield_resetcoord(targetfield, isOdd, 0,0,1,1);
@@ -350,6 +359,10 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YUP], LOCAL_LY, !isOdd, 1,1,0,0);
 	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YDOWN], -1, !isOdd, 1,1,0,0);
 #endif
+
+	//L1P_Status_t st;
+	//L1P_PatternStatus(&st);
+	//master_print("L1P_LIST: maxed=%d abandoned=%d finished=%d endoflist=%d\n", st.s.maximum, st.s.abandoned, st.s.finished, st.s.endoflist);
 }
 
 
