@@ -421,9 +421,10 @@ int main(int argc, char *argv[])
 #endif
 			antioptaway = 0.0;
 			for (j = 0; j < j_max; j++) {
-				for (k = 0; k < k_max; k++) {
+				for (k = 0; k < 1; k++) {
 					Hopping_Matrix(0, g_spinor_field[k + k_max], g_spinor_field[k]);
-					Hopping_Matrix(1, g_spinor_field[2 * k_max], g_spinor_field[k + k_max]);
+					Hopping_Matrix(0, g_spinor_field[k + k_max], g_spinor_field[k]);
+					//Hopping_Matrix(1, g_spinor_field[2 * k_max], g_spinor_field[k + k_max]);
 					antioptaway += g_spinor_field[2 * k_max][0].s0.c0.re;
 					iterations += 1;
 				}

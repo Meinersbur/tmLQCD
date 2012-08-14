@@ -49,6 +49,9 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YDOWN], -1, !isOdd, -1, -1, -1, -1);
 #endif
 
+	uint64_t fetch_depth;
+	uint64_t generate_depth;
+
 
 #if !BGQ_HM_NOCOM && defined(MPI)
 	//TODO: Persistent communication
@@ -74,6 +77,21 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 
 #pragma omp parallel
 {
+
+		if (!isOdd) {
+			if (l1p_first) {
+				master_print("MK Enabling List prefetcher...\n");
+				L1P_CHECK(L1P_PatternConfigure(VOLUME_SITES * 128 /*???*/));
+				//L1P_PatternSetEnable(true); /* priv */
+				master_print("MK Enabled List prefetcher\n");
+			}
+			L1P_CHECK(L1P_PatternStart(false));
+
+			//int enabled = 0;
+			//L1P_CHECK(L1P_PatternGetEnable(&enabled));
+			//if (!enabled)
+			//	master_print("WARNING: List prefetcher not enabled\n");
+		}
 
 // TDOWN
 #pragma omp for schedule(static) nowait
@@ -198,7 +216,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 
 
 	// YUP
-#pragma omp for schedule(static) nowait
+#pragma omp for schedule(static)
 	for (int txz = 0; txz < PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ; txz += 1) {
 		WORKLOAD_DECL(txz,PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ);
 		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
@@ -214,7 +232,8 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #include "bgq_HoppingMatrix_ydown.inc.c"
 	}
 
-
+	if (!isOdd)
+	L1P_PatternPause();
 
 #pragma omp master
 {
@@ -237,14 +256,16 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #endif
 }
 
+if (!isOdd)
+L1P_PatternResume();
+
 ////////////////////////////////////////////////////////////////////////////////
 // Body kernel
 
-	//L1P_PatternStart(l1p_first);
-	#pragma omp for schedule(static,1) nowait
+	#pragma omp for schedule(static,1)
 	for (int txy = 0; txy < BODY_ZLINES; txy +=1) {
 		WORKLOAD_DECL(txy, BODY_ZLINES);
-		const int tv = WORKLOAD_CHUNK(PHYSICAL_LTV-2) + 1;
+		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV-2) + 1;
 		const int x = WORKLOAD_PARAM(PHYSICAL_LX-2) + 1;
 		const int y = WORKLOAD_PARAM(PHYSICAL_LY-2) + 1;
 		WORKLOAD_CHECK
@@ -254,10 +275,11 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		#define BGQ_HM_ZLINE_ID KERNEL
 		#include "bgq_HoppingMatrix_zline.inc.c"
 	}
-	//L1P_PatternStop();
-	//l1p_first = false;
 
 ////////////////////////////////////////////////////////////////////////////////
+
+	if (!isOdd)
+	L1P_PatternPause();
 
 #pragma omp master
 {
@@ -275,8 +297,10 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #endif
 }
 
+if (!isOdd)
+L1P_PatternResume();
 
-#pragma omp for schedule(static) nowait
+#pragma omp for schedule(static)
 	for (int xyz = 0; xyz < SURFACE_ZLINES; xyz += 1) {
 		WORKLOAD_DECL(xyz, SURFACE_ZLINES);
 		int tv;
@@ -336,8 +360,20 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		#define BGQ_HM_ZLINE_YDOWN_WEYLREAD -1
 		#include "bgq_HoppingMatrix_zline.inc.c"
 	}
+
+	if (!isOdd) {
+		if (omp_get_thread_num() == 0)
+			L1P_PatternGetCurrentDepth(&fetch_depth, &generate_depth);
+		L1P_PatternStop();
+	}
 } /* #pragma omp parallel */
 
+if (!isOdd) {
+	l1p_first = false;
+	L1P_Status_t st;
+	L1P_PatternStatus(&st);
+	master_print("L1P_LIST: maxed=%d abandoned=%d finished=%d endoflist=%d fetch_depth=%d generate_depth=%d \n", st.s.maximum, st.s.abandoned, st.s.finished, st.s.endoflist, (int)fetch_depth, (int)generate_depth);
+}
 
 #ifndef NDEBUG
 	bgq_spinorfield_resetcoord(targetfield, isOdd, 0,0,1,1);
@@ -360,9 +396,6 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YDOWN], -1, !isOdd, 1,1,0,0);
 #endif
 
-	//L1P_Status_t st;
-	//L1P_PatternStatus(&st);
-	//master_print("L1P_LIST: maxed=%d abandoned=%d finished=%d endoflist=%d\n", st.s.maximum, st.s.abandoned, st.s.finished, st.s.endoflist);
 }
 
 

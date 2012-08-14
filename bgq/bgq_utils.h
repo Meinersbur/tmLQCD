@@ -69,8 +69,18 @@ EXTERN_INLINE complex c992cs(double _Complex c99) {
 	do {                                                                                   \
     	int mpi_rtncode = (RTNCODE);                                                       \
     	if (mpi_rtncode != MPI_SUCCESS) {                                                  \
-			fprintf(stderr, "MPI call %s failed: errorcode %d\n", #RTNCODE, mpi_rtncode);  \
+			fprintf(stderr, "MPI call %s at %s:%d failed: errorcode %d\n", #RTNCODE, __FILE__, __LINE__, mpi_rtncode);  \
 			assert(!"MPI call " #RTNCODE " failed");                                       \
+			abort();                                                                       \
+		}                                                                                  \
+	} while (0)
+
+#define L1P_CHECK(RTNCODE)                                                                 \
+	do {                                                                                   \
+    	int mpi_rtncode = (RTNCODE);                                                       \
+    	if (mpi_rtncode != MPI_SUCCESS) {                                                  \
+			fprintf(stderr, "L1P call %s at %s:%d failed: errorcode %d\n", #RTNCODE, __FILE__, __LINE__, mpi_rtncode);  \
+			assert(!"L1P call " #RTNCODE " failed");                                       \
 			abort();                                                                       \
 		}                                                                                  \
 	} while (0)
@@ -309,9 +319,10 @@ EXTERN_INLINE double bgq_wtime() {
 }
 
 
-#define master_print(...)           \
-	if (g_proc_id == 0)              \
-		fprintf(stderr, __VA_ARGS__)
+#define master_print(...)              \
+	if (g_proc_id == 0)                 \
+		if (omp_get_thread_num() == 0)  \
+			fprintf(stderr, __VA_ARGS__)
 
 #define master_error(errcode, ...) \
 	do {                            \

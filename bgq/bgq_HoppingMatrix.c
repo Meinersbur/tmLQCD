@@ -82,11 +82,16 @@ void bgq_hm_init() {
 
 #pragma omp parallel
 	{
-		//L1P_PatternConfigure(BODY_SITES * 128 /*???*/);
+		//L1P_PatternConfigure(BODY_SITES * 1024 /*???*/);
 	}
 	l1p_first = true;
 
-	L1P_SetStreamPolicy(L1P_stream_optimistic);
+	L1P_CHECK(L1P_SetStreamPolicy(L1P_stream_disable));
+
+	L1P_StreamPolicy_t pol;
+	L1P_CHECK(L1P_GetStreamPolicy(&pol));
+	if (pol != L1P_stream_disable)
+		master_print("MK StreamPolicy not accepted\n");
 }
 
 void bgq_hm_free() {
