@@ -48,6 +48,7 @@
 									<listOptionValue builtIn="false" value="PACKAGE_VERSION=1"/>
 									<listOptionValue builtIn="false" value="PACKAGE_BUGREPORT=tmlqcd_debug@meinersbur.de"/>
 									<listOptionValue builtIn="false" value="BGQ_PREFETCH_EXPLICIT=1"/>
+									<listOptionValue builtIn="false" value="BGQ_PREFETCH_STREAM=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1186333786" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
@@ -97,6 +98,7 @@
 									<listOptionValue builtIn="false" value="PARALLELXYT=1"/>
 									<listOptionValue builtIn="false" value="PACKAGE_VERSION=1"/>
 									<listOptionValue builtIn="false" value="PACKAGE_BUGREPORT=tmlqcd_debug@meinersbur.de"/>
+									<listOptionValue builtIn="false" value="BGQ_PREFETCH_STREAM=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1151568539" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>

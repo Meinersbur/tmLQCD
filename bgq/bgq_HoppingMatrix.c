@@ -17,6 +17,7 @@
 #include <omp.h>
 #include <l1p/pprefetch.h>
 #include <l1p/sprefetch.h>
+#include <stddef.h>
 
 #define BGQ_HOPPINGMATRIX_C_
 #include "bgq_HoppingMatrix.h"
@@ -86,12 +87,14 @@ void bgq_hm_init() {
 	}
 	l1p_first = true;
 
+#if BGQ_PREFETCH_LIST
 	L1P_CHECK(L1P_SetStreamPolicy(L1P_stream_disable));
 
 	L1P_StreamPolicy_t pol;
 	L1P_CHECK(L1P_GetStreamPolicy(&pol));
 	if (pol != L1P_stream_disable)
 		master_print("MK StreamPolicy not accepted\n");
+#endif
 }
 
 void bgq_hm_free() {
