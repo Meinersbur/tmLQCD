@@ -12,41 +12,102 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 	bgq_su3_spinor_zero(result);
 
 
+	#if BGQ_PREFETCH_EXPLICIT
+		#define BGQ_HM_TDOWN_PREFETCH 1
+		#include "bgq_HoppingMatrix_tdown.inc.c"
+	#endif
+
 // direction T_UP /////////////////////////////////////////////////////////////
 #define BGQ_HM_TUP_FIRST 1
 #define BGQ_HM_TUP_COMPUTE 1
 #define BGQ_HM_TUP_ACCUMULATE 1
 #include "bgq_HoppingMatrix_tup.inc.c"
 
+
+	#if BGQ_PREFETCH_EXPLICIT
+		#define BGQ_HM_XUP_PREFETCH 1
+		#include "bgq_HoppingMatrix_xup.inc.c"
+	#endif
+
 // direction T_DOWN ///////////////////////////////////////////////////////////
 #define BGQ_HM_TDOWN_COMPUTE 1
 #define BGQ_HM_TDOWN_ACCUMULATE 1
 #include "bgq_HoppingMatrix_tdown.inc.c"
+
+
+	#if BGQ_PREFETCH_EXPLICIT
+		#define BGQ_HM_XDOWN_PREFETCH 1
+		#include "bgq_HoppingMatrix_xdown.inc.c"
+	#endif
 
 // direction X_UP /////////////////////////////////////////////////////////////
 #define BGQ_HM_XUP_COMPUTE 1
 #define BGQ_HM_XUP_ACCUMULATE 1
 #include "bgq_HoppingMatrix_xup.inc.c"
 
+
+	#if BGQ_PREFETCH_EXPLICIT
+		#define BGQ_HM_YUP_PREFETCH 1
+		#include "bgq_HoppingMatrix_yup.inc.c"
+	#endif
+
 // direction X_DOWN /////////////////////////////////////////////////////////////
 #define BGQ_HM_XDOWN_COMPUTE 1
 #define BGQ_HM_XDOWN_ACCUMULATE 1
 #include "bgq_HoppingMatrix_xdown.inc.c"
+
+
+	#if BGQ_PREFETCH_EXPLICIT
+		#define BGQ_HM_YDOWN_PREFETCH 1
+		#include "bgq_HoppingMatrix_ydown.inc.c"
+	#endif
 
 // direction Y_UP /////////////////////////////////////////////////////////////
 #define BGQ_HM_YUP_COMPUTE 1
 #define BGQ_HM_YUP_ACCUMULATE 1
 #include "bgq_HoppingMatrix_yup.inc.c"
 
+
+	#if BGQ_PREFETCH_EXPLICIT
+		#define BGQ_HM_ZUP_PREFETCH 1
+		#include "bgq_HoppingMatrix_zup.inc.c"
+	#endif
+
 // direction Y_DOWN /////////////////////////////////////////////////////////////
 #define BGQ_HM_YDOWN_COMPUTE 1
 #define BGQ_HM_YDOWN_ACCUMULATE 1
 #include "bgq_HoppingMatrix_ydown.inc.c"
 
+
+	#if BGQ_PREFETCH_EXPLICIT
+		#define BGQ_HM_ZDOWN_PREFETCH 1
+		#include "bgq_HoppingMatrix_zdown.inc.c"
+	#endif
+
 // direction Z_UP /////////////////////////////////////////////////////////////
 #define BGQ_HM_ZUP_COMPUTE 1
 #define BGQ_HM_ZUP_ACCUMULATE 1
 #include "bgq_HoppingMatrix_zup.inc.c"
+
+
+	#if BGQ_PREFETCH_EXPLICIT
+		// prefetch for the next iteration
+		const int z_shadowed = z;
+		const int t1_shadowed = t1;
+		const int t2_shadowed = t2;
+		{
+			const int z = z_shadowed + 1;
+			#if (BGQ_HM_TUP_TLINEINDENT==0)
+				const int t1 = t1_shadowed + 1;
+				const int t2 = t2_shadowed + 1;
+			#elif (BGQ_HM_TUP_TLINEINDENT==1)
+				const int t1 = t1_shadowed - 1;
+				const int t2 = t2_shadowed - 1;
+			#endif
+			#define BGQ_HM_TDOWN_PREFETCH 1
+			#include "bgq_HoppingMatrix_tdown.inc.c"
+		}
+	#endif
 
 // direction Z_DOWN /////////////////////////////////////////////////////////////
 #define BGQ_HM_ZDOWN_COMPUTE 1
@@ -56,9 +117,10 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 ///////////////////////////////////////////////////////////////////////////////
 // Store the spinor
 
-	bgq_spinorsite_double *targetsite = BGQ_SPINORSITE(targetfield, isOdd, tv, x, y, z, t1,t2, false,true);
-	bgq_su3_spinor_double_store(targetsite, result);
 
+	bgq_spinorsite_double *targetsite = BGQ_SPINORSITE(targetfield, isOdd, tv, x, y, z, t1,t2, false,true);
+	bgq_su3_spinor_zeroload(targetsite);
+	bgq_su3_spinor_double_store(targetsite, result);
 
 }
 

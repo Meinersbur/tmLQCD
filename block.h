@@ -26,7 +26,7 @@
 #include "su3.h"
 #include "su3spinor.h"
 
-complex * little_A;
+extern complex * little_A;
 
 typedef struct {
   /**** Data members ****/

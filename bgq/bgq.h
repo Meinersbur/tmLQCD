@@ -11,12 +11,15 @@
 #include <mpi.h>
 #include "complex_c99.h"
 
-#ifndef XLC
-//typedef double vector4double[4];
 typedef struct {
 	double q[4];
-} vector4double;
+} v4d;
 
+#ifndef XLC
+	typdef v4d vector4double;
+#endif
+
+#if !BGQ_QPX
 #define bgq_vector4double_decl(name) \
 	double NAME2(name,q0); \
 	double NAME2(name,q1); \
@@ -37,7 +40,7 @@ typedef struct {
 	NAME2(dst,q1) = ((vector4double*)(((char*)addr) + offset))->q[1]; \
 	NAME2(dst,q2) = ((vector4double*)(((char*)addr) + offset))->q[2]; \
 	NAME2(dst,q3) = ((vector4double*)(((char*)addr) + offset))->q[3]
-//TODO: setting the 5 least significant bits to zero
+//TODO: setting the 5 least significant bits of addr+offset to zero
 
 #define bgq_ld2a(dst,offset,addr) \
 	assert( (((size_t)(addr)) + (offset)) % 16 == 0);                \
@@ -232,6 +235,7 @@ typedef struct {
 
 #endif
 
+
 // vec_xmul(a, b)
 // re =    a.re * b.re
 // im =    a.re * b.im
@@ -271,6 +275,9 @@ typedef struct {
 // vec_xxmadd(b, a, c)
 // re =    a.im * b.im + c.re
 // im =    a.im * b.re + c.im
+
+
+
 
 #define cvec_mul(a,b) vec_xxnpmadd(b,a,vec_xmul(a,b))
 // vec_xxnpmadd(b,a,vec_xmul(a,b))
@@ -653,6 +660,86 @@ typedef struct {
 #define bgq_su3_weyl_mov(dst,src)  \
 	bgq_su3_vmov(dst##_v0,src##_v0); \
 	bgq_su3_vmov(dst##_v1,src##_v1)
+
+
+#if !BGQ_QPX
+
+// No semantic effects
+#define bgq_prefetch(addr)
+#define bgq_prefetch_forward(addr)
+#define bgq_prefetch_backward(addr)
+#define bgq_flush(addr)
+
+#define bgq_l1_zero(addr) \
+	memset((addr),0,64)
+
+#else
+
+#if defined(XLC)
+	#define bgq_prefetch(addr) \
+		__dcbt(addr)
+// __prefetch_by_load(addr) generates an lbz instruction, which is 'blocking'
+	#define bgq_prefetch_forward(addr) \
+		__prefetch_by_stream(1/*forward*/,(addr))
+	#define bgq_prefetch_backward(addr) \
+		__prefetch_by_stream(3/*backward*/,(addr))
+	#define bgq_l1_zero(addr) \
+		__dcbz(addr)
+	#define bgq_flush(addr) \
+		__dcbf(addr)
+#elif defined(__GNUC__)
+	#define bgq_prefetch(addr) \
+		__builtin_prefetch((addr),0/*read*/)
+	#define bgq_prefetch_forward(addr) \
+		bgq_prefetch(addr)
+	#define bgq_prefetch_backward(addr) \
+		bgq_prefetch(addr)
+	#define bgq_l1_zero(addr)
+	#define bgq_flush(addr)
+#else
+	#define bgq_prefetch(addr)
+	#define bgq_prefetch_forward(addr)
+	#define bgq_prefetch_backward(addr)
+	#define bgq_l1_zero(addr)
+	#define bgq_flush(addr)
+#endif
+
+#endif
+
+
+#define bgq_su3_spinor_prefetch(addr)     \
+	bgq_prefetch((char*)(addr) +   0);    \
+	bgq_prefetch((char*)(addr) +  64);    \
+	bgq_prefetch((char*)(addr) + 128);    \
+	bgq_prefetch((char*)(addr) + 192);    \
+	bgq_prefetch((char*)(addr) + 256);    \
+	bgq_prefetch((char*)(addr) + 320)
+
+#define bgq_su3_weyl_prefetch(addr)      \
+	bgq_prefetch((char*)(addr) +   0);    \
+	bgq_prefetch((char*)(addr) +  64);    \
+	bgq_prefetch((char*)(addr) + 128)
+
+#define bgq_su3_matrix_prefetch(addr)      \
+	bgq_prefetch((char*)(addr) +   0);    \
+	bgq_prefetch((char*)(addr) +  64);    \
+	bgq_prefetch((char*)(addr) + 128);    \
+	bgq_prefetch((char*)(addr) + 192);    \
+	bgq_prefetch((char*)(addr) + 256)
+
+#define bgq_su3_spinor_zeroload(addr) \
+	bgq_l1_zero((char*)(addr) +   0);    \
+	bgq_l1_zero((char*)(addr) +  64);    \
+	bgq_l1_zero((char*)(addr) + 128);    \
+	bgq_l1_zero((char*)(addr) + 192);    \
+	bgq_l1_zero((char*)(addr) + 256);    \
+	bgq_l1_zero((char*)(addr) + 320)
+
+#define bgq_su3_weyl_zeroload(addr) \
+	bgq_l1_zero((char*)(addr) +   0);    \
+	bgq_l1_zero((char*)(addr) +  64);    \
+	bgq_l1_zero((char*)(addr) + 128)
+
 
 
 #endif /* BGQ_H_ */

@@ -67,7 +67,7 @@ int dfl_subspace_updated = 1;
 static int ONE = 1;
 static complex CONE, CZERO, CMONE;
 
-enum{
+typedef enum{
   NONE = 0,
   T_UP = 1,
   T_DN = 2,

@@ -1,4 +1,8 @@
 
+#ifndef BGQ_HM_XUP_PREFETCH
+#define BGQ_HM_XUP_PREFETCH 0
+#endif
+
 #ifndef BGQ_HM_XUP_WEYLREAD
 #define BGQ_HM_XUP_WEYLREAD 0
 #endif
@@ -16,6 +20,11 @@
 #endif
 
 
+#define BGQ_LOADORPREFETCH_PREFETCH BGQ_HM_XUP_PREFETCH
+#define BGQ_LOADORPREFETCH_LOAD !BGQ_HM_XUP_PREFETCH
+#include "bgq_loadorprefetch.inc.c"
+
+
 #ifndef BGQ_HM_DIR_NOFUNC
 #include "bgq.h"
 #include "bgq_field.h"
@@ -31,8 +40,8 @@ void bgq_HoppingMatrix_xup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 	if (x==PHYSICAL_LX-1) {
 #endif
 #if (BGQ_HM_XUP_WEYLREAD==-1) || (BGQ_HM_XUP_WEYLREAD==1)
-	bgq_weylsite_double *weylsite_xup = BGQ_WEYLSITE_X(weylxchange_recv_double[XUP], !isOdd, tv, x+1, y, z, t1, t2, true,false);
-	bgq_su3_weyl_double_load(weyl_xup, weylsite_xup);
+	bgq_weylsite_double *weylsite_xup = BGQ_WEYLSITE_X(weylxchange_recv_double[XUP], !isOdd, tv, x+1, y, z, t1, t2, !BGQ_HM_XUP_PREFETCH,false);
+	bgq_su3_weyl_double_load_loadorprefetch(weyl_xup, weylsite_xup);
 #endif
 #if BGQ_HM_XUP_WEYLREAD==-1
 } else {
@@ -40,8 +49,8 @@ void bgq_HoppingMatrix_xup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 #if (BGQ_HM_XUP_WEYLREAD==-1) || (BGQ_HM_XUP_WEYLREAD==0)
 	// Load the input spinor
 	bgq_su3_spinor_decl(spinor_xup);
-	bgq_spinorsite_double *spinorsite_xup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x+1, y, z, t1, t2, true,false);
-	bgq_su3_spinor_double_load(spinor_xup, spinorsite_xup);
+	bgq_spinorsite_double *spinorsite_xup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x+1, y, z, t1, t2, !BGQ_HM_XUP_PREFETCH,false);
+	bgq_su3_spinor_double_load_loadorprefetch(spinor_xup, spinorsite_xup);
 
 	// Compute its halfspinor
 	bgq_su3_vpiadd(weyl_xup_v0, spinor_xup_v0, spinor_xup_v3);
@@ -55,8 +64,8 @@ void bgq_HoppingMatrix_xup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 #if BGQ_HM_XUP_COMPUTE
 	// Load the interaction matrix between the lattice sites
 	bgq_su3_mdecl(gauge_xup);
-	bgq_gaugesite_double *gaugesite_xup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, XUP, t1, t2, true,false);
-	bgq_su3_matrix_double_load(gauge_xup, gaugesite_xup);
+	bgq_gaugesite_double *gaugesite_xup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, XUP, t1, t2, !BGQ_HM_XUP_PREFETCH,false);
+	bgq_su3_matrix_double_load_loadorprefetch(gauge_xup, gaugesite_xup);
 
 	// Multiply the halfspinor with the matrix
 	bgq_su3_mvmul(weyl_xup_v0, gauge_xup, weyl_xup_v0);
@@ -73,6 +82,7 @@ void bgq_HoppingMatrix_xup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 #if BGQ_HM_XUP_WEYL_SEND
 	// Store the halfspinor to be transfered to the neighbor node
 	bgq_weylsite_double *weylsite_xup = BGQ_WEYLSITE_X(weylxchange_send_double[XDOWN/*!!!*/], !isOdd, tv, x+1, y, z, t1,t2, false,true);
+	bgq_su3_weyl_zeroload(weylsite_xup);
 	bgq_su3_weyl_double_store(weylsite_xup, weyl_xup);
 #endif
 
@@ -89,6 +99,9 @@ void bgq_HoppingMatrix_xup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 }
 
 
+#include "bgq_loadorprefetch.inc.c"
+
+#undef BGQ_HM_XUP_PREFETCH
 #undef BGQ_HM_XUP_WEYLREAD
 #undef BGQ_HM_XUP_COMPUTE
 #undef BGQ_HM_XUP_WEYL_SEND

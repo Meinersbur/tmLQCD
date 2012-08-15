@@ -78,6 +78,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #pragma omp parallel
 {
 
+#if BGQ_PREFETCH_LIST
 		if (!isOdd) {
 			if (l1p_first) {
 				master_print("MK Enabling List prefetcher...\n");
@@ -88,10 +89,11 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 			L1P_CHECK(L1P_PatternStart(false));
 
 			//int enabled = 0;
-			//L1P_CHECK(L1P_PatternGetEnable(&enabled));
+			//L1P_CHECK(L1P_PatternGetEnable(&enabled)); /* priv */
 			//if (!enabled)
 			//	master_print("WARNING: List prefetcher not enabled\n");
 		}
+#endif
 
 // TDOWN
 #pragma omp for schedule(static) nowait
@@ -123,8 +125,10 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 
 		// Store the halfspinor to be transfered to the neighbor node
 		bgq_weylsite_double *weylsite_tup = BGQ_WEYLSITE_T(weylxchange_send_double[TDOWN/*!!!*/], !isOdd, t+1, xv, y, z, x1, x2, false, true);
+		bgq_su3_weyl_zeroload(weylsite_tup);
 		bgq_su3_weyl_double_store(weylsite_tup, weyl_tup);
 	}
+
 
 	// TUP
 #pragma omp for schedule(static) nowait
@@ -156,6 +160,7 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 
 		// Store the halfspinor to be transfered to the neighbor node
 		bgq_weylsite_double *weylsite_tdown = BGQ_WEYLSITE_T(weylxchange_send_double[TUP/*!!!*/], !isOdd, t-1, xv, y, z, x1, x2, false, true);
+		bgq_su3_weyl_zeroload(weylsite_tdown);
 		bgq_su3_weyl_double_store(weylsite_tdown, weyl_tdown);
 	}
 
@@ -232,8 +237,10 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #include "bgq_HoppingMatrix_ydown.inc.c"
 	}
 
+#if BGQ_PREFETCH_LIST
 	if (!isOdd)
 	L1P_PatternPause();
+#endif
 
 #pragma omp master
 {
@@ -256,8 +263,10 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 #endif
 }
 
+#if BGQ_PREFETCH_LIST
 if (!isOdd)
 L1P_PatternResume();
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // Body kernel
@@ -278,8 +287,10 @@ L1P_PatternResume();
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#if BGQ_PREFETCH_LIST
 	if (!isOdd)
 	L1P_PatternPause();
+#endif
 
 #pragma omp master
 {
@@ -297,8 +308,10 @@ L1P_PatternResume();
 #endif
 }
 
+#if BGQ_PREFETCH_LIST
 if (!isOdd)
 L1P_PatternResume();
+#endif
 
 #pragma omp for schedule(static)
 	for (int xyz = 0; xyz < SURFACE_ZLINES; xyz += 1) {
@@ -361,19 +374,23 @@ L1P_PatternResume();
 		#include "bgq_HoppingMatrix_zline.inc.c"
 	}
 
+#if BGQ_PREFETCH_LIST
 	if (!isOdd) {
 		if (omp_get_thread_num() == 0)
 			L1P_PatternGetCurrentDepth(&fetch_depth, &generate_depth);
 		L1P_PatternStop();
 	}
+#endif
 } /* #pragma omp parallel */
 
+#if BGQ_PREFETCH_LIST
 if (!isOdd) {
 	l1p_first = false;
 	L1P_Status_t st;
 	L1P_PatternStatus(&st);
 	master_print("L1P_LIST: maxed=%d abandoned=%d finished=%d endoflist=%d fetch_depth=%d generate_depth=%d \n", st.s.maximum, st.s.abandoned, st.s.finished, st.s.endoflist, (int)fetch_depth, (int)generate_depth);
 }
+#endif
 
 #ifndef NDEBUG
 	bgq_spinorfield_resetcoord(targetfield, isOdd, 0,0,1,1);

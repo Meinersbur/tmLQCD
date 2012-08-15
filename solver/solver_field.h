@@ -25,7 +25,7 @@
 
 #include"su3.h"
 
-spinor ** solver_field;
+extern spinor ** solver_field;
 int init_solver_field(const int V, const int nr);
 void finalize_solver();
 #endif
