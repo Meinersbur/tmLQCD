@@ -1,6 +1,6 @@
 
 #ifndef BGQ_HM_ZUP_PREFETCH
-#define BGQ_HM_TUP_PREFETCH 0
+#define BGQ_HM_ZUP_PREFETCH 0
 #endif
 
 #ifndef BGQ_HM_ZUP_RIGHTWRAPAROUND
@@ -46,19 +46,21 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_zup);
 		bgq_spinorsite_double *spinorsite_zup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z_right, t1,t2, !BGQ_HM_ZUP_PREFETCH,false);
-		bgq_su3_spinor_double_load_loadorprefetch(spinor_zup, spinorsite_zup);
+		bgq_su3_spinor_loadorprefetch(spinor_zup, spinorsite_zup);
 
 
-		// Compute its halfspinor
-		bgq_su3_weyl_decl(weyl_zup);
-		bgq_su3_vpiadd(weyl_zup_v0, spinor_zup_v0, spinor_zup_v2);
-		bgq_su3_vpisub(weyl_zup_v1, spinor_zup_v1, spinor_zup_v3);
+		#if !BGQ_HM_ZUP_PREFETCH
+			// Compute its halfspinor
+			bgq_su3_weyl_decl(weyl_zup);
+			bgq_su3_vpiadd(weyl_zup_v0, spinor_zup_v0, spinor_zup_v2);
+			bgq_su3_vpisub(weyl_zup_v1, spinor_zup_v1, spinor_zup_v3);
+		#endif
 
 
 #if BGQ_HM_ZUP_COMPUTE
 		bgq_gaugesite_double *gaugesite_zup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, ZUP, t1,t2, !BGQ_HM_ZUP_PREFETCH,false);
 		bgq_su3_mdecl(gauge_zup);
-		bgq_su3_matrix_double_load_loadorprefetch(gauge_zup, gaugesite_zup);
+		bgq_su3_matrix_loadorprefetch(gauge_zup, gaugesite_zup);
 
 		bgq_su3_mvmul(weyl_zup_v0, gauge_zup, weyl_zup_v0);
 		bgq_su3_mvmul(weyl_zup_v1, gauge_zup, weyl_zup_v1);

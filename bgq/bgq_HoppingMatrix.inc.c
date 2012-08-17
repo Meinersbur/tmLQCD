@@ -1,68 +1,66 @@
 
-#ifndef BGQ_HOPPINGMATRIX_C_
-#include "bgq_field.h"
+#ifndef BGQ_HM_NOFUNC
+#include "bgq_HoppingMatrix.h"
+#include "bgq_field_double.h"
+#include "bgq_field_float.h"
 #include "bgq.h"
 #include "global.h"
 #include "boundary.h"
 #include <mpi.h>
 #include <omp.h>
 #include <stdbool.h>
+#include <stddef.h>
 
-#include "bgq_HoppingMatrix.h"
-#endif
 
-#ifndef BGQ_HM_PRECISION
-#define BGQ_HM_PRECISION double
-#endif
-
-#ifndef BGQ_HM_NOCOM
-#define BGQ_HM_NOCOM 0
-#endif
-
-#define BGQ_HM_NOFUNC 1
 #define BGQ_HM_ZLINE_NOFUNC 1
 #define BGQ_HM_SITE_NOFUNC 1
 #define BGQ_HM_DIR_NOFUNC 1
 
-
-
 // isOdd refers to the oddness of targetfield; spinorfield will have the opposite oddness
-void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield) {
-#ifndef NDEBUG
+void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool nocom, bool nooverlapcom, bool nokamul, bool withprefetchlist, bool withprefetchstream, bool withprefetchexplicit, bool coordcheck) {
+#else
+{
+#endif
+
+
+#if BGQ_FIELD_COORDCHECK
 	bgq_spinorfield_resetcoord(targetfield, isOdd, -1, -1, -1, -1);
 	bgq_spinorfield_resetcoord(spinorfield, !isOdd, -1, -1, -1, -1);
 	bgq_gaugefield_resetcoord(gaugefield, -1,-1,-1,-1);
 
-	bgq_weylfield_t_resetcoord(weylxchange_send_double[TUP], LOCAL_LT-1, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_t_resetcoord(weylxchange_send_double[TDOWN], 0, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_t_resetcoord(weylxchange_recv_double[TUP], LOCAL_LT, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_t_resetcoord(weylxchange_recv_double[TDOWN], -1, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_t_resetcoord(weylxchange_send[TUP], LOCAL_LT-1, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_t_resetcoord(weylxchange_send[TDOWN], 0, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_t_resetcoord(weylxchange_recv[TUP], LOCAL_LT, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_t_resetcoord(weylxchange_recv[TDOWN], -1, !isOdd, -1, -1, -1, -1);
 
-	bgq_weylfield_x_resetcoord(weylxchange_send_double[XUP], LOCAL_LX-1, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_x_resetcoord(weylxchange_send_double[XDOWN], 0, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_x_resetcoord(weylxchange_recv_double[XUP], LOCAL_LX, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_x_resetcoord(weylxchange_recv_double[XDOWN], -1, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_x_resetcoord(weylxchange_send[XUP], LOCAL_LX-1, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_x_resetcoord(weylxchange_send[XDOWN], 0, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_x_resetcoord(weylxchange_recv[XUP], LOCAL_LX, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_x_resetcoord(weylxchange_recv[XDOWN], -1, !isOdd, -1, -1, -1, -1);
 
-	bgq_weylfield_y_resetcoord(weylxchange_send_double[YUP], LOCAL_LY-1, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_y_resetcoord(weylxchange_send_double[YDOWN], 0, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YUP], LOCAL_LY, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YDOWN], -1, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_y_resetcoord(weylxchange_send[YUP], LOCAL_LY-1, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_y_resetcoord(weylxchange_send[YDOWN], 0, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_y_resetcoord(weylxchange_recv[YUP], LOCAL_LY, !isOdd, -1, -1, -1, -1);
+	bgq_weylfield_y_resetcoord(weylxchange_recv[YDOWN], -1, !isOdd, -1, -1, -1, -1);
 #endif
+
 
 	uint64_t fetch_depth;
 	uint64_t generate_depth;
 
-
-#if !BGQ_HM_NOCOM && defined(MPI)
-	//TODO: Persistent communication
-	//if (g_proc_id == 0)
-	//	fprintf(stderr, "MK HM Irecv\n");
+#ifdef MPI
 	MPI_Request request_recv[6];
-	for (int d = TUP; d <= YDOWN; d += 1) {
-		MPI_CHECK(MPI_Irecv(weylxchange_recv_double[d], weylxchange_size_double[d/2], MPI_BYTE, weylexchange_destination[d], d^1, MPI_COMM_WORLD, &request_recv[d]));
-	}
+	if (!nocom) {
+		//TODO: Persistent communication
+		//if (g_proc_id == 0)
+		//	fprintf(stderr, "MK HM Irecv\n");
 
-	//MPI_CHECK(MPI_Barrier(g_cart_grid)); // To ensure that all ranks started the receive requests (necessary? how expensive is this?)
+		for (int d = TUP; d <= YDOWN; d += 1) {
+			MPI_CHECK(MPI_Irecv(weylxchange_recv[d], weylxchange_size[d/2], MPI_BYTE, weylexchange_destination[d], d^1, MPI_COMM_WORLD, &request_recv[d]));
+		}
+
+		//MPI_CHECK(MPI_Barrier(g_cart_grid)); // To ensure that all ranks started the receive requests (necessary? how expensive is this?)
+	}
 #endif
 
 	// Load constants
@@ -106,14 +104,14 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		WORKLOAD_CHECK
 
 		const int x1 = ((isOdd+t+y+z)&1)+xv*PHYSICAL_LP*PHYSICAL_LK;
-		bgq_spinorsite_double *spinorsite1_tup = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, 0, x1, y, z, t+1, 2, true,false);
+		bgq_spinorsite *spinorsite1_tup = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, 0, x1, y, z, t+1, 2, true,false);
 		bgq_su3_spinor_decl(spinor1_tup);
-		bgq_su3_spinor_double_load_left(spinor1_tup, spinorsite1_tup);
+		bgq_su3_spinor_load_left(spinor1_tup, spinorsite1_tup);
 
 		const int x2 = x1+2;
-		bgq_spinorsite_double *spinorsite2_tup = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, 0, x2, y, z, t+1, 2, true,false);
+		bgq_spinorsite *spinorsite2_tup = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, 0, x2, y, z, t+1, 2, true,false);
 		bgq_su3_spinor_decl(spinor2_tup);
-		bgq_su3_spinor_double_load_left(spinor2_tup, spinorsite2_tup);
+		bgq_su3_spinor_load_left(spinor2_tup, spinorsite2_tup);
 
 		bgq_su3_spinor_decl(spinor_tup);
 		bgq_su3_spinor_merge(spinor_tup, spinor1_tup, spinor2_tup);
@@ -124,9 +122,9 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		bgq_su3_vadd(weyl_tup_v1, spinor_tup_v1, spinor_tup_v3);
 
 		// Store the halfspinor to be transfered to the neighbor node
-		bgq_weylsite_double *weylsite_tup = BGQ_WEYLSITE_T(weylxchange_send_double[TDOWN/*!!!*/], !isOdd, t+1, xv, y, z, x1, x2, false, true);
+		bgq_weylsite *weylsite_tup = BGQ_WEYLSITE_T(weylxchange_send[TDOWN/*!!!*/], !isOdd, t+1, xv, y, z, x1, x2, false, true);
 		bgq_su3_weyl_zeroload(weylsite_tup);
-		bgq_su3_weyl_double_store(weylsite_tup, weyl_tup);
+		bgq_su3_weyl_store(weylsite_tup, weyl_tup);
 	}
 
 
@@ -141,14 +139,14 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		WORKLOAD_CHECK
 
 		const int x1 = ((isOdd+t+y+z)&1)+xv*PHYSICAL_LP*PHYSICAL_LK;
-		bgq_spinorsite_double *spinorsite1_tdown = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, PHYSICAL_LTV-1, x1, y, z, LOCAL_LT-3, t-1, true,false);
+		bgq_spinorsite *spinorsite1_tdown = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, PHYSICAL_LTV-1, x1, y, z, LOCAL_LT-3, t-1, true,false);
 		bgq_su3_spinor_decl(spinor1_tdown);
-		bgq_su3_spinor_double_load_right(spinor1_tdown, spinorsite1_tdown);
+		bgq_su3_spinor_load_right(spinor1_tdown, spinorsite1_tdown);
 
 		const int x2 = x1+2;
-		bgq_spinorsite_double *spinorsite2_tdown = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, PHYSICAL_LTV-1, x2, y, z, LOCAL_LT-3, t-1, true,false);
+		bgq_spinorsite *spinorsite2_tdown = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, PHYSICAL_LTV-1, x2, y, z, LOCAL_LT-3, t-1, true,false);
 		bgq_su3_spinor_decl(spinor2_tdown);
-		bgq_su3_spinor_double_load_right(spinor2_tdown, spinorsite2_tdown);
+		bgq_su3_spinor_load_right(spinor2_tdown, spinorsite2_tdown);
 
 		bgq_su3_spinor_decl(spinor_tdown);
 		bgq_su3_spinor_merge(spinor_tdown, spinor1_tdown, spinor2_tdown);
@@ -159,9 +157,9 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		bgq_su3_vsub(weyl_tdown_v1, spinor_tdown_v1, spinor_tdown_v3);
 
 		// Store the halfspinor to be transfered to the neighbor node
-		bgq_weylsite_double *weylsite_tdown = BGQ_WEYLSITE_T(weylxchange_send_double[TUP/*!!!*/], !isOdd, t-1, xv, y, z, x1, x2, false, true);
+		bgq_weylsite *weylsite_tdown = BGQ_WEYLSITE_T(weylxchange_send[TUP/*!!!*/], !isOdd, t-1, xv, y, z, x1, x2, false, true);
 		bgq_su3_weyl_zeroload(weylsite_tdown);
-		bgq_su3_weyl_double_store(weylsite_tdown, weyl_tdown);
+		bgq_su3_weyl_store(weylsite_tdown, weyl_tdown);
 	}
 
 
@@ -178,8 +176,8 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
 		const int t2 = t1 + 2;
 
-#define BGQ_HM_XUP_WEYL_SEND 1
-#include "bgq_HoppingMatrix_xup.inc.c"
+		#define BGQ_HM_XUP_WEYL_SEND 1
+		#include "bgq_HoppingMatrix_xup.inc.c"
 	}
 
 
@@ -196,8 +194,8 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
 		const int t2 = t1 + 2;
 
-#define BGQ_HM_XDOWN_WEYL_SEND 1
-#include "bgq_HoppingMatrix_xdown.inc.c"
+		#define BGQ_HM_XDOWN_WEYL_SEND 1
+		#include "bgq_HoppingMatrix_xdown.inc.c"
 	}
 
 
@@ -214,8 +212,8 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
 		const int t2 = t1 + 2;
 
-#define BGQ_HM_YUP_WEYL_SEND 1
-#include "bgq_HoppingMatrix_yup.inc.c"
+		#define BGQ_HM_YUP_WEYL_SEND 1
+		#include "bgq_HoppingMatrix_yup.inc.c"
 	}
 
 
@@ -233,8 +231,8 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 		const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
 		const int t2 = t1 + 2;
 
-#define BGQ_HM_YDOWN_WEYL_SEND 1
-#include "bgq_HoppingMatrix_ydown.inc.c"
+		#define BGQ_HM_YDOWN_WEYL_SEND 1
+		#include "bgq_HoppingMatrix_ydown.inc.c"
 	}
 
 #if BGQ_PREFETCH_LIST
@@ -242,30 +240,36 @@ void HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfie
 	L1P_PatternPause();
 #endif
 
+
+#if BGQ_FIELD_COORDCHECK
 #pragma omp master
 {
-#ifndef NDEBUG
-	bgq_weylfield_t_resetcoord(weylxchange_send_double[TDOWN], 0, !isOdd, 0, 0, 1, 1);
-	bgq_weylfield_t_resetcoord(weylxchange_send_double[TUP], LOCAL_LT-1, !isOdd, 0, 0, 1, 1);
-	bgq_weylfield_x_resetcoord(weylxchange_send_double[XDOWN], 0, !isOdd, 0, 0, 1, 1);
-	bgq_weylfield_x_resetcoord(weylxchange_send_double[XUP], LOCAL_LX-1, !isOdd, 0, 0, 1, 1);
-	bgq_weylfield_y_resetcoord(weylxchange_send_double[YDOWN], 0, !isOdd, 0, 0, 1, 1);
-	bgq_weylfield_y_resetcoord(weylxchange_send_double[YUP], LOCAL_LY-1, !isOdd, 0, 0, 1, 1);
+	bgq_weylfield_t_resetcoord(weylxchange_send[TDOWN], 0, !isOdd, 0, 0, 1, 1);
+	bgq_weylfield_t_resetcoord(weylxchange_send[TUP], LOCAL_LT-1, !isOdd, 0, 0, 1, 1);
+	bgq_weylfield_x_resetcoord(weylxchange_send[XDOWN], 0, !isOdd, 0, 0, 1, 1);
+	bgq_weylfield_x_resetcoord(weylxchange_send[XUP], LOCAL_LX-1, !isOdd, 0, 0, 1, 1);
+	bgq_weylfield_y_resetcoord(weylxchange_send[YDOWN], 0, !isOdd, 0, 0, 1, 1);
+	bgq_weylfield_y_resetcoord(weylxchange_send[YUP], LOCAL_LY-1, !isOdd, 0, 0, 1, 1);
+}
 #endif
 
-#if !BGQ_HM_NOCOM && defined(MPI)
-	//if (g_proc_id == 0)
-	//	fprintf(stderr, "MK HM Isend\n");
-	MPI_Request request_send[6];
-	for (int d = TUP; d <= YDOWN; d += 1) {
-		MPI_CHECK(MPI_Isend(weylxchange_send_double[d], weylxchange_size_double[d/2], MPI_BYTE, weylexchange_destination[d], d, MPI_COMM_WORLD, &request_send[d]));
+#ifdef MPI
+	if (!nocom) {
+		#pragma omp master
+		{
+			//if (g_proc_id == 0)
+			//	fprintf(stderr, "MK HM Isend\n");
+			MPI_Request request_send[6];
+			for (int d = TUP; d <= YDOWN; d += 1) {
+				MPI_CHECK(MPI_Isend(weylxchange_send[d], weylxchange_size[d/2], MPI_BYTE, weylexchange_destination[d], d, MPI_COMM_WORLD, &request_send[d]));
+			}
+		}
 	}
 #endif
-}
 
 #if BGQ_PREFETCH_LIST
-if (!isOdd)
-L1P_PatternResume();
+	if (!isOdd)
+		L1P_PatternResume();
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -292,21 +296,23 @@ L1P_PatternResume();
 	L1P_PatternPause();
 #endif
 
-#pragma omp master
-{
-#if !BGQ_HM_NOCOM && defined(MPI)
-	//if (g_proc_id == 0)
-	//	fprintf(stderr, "MK HM Waitall\n");
-	MPI_Status weylxchange_recv_status[6];
-	MPI_CHECK(MPI_Waitall(6, request_recv, weylxchange_recv_status));
-#ifndef NDEBUG
-	for (int d = TUP; d <= YDOWN; d += 1) {
-		//fprintf(stderr, "MK(rank: %d) Waitall got: %d, expected: %d\n", g_proc_id, get_MPI_count(&weylxchange_recv_status[d]), weylxchange_size_double[d]);
-		assert(get_MPI_count(&weylxchange_recv_status[d]) == weylxchange_size_double[d/2]);
+	if (!nocom) {
+		#pragma omp master
+		{
+		#ifdef MPI
+			//if (g_proc_id == 0)
+			//	fprintf(stderr, "MK HM Waitall\n");
+			MPI_Status weylxchange_recv_status[6];
+			MPI_CHECK(MPI_Waitall(6, request_recv, weylxchange_recv_status));
+		#ifndef NDEBUG
+			for (int d = TUP; d <= YDOWN; d += 1) {
+				//fprintf(stderr, "MK(rank: %d) Waitall got: %d, expected: %d\n", g_proc_id, get_MPI_count(&weylxchange_recv_status[d]), weylxchange_size[d]);
+				assert(get_MPI_count(&weylxchange_recv_status[d]) == weylxchange_size[d/2]);
+			}
+		#endif
+		#endif
+		}
 	}
-#endif
-#endif
-}
 
 #if BGQ_PREFETCH_LIST
 if (!isOdd)
@@ -392,34 +398,34 @@ if (!isOdd) {
 }
 #endif
 
-#ifndef NDEBUG
+#if BGQ_FIELD_COORDCHECK
 	bgq_spinorfield_resetcoord(targetfield, isOdd, 0,0,1,1);
 	bgq_spinorfield_resetcoord(spinorfield, !isOdd, 8,8,0,0);
 	bgq_gaugefield_resetcoord(gaugefield, 0/*every second -1 coordinate is not read in even/odd iteration*/,1,0,0);
 
-	bgq_weylfield_t_resetcoord(weylxchange_send_double[TUP], LOCAL_LT-1, !isOdd, 0,0,0,0);
-	bgq_weylfield_t_resetcoord(weylxchange_send_double[TDOWN], 0, !isOdd, 0,0,0,0);
-	bgq_weylfield_t_resetcoord(weylxchange_recv_double[TUP], LOCAL_LT, !isOdd, 2,2,0,0);
-	bgq_weylfield_t_resetcoord(weylxchange_recv_double[TDOWN], -1, !isOdd, 2,2,0,0);
+	bgq_weylfield_t_resetcoord(weylxchange_send[TUP], LOCAL_LT-1, !isOdd, 0,0,0,0);
+	bgq_weylfield_t_resetcoord(weylxchange_send[TDOWN], 0, !isOdd, 0,0,0,0);
+	bgq_weylfield_t_resetcoord(weylxchange_recv[TUP], LOCAL_LT, !isOdd, 2,2,0,0);
+	bgq_weylfield_t_resetcoord(weylxchange_recv[TDOWN], -1, !isOdd, 2,2,0,0);
 
-	bgq_weylfield_x_resetcoord(weylxchange_send_double[XUP], LOCAL_LX-1, !isOdd, 0,0,0,0);
-	bgq_weylfield_x_resetcoord(weylxchange_send_double[XDOWN], 0, !isOdd, 0,0,0,0);
-	bgq_weylfield_x_resetcoord(weylxchange_recv_double[XUP], LOCAL_LX, !isOdd, 1,1,0,0);
-	bgq_weylfield_x_resetcoord(weylxchange_recv_double[XDOWN], -1, !isOdd, 1,1,0,0);
+	bgq_weylfield_x_resetcoord(weylxchange_send[XUP], LOCAL_LX-1, !isOdd, 0,0,0,0);
+	bgq_weylfield_x_resetcoord(weylxchange_send[XDOWN], 0, !isOdd, 0,0,0,0);
+	bgq_weylfield_x_resetcoord(weylxchange_recv[XUP], LOCAL_LX, !isOdd, 1,1,0,0);
+	bgq_weylfield_x_resetcoord(weylxchange_recv[XDOWN], -1, !isOdd, 1,1,0,0);
 
-	bgq_weylfield_y_resetcoord(weylxchange_send_double[YUP], LOCAL_LY-1, !isOdd, 0,0,0,0);
-	bgq_weylfield_y_resetcoord(weylxchange_send_double[YDOWN], 0, !isOdd, 0,0,0,0);
-	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YUP], LOCAL_LY, !isOdd, 1,1,0,0);
-	bgq_weylfield_y_resetcoord(weylxchange_recv_double[YDOWN], -1, !isOdd, 1,1,0,0);
+	bgq_weylfield_y_resetcoord(weylxchange_send[YUP], LOCAL_LY-1, !isOdd, 0,0,0,0);
+	bgq_weylfield_y_resetcoord(weylxchange_send[YDOWN], 0, !isOdd, 0,0,0,0);
+	bgq_weylfield_y_resetcoord(weylxchange_recv[YUP], LOCAL_LY, !isOdd, 1,1,0,0);
+	bgq_weylfield_y_resetcoord(weylxchange_recv[YDOWN], -1, !isOdd, 1,1,0,0);
 #endif
 
 }
 
 
-#undef BGQ_HM_PRECISION
-#undef BGQ_HM_NOCOM
 
-#undef BGQ_HM_NOFUNC
+#ifdef BGQ_HM_NOFUNC
+
 #undef BGQ_HM_ZLINE_NOFUNC
 #undef BGQ_HM_SITE_NOFUNC
 #undef BGQ_HM_DIR_NOFUNC
+#endif

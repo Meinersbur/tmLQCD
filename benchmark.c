@@ -83,7 +83,7 @@ extern FILE *fmemopen(void *__s, size_t __len, __const char *__modes) __THROW;
 #include "mpi_init.h"
 
 #ifdef BGQ
-#include "bgq/bgq_field.h"
+#include "bgq/bgq_field_double.h"
 #include "bgq/bgq_HoppingMatrix.h"
 #endif
 
@@ -399,7 +399,7 @@ int main(int argc, char *argv[])
 		for (k = 0; k < k_max; k++) {
 			random_spinor_field(g_spinor_field[k], VOLUME / 2, 0);
 #if BGQ
-			bgq_transfer_spinorfield(true, g_spinorfields_double[k], g_spinor_field[k]);
+			bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
 #endif
 		}
 

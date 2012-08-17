@@ -331,6 +331,10 @@ EXTERN_INLINE double bgq_wtime() {
 	} while (0)
 
 
+void *malloc_aligned(size_t size, size_t alignment);
+
+
+
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD
 

@@ -28,12 +28,15 @@
 
 #if defined(BGQ)
 
-#include "bgq/bgq_field.h"
+#include "bgq/bgq_field_double.h"
+#include "bgq/bgq_field_float.h"
+
 void update_backward_gauge() {
 	if (!g_update_gauge_copy)
 		return;
 
-	bgq_transfer_gaugefield(g_gaugefield_double, g_gauge_field);
+	bgq_transfer_gaugefield_double(g_gaugefield_double, g_gauge_field);
+	bgq_transfer_gaugefield_float(g_gaugefield_float, g_gauge_field);
 
 	g_update_gauge_copy = 0;
 }

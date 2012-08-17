@@ -1,4 +1,10 @@
 
+#if BGQ_HM_TUP_TLINEINDENT
+#define BGQ_HM_SITE_TLINEINDENT 0
+#else
+#define BGQ_HM_SITE_TLINEINDENT 1
+#endif
+
 #ifndef BGQ_HM_SITE_NOFUNC
 #include "bgq.h"
 #include "bgq_field.h"
@@ -97,10 +103,10 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 		const int t2_shadowed = t2;
 		{
 			const int z = z_shadowed + 1;
-			#if (BGQ_HM_TUP_TLINEINDENT==0)
+			#if (BGQ_HM_SITE_TLINEINDENT==0)
 				const int t1 = t1_shadowed + 1;
 				const int t2 = t2_shadowed + 1;
-			#elif (BGQ_HM_TUP_TLINEINDENT==1)
+			#elif (BGQ_HM_SITE_TLINEINDENT==1)
 				const int t1 = t1_shadowed - 1;
 				const int t2 = t2_shadowed - 1;
 			#endif
@@ -120,7 +126,7 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 
 	bgq_spinorsite_double *targetsite = BGQ_SPINORSITE(targetfield, isOdd, tv, x, y, z, t1,t2, false,true);
 	bgq_su3_spinor_zeroload(targetsite);
-	bgq_su3_spinor_double_store(targetsite, result);
+	bgq_su3_spinor_store(targetsite, result);
 
 }
 
@@ -128,3 +134,5 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 #ifndef BGQ_HM_SITE_NOFUNC
 #undef BGQ_HM_DIR_NOFUNC 1
 #endif
+
+#undef BGQ_HM_SITE_TLINEINDENT

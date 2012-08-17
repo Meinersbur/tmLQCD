@@ -41,7 +41,7 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 #endif
 #if (BGQ_HM_XDOWN_WEYLREAD==-1) || (BGQ_HM_XDOWN_WEYLREAD==1)
 		bgq_weylsite_double *weylsite_xdown = BGQ_WEYLSITE_X(weylxchange_recv_double[XDOWN], !isOdd, tv, x-1, y, z, t1, t2, !BGQ_HM_XDOWN_PREFETCH,false);
-		bgq_su3_weyl_double_load_loadorprefetch(weyl_xdown, weylsite_xdown);
+		bgq_su3_weyl_loadorprefetch(weyl_xdown, weylsite_xdown);
 #endif
 #if BGQ_HM_XDOWN_WEYLREAD==-1
 		} else {
@@ -50,11 +50,13 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_xdown);
 		bgq_spinorsite_double *spinorsite_xdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x-1, y, z, t1, t2, !BGQ_HM_XDOWN_PREFETCH,false);
-		bgq_su3_spinor_double_load_loadorprefetch(spinor_xdown, spinorsite_xdown);
+		bgq_su3_spinor_loadorprefetch(spinor_xdown, spinorsite_xdown);
 
-		// Compute its halfspinor
-		bgq_su3_vpisub(weyl_xdown_v0, spinor_xdown_v0, spinor_xdown_v3);
-		bgq_su3_vpisub(weyl_xdown_v1, spinor_xdown_v1, spinor_xdown_v2);
+		#if !BGQ_HM_XDOWN_PREFETCH
+			// Compute its halfspinor
+			bgq_su3_vpisub(weyl_xdown_v0, spinor_xdown_v0, spinor_xdown_v3);
+			bgq_su3_vpisub(weyl_xdown_v1, spinor_xdown_v1, spinor_xdown_v2);
+		#endif
 #endif
 #if BGQ_HM_XDOWN_WEYLREAD==-1
 		}
@@ -65,7 +67,7 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		// Load the between sites-interaction matrix
 		bgq_su3_mdecl(gauge_xdown);
 		bgq_gaugesite_double *gaugesite_xdown = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x-1, y, z, XUP, t1, t2, !BGQ_HM_XDOWN_PREFETCH,false);
-		bgq_su3_matrix_double_load_loadorprefetch(gauge_xdown, gaugesite_xdown);
+		bgq_su3_matrix_loadorprefetch(gauge_xdown, gaugesite_xdown);
 
 		// Multiply the halfspinor with the matrix
 		bgq_su3_mvinvmul(weyl_xdown_v0, gauge_xdown, weyl_xdown_v0);
@@ -82,7 +84,7 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		// Store the halfspinor to be transfered to the neighbor node
 		bgq_weylsite_double *weylsite_xdown = BGQ_WEYLSITE_X(weylxchange_send_double[XUP/*!!!*/], !isOdd, tv, x-1, y, z, t1,t2, false,true);
 		bgq_su3_weyl_zeroload(weylsite_xdown);
-		bgq_su3_weyl_double_store(weylsite_xdown, weyl_xdown);
+		bgq_su3_weyl_store(weylsite_xdown, weyl_xdown);
 #endif
 
 

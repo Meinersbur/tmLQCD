@@ -46,19 +46,20 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_zdown);
 		bgq_spinorsite_double *spinorsite_zdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z_left, t1,t2, !BGQ_HM_ZDOWN_PREFETCH,false);
-		bgq_su3_spinor_double_load_loadorprefetch(spinor_zdown, spinorsite_zdown);
+		bgq_su3_spinor_loadorprefetch(spinor_zdown, spinorsite_zdown);
 
 
-		// Compute its halfspinor
-		bgq_su3_weyl_decl(weyl_zdown);
-		bgq_su3_vpisub(weyl_zdown_v0, spinor_zdown_v0, spinor_zdown_v2);
-		bgq_su3_vpiadd(weyl_zdown_v1, spinor_zdown_v1, spinor_zdown_v3);
-
+		#if !BGQ_HM_ZDOWN_PREFETCH
+			// Compute its halfspinor
+			bgq_su3_weyl_decl(weyl_zdown);
+			bgq_su3_vpisub(weyl_zdown_v0, spinor_zdown_v0, spinor_zdown_v2);
+			bgq_su3_vpiadd(weyl_zdown_v1, spinor_zdown_v1, spinor_zdown_v3);
+		#endif
 
 #if BGQ_HM_ZDOWN_COMPUTE
 		bgq_su3_mdecl(gauge_zdown);
 		bgq_gaugesite_double *gaugesite_zdown = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x, y, z-1, ZUP, t1,t2, !BGQ_HM_ZDOWN_PREFETCH,false);
-		bgq_su3_matrix_double_load_loadorprefetch(gauge_zdown, gaugesite_zdown);
+		bgq_su3_matrix_loadorprefetch(gauge_zdown, gaugesite_zdown);
 
 		bgq_su3_mvinvmul(weyl_zdown_v0, gauge_zdown, weyl_zdown_v0);
 		bgq_su3_mvinvmul(weyl_zdown_v1, gauge_zdown, weyl_zdown_v1);

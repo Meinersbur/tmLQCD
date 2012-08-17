@@ -224,13 +224,13 @@ static void init_gmres(const int _M, const int _V){
 #if (defined SSE || defined SSE2)
     _h = calloc((M+2)*M, sizeof(complex));
   CMALLOC_ERROR_EXIT(_h);
-    H[0] = (complex *)(((unsigned int)(_h)+ALIGN_BASE)&~ALIGN_BASE); 
+    H[0] = (complex *)(((size_t)(_h)+ALIGN_BASE)&~ALIGN_BASE);
     _v = calloc(M*Vo+1, sizeof(spinor));
   CMALLOC_ERROR_EXIT(_v);
-    V[0] = (spinor *)(((unsigned int)(_v)+ALIGN_BASE)&~ALIGN_BASE);
+    V[0] = (spinor *)(((size_t)(_v)+ALIGN_BASE)&~ALIGN_BASE);
     _z = calloc(M*Vo+1, sizeof(spinor));
   CMALLOC_ERROR_EXIT(_z);
-    Z[0] = (spinor *)(((unsigned int)(_z)+ALIGN_BASE)&~ALIGN_BASE);
+    Z[0] = (spinor *)(((size_t)(_z)+ALIGN_BASE)&~ALIGN_BASE);
 #else
     _h = calloc((M+1)*M, sizeof(complex));
   CMALLOC_ERROR_EXIT(_h);

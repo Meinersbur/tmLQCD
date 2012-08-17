@@ -49,6 +49,9 @@
 									<listOptionValue builtIn="false" value="PACKAGE_BUGREPORT=tmlqcd_debug@meinersbur.de"/>
 									<listOptionValue builtIn="false" value="BGQ_PREFETCH_EXPLICIT=1"/>
 									<listOptionValue builtIn="false" value="BGQ_PREFETCH_STREAM=1"/>
+									<listOptionValue builtIn="false" value="BGQ_QPX=0"/>
+									<listOptionValue builtIn="false" value="BGQ_PREFETCH_LIST=0"/>
+									<listOptionValue builtIn="false" value="HAVE_CONFIG_H=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1186333786" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
@@ -61,6 +64,35 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.1304293510" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug"/>
 							<tool id="cdt.managedbuild.tool.gnu.assembler.exe.debug.1683981618" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.exe.debug">
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.825472702" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+						</toolChain>
+					</folderInfo>
+					<folderInfo id="cdt.managedbuild.config.gnu.exe.debug.1072574571.177931757" name="/" resourcePath="bgq">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.exe.debug.1688688226" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.exe.debug" unusedChildren="">
+							<targetPlatform id="cdt.managedbuild.target.gnu.platform.exe.debug" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.debug"/>
+							<tool id="cdt.managedbuild.tool.gnu.archiver.base.990896654" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base.974798737"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.363463121" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.872249038"/>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.exe.debug.884777298" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.debug.585799329">
+								<option id="gnu.c.compiler.option.preprocessor.def.symbols.529903863" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="MPI=1"/>
+									<listOptionValue builtIn="false" value="_NON_BLOCKING=1"/>
+									<listOptionValue builtIn="false" value="BGQ=1"/>
+									<listOptionValue builtIn="false" value="_USE_HALFSPINOR=1"/>
+									<listOptionValue builtIn="false" value="PARALLELXYT=1"/>
+									<listOptionValue builtIn="false" value="PACKAGE_VERSION=1"/>
+									<listOptionValue builtIn="false" value="PACKAGE_BUGREPORT=tmlqcd_debug@meinersbur.de"/>
+									<listOptionValue builtIn="false" value="BGQ_PREFETCH_EXPLICIT=1"/>
+									<listOptionValue builtIn="false" value="BGQ_PREFETCH_STREAM=1"/>
+									<listOptionValue builtIn="false" value="BGQ_QPX=0"/>
+									<listOptionValue builtIn="false" value="BGQ_PREFETCH_LIST=0"/>
+									<listOptionValue builtIn="false" value="BGQ_FIELD_COORDCHECK=1"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.64810237" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.1345810984" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug.1544797551"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.551535563" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.1304293510"/>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.exe.debug.2047755537" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.exe.debug.1683981618">
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1637760801" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
 						</toolChain>
 					</folderInfo>
@@ -99,6 +131,7 @@
 									<listOptionValue builtIn="false" value="PACKAGE_VERSION=1"/>
 									<listOptionValue builtIn="false" value="PACKAGE_BUGREPORT=tmlqcd_debug@meinersbur.de"/>
 									<listOptionValue builtIn="false" value="BGQ_PREFETCH_STREAM=1"/>
+									<listOptionValue builtIn="false" value="HAVE_CONFIG_H=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1151568539" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>

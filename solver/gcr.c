@@ -174,11 +174,11 @@ static void init_gcr(const int _M, const int _V){
   CMALLOC_ERROR_EXIT(xi);
 #if (defined SSE || defined SSE2)
     _a = calloc((M+2)*M, sizeof(complex));
-    a[0] = (complex *)(((unsigned int)(_a)+ALIGN_BASE)&~ALIGN_BASE); 
+    a[0] = (complex *)(((size_t)(_a)+ALIGN_BASE)&~ALIGN_BASE);
     _chi = calloc(M*Vo+1, sizeof(spinor));
-    chi[0] = (spinor *)(((unsigned int)(_chi)+ALIGN_BASE)&~ALIGN_BASE);
+    chi[0] = (spinor *)(((size_t)(_chi)+ALIGN_BASE)&~ALIGN_BASE);
     _xi = calloc(M*Vo+1, sizeof(spinor));
-    xi[0] = (spinor *)(((unsigned int)(_xi)+ALIGN_BASE)&~ALIGN_BASE);
+    xi[0] = (spinor *)(((size_t)(_xi)+ALIGN_BASE)&~ALIGN_BASE);
 #else
     _a = calloc((M+1)*M, sizeof(complex));
   CMALLOC_ERROR_EXIT(_a);

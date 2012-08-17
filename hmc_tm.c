@@ -129,7 +129,7 @@ int callback_function(const void *pentry, size_t sz, int useflag, int status,
   else
     printf("freed      %p     %u\n", pentry, sz);
   */
-  printf("allocated  %p useflag %d  size   %u\n", pentry, useflag, sz);
+  printf("allocated  %p useflag %d  size   %u\n", pentry, useflag, (unsigned int)sz);
 
   return 0;
 }
