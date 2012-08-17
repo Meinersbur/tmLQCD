@@ -18,6 +18,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <omp.h>
+#include <stddef.h>
 
 
 
@@ -30,13 +31,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Spinorfield
 
- bgq_spinorsite *g_spinorfields_data;
- bgq_spinorfield *g_spinorfields;
- int g_num_spinorfields;
+static bgq_spinorsite *g_spinorfields_data = NULL;
+bgq_spinorfield *g_spinorfields = NULL;
+static int g_num_spinorfields = -1;
 
 #if BGQ_FIELD_COORDCHECK
-static bgq_spinorsite *g_spinorfields_data_coords;
-static int *g_spinorfield_isOdd;
+static bgq_spinorsite *g_spinorfields_data_coords = NULL;
+static int *g_spinorfield_isOdd = NULL;
 #endif
 
 
@@ -82,7 +83,7 @@ void bgq_spinorfield_set(bgq_spinorfield spinorfield, bool isOdd, int t, int x, 
 
 
 
-#ifndef NDEBUG
+#if BGQ_FIELD_COORDCHECK
 typedef union {
 	COMPLEX_PRECISION val;
 	struct {
@@ -306,7 +307,7 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield const targetfiel
 	assert(sourcefield);
 	assert(targetfield);
 
-#ifndef NDEBUG
+#if BGQ_FIELD_COORDCHECK
 	bgq_spinorfield_resetcoord(targetfield, isOdd, -1, -1, -1, -1);
 #endif
 
@@ -339,13 +340,13 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield const targetfiel
 		}
 	}
 
-#ifndef NDEBUG
+#if BGQ_FIELD_COORDCHECK
 	bgq_spinorfield_resetcoord(targetfield, isOdd, 0, 0, 1, 1);
 #endif
 }
 
 
-#ifndef NDEBUG
+#if BGQ_FIELD_COORDCHECK
 bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, bool isRead, bool isWrite) {
 	assert(spinorfield);
 	assert(false <= isOdd && isOdd <= true);
@@ -388,12 +389,12 @@ bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, in
 	// Validate the address
 	bgq_spinorsite *site = &spinorfield[idx];
 	assert(g_spinorfields[index] <= site && site < g_spinorfields[index] + VOLUME_SITES);
-	assert(mod((size_t)site,32)==0);
+	assert(mod((size_t)site,PRECISION_VECTOR_ALIGNMENT)==0);
 
 	COMPLEX_PRECISION *val = &site->s[v][c][k];
 	assert( (&g_spinorfields[index]->s[0][0][0] <= val) && (val < &(g_spinorfields[index]+VOLUME_SITES)->s[0][0][0]) );
 	assert(mod((size_t)site,16)==0);
-	assert(mod((size_t)&site->s[v][c][0],32)==0);
+	assert(mod((size_t)&site->s[v][c][0],PRECISION_VECTOR_ALIGNMENT)==0);
 
 	// Get the equivalent address in debug address space, and check it
 	bgq_spinorfield_checkcoord(spinorfield,isOdd,t,x,y,z,tv,k,v,c,val);
@@ -427,12 +428,11 @@ bool assert_spinorcoord(bgq_spinorfield spinorfield, bool isOdd, int t, int x, i
 // Gaugefield
 
 bgq_gaugefield g_gaugefield;
-
-
+static bgq_gaugeeodir g_gaugefield_data;
 #if BGQ_FIELD_COORDCHECK
 static bgq_gaugeeodir g_gaugefield_data_debug;
 #endif
-bgq_gaugeeodir g_gaugefield_data;
+
 
 
 
@@ -460,6 +460,7 @@ static COMPLEX_PRECISION *bgq_gaugefield_ref(bgq_gaugefield gaugefield, bool isO
 
 	return val;
 }
+
 
 COMPLEX_PRECISION bgq_gaugefield_get(bgq_gaugefield gaugefield, bool isOdd, int t, int x, int y, int z, direction d, int i, int l) {
 	bool adjoint = false;
@@ -508,7 +509,6 @@ COMPLEX_PRECISION bgq_gaugefield_get(bgq_gaugefield gaugefield, bool isOdd, int 
 	}
 	return result;
 }
-
 
 
 void bgq_gaugefield_set(bgq_gaugefield gaugefield, bool isOdd, int t, int x, int y, int z, direction d, int i, int l, double _Complex value) {
@@ -632,7 +632,7 @@ static bgq_gaugecoord *bgq_gaugefield_coordref(COMPLEX_PRECISION *site) {
 		for (direction dir = TUP; dir <= TUP_SHIFT; dir += 2) {
 			bgq_gaugesite *eodata = g_gaugefield_data.eodir[isOdd][dir/2];
 			if ((void*)eodata <= (void*)site && (void*)site < (void*)(eodata + GAUGE_EOVOLUME)) {
-				// found!, get equivialent debug site
+				// found!, get equivalent debug site
 				size_t offset = (char*)site - (char*)eodata;
 				char *debugdata = (char*)g_gaugefield_data_debug.eodir[isOdd][dir/2];
 				bgq_gaugecoord *result = (bgq_gaugecoord*)(debugdata + offset);
@@ -647,23 +647,27 @@ static bgq_gaugecoord *bgq_gaugefield_coordref(COMPLEX_PRECISION *site) {
 
 
 static void bgq_gaugefield_checkcoord(bgq_gaugefield gaugefield, bool isOdd, int t, int x, int y, int z, int tv, int k, direction dir, int i, int l, COMPLEX_PRECISION *value) {
+	assert( sizeof(COMPLEX_PRECISION) == sizeof(bgq_gaugecoord) );
+
 	bgq_gaugecoord *coord = bgq_gaugefield_coordref(value);
 	if (coord->coord.init) {
 		assert(coord->coord.isOdd == isOdd);
 		assert(coord->coord.t == t+1);
 		assert(coord->coord.x == x+1);
 		assert(coord->coord.y == y+1);
-		assert(coord->coord.z == mod(z,LOCAL_LZ));
+		assert(coord->coord.z == moddown(z,LOCAL_LZ));
 		assert(coord->coord.dir == dir);
 		assert(coord->coord.i == i);
 		assert(coord->coord.l == l);
 	} else {
+		assert(coord->val == 0);
+
 		coord->coord.init = true;
 		coord->coord.isOdd = isOdd;
 		coord->coord.t = t+1;
 		coord->coord.x = x+1;
 		coord->coord.y = y+1;
-		coord->coord.z = mod(z,LOCAL_LZ);
+		coord->coord.z = moddown(z,LOCAL_LZ);
 		coord->coord.dir = dir;
 		coord->coord.i = i;
 		coord->coord.l = l;
@@ -760,7 +764,7 @@ void bgq_init_gaugefield() {
 
 	g_gaugefield = &g_gaugefield_data;
 
-#ifndef NDEBUG
+#if BGQ_FIELD_COORDCHECK
 	for (int isOdd = false; isOdd <= true; isOdd += 1) {
 		for (direction dir = TUP; dir <= TUP_SHIFT; dir += 2) {
 			g_gaugefield_data_debug.eodir[isOdd][dir/2] = malloc_aligned(GAUGE_EOVOLUME * sizeof(bgq_gaugesite), 128 /*L2 cache line size*/);
@@ -783,7 +787,7 @@ void bgq_free_gaugefield() {
 	}
 	g_gaugefield = NULL;
 
-#ifndef NDEBUG
+#if BGQ_FIELD_COORDCHECK
 	for (int isOdd = false; isOdd <= true; isOdd += 1) {
 		for (int dir = TUP; dir <= TUP_SHIFT; dir += 2) {
 			free(g_gaugefield_data_debug.eodir[isOdd][dir/2]);
@@ -866,7 +870,7 @@ bool assert_gaugeval(bgq_gaugefield gaugefield, bool isOdd, int t, int x, int y,
 	assert(0 <= l && l < 3);
 
 	// There is really just one gaugefield
-	assert(gaugefield == g_gaugefield);
+	assert( gaugefield == g_gaugefield );
 
 	// We really only store the up-fields
 	assert((dir&1)==0);
@@ -875,7 +879,7 @@ bool assert_gaugeval(bgq_gaugefield gaugefield, bool isOdd, int t, int x, int y,
 	assert( ((t+x+y+z)&1) == isOdd );
 	int teo = divdown(t,PHYSICAL_LP);
 	if (dir == TUP_SHIFT) {
-		teo = moddown(teo+2, 1+LOCAL_LT/PHYSICAL_LP)-1;
+		teo = mod(teo+2, 1+LOCAL_LT/PHYSICAL_LP)-1;
 	}
 
 	// Check that zv and k match the coordinate
@@ -890,11 +894,11 @@ bool assert_gaugeval(bgq_gaugefield gaugefield, bool isOdd, int t, int x, int y,
 	bgq_gaugesite *eofield = gaugefield->eodir[isOdd][dir/2];
 	bgq_gaugesite *site = &eofield[idx];
 	COMPLEX_PRECISION *address = &site->c[i][l][k];
-	assert(mod((size_t)&site->c[i][l][0],32)==0);
+	assert(mod((size_t)&site->c[i][l][0],PRECISION_VECTOR_ALIGNMENT)==0);
 
 
 	// get the debug data
-	bgq_gaugefield_checkcoord(gaugefield,isOdd,t,x,y,mod(z,LOCAL_LZ),tv,k,dir,i,l,address);
+	bgq_gaugefield_checkcoord(gaugefield,isOdd,t,x,y,moddown(z,LOCAL_LZ),tv,k,dir,i,l,address);
 	bgq_gaugecoord *debugdata = bgq_gaugefield_coordref(address);
 	if (isRead)
 		debugdata->coord.reads += 1;
@@ -935,8 +939,8 @@ size_t weylxchange_size[3];
 int weylexchange_destination[6];
 
 #if BGQ_FIELD_COORDCHECK
-bgq_weylcoord *weylxchange_recv_debug[PHYSICAL_LP][6];
-bgq_weylcoord *weylxchange_send_debug[PHYSICAL_LP][6];
+static bgq_weylcoord *weylxchange_recv_debug[PHYSICAL_LP][6];
+static bgq_weylcoord *weylxchange_send_debug[PHYSICAL_LP][6];
 #endif
 
 static bool l1p_first = true;
@@ -1042,6 +1046,8 @@ static void bgq_weylfield_checkcoord(bgq_weylfield weylfield, bool isOdd, int t,
 		assert(coord->coord.v == v);
 		assert(coord->coord.c == c);
 	} else {
+		assert(coord->val == 0);
+
 		coord->coord.init = true;
 		coord->coord.isOdd = isOdd;
 		coord->coord.t = t+1;
@@ -1132,7 +1138,7 @@ bool assert_weylval_t(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, 
 	// Validate the memory address
 	bgq_weylsite *site = &weylfield[idx];
 	assert(&weylfield[0] <= site && site < &weylfield[PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ]);
-	assert(mod((size_t)&site->s[v][c][0],32)==0);
+	assert(mod((size_t)&site->s[v][c][0],PRECISION_VECTOR_ALIGNMENT)==0);
 
 	COMPLEX_PRECISION *val = &site->s[v][c][k];
 	assert(&weylfield[0].s[0][0][0] <= val && val < &weylfield[PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ].s[0][0][0]);
@@ -1235,7 +1241,7 @@ bool assert_weylval_x(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, 
 	// Validate the memory address
 	bgq_weylsite *site = &weylfield[idx];
 	assert(&weylfield[0] <= site && site < &weylfield[PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ]);
-	assert(mod((size_t)&site->s[v][c][0],32)==0);
+	assert(mod((size_t)&site->s[v][c][0],PRECISION_VECTOR_ALIGNMENT)==0);
 
 	COMPLEX_PRECISION *val = &site->s[v][c][k];
 	assert(&weylfield[0].s[0][0][0] <= val && val < &weylfield[PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ].s[0][0][0]);
@@ -1337,7 +1343,7 @@ bool assert_weylval_y(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, 
 	// Validate the memory address
 	bgq_weylsite *site = &weylfield[idx];
 	assert(&weylfield[0] <= site && site < &weylfield[PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ]);
-	assert(mod((size_t)&site->s[v][c][0],32)==0);
+	assert(mod((size_t)&site->s[v][c][0],PRECISION_VECTOR_ALIGNMENT)==0);
 
 	COMPLEX_PRECISION *val = &site->s[v][c][k];
 	assert(&weylfield[0].s[0][0][0] <= val && val < &weylfield[PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ].s[0][0][0]);

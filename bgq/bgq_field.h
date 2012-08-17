@@ -104,7 +104,7 @@ typedef _Complex float complexfloat;
 	 assert(0 <= x && x < PHYSICAL_LX),                         \
 	 assert(0 <= y && y < PHYSICAL_LY),                         \
 	 assert(0 <= z && z < PHYSICAL_LZ),                         \
-	 &spinorfield[(((tv)*PHYSICAL_LX + (x))*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)])
+	 &(spinorfield)[(((tv)*PHYSICAL_LX + (x))*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)])
 
 #define BGQ_SPINORSITE(spinorfield, isOdd, tv, x, y, z, t1, t2, isRead, isWrite)                         \
 		(assert(assert_spinorcoord(spinorfield, isOdd, t1, x, y, z, tv, 0, isRead, isWrite)), \
@@ -132,7 +132,7 @@ typedef _Complex float complexfloat;
 	 assert(-1 <= x && x < PHYSICAL_LX),        \
 	 assert(-1 <= y && y < PHYSICAL_LY),        \
 	 assert(-1 <= z && z < PHYSICAL_LZ),        \
-	 &gaugefield->eodir[(isOdd)][(dir)/2][((((tv)+1)*(PHYSICAL_LX+1) + ((x)+1))*(PHYSICAL_LY+1) + ((y)+1))*(PHYSICAL_LZ+1) + ((z)+1)])
+	 &(gaugefield)->eodir[(isOdd)][(dir)/2][((((tv)+1)*(PHYSICAL_LX+1) + ((x)+1))*(PHYSICAL_LY+1) + ((y)+1))*(PHYSICAL_LZ+1) + ((z)+1)])
 
 #define BGQ_GAUGESITE(gaugefield,isOdd,tv,x,y,z,dir,t1,t2,isRead,isWrite)         \
 	(assert(assert_gaugesite(gaugefield,isOdd,t1,x,y,z,tv,0,dir,isRead,isWrite)),  \

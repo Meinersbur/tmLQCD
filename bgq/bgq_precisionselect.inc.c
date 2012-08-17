@@ -34,3 +34,5 @@
 		#warning Unsupported precision
 	#endif
 #endif
+
+#define PRECISION_VECTOR_ALIGNMENT (PRECISION_BITS*4/8)

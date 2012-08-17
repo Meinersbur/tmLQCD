@@ -46,9 +46,9 @@
 
 #define BGQ_HM_SITE_NOFUNC 1
 #define BGQ_HM_DIR_NOFUNC 1
-void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int t, int x, int y) {
-	int t1 = 0;
-	int t2 = 2;
+void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int tv, int x, int y, int t1, int t2) {
+
+
 #else
 {
 #endif

@@ -45,7 +45,7 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_tdown);
 		#if (BGQ_HM_TDOWN_TLINEINDENT==-1)
-		if ( ((tv+x+y+z)&1) == isOdd ) {
+		if ( ((x+y+z)&1) == isOdd ) {
 		#endif
 		#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==0)
 			bgq_spinorsite *spinorsite_tdown_left = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, tv-1, x, y, z, t1-3,t1-1, !BGQ_HM_TDOWN_PREFETCH,false);

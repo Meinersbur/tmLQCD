@@ -73,7 +73,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	bgq_vector4double_decl(qka3); // z
 	bgq_cconst(qka3, ka3.re, ka3.im);
 
-#pragma omp parallel
+//#pragma omp parallel
 {
 
 #if BGQ_PREFETCH_LIST

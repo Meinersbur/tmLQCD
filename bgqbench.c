@@ -509,10 +509,10 @@ static struct {
 static char* com_desc[] = { "Com async", "Com sync", "Com off" };
 
 
-static void print_repeat(char *str, int count) {
+static void print_repeat(const char * const str, const int count) {
 	if (g_proc_id == 0) {
-		for (int i = 0; i < count; count += 1) {
-			puts(str);
+		for (int i = 0; i < count; i += 1) {
+			printf("%s", str);
 		}
 	}
 }
@@ -520,19 +520,21 @@ static void print_repeat(char *str, int count) {
 #define KILO 1000.0
 #define MEGA (1000.0 * 1000.0)
 #define GIGA (1000.0 * 1000.0 * 1000.0)
+#define CELLWIDTH 15
+#define SCELLWIDTH TOSTRING(CELLWIDTH)
 
-static void exec_bench() {
+static void exec_bench() { print_repeat("\n", 2);
 	for (int i1 = 0; i1 < COUNTOF(sloppinessess); i1 += 1) {
 		bool sloppiness = sloppinessess[i1];
 
 		if (g_proc_id == 0) printf("Benchmarking precision: %s\n", sloppinessess_desc[i1]);
 		if (g_proc_id == 0) printf("%10s|", "");
 		for (int i3 = 0; i3 < COUNTOF(coms); i3 += 1) {
-			if (g_proc_id == 0) printf("%10s|\n", com_desc[i3]);
+			if (g_proc_id == 0) printf("%"SCELLWIDTH"s|", com_desc[i3]);
 		}
 		if (g_proc_id == 0) printf("\n");
-		print_repeat("-", 10 + 1 + (10 + 1)*COUNTOF(coms));
-
+		print_repeat("-", CELLWIDTH + 1 + (CELLWIDTH + 1)*COUNTOF(coms));
+		if (g_proc_id == 0) printf("\n");
 		for (int i2 = 0; i2 < COUNTOF(omp_threads); i2 += 1) {
 			int threads = omp_threads[i2];
 
@@ -546,11 +548,11 @@ static void exec_bench() {
 
 				char str[80] = {0};
 				snprintf( str, sizeof(str), "%f.0 mflops/s" , result.flops / MEGA);
-				if (g_proc_id == 0) printf("%10s|\n", str);
+				if (g_proc_id == 0) printf("%"SCELLWIDTH"s|", str);
+				if (g_proc_id == 0) fflush(stdout);
 			}
-
 			if (g_proc_id == 0) printf("\n");
-			print_repeat("-", 10 + 1 + (10 + 1)*COUNTOF(coms));
+			print_repeat("-", CELLWIDTH + 1 + (CELLWIDTH + 1)*COUNTOF(coms));
 			if (g_proc_id == 0) printf("\n");
 		}
 		if (g_proc_id == 0) printf("\n");
