@@ -1,8 +1,6 @@
 
 #include "bgq_HoppingMatrix.h"
-
 #include "bgq.h"
-
 #include "../boundary.h"
 
 
@@ -12,7 +10,7 @@
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bgq_hmflags opts) {
+void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield targetfield, bgq_spinorfield spinorfield, bgq_gaugefield gaugefield, bgq_hmflags opts) {
 	const bool nocom = opts & hm_nocom;
 	const bool nooverlap = opts & hm_nooverlap;
 	const bool nokamul = opts & hm_nokamul;

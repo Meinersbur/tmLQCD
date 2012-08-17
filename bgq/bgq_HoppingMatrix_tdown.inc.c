@@ -48,11 +48,11 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		if ( ((tv+x+y+z)&1) == isOdd ) {
 		#endif
 		#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==0)
-			bgq_spinorsite_double *spinorsite_tdown_left = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, tv-1, x, y, z, t1-3,t1-1, !BGQ_HM_TDOWN_PREFETCH,false);
+			bgq_spinorsite *spinorsite_tdown_left = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, tv-1, x, y, z, t1-3,t1-1, !BGQ_HM_TDOWN_PREFETCH,false);
 			bgq_su3_spinor_decl(spinor_tdown_left);
 			bgq_su3_spinor_loadorprefetch_right(spinor_tdown_left, spinorsite_tdown_left);
 
-			bgq_spinorsite_double *spinorsite_tdown_mid = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, tv, x, y, z, t2-1,t2+1, !BGQ_HM_TDOWN_PREFETCH,false);
+			bgq_spinorsite *spinorsite_tdown_mid = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, tv, x, y, z, t2-1,t2+1, !BGQ_HM_TDOWN_PREFETCH,false);
 			bgq_su3_spinor_decl(spinor_tdown_mid);
 			bgq_su3_spinor_loadorprefetch_left(spinor_tdown_mid, spinorsite_tdown_mid);
 
@@ -64,7 +64,7 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		} else {
 		#endif
 		#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==1)
-			bgq_spinorsite_double *spinorsite_tdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1-1, t2-1, !BGQ_HM_TDOWN_PREFETCH,false);
+			bgq_spinorsite *spinorsite_tdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1-1, t2-1, !BGQ_HM_TDOWN_PREFETCH,false);
 			bgq_su3_spinor_loadorprefetch(spinor_tdown, spinorsite_tdown);
 		#endif
 		#if (BGQ_HM_TDOWN_TLINEINDENT==-1)
@@ -92,7 +92,7 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 			const int xv = xeo / PHYSICAL_LK;
 			const int kx = mod(xeo, PHYSICAL_LK);
 
-			bgq_weylsite_double *weylsite_tdown_left = BGQ_WEYLSITE_T(weylxchange_recv_double[TDOWN], !isOdd, t1-1, xv, y, z, kx==0 ? x : x-2, kx==1 ? x : x+2, !BGQ_HM_TDOWN_PREFETCH,false);
+			bgq_weylsite *weylsite_tdown_left = BGQ_WEYLSITE_T(weylxchange_recv[TDOWN], !isOdd, t1-1, xv, y, z, kx==0 ? x : x-2, kx==1 ? x : x+2, !BGQ_HM_TDOWN_PREFETCH, false);
 			#if !BGQ_HM_TDOWN_PREFETCH
 				weylsite_tdown_left = (bgq_weylsite_double*)((char*)weylsite_tdown_left + kx*sizeof(_Complex double)); // Some trick: if we are supposed to read kx=1, shift the pointer to the right to match k=0, so we avoid some conditional
 			#endif
@@ -100,7 +100,7 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 			bgq_su3_weyl_loadorprefetch_left(weyl_tdown_left, weylsite_tdown_left);
 
 			// Read the second component as normal
-			bgq_spinorsite_double *spinorsite_tdown_mid = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, tv, x, y, z, t2-1,t2+1, !BGQ_HM_TDOWN_PREFETCH,false);
+			bgq_spinorsite *spinorsite_tdown_mid = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, tv, x, y, z, t2-1,t2+1, !BGQ_HM_TDOWN_PREFETCH, false);
 			bgq_su3_spinor_decl(spinor_tdown_mid);
 			bgq_su3_spinor_loadorprefetch_left(spinor_tdown_mid, spinorsite_tdown_mid);
 
@@ -120,7 +120,7 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		#if (BGQ_HM_TDOWN_TLINEINDENT==-1) || (BGQ_HM_TDOWN_TLINEINDENT==1)
 			assert( t1 == 1 );
 			// Read spinor as normal
-			bgq_spinorsite_double *spinorsite_tdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1-1, t2-1, !BGQ_HM_TDOWN_PREFETCH,false);
+			bgq_spinorsite *spinorsite_tdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1-1, t2-1, !BGQ_HM_TDOWN_PREFETCH,false);
 			bgq_su3_spinor_decl(spinor_tdown);
 			bgq_su3_spinor_loadorprefetch(spinor_tdown, spinorsite_tdown);
 
@@ -141,7 +141,7 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 
 	#if BGQ_HM_TDOWN_COMPUTE
-		bgq_gaugesite_double *gaugesite_tdown;
+		bgq_gaugesite *gaugesite_tdown;
 		#if (BGQ_HM_TDOWN_TLINEINDENT==-1)
 		if ( ((tv+x+y+z)&1) == isOdd ) {
 		#endif

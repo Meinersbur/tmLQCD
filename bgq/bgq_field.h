@@ -196,12 +196,12 @@ typedef _Complex float complexfloat;
 ////////////////////////////////////////////////////////////////////////////////
 // Common Initialization
 
-void bgq_init_gaugefield();
-void bgq_free_gaugefield();
-void bgq_init_spinorfields(int count);
-void bgq_free_spinorfields();
-void bgq_hm_init();
-void bgq_hm_free();
+void bgq_init_gaugefield_allprec();
+void bgq_free_gaugefield_allprec();
+void bgq_init_spinorfields_allprec(int count);
+void bgq_free_spinorfields_allprec();
+void bgq_hm_init_allprec();
+void bgq_hm_free_allprec();
 
 
 #undef EXTERN_INLINE

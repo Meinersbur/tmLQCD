@@ -20,6 +20,7 @@ typedef enum {
 	hm_prefetchexplicit = 1 << 5,
 } bgq_hmflags;
 
+#define bgq_HoppingMatrix NAME2(bgq_HoppingMatrix,PRECISION)
 void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bgq_hmflags opts);
 void bgq_HoppingMatrix_float(bool isOdd, bgq_spinorfield_float targetfield, bgq_spinorfield_float spinorfield, bgq_gaugefield_float gaugefield, bgq_hmflags opts);
 

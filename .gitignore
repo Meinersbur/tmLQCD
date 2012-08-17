@@ -8,7 +8,7 @@ autom4te.cache/
 *.log
 config.h
 config.status
-hmc_tm
+/hmc_tm
 *~
 .deps/
 /lime/include/lime_config_internal.h
@@ -27,7 +27,8 @@ stamp-h1
 tmLQCD.cscope_file_list
 depcomp
 missing
-benchmark
+/benchmark
+/bgqbench
 
 *.i
 *.lst
@@ -41,4 +42,5 @@ benchmark
 *.ompexp
 
 .directory
+
 

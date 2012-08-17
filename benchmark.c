@@ -381,9 +381,9 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef BGQ
-  bgq_init_gaugefield();
-  bgq_init_spinorfields(2 * k_max + 1);
-  bgq_hm_init();
+  bgq_init_gaugefield_double();
+  bgq_init_spinorfields_double(2 * k_max + 1);
+  bgq_hm_init_double();
 
   update_backward_gauge();
 #endif

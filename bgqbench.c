@@ -83,7 +83,7 @@ extern FILE *fmemopen(void *__s, size_t __len, __const char *__modes) __THROW;
 #include "mpi_init.h"
 
 #ifdef BGQ
-#include "bgq/bgq_field_double.h"
+#include "bgq/bgq_field.h"
 #include "bgq/bgq_HoppingMatrix.h"
 #endif
 #include <omp.h>
@@ -152,35 +152,26 @@ double gatime, getime;
 #  define SLICE ((LY*LZ*T/2) + (LX*LZ*T/2) + (LX*LY*T/2))
 #endif
 
-double bgl_wtime() {
-	return (MPI_Wtime());
-}
 
-int check_xchange();
 
 static void exec_bench();
 
 int main(int argc, char *argv[])
 {
-	int j, j_max, k, k_max = 1;
+	int j;
+	int k_max = 1;
 #ifdef HAVE_LIBLEMON
 	paramsXlfInfo *xlfInfo;
 #endif
 
 	/* GG */
-	int intrig;
 	FILE* yyingg = NULL;
-	MPI_Status yyStatus;
 	void* yybufgg = NULL;
-	int yyCount;
 	int yyfd;
 	char *input_filename = NULL;
 	int c;
-
-	static double t1, t2, dt, sdt, dts, qdt, sqdt;
-	double antioptaway = 0.0;
 #ifdef MPI
-	static double dt2;
+
 
 	DUM_DERI = 6;
 	DUM_SOLVER = DUM_DERI + 2;
@@ -236,12 +227,12 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "MK Cannot open file %s\n", input_filename);
 			exit(2);
 		}
-		yyCount = read(yyfd, yybufgg, 8192);
-		intrig = close(yyfd);
+		read(yyfd, yybufgg, 8192);
+		close(yyfd);
 	}
-	intrig = MPI_Bcast(yybufgg, 8192, MPI_CHAR, 0, MPI_COMM_WORLD );
+	MPI_Bcast(yybufgg, 8192, MPI_CHAR, 0, MPI_COMM_WORLD );
 	yyingg = fmemopen(yybufgg, strlen(yybufgg), "r");
-	intrig = read_input_fh(yyingg);
+	read_input_fh(yyingg);
 #endif
 
 	/* GG */
@@ -383,9 +374,9 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef BGQ
-	bgq_init_gaugefield();
-	bgq_init_spinorfields(2 * k_max + 1);
-	bgq_hm_init();
+	bgq_init_gaugefield_allprec();
+	bgq_init_spinorfields_allprec(2 * k_max + 1);
+	bgq_hm_init_allprec();
 
 	update_backward_gauge();
 #endif
@@ -393,6 +384,8 @@ int main(int argc, char *argv[])
 #ifdef _GAUGE_COPY
 	update_backward_gauge();
 #endif
+
+
 
 	assert(even_odd_flag);
 	exec_bench();
@@ -424,6 +417,10 @@ int main(int argc, char *argv[])
 	return (0);
 }
 
+static inline double sqr(double val) {
+	return val*val;
+}
+
 typedef struct {
 	double avgtime;
 	double localrmstime;
@@ -441,24 +438,29 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 
 	omp_set_num_threads(ompthreads);
 
+	bgq_hmflags hmflags = 0;
+
+	hmflags |= nocom*hm_nocom;
+	hmflags |= nooverlap*hm_nooverlap;
+
 	for (int j = 0; j < j_max; j += 1) {
 		////////////////////////////////////////////////////////////////////////////////
 		double start_time = MPI_Wtime();
 		if (sloppyprec) {
 			for (int k = 0; k < 1; k += 1) {
-				bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k]);
-				bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinor_field[k + k_max]);
+				bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
+				bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float,hmflags);
 				iterations += 1;
 			}
 		} else {
 			for (int k = 0; k < 1; k += 1) {
-				bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinor_field[k]);
-				bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinor_field[k + k_max]);
+				bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
+				bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
 				iterations += 1;
 			}
 		}
 		////////////////////////////////////////////////////////////////////////////////
-		double end_time = MPI_WTime();
+		double end_time = MPI_Wtime();
 		double runtime = end_time - start_time;
 		localsumtime += runtime;
 		localsumsqtime += sqr(runtime);
@@ -524,9 +526,9 @@ static void exec_bench() {
 		bool sloppiness = sloppinessess[i1];
 
 		if (g_proc_id == 0) printf("Benchmarking precision: %s\n", sloppinessess_desc[i1]);
-		if (g_proc_id == 0) printf("% 10s|", "");
+		if (g_proc_id == 0) printf("%10s|", "");
 		for (int i3 = 0; i3 < COUNTOF(coms); i3 += 1) {
-			if (g_proc_id == 0) printf("% 10s|\n", com_desc[i3]);
+			if (g_proc_id == 0) printf("%10s|\n", com_desc[i3]);
 		}
 		if (g_proc_id == 0) printf("\n");
 		print_repeat("-", 10 + 1 + (10 + 1)*COUNTOF(coms));
@@ -534,7 +536,7 @@ static void exec_bench() {
 		for (int i2 = 0; i2 < COUNTOF(omp_threads); i2 += 1) {
 			int threads = omp_threads[i2];
 
-			if (g_proc_id == 0) printf("% 10s|\n", omp_threads_desc[i2]);
+			if (g_proc_id == 0) printf("%10s|\n", omp_threads_desc[i2]);
 
 			for (int i3 = 0; i3 < COUNTOF(coms); i3 += 1) {
 				bool nocom = coms[i3].nocom;
@@ -543,8 +545,8 @@ static void exec_bench() {
 				benchstat result = runbench(1, 2, sloppiness, threads, nocom, nooverlap);
 
 				char str[80] = {0};
-				snprintf( &str, sizeof(str), "%f.0 mflops/s" , result.flops / MEGA);
-				if (g_proc_id == 0) printf("% 10d|\n", str);
+				snprintf( str, sizeof(str), "%f.0 mflops/s" , result.flops / MEGA);
+				if (g_proc_id == 0) printf("%10s|\n", str);
 			}
 
 			if (g_proc_id == 0) printf("\n");

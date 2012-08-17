@@ -52,18 +52,18 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 		if (((tv+x+y+z)&1) == isOdd) {
 		#endif
 		#if (BGQ_HM_TUP_TLINEINDENT==-1) || (BGQ_HM_TUP_TLINEINDENT==0)
-			bgq_spinorsite_double *spinorsite_tup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1+1, t2+1, !BGQ_HM_TUP_PREFETCH,false);
+			bgq_spinorsite *spinorsite_tup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1+1, t2+1, !BGQ_HM_TUP_PREFETCH,false);
 			bgq_su3_spinor_loadorprefetch(spinor_tup, spinorsite_tup);
 		#endif
 		#if (BGQ_HM_TUP_TLINEINDENT==-1)
 		} else {
 		#endif
 		#if (BGQ_HM_TUP_TLINEINDENT==-1) || (BGQ_HM_TUP_TLINEINDENT==1)
-			bgq_spinorsite_double *spinorsite_tup_mid = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, tv, x, y, z, t1-1, t1+1, !BGQ_HM_TUP_PREFETCH,false);
+			bgq_spinorsite *spinorsite_tup_mid = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, tv, x, y, z, t1-1, t1+1, !BGQ_HM_TUP_PREFETCH,false);
 			bgq_su3_spinor_decl(spinor_tup_mid);
 			bgq_su3_spinor_loadorprefetch_right(spinor_tup_mid, spinorsite_tup_mid);
 
-			bgq_spinorsite_double *spinorsite_tup_right = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, tv+1, x, y, z, t2+1, t2+3, !BGQ_HM_TUP_PREFETCH,false);
+			bgq_spinorsite *spinorsite_tup_right = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, tv+1, x, y, z, t2+1, t2+3, !BGQ_HM_TUP_PREFETCH,false);
 			bgq_su3_spinor_decl(spinor_tup_right);
 			bgq_su3_spinor_loadorprefetch_left(spinor_tup_right, spinorsite_tup_right);
 
@@ -87,7 +87,7 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 		#if (BGQ_HM_TUP_TLINEINDENT==-1) || (BGQ_HM_TUP_TLINEINDENT==0)
 			assert(t2+2 == LOCAL_LT);
 			// Read as normal
-			bgq_spinorsite_double *spinorsite_tup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1+1, t2+1, !BGQ_HM_TUP_PREFETCH,false);
+			bgq_spinorsite *spinorsite_tup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1+1, t2+1, !BGQ_HM_TUP_PREFETCH,false);
 			bgq_su3_spinor_decl(spinor_tup);
 			bgq_su3_spinor_loadorprefetch(spinor_tup, spinorsite_tup);
 
@@ -103,7 +103,7 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 			// i.e. the rightmost value must read tup from the weyl received data
 
 			// Read in the left part of the site like normal
-			bgq_spinorsite_double *spinorsite_tup_mid = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, tv, x, y, z, t1-1, t1+1, !BGQ_HM_TUP_PREFETCH,false);
+			bgq_spinorsite *spinorsite_tup_mid = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, tv, x, y, z, t1-1, t1+1, !BGQ_HM_TUP_PREFETCH,false);
 			bgq_su3_spinor_decl(spinor_tup_mid);
 			bgq_su3_spinor_loadorprefetch_left(spinor_tup_mid, spinorsite_tup_mid);
 
@@ -117,8 +117,8 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 			const int xv = xeo / PHYSICAL_LK;
 			const int kx = mod(xeo, PHYSICAL_LK);
 
-			bgq_weylsite_double *weylsite_tup_right = BGQ_WEYLSITE_T(weylxchange_recv_double[TUP], !isOdd, t2+1, xv, y, z, kx==0 ? x : x-2, kx==1 ? x : x+2, !BGQ_HM_TUP_PREFETCH, false);
-			weylsite_tup_right = (bgq_weylsite_double*) ((char*)weylsite_tup_right + kx*sizeof(_Complex double)); // Some trick: if we are supposed to read k=1, shift the pointer to the right to match k=0, so we avoid some conditional
+			bgq_weylsite *weylsite_tup_right = BGQ_WEYLSITE_T(weylxchange_recv[TUP], !isOdd, t2+1, xv, y, z, kx==0 ? x : x-2, kx==1 ? x : x+2, !BGQ_HM_TUP_PREFETCH, false);
+			weylsite_tup_right = (bgq_weylsite*) ((char*)weylsite_tup_right + kx*sizeof(COMPLEX_PRECISION)); // Some trick: if we are supposed to read k=1, shift the pointer to the right to match k=0, so we avoid some conditional
 			bgq_su3_weyl_decl(weyl_tup_right);
 			bgq_su3_weyl_loadorprefetch_left(weyl_tup_right, weylsite_tup_right);
 
@@ -136,7 +136,7 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 
 
 	#if BGQ_HM_TUP_COMPUTE
-		bgq_gaugesite_double *gaugesite_tup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, TUP, t1, t2, !BGQ_HM_TUP_PREFETCH,false);
+		bgq_gaugesite *gaugesite_tup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, TUP, t1, t2, !BGQ_HM_TUP_PREFETCH,false);
 		bgq_su3_mdecl(gauge_tup);
 		bgq_su3_matrix_loadorprefetch(gauge_tup, gaugesite_tup);
 

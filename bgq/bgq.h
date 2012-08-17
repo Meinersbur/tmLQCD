@@ -58,10 +58,10 @@ typedef struct {
 
 #define bgq_lda_float(dst,offset,addr)                                 \
 	assert( (((size_t)addr) + offset) % 32 == 0);                \
-	NAME2(dst,q0) = (v4f*)((char*)(addr) + (offset))->q[0]; \
-	NAME2(dst,q1) = (v4f*)((char*)(addr) + (offset))->q[1]; \
-	NAME2(dst,q2) = (v4f*)((char*)(addr) + (offset))->q[2]; \
-	NAME2(dst,q3) = (v4f*)((char*)(addr) + (offset))->q[3]
+	NAME2(dst,q0) = ((v4f*)((char*)(addr) + (offset)))->q[0]; \
+	NAME2(dst,q1) = ((v4f*)((char*)(addr) + (offset)))->q[1]; \
+	NAME2(dst,q2) = ((v4f*)((char*)(addr) + (offset)))->q[2]; \
+	NAME2(dst,q3) = ((v4f*)((char*)(addr) + (offset)))->q[3]
 
 #define bgq_ld2a_double(dst,offset,addr) \
 	assert( (((size_t)(addr)) + (offset)) % 16 == 0);                \
@@ -72,8 +72,8 @@ typedef struct {
 
 #define bgq_ld2a_float(dst,offset,addr) \
 	assert( (((size_t)(addr)) + (offset)) % 16 == 0);                \
-	NAME2(dst,q0) = (v4f*)((char*)(addr) + (offset))->q[0]; \
-	NAME2(dst,q1) = (v4f*)((char*)(addr) + (offset))->q[1]; \
+	NAME2(dst,q0) = ((v4f*)((char*)(addr) + (offset)))->q[0]; \
+	NAME2(dst,q1) = ((v4f*)((char*)(addr) + (offset)))->q[1]; \
 	NAME2(dst,q2) = NAME2(dst,q0);                                         \
 	NAME2(dst,q3) = NAME2(dst,q1)
 
@@ -86,10 +86,10 @@ typedef struct {
 
 #define bgq_sta_float(src,offset,addr) \
 	assert( (((size_t)(addr)) + (offset)) % 32 == 0);                \
-	(v4f*)((char*)(addr) + (offset))->q[0] = NAME2(src,q0); \
-	(v4f*)((char*)(addr) + (offset))->q[1] = NAME2(src,q1); \
-	(v4f*)((char*)(addr) + (offset))->q[2] = NAME2(src,q2); \
-	(v4f*)((char*)(addr) + (offset))->q[3] = NAME2(src,q3); \
+	((v4f*)((char*)(addr)) + (offset))->q[0] = NAME2(src,q0); \
+	((v4f*)((char*)(addr)) + (offset))->q[1] = NAME2(src,q1); \
+	((v4f*)((char*)(addr)) + (offset))->q[2] = NAME2(src,q2); \
+	((v4f*)((char*)(addr)) + (offset))->q[3] = NAME2(src,q3); \
 
 #define bgq_add(dst,lhs,rhs)        \
 	dst##_q0 = lhs##_q0 + rhs##_q0; \
@@ -702,6 +702,7 @@ typedef struct {
 
 // No semantic effects
 #define bgq_prefetch(addr)
+#define bgq_prefetchforwrite(addr)
 #define bgq_prefetch_forward(addr)
 #define bgq_prefetch_backward(addr)
 #define bgq_flush(addr)

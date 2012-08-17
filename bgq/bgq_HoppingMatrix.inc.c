@@ -254,7 +254,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 #endif
 
 #ifdef MPI
-	if (!nocom) {
+	if (!nocom && !nooverlap) {
 		#pragma omp master
 		{
 			//if (g_proc_id == 0)
@@ -296,23 +296,35 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	L1P_PatternPause();
 #endif
 
+#ifdef MPI
+	if (!nocom && nooverlap) {
+		#pragma omp master
+		{
+			//if (g_proc_id == 0)
+			//	fprintf(stderr, "MK HM Isend\n");
+			MPI_Request request_send[6];
+			for (int d = TUP; d <= YDOWN; d += 1) {
+				MPI_CHECK(MPI_Isend(weylxchange_send[d], weylxchange_size[d/2], MPI_BYTE, weylexchange_destination[d], d, MPI_COMM_WORLD, &request_send[d]));
+			}
+		}
+	}
+
 	if (!nocom) {
 		#pragma omp master
 		{
-		#ifdef MPI
 			//if (g_proc_id == 0)
 			//	fprintf(stderr, "MK HM Waitall\n");
 			MPI_Status weylxchange_recv_status[6];
 			MPI_CHECK(MPI_Waitall(6, request_recv, weylxchange_recv_status));
-		#ifndef NDEBUG
-			for (int d = TUP; d <= YDOWN; d += 1) {
-				//fprintf(stderr, "MK(rank: %d) Waitall got: %d, expected: %d\n", g_proc_id, get_MPI_count(&weylxchange_recv_status[d]), weylxchange_size[d]);
-				assert(get_MPI_count(&weylxchange_recv_status[d]) == weylxchange_size[d/2]);
-			}
-		#endif
-		#endif
+			#ifndef NDEBUG
+				for (int d = TUP; d <= YDOWN; d += 1) {
+					//fprintf(stderr, "MK(rank: %d) Waitall got: %d, expected: %d\n", g_proc_id, get_MPI_count(&weylxchange_recv_status[d]), weylxchange_size[d]);
+					assert(get_MPI_count(&weylxchange_recv_status[d]) == weylxchange_size[d/2]);
+				}
+			#endif
 		}
 	}
+#endif
 
 #if BGQ_PREFETCH_LIST
 if (!isOdd)
