@@ -410,6 +410,7 @@ typedef struct {
 	bgq_su3_vzero(NAME2(dst,v2));     \
 	bgq_su3_vzero(NAME2(dst,v3))
 
+#define bgq_su3_spinor_load NAME2(bgq_su3_spinor_load,PRECISION)
 #define bgq_su3_spinor_load_double(dst, addr) \
 	bgq_lda_double(NAME3(dst,v0,c0),   0, addr);          \
 	bgq_lda_double(NAME3(dst,v0,c1),  32, addr);          \
@@ -438,6 +439,7 @@ typedef struct {
 	bgq_lda_float(NAME3(dst,v3,c1), 160, addr);          \
 	bgq_lda_float(NAME3(dst,v3,c2), 176, addr)
 
+#define bgq_su3_weyl_load NAME2(bgq_su3_weyl_load,PRECISION)
 #define bgq_su3_weyl_load_double(dest, addr) \
 	bgq_lda_double(NAME3(dest,v0,c0),   0, addr);        \
 	bgq_lda_double(NAME3(dest,v0,c1),  32, addr);        \
@@ -454,6 +456,7 @@ typedef struct {
 	bgq_lda_float(NAME3(dest,v1,c1),  64, addr);        \
 	bgq_lda_float(NAME3(dest,v1,c2),  80, addr)
 
+#define bgq_su3_weyl_load_left NAME2(bgq_su3_weyl_load_left,PRECISION)
 #define bgq_su3_weyl_load_left_double(dest, addr) \
 	bgq_ld2a_double(NAME3(dest,v0,c0),   0, addr);        \
 	bgq_ld2a_double(NAME3(dest,v0,c1),  32, addr);        \
@@ -470,7 +473,7 @@ typedef struct {
 	bgq_ld2a_float(NAME3(dest,v1,c1),  64, addr);        \
 	bgq_ld2a_float(NAME3(dest,v1,c2),  80, addr)
 
-
+#define bgq_su3_matrix_load NAME2(bgq_su3_matrix_load,PRECISION)
 #define bgq_su3_matrix_load_double(dest, addr)   \
 	bgq_lda_double(NAME2(dest,c00),   0, addr); \
 	bgq_lda_double(NAME2(dest,c01),  32, addr); \
@@ -493,6 +496,7 @@ typedef struct {
 	bgq_lda_float(NAME2(dest,c21), 112, addr); \
 	bgq_lda_float(NAME2(dest,c22), 128, addr)
 
+#define bgq_su3_spinor_load_left NAME2(bgq_su3_spinor_load_left,PRECISION)
 #define bgq_su3_spinor_load_left_double(dst,addr) \
 	bgq_ld2a_double(NAME3(dst,v0,c0),   0, addr); \
 	bgq_ld2a_double(NAME3(dst,v0,c1),  32, addr); \
@@ -579,7 +583,7 @@ typedef struct {
 	bgq_sta_float(NAME3(src,v3,c1), 160, addr);          \
 	bgq_sta_float(NAME3(src,v3,c2), 176, addr)
 
-
+#define bgq_su3_weyl_store NAME2(bgq_su3_weyl_store,PRECISION)
 #define bgq_su3_weyl_store_double(addr,src) \
 	bgq_sta_double(NAME3(src,v0,c0),   0, addr);          \
 	bgq_sta_double(NAME3(src,v0,c1),  32, addr);          \
@@ -595,6 +599,7 @@ typedef struct {
 	bgq_sta_float(NAME3(src,v1,c0),  48, addr);          \
 	bgq_sta_float(NAME3(src,v1,c1),  64, addr);          \
 	bgq_sta_float(NAME3(src,v1,c2),  80, addr)
+
 
 #define bgq_su3_spinor_merge(dst,a,b)         \
 	bgq_su3_vmerge(dst##_v0, a##_v0, b##_v0); \

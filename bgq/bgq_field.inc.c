@@ -204,6 +204,9 @@ void bgq_spinorfield_resetcoord(bgq_spinorfield spinorfield, bool isOdd, int exp
 
 void bgq_init_spinorfields(int count) {
 	// preconditions
+	if (!even_odd_flag)
+		master_error(1, "ERROR: even_odd_flag must be set\n");
+
 	if (LOCAL_LT < 8) /* even/odd, 2-complex vectors, left and right border cannot be the same */
 		master_error(1, "ERROR: Local T-dimension must be at least 8 such that left and right (vectorized) surface do not overlap\n");
 
