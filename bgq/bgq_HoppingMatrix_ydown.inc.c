@@ -3,10 +3,6 @@
 #define BGQ_HM_YDOWN_PREFETCH 0
 #endif
 
-#ifndef BGQ_HM_YDOWN_WEYLREAD
-#define BGQ_HM_YDOWN_WEYLREAD 0
-#endif
-
 #ifndef BGQ_HM_YDOWN_COMPUTE
 #define BGQ_HM_YDOWN_COMPUTE 0
 #endif
@@ -36,18 +32,18 @@ void bgq_HoppingMatrix_ydown(bgq_spinorfield_double targetfield, bgq_spinorfield
 #endif
 
 
-		bgq_su3_weyl_decl(weyl_ydown);
-#if BGQ_HM_YDOWN_WEYLREAD==-1
-		if (y==0) {
-#endif
-#if (BGQ_HM_YDOWN_WEYLREAD==-1) || (BGQ_HM_YDOWN_WEYLREAD==1)
+	bgq_su3_weyl_decl(weyl_ydown);
+	#if (BGQ_HM_YDOWN_WEYLREAD==-1)
+	if (y==0) {
+	#endif
+	#if (BGQ_HM_YDOWN_WEYLREAD==-1) || (BGQ_HM_YDOWN_WEYLREAD==1)
 		bgq_weylsite *weylsite_ydown = BGQ_WEYLSITE_Y(weylxchange_recv[YDOWN], !isOdd, tv, x, y-1, z, t1, t2, !BGQ_HM_YDOWN_PREFETCH,false);
 		bgq_su3_weyl_loadorprefetch(weyl_ydown, weylsite_ydown);
-#endif
-#if BGQ_HM_YDOWN_WEYLREAD==-1
+	#endif
+	#if (BGQ_HM_YDOWN_WEYLREAD==-1)
 	} else {
-#endif
-#if (BGQ_HM_YDOWN_WEYLREAD==-1) || (BGQ_HM_YDOWN_WEYLREAD==0)
+	#endif
+	#if (BGQ_HM_YDOWN_WEYLREAD==-1) || (BGQ_HM_YDOWN_WEYLREAD==0)
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_ydown);
 		bgq_spinorsite *spinorsite_ydown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y-1, z, t1,t2, !BGQ_HM_YDOWN_PREFETCH,false);
@@ -58,10 +54,10 @@ void bgq_HoppingMatrix_ydown(bgq_spinorfield_double targetfield, bgq_spinorfield
 			bgq_su3_vsub(weyl_ydown_v0, spinor_ydown_v0, spinor_ydown_v3);
 			bgq_su3_vadd(weyl_ydown_v1, spinor_ydown_v1, spinor_ydown_v2);
 		#endif
-#endif
-#if BGQ_HM_YDOWN_WEYLREAD==-1
+	#endif
+	#if (BGQ_HM_YDOWN_WEYLREAD==-1)
 	}
-#endif
+	#endif
 
 
 
@@ -102,7 +98,6 @@ void bgq_HoppingMatrix_ydown(bgq_spinorfield_double targetfield, bgq_spinorfield
 #include "bgq_loadorprefetch.inc.c"
 
 #undef BGQ_HM_YDOWN_PREFETCH
-#undef BGQ_HM_YDOWN_WEYLREAD
 #undef BGQ_HM_YDOWN_COMPUTE
 #undef BGQ_HM_YDOWN_WEYL_SEND
 #undef BGQ_HM_YDOWN_ACCUMULATE

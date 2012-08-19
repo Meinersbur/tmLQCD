@@ -1,9 +1,28 @@
 
-#if BGQ_HM_TUP_TLINEINDENT
-#define BGQ_HM_SITE_TLINEINDENT 0
-#else
-#define BGQ_HM_SITE_TLINEINDENT 1
+#ifndef BGQ_HM_ZLINE_TUP_WEYLREAD
+#define BGQ_HM_ZLINE_TUP_WEYLREAD 0
 #endif
+
+#ifndef BGQ_HM_ZLINE_TDOWN_WEYLREAD
+#define BGQ_HM_ZLINE_TDOWN_WEYLREAD 0
+#endif
+
+#ifndef BGQ_HM_ZLINE_XUP_WEYLREAD
+#define BGQ_HM_ZLINE_XUP_WEYLREAD 0
+#endif
+
+#ifndef BGQ_HM_ZLINE_XDOWN_WEYLREAD
+#define BGQ_HM_ZLINE_XDOWN_WEYLREAD 0
+#endif
+
+#ifndef BGQ_HM_ZLINE_YUP_WEYLREAD
+#define BGQ_HM_ZLINE_YUP_WEYLREAD 0
+#endif
+
+#ifndef BGQ_HM_ZLINE_YDOWN_WEYLREAD
+#define BGQ_HM_ZLINE_YDOWN_WEYLREAD 0
+#endif
+
 
 #ifndef BGQ_HM_SITE_NOFUNC
 #include "bgq.h"
@@ -103,12 +122,22 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 		const int t2_shadowed = t2;
 		{
 			const int z = z_shadowed + 1;
-			#if (BGQ_HM_SITE_TLINEINDENT==0)
+			#if (BGQ_HM_TLINEINDENT==-1)
+			if ( (x+y)&1 == isOdd )
+			#endif
+			#if (BGQ_HM_TLINEINDENT==-1) || (BGQ_HM_TLINEINDENT==0)
 				const int t1 = t1_shadowed + 1;
 				const int t2 = t2_shadowed + 1;
-			#elif (BGQ_HM_SITE_TLINEINDENT==1)
+			#endif
+			#if (BGQ_HM_TLINEINDENT==-1)
+			} else {
+			#endif
+			#if (BGQ_HM_TLINEINDENT==-1) || (BGQ_HM_TLINEINDENT==1)
 				const int t1 = t1_shadowed - 1;
 				const int t2 = t2_shadowed - 1;
+			#endif
+			#if (BGQ_HM_TLINEINDENT==-1)
+			}
 			#endif
 			#define BGQ_HM_TDOWN_PREFETCH 1
 			#include "bgq_HoppingMatrix_tdown.inc.c"
@@ -135,4 +164,11 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 #undef BGQ_HM_DIR_NOFUNC 1
 #endif
 
-#undef BGQ_HM_SITE_TLINEINDENT
+
+#undef BGQ_HM_ZLINE_TUP_WEYLREAD
+#undef BGQ_HM_ZLINE_TDOWN_WEYLREAD
+#undef BGQ_HM_ZLINE_XUP_WEYLREAD
+#undef BGQ_HM_ZLINE_XDOWN_WEYLREAD
+#undef BGQ_HM_ZLINE_YUP_WEYLREAD
+#undef BGQ_HM_ZLINE_YDOWN_WEYLREAD
+

@@ -9,29 +9,6 @@
 #define BGQ_HM_ZLINE_STARTINDENT -1
 #endif
 
-#ifndef BGQ_HM_ZLINE_TUP_WEYLREAD
-#define BGQ_HM_ZLINE_TUP_WEYLREAD 0
-#endif
-
-#ifndef BGQ_HM_ZLINE_TDOWN_WEYLREAD
-#define BGQ_HM_ZLINE_TDOWN_WEYLREAD 0
-#endif
-
-#ifndef BGQ_HM_ZLINE_XUP_WEYLREAD
-#define BGQ_HM_ZLINE_XUP_WEYLREAD 0
-#endif
-
-#ifndef BGQ_HM_ZLINE_XDOWN_WEYLREAD
-#define BGQ_HM_ZLINE_XDOWN_WEYLREAD 0
-#endif
-
-#ifndef BGQ_HM_ZLINE_YUP_WEYLREAD
-#define BGQ_HM_ZLINE_YUP_WEYLREAD 0
-#endif
-
-#ifndef BGQ_HM_ZLINE_YDOWN_WEYLREAD
-#define BGQ_HM_ZLINE_YDOWN_WEYLREAD 0
-#endif
 
 #ifndef BGQ_HM_ZLINE_ID
 #error Need some unique string to identify goto labels
@@ -122,15 +99,9 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 		if (z >= PHYSICAL_LX)
 			break;
 		{
-			#define BGQ_HM_TUP_TLINEINDENT 0
-			#define BGQ_HM_TDOWN_TLINEINDENT 0
-			#define BGQ_HM_TUP_WEYLREAD BGQ_HM_ZLINE_TUP_WEYLREAD
-			#define BGQ_HM_TDOWN_WEYLREAD BGQ_HM_ZLINE_TDOWN_WEYLREAD
-			#define BGQ_HM_XUP_WEYLREAD BGQ_HM_ZLINE_XUP_WEYLREAD
-			#define BGQ_HM_XDOWN_WEYLREAD BGQ_HM_ZLINE_XDOWN_WEYLREAD
-			#define BGQ_HM_YUP_WEYLREAD BGQ_HM_ZLINE_YUP_WEYLREAD
-			#define BGQ_HM_YDOWN_WEYLREAD BGQ_HM_ZLINE_YDOWN_WEYLREAD
+			#define BGQ_HM_TLINEINDENT 0
 			#include "bgq_HoppingMatrix_site.inc.c"
+			#undef BGQ_HM_TLINEINDENT
 		}
 		t1 += 1;
 		t2 += 1;
@@ -141,15 +112,9 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 		if (z >= PHYSICAL_LX)
 			break;
 		{
-			#define BGQ_HM_TUP_TLINEINDENT 1
-			#define BGQ_HM_TDOWN_TLINEINDENT 1
-			#define BGQ_HM_TUP_WEYLREAD BGQ_HM_ZLINE_TUP_WEYLREAD
-			#define BGQ_HM_TDOWN_WEYLREAD BGQ_HM_ZLINE_TDOWN_WEYLREAD
-			#define BGQ_HM_XUP_WEYLREAD BGQ_HM_ZLINE_XUP_WEYLREAD
-			#define BGQ_HM_XDOWN_WEYLREAD BGQ_HM_ZLINE_XDOWN_WEYLREAD
-			#define BGQ_HM_YUP_WEYLREAD BGQ_HM_ZLINE_YUP_WEYLREAD
-			#define BGQ_HM_YDOWN_WEYLREAD BGQ_HM_ZLINE_YDOWN_WEYLREAD
+			#define BGQ_HM_TLINEINDENT 1
 			#include "bgq_HoppingMatrix_site.inc.c"
+			#undef BGQ_HM_TLINEINDENT
 		}
 		t1 -= 1;
 		t2 -= 1;
@@ -165,13 +130,6 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 
 #undef BGQ_HM_ZLINE_STARTINDENT
-#undef BGQ_HM_ZLINE_TUP_WEYLREAD
-#undef BGQ_HM_ZLINE_TDOWN_WEYLREAD
-#undef BGQ_HM_ZLINE_XUP_WEYLREAD
-#undef BGQ_HM_ZLINE_XDOWN_WEYLREAD
-#undef BGQ_HM_ZLINE_YUP_WEYLREAD
-#undef BGQ_HM_ZLINE_YDOWN_WEYLREAD
-
 #undef BGQ_HM_ZLINE_ID
 #undef STARTFLUSH
 #undef STARTRAGGED

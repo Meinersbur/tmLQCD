@@ -3,10 +3,6 @@
 #define BGQ_HM_XUP_PREFETCH 0
 #endif
 
-#ifndef BGQ_HM_XUP_WEYLREAD
-#define BGQ_HM_XUP_WEYLREAD 0
-#endif
-
 #ifndef BGQ_HM_XUP_COMPUTE
 #define BGQ_HM_XUP_COMPUTE 0
 #endif
@@ -35,32 +31,33 @@ void bgq_HoppingMatrix_xup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 {
 #endif
 
-	bgq_su3_weyl_decl(weyl_xup);
-#if BGQ_HM_XUP_WEYLREAD==-1
-	if (x==PHYSICAL_LX-1) {
-#endif
-#if (BGQ_HM_XUP_WEYLREAD==-1) || (BGQ_HM_XUP_WEYLREAD==1)
-	bgq_weylsite *weylsite_xup = BGQ_WEYLSITE_X(weylxchange_recv[XUP], !isOdd, tv, x+1, y, z, t1, t2, !BGQ_HM_XUP_PREFETCH,false);
-	bgq_su3_weyl_loadorprefetch(weyl_xup, weylsite_xup);
-#endif
-#if BGQ_HM_XUP_WEYLREAD==-1
-} else {
-#endif
-#if (BGQ_HM_XUP_WEYLREAD==-1) || (BGQ_HM_XUP_WEYLREAD==0)
-	// Load the input spinor
-	bgq_su3_spinor_decl(spinor_xup);
-	bgq_spinorsite *spinorsite_xup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x+1, y, z, t1, t2, !BGQ_HM_XUP_PREFETCH,false);
-	bgq_su3_spinor_loadorprefetch(spinor_xup, spinorsite_xup);
 
-	#if !BGQ_HM_XUP_PREFETCH
-	// Compute its halfspinor
-	bgq_su3_vpiadd(weyl_xup_v0, spinor_xup_v0, spinor_xup_v3);
-	bgq_su3_vpiadd(weyl_xup_v1, spinor_xup_v1, spinor_xup_v2);
+	bgq_su3_weyl_decl(weyl_xup);
+	#if (BGQ_HM_XUP_WEYLREAD==-1)
+	if (x==PHYSICAL_LX-1) {
 	#endif
-#endif
-#if BGQ_HM_XUP_WEYLREAD==-1
-}
-#endif
+	#if (BGQ_HM_XUP_WEYLREAD==-1) || (BGQ_HM_XUP_WEYLREAD==1)
+		bgq_weylsite *weylsite_xup = BGQ_WEYLSITE_X(weylxchange_recv[XUP], !isOdd, tv, x+1, y, z, t1, t2, !BGQ_HM_XUP_PREFETCH,false);
+		bgq_su3_weyl_loadorprefetch(weyl_xup, weylsite_xup);
+	#endif
+	#if (BGQ_HM_XUP_WEYLREAD==-1)
+	} else {
+	#endif
+	#if (BGQ_HM_XUP_WEYLREAD==-1) || (BGQ_HM_XUP_WEYLREAD==0)
+		// Load the input spinor
+		bgq_su3_spinor_decl(spinor_xup);
+		bgq_spinorsite *spinorsite_xup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x+1, y, z, t1, t2, !BGQ_HM_XUP_PREFETCH,false);
+		bgq_su3_spinor_loadorprefetch(spinor_xup, spinorsite_xup);
+
+		#if !BGQ_HM_XUP_PREFETCH
+		// Compute its halfspinor
+		bgq_su3_vpiadd(weyl_xup_v0, spinor_xup_v0, spinor_xup_v3);
+		bgq_su3_vpiadd(weyl_xup_v1, spinor_xup_v1, spinor_xup_v2);
+		#endif
+	#endif
+	#if (BGQ_HM_XUP_WEYLREAD==-1)
+	}
+	#endif
 
 
 #if BGQ_HM_XUP_COMPUTE
@@ -104,7 +101,6 @@ void bgq_HoppingMatrix_xup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 #include "bgq_loadorprefetch.inc.c"
 
 #undef BGQ_HM_XUP_PREFETCH
-#undef BGQ_HM_XUP_WEYLREAD
 #undef BGQ_HM_XUP_COMPUTE
 #undef BGQ_HM_XUP_WEYL_SEND
 #undef BGQ_HM_XUP_ACCUMULATE

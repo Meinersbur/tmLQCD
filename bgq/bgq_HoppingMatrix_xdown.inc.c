@@ -3,10 +3,6 @@
 #define BGQ_HM_XDOWN_PREFETCH 0
 #endif
 
-#ifndef BGQ_HM_XDOWN_WEYLREAD
-#define BGQ_HM_XDOWN_WEYLREAD 0
-#endif
-
 #ifndef BGQ_HM_XDOWN_COMPUTE
 #define BGQ_HM_XDOWN_COMPUTE 0
 #endif
@@ -103,7 +99,6 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 #include "bgq_loadorprefetch.inc.c"
 
 #undef BGQ_HM_XDOWN_PREFETCH
-#undef BGQ_HM_XDOWN_WEYLREAD
 #undef BGQ_HM_XDOWN_COMPUTE
 #undef BGQ_HM_XDOWN_WEYL_SEND
 #undef BGQ_HM_XDOWN_ACCUMULATE

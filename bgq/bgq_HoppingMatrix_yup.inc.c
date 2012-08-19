@@ -3,10 +3,6 @@
 #define BGQ_HM_YUP_PREFETCH 0
 #endif
 
-#ifndef BGQ_HM_YUP_WEYLREAD
-#define BGQ_HM_YUP_WEYLREAD 0
-#endif
-
 #ifndef BGQ_HM_YUP_COMPUTE
 #define BGQ_HM_YUP_COMPUTE 0
 #endif
@@ -104,7 +100,6 @@ void bgq_HoppingMatrix_yup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 #include "bgq_loadorprefetch.inc.c"
 
 #undef BGQ_HM_YUP_PREFETCH
-#undef BGQ_HM_YUP_WEYLREAD
 #undef BGQ_HM_YUP_COMPUTE
 #undef BGQ_HM_YUP_WEYL_SEND
 #undef BGQ_HM_YUP_ACCUMULATE

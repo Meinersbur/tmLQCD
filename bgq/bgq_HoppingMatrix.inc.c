@@ -176,8 +176,10 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 		const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
 		const int t2 = t1 + 2;
 
+		#define BGQ_HM_XUP_WEYLREAD 0
 		#define BGQ_HM_XUP_WEYL_SEND 1
 		#include "bgq_HoppingMatrix_xup.inc.c"
+		#undef BGQ_HM_XUP_WEYLREAD
 	}
 
 
@@ -194,8 +196,10 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 		const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
 		const int t2 = t1 + 2;
 
+		#define BGQ_HM_XDOWN_WEYLREAD 0
 		#define BGQ_HM_XDOWN_WEYL_SEND 1
 		#include "bgq_HoppingMatrix_xdown.inc.c"
+		#undef BGQ_HM_XDOWN_WEYLREAD
 	}
 
 
@@ -212,8 +216,10 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 		const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
 		const int t2 = t1 + 2;
 
+		#define BGQ_HM_YUP_WEYLREAD 0
 		#define BGQ_HM_YUP_WEYL_SEND 1
 		#include "bgq_HoppingMatrix_yup.inc.c"
+		#undef BGQ_HM_YUP_WEYLREAD
 	}
 
 
@@ -231,9 +237,12 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 		const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
 		const int t2 = t1 + 2;
 
+		#define BGQ_HM_YDOWN_WEYLREAD 0
 		#define BGQ_HM_YDOWN_WEYL_SEND 1
 		#include "bgq_HoppingMatrix_ydown.inc.c"
+		#undef BGQ_HM_YDOWN_WEYLREAD
 	}
+
 
 #if BGQ_PREFETCH_LIST
 	if (!isOdd)
@@ -286,7 +295,19 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 		int t2 = t1 + 2;
 
 		#define BGQ_HM_ZLINE_ID KERNEL
+		#define BGQ_HM_TUP_WEYLREAD 0
+		#define BGQ_HM_TDOWN_WEYLREAD 0
+		#define BGQ_HM_XUP_WEYLREAD 0
+		#define BGQ_HM_XDOWN_WEYLREAD 0
+		#define BGQ_HM_YUP_WEYLREAD 0
+		#define BGQ_HM_YDOWN_WEYLREAD 0
 		#include "bgq_HoppingMatrix_zline.inc.c"
+		#undef BGQ_HM_TUP_WEYLREAD
+		#undef BGQ_HM_TDOWN_WEYLREAD
+		#undef BGQ_HM_XUP_WEYLREAD
+		#undef BGQ_HM_XDOWN_WEYLREAD
+		#undef BGQ_HM_YUP_WEYLREAD
+		#undef BGQ_HM_YDOWN_WEYLREAD
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -383,13 +404,19 @@ L1P_PatternResume();
 		int t2 = t1 + 2;
 
 		#define BGQ_HM_ZLINE_ID SURFACE
-		#define BGQ_HM_ZLINE_TUP_WEYLREAD -1
-		#define BGQ_HM_ZLINE_TDOWN_WEYLREAD -1
-		#define BGQ_HM_ZLINE_XUP_WEYLREAD -1
-		#define BGQ_HM_ZLINE_XDOWN_WEYLREAD -1
-		#define BGQ_HM_ZLINE_YUP_WEYLREAD -1
-		#define BGQ_HM_ZLINE_YDOWN_WEYLREAD -1
+		#define BGQ_HM_TUP_WEYLREAD -1
+		#define BGQ_HM_TDOWN_WEYLREAD -1
+		#define BGQ_HM_XUP_WEYLREAD -1
+		#define BGQ_HM_XDOWN_WEYLREAD -1
+		#define BGQ_HM_YUP_WEYLREAD -1
+		#define BGQ_HM_YDOWN_WEYLREAD -1
 		#include "bgq_HoppingMatrix_zline.inc.c"
+		#undef BGQ_HM_TUP_WEYLREAD
+		#undef BGQ_HM_TDOWN_WEYLREAD
+		#undef BGQ_HM_XUP_WEYLREAD
+		#undef BGQ_HM_XDOWN_WEYLREAD
+		#undef BGQ_HM_YUP_WEYLREAD
+		#undef BGQ_HM_YDOWN_WEYLREAD
 	}
 
 #if BGQ_PREFETCH_LIST
@@ -401,6 +428,7 @@ L1P_PatternResume();
 #endif
 } /* #pragma omp parallel */
 
+
 #if BGQ_PREFETCH_LIST
 if (!isOdd) {
 	l1p_first = false;
@@ -409,6 +437,7 @@ if (!isOdd) {
 	master_print("L1P_LIST: maxed=%d abandoned=%d finished=%d endoflist=%d fetch_depth=%d generate_depth=%d \n", st.s.maximum, st.s.abandoned, st.s.finished, st.s.endoflist, (int)fetch_depth, (int)generate_depth);
 }
 #endif
+
 
 #if BGQ_FIELD_COORDCHECK
 	bgq_spinorfield_resetcoord(targetfield, isOdd, 0,0,1,1);
