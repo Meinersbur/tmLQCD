@@ -100,11 +100,7 @@ typedef _Complex float complexfloat;
 
 
 #define BGQ_SPINORSITE_ACCESS(spinorfield, isOdd, tv, x, y, z) \
-	(assert(0 <= tv && tv < PHYSICAL_LTV),                      \
-	 assert(0 <= x && x < PHYSICAL_LX),                         \
-	 assert(0 <= y && y < PHYSICAL_LY),                         \
-	 assert(0 <= z && z < PHYSICAL_LZ),                         \
-	 &(spinorfield)[(((tv)*PHYSICAL_LX + (x))*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)])
+	(&(spinorfield)[(((tv)*PHYSICAL_LX + (x))*PHYSICAL_LY + (y))*PHYSICAL_LZ + (z)])
 
 #define BGQ_SPINORSITE(spinorfield, isOdd, tv, x, y, z, t1, t2, isRead, isWrite)                         \
 		(assert(assert_spinorcoord(spinorfield, isOdd, t1, x, y, z, tv, 0, isRead, isWrite)), \

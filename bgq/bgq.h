@@ -57,7 +57,7 @@ typedef struct {
 //TODO: setting the 5 least significant bits of addr+offset to zero
 
 #define bgq_lda_float(dst,offset,addr)                                 \
-	assert( (((size_t)addr) + offset) % 32 == 0);                \
+	assert( (((size_t)addr) + offset) % 16 == 0);                \
 	NAME2(dst,q0) = ((v4f*)((char*)(addr) + (offset)))->q[0]; \
 	NAME2(dst,q1) = ((v4f*)((char*)(addr) + (offset)))->q[1]; \
 	NAME2(dst,q2) = ((v4f*)((char*)(addr) + (offset)))->q[2]; \
@@ -71,7 +71,7 @@ typedef struct {
 	NAME2(dst,q3) = NAME2(dst,q1)
 
 #define bgq_ld2a_float(dst,offset,addr) \
-	assert( (((size_t)(addr)) + (offset)) % 16 == 0);                \
+	assert( (((size_t)(addr)) + (offset)) % 8 == 0);                \
 	NAME2(dst,q0) = ((v4f*)((char*)(addr) + (offset)))->q[0]; \
 	NAME2(dst,q1) = ((v4f*)((char*)(addr) + (offset)))->q[1]; \
 	NAME2(dst,q2) = NAME2(dst,q0);                                         \
@@ -85,7 +85,7 @@ typedef struct {
 	BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 3) = NAME2(src,q3); \
 
 #define bgq_sta_float(src,offset,addr) \
-	assert( (((size_t)(addr)) + (offset)) % 32 == 0);                \
+	assert( (((size_t)(addr)) + (offset)) % 16 == 0);                \
 	((v4f*)((char*)(addr)) + (offset))->q[0] = NAME2(src,q0); \
 	((v4f*)((char*)(addr)) + (offset))->q[1] = NAME2(src,q1); \
 	((v4f*)((char*)(addr)) + (offset))->q[2] = NAME2(src,q2); \

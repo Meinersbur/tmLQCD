@@ -123,7 +123,7 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 		{
 			const int z = z_shadowed + 1;
 			#if (BGQ_HM_TLINEINDENT==-1)
-			if ( (x+y)&1 == isOdd )
+			if ( (x+y+z)&1 == isOdd )
 			#endif
 			#if (BGQ_HM_TLINEINDENT==-1) || (BGQ_HM_TLINEINDENT==0)
 				const int t1 = t1_shadowed + 1;
@@ -139,8 +139,27 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 			#if (BGQ_HM_TLINEINDENT==-1)
 			}
 			#endif
+
+			// Invert TLINEINDENT
+			#if (BGQ_HM_TLINEINDENT==0)
+			#undef BGQ_HM_TLINEINDENT
+			#define BGQ_HM_TLINEINDENT 1
+			#elif (BGQ_HM_TLINEINDENT==1)
+			#undef BGQ_HM_TLINEINDENT
+			#define BGQ_HM_TLINEINDENT 0
+			#endif
+
 			#define BGQ_HM_TDOWN_PREFETCH 1
 			#include "bgq_HoppingMatrix_tdown.inc.c"
+
+			// Revert TLINEINDENT
+			#if (BGQ_HM_TLINEINDENT==0)
+			#undef BGQ_HM_TLINEINDENT
+			#define BGQ_HM_TLINEINDENT 1
+			#elif (BGQ_HM_TLINEINDENT==1)
+			#undef BGQ_HM_TLINEINDENT
+			#define BGQ_HM_TLINEINDENT 0
+			#endif
 		}
 	#endif
 

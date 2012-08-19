@@ -40,8 +40,6 @@
 #define bgq_translate_spinorfield NAME2(bgq_translate_spinorfield,PRECISION)
 #define bgq_transfer_spinorfield NAME2(bgq_transfer_spinorfield,PRECISION)
 #define bgq_spinorfield_resetcoord NAME2(bgq_spinorfield_resetcoord,PRECISION)
-#define assert_spinorfield_coord NAME2(assert_spinorfield_coord,PRECISION)
-#define assert_spinorcoord NAME2(assert_spinorcoord,PRECISION)
 
 
 
@@ -83,7 +81,9 @@ bgq_spinorfield bgq_translate_spinorfield(spinor * const field);
 void bgq_transfer_spinorfield(bool isOdd, bgq_spinorfield targetfield, spinor *sourcefield);
 void bgq_spinorfield_resetcoord(bgq_spinorfield spinorfield, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max);
 
+#define assert_spinorfield_coord NAME2(assert_spinorfield_coord,PRECISION)
 bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, bool isRead, bool isWrite);
+#define assert_spinorcoord NAME2(assert_spinorcoord,PRECISION)
 bool assert_spinorcoord(bgq_spinorfield spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, bool isRead, bool isWrite);
 
 #define bgq_spinorfield_get NAME2(bgq_spinorfield_get,PRECISION)

@@ -18,6 +18,10 @@ typedef enum {
 	hm_prefetchlist = 1 << 3,
 	hm_prefetchstream = 1 << 4,
 	hm_prefetchexplicit = 1 << 5,
+
+	hm_noweylsend = 1 << 6,
+	hm_nobody = 1 << 7,
+	hm_nosurface = 1 << 8
 } bgq_hmflags;
 
 #define bgq_HoppingMatrix NAME2(bgq_HoppingMatrix,PRECISION)

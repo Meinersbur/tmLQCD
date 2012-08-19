@@ -430,7 +430,7 @@ typedef struct {
 	double flops;
 } benchstat;
 
-benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool nocom, bool nooverlap) {
+benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool nocom, bool nooverlap, bool noweylsend, bool nobody, bool nosurface) {
 	int iterations = 0;
 
 	double localsumtime = 0;
@@ -442,6 +442,9 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 
 	hmflags |= nocom*hm_nocom;
 	hmflags |= nooverlap*hm_nooverlap;
+	hmflags |= noweylsend*hm_noweylsend;
+	hmflags |= nobody*hm_nobody;
+	hmflags |= nosurface*hm_nosurface;
 
 	for (int j = 0; j < j_max; j += 1) {
 		////////////////////////////////////////////////////////////////////////////////
@@ -470,27 +473,37 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 	double localavgsqtime = sqr(localavgtime);
 	double localrmstime = sqrt((localsumsqtime / j_max) - localavgsqtime);
 
-	double sumtime = -1;
-	double sumsqtime = -1;
-	MPI_Allreduce(&sumtime, &localavgtime, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
-	MPI_Allreduce(&sumsqtime, &localavgsqtime, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+	double localtime[] = { localavgtime, localavgsqtime, localrmstime };
+	double sumreduce[3] = { -1, -1, -1 };
+	MPI_Allreduce(&localtime, &sumreduce, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	double sumtime = sumreduce[0];
+	double sumsqtime = sumreduce[1];
+
 
 	double avgtime = sumtime / g_nproc;
-	double rmstime = sqrt((sumsqtime / j_max) - sqr(sumtime));
+	double avglocalrms = sumreduce[2] / g_nproc;
+	double rmstime = sqrt((sumsqtime / g_nproc) - sqr(avgtime));
 
-	double lups = iterations * LOCAL_LT * LOCAL_LX * LOCAL_LY * LOCAL_LZ;
-	double flops_per_lup = 1320;
-	double flops = lups * flops_per_lup;
+	int lups = iterations * LOCAL_LT * LOCAL_LX * LOCAL_LY * LOCAL_LZ;
+	int lups_body = iterations * BODY_ZLINES * PHYSICAL_LP*PHYSICAL_LK *LOCAL_LZ;
+	int lups_surface = iterations * SURFACE_ZLINES * PHYSICAL_LP*PHYSICAL_LK *LOCAL_LZ;
+	assert(lups == lups_body + lups_surface);
+	int flops_per_lup = 1320;
+	int flops_per_lup_body = nobody ? 0 : 1320;
+	int flops_per_lup_surface = 0;
+	if (!noweylsend)
+		flops_per_lup_surface += 6 * 2 * 2;
+	if (!nosurface)
+		flops_per_lup_surface += 1320 - (6*2*2);
+	double flops = (double)flops_per_lup_body * (double)flops_per_lup_body + (double)flops_per_lup_surface * (double)lups_surface;
+
 
 	benchstat result;
-
 	result.avgtime = avgtime;
-	result.localrmstime = localrmstime;
+	result.localrmstime = avglocalrms;
 	result.globalrmstime = rmstime;
-
 	result.lups = lups;
 	result.flops = flops / avgtime;
-
 	return result;
 }
 
@@ -505,8 +518,11 @@ static char* omp_threads_desc[] = { "1", "2", "4", "8", "16", "32", "64" };
 static struct {
 	bool nocom;
 	bool comnooverlap;
-} coms[] = { { false, false }, { false, true }, { true, -1 } };
-static char* com_desc[] = { "Com async", "Com sync", "Com off" };
+	bool noweylsend;
+	bool nobody;
+	bool nosurface;
+} coms[] = { { false, false, false, false, false }, { false, true, false, false, false }, { true, -1, false, false, false }, { true, -1, true, false, true }, { true, -1, false, true, false } };
+static char* com_desc[] = { "Com async", "Com sync", "Com off", "bodyonly", "surfaceonly" };
 
 
 static void print_repeat(const char * const str, const int count) {
@@ -533,26 +549,29 @@ static void exec_bench() { print_repeat("\n", 2);
 			if (g_proc_id == 0) printf("%"SCELLWIDTH"s|", com_desc[i3]);
 		}
 		if (g_proc_id == 0) printf("\n");
-		print_repeat("-", CELLWIDTH + 1 + (CELLWIDTH + 1)*COUNTOF(coms));
+		print_repeat("-", 10 + 1 + (CELLWIDTH + 1)*COUNTOF(coms));
 		if (g_proc_id == 0) printf("\n");
 		for (int i2 = 0; i2 < COUNTOF(omp_threads); i2 += 1) {
 			int threads = omp_threads[i2];
 
-			if (g_proc_id == 0) printf("%10s|\n", omp_threads_desc[i2]);
+			if (g_proc_id == 0) printf("%10s|", omp_threads_desc[i2]);
 
 			for (int i3 = 0; i3 < COUNTOF(coms); i3 += 1) {
 				bool nocom = coms[i3].nocom;
 				bool nooverlap = coms[i3].comnooverlap;
+				bool noweylsend = coms[i3].noweylsend;
+				bool nobody = coms[i3].nobody;
+				bool nosurface = coms[i3].nosurface;
 
-				benchstat result = runbench(1, 2, sloppiness, threads, nocom, nooverlap);
+				benchstat result = runbench(1, 2, sloppiness, threads, nocom, nooverlap, noweylsend, nobody, nosurface);
 
 				char str[80] = {0};
-				snprintf( str, sizeof(str), "%f.0 mflops/s" , result.flops / MEGA);
+				snprintf(str, sizeof(str), "%.0f mflops/s" , result.flops / MEGA);
 				if (g_proc_id == 0) printf("%"SCELLWIDTH"s|", str);
 				if (g_proc_id == 0) fflush(stdout);
 			}
 			if (g_proc_id == 0) printf("\n");
-			print_repeat("-", CELLWIDTH + 1 + (CELLWIDTH + 1)*COUNTOF(coms));
+			print_repeat("-", 10 + 1 + (CELLWIDTH + 1)*COUNTOF(coms));
 			if (g_proc_id == 0) printf("\n");
 		}
 		if (g_proc_id == 0) printf("\n");

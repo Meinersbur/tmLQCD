@@ -17,6 +17,9 @@ void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield targetfield, bgq_spino
 	const bool prefetchlist = opts & hm_prefetchlist;
 	const bool prefetchstream = opts & hm_prefetchstream;
 	const bool prefetchexplicit = opts & hm_prefetchexplicit;
+	const bool noweylsend = opts & hm_noweylsend;
+	const bool nobody = opts & hm_nobody;
+	const bool nosurface = opts & hm_nosurface;
 
 	#define BGQ_HM_NOFUNC 1
 	#define BGQ_HM_ZLINE_NOFUNC 1

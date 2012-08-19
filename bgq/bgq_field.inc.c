@@ -346,8 +346,13 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield const targetfiel
 }
 
 
-#if BGQ_FIELD_COORDCHECK
+
 bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, bool isRead, bool isWrite) {
+	if (!isRead && !isWrite && (z == LOCAL_LZ) ) {
+		// Allow for prefetching
+		return true;
+	}
+
 	assert(spinorfield);
 	assert(false <= isOdd && isOdd <= true);
 	assert(0 <= t && t < LOCAL_LT);
@@ -368,6 +373,7 @@ bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, in
 	// Check that the coordinate is really an odd/even coordinate
 	assert(((t+x+y+z)&1) == isOdd);
 
+#if BGQ_FIELD_COORDCHECK
 	// Check that field is used as an odd/even field
 	if (g_spinorfield_isOdd[index] == -1) {
 		// not yet defined, just ensure that at all following uses are the same
@@ -375,6 +381,7 @@ bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, in
 	} else {
 		assert(g_spinorfield_isOdd[index] == isOdd);
 	}
+#endif
 
 	const int teo = t/PHYSICAL_LP;
 
@@ -396,6 +403,7 @@ bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, in
 	assert(mod((size_t)site,16)==0);
 	assert(mod((size_t)&site->s[v][c][0],PRECISION_VECTOR_ALIGNMENT)==0);
 
+#if BGQ_FIELD_COORDCHECK
 	// Get the equivalent address in debug address space, and check it
 	bgq_spinorfield_checkcoord(spinorfield,isOdd,t,x,y,z,tv,k,v,c,val);
 	bgq_spinorcoord *coord = bgq_spinorfield_coordref(val);
@@ -405,6 +413,7 @@ bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, in
 		coord->coord.reads += 1;
 	if (isWrite)
 		coord->coord.writes += 1;
+#endif
 
 	return true; // All checks passed
 }
@@ -419,7 +428,7 @@ bool assert_spinorcoord(bgq_spinorfield spinorfield, bool isOdd, int t, int x, i
 
 	return true;
 }
-#endif
+
 
 
 
@@ -844,7 +853,7 @@ void bgq_transfer_gaugefield(bgq_gaugefield const targetfield, su3 ** const sour
 }
 
 
-#if BGQ_FIELD_COORDCHECK
+
 bool assert_gaugesite(bgq_gaugefield gaugefield, bool isOdd, int t, int x, int y, int z, int tv, int k, direction dir, bool isRead, bool isWrite) {
 	for (int i = 0; i < 3; i += 1) {
 		for (int l = 0; l < 3; l += 1) {
@@ -897,6 +906,7 @@ bool assert_gaugeval(bgq_gaugefield gaugefield, bool isOdd, int t, int x, int y,
 	assert(mod((size_t)&site->c[i][l][0],PRECISION_VECTOR_ALIGNMENT)==0);
 
 
+#if BGQ_FIELD_COORDCHECK
 	// get the debug data
 	bgq_gaugefield_checkcoord(gaugefield,isOdd,t,x,y,moddown(z,LOCAL_LZ),tv,k,dir,i,l,address);
 	bgq_gaugecoord *debugdata = bgq_gaugefield_coordref(address);
@@ -904,12 +914,13 @@ bool assert_gaugeval(bgq_gaugefield gaugefield, bool isOdd, int t, int x, int y,
 		debugdata->coord.reads += 1;
 	if (isWrite)
 		debugdata->coord.writes += 1;
+#endif
 
 
 	// All checks passed
 	return true;
 }
-#endif
+
 
 
 
@@ -1060,7 +1071,7 @@ static void bgq_weylfield_checkcoord(bgq_weylfield weylfield, bool isOdd, int t,
 		coord->coord.reads = 0;
 	}
 }
-
+#endif
 
 
 void bgq_weylfield_t_resetcoord(bgq_weylfield weylfield, int t, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max) {
@@ -1084,6 +1095,8 @@ void bgq_weylfield_t_resetcoord(bgq_weylfield weylfield, int t, bool isOdd, int 
 		for (int v = 0; v < 2; v += 1) {
 			for (int c = 0; c < 3; c += 1) {
 				COMPLEX_PRECISION *value = BGQ_WEYLVAL_T(weylfield,isOdd,t,x,y,z,xv,k,v,c,false,false);
+
+#if BGQ_FIELD_COORDCHECK
 				bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, value);
 
 				assert(coord->coord.init);
@@ -1101,6 +1114,7 @@ void bgq_weylfield_t_resetcoord(bgq_weylfield weylfield, int t, bool isOdd, int 
 
 				coord->coord.writes = 0;
 				coord->coord.reads = 0;
+#endif
 			}
 		}
 	}
@@ -1109,6 +1123,11 @@ void bgq_weylfield_t_resetcoord(bgq_weylfield weylfield, int t, bool isOdd, int 
 
 
 bool assert_weylval_t(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, int z, int xv, int k, int v, int c, bool isRead, bool isWrite) {
+	if (!isRead && !isWrite && (z == LOCAL_LZ)) {
+		// Allow for prefetching
+		return true;
+	}
+
 	assert(weylfield);
 	assert(false <= isOdd && isOdd <= true); // bogus
 	assert( (t == -1) || (t == 0) || (t == LOCAL_LT-1) || (t == LOCAL_LT) ); /* We are one out of the volume, either up or down */
@@ -1143,6 +1162,7 @@ bool assert_weylval_t(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, 
 	COMPLEX_PRECISION *val = &site->s[v][c][k];
 	assert(&weylfield[0].s[0][0][0] <= val && val < &weylfield[PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ].s[0][0][0]);
 
+#if BGQ_FIELD_COORDCHECK
 	bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, val);
 	bgq_weylfield_checkcoord(weylfield, isOdd, t, x, y, z, v, c, val);
 
@@ -1151,6 +1171,7 @@ bool assert_weylval_t(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, 
 		coord->coord.reads += 1;
 	if (isWrite)
 		coord->coord.writes += 1;
+#endif
 
 	return true;
 }
@@ -1187,6 +1208,7 @@ void bgq_weylfield_x_resetcoord(bgq_weylfield weylfield, int x, bool isOdd, int 
 		for (int v = 0; v < 2; v += 1) {
 			for (int c = 0; c < 3; c += 1) {
 				COMPLEX_PRECISION *value = BGQ_WEYLVAL_X(weylfield,isOdd,t,x,y,z,tv,k,v,c,false,false);
+#if BGQ_FIELD_COORDCHECK
 				bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, value);
 
 				assert(coord->coord.init);
@@ -1204,6 +1226,7 @@ void bgq_weylfield_x_resetcoord(bgq_weylfield weylfield, int x, bool isOdd, int 
 
 				coord->coord.writes = 0;
 				coord->coord.reads = 0;
+#endif
 			}
 		}
 	}
@@ -1246,6 +1269,7 @@ bool assert_weylval_x(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, 
 	COMPLEX_PRECISION *val = &site->s[v][c][k];
 	assert(&weylfield[0].s[0][0][0] <= val && val < &weylfield[PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ].s[0][0][0]);
 
+#if BGQ_FIELD_COORDCHECK
 	bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, val);
 	bgq_weylfield_checkcoord(weylfield, isOdd, t, x, y, z, v, c, val);
 
@@ -1254,6 +1278,7 @@ bool assert_weylval_x(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, 
 		coord->coord.reads += 1;
 	if (isWrite)
 		coord->coord.writes += 1;
+#endif
 
 	return true;
 }
@@ -1291,6 +1316,7 @@ void bgq_weylfield_y_resetcoord(bgq_weylfield weylfield, int y, bool isOdd, int 
 		for (int v = 0; v < 2; v += 1) {
 			for (int c = 0; c < 3; c += 1) {
 				COMPLEX_PRECISION *value = BGQ_WEYLVAL_Y(weylfield,isOdd,t,x,y,z,tv,k,v,c,false,false);
+#if BGQ_FIELD_COORDCHECK
 				bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, value);
 
 				assert(coord->coord.init);
@@ -1308,6 +1334,7 @@ void bgq_weylfield_y_resetcoord(bgq_weylfield weylfield, int y, bool isOdd, int 
 
 				coord->coord.writes = 0;
 				coord->coord.reads = 0;
+#endif
 			}
 		}
 	}
@@ -1348,6 +1375,7 @@ bool assert_weylval_y(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, 
 	COMPLEX_PRECISION *val = &site->s[v][c][k];
 	assert(&weylfield[0].s[0][0][0] <= val && val < &weylfield[PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ].s[0][0][0]);
 
+#if BGQ_FIELD_COORDCHECK
 	bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, val);
 	bgq_weylfield_checkcoord(weylfield, isOdd, t, x, y, z, v, c, val);
 
@@ -1356,6 +1384,7 @@ bool assert_weylval_y(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, 
 		coord->coord.reads += 1;
 	if (isWrite)
 		coord->coord.writes += 1;
+#endif
 
 	return true;
 }
@@ -1368,7 +1397,7 @@ bool assert_weylfield_y(bgq_weylfield weylfield, bool isOdd, int t, int x, int y
 	}
 	return true;
 }
-#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -73,7 +73,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	bgq_vector4double_decl(qka3); // z
 	bgq_cconst(qka3, ka3.re, ka3.im);
 
-//#pragma omp parallel
+#pragma omp parallel
 {
 
 #if BGQ_PREFETCH_LIST
@@ -93,6 +93,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 		}
 #endif
 
+		if (!noweylsend) {
 // TDOWN
 #pragma omp for schedule(static) nowait
 	for (int xyz = 0; xyz < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ; xyz+=1) {
@@ -242,7 +243,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 		#include "bgq_HoppingMatrix_ydown.inc.c"
 		#undef BGQ_HM_YDOWN_WEYLREAD
 	}
-
+}
 
 #if BGQ_PREFETCH_LIST
 	if (!isOdd)
@@ -284,6 +285,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 ////////////////////////////////////////////////////////////////////////////////
 // Body kernel
 
+	if (!nobody) {
 	#pragma omp for schedule(static,1)
 	for (int txy = 0; txy < BODY_ZLINES; txy +=1) {
 		WORKLOAD_DECL(txy, BODY_ZLINES);
@@ -308,6 +310,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 		#undef BGQ_HM_XDOWN_WEYLREAD
 		#undef BGQ_HM_YUP_WEYLREAD
 		#undef BGQ_HM_YDOWN_WEYLREAD
+	}
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -352,6 +355,7 @@ if (!isOdd)
 L1P_PatternResume();
 #endif
 
+if (!nosurface) {
 #pragma omp for schedule(static)
 	for (int xyz = 0; xyz < SURFACE_ZLINES; xyz += 1) {
 		WORKLOAD_DECL(xyz, SURFACE_ZLINES);
@@ -418,6 +422,7 @@ L1P_PatternResume();
 		#undef BGQ_HM_YUP_WEYLREAD
 		#undef BGQ_HM_YDOWN_WEYLREAD
 	}
+}
 
 #if BGQ_PREFETCH_LIST
 	if (!isOdd) {
