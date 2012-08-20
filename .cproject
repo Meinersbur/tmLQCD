@@ -43,7 +43,6 @@
 									<listOptionValue builtIn="false" value="MPI=1"/>
 									<listOptionValue builtIn="false" value="_NON_BLOCKING=1"/>
 									<listOptionValue builtIn="false" value="BGQ=1"/>
-									<listOptionValue builtIn="false" value="_USE_HALFSPINOR=1"/>
 									<listOptionValue builtIn="false" value="PARALLELXYT=1"/>
 									<listOptionValue builtIn="false" value="PACKAGE_VERSION=1"/>
 									<listOptionValue builtIn="false" value="PACKAGE_BUGREPORT=tmlqcd_debug@meinersbur.de"/>

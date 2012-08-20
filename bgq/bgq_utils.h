@@ -334,6 +334,18 @@ EXTERN_INLINE double bgq_wtime() {
 void *malloc_aligned(size_t size, size_t alignment);
 
 
+EXTERN_INLINE double max(double const lhs, double const rhs) {
+	if (lhs > rhs)
+		return lhs;
+	return rhs;
+}
+
+EXTERN_INLINE double min(double const lhs, double const rhs) {
+	if (lhs > rhs)
+		return rhs;
+	return lhs;
+}
+
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

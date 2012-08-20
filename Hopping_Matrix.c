@@ -99,7 +99,7 @@
 #include "Hopping_Matrix_omp.c"
 #else
 
-#if BGQ
+#if 0
 // Hopping_Matrix defined in bgq/bgq_HoppingMatrix.c
 #elif defined _USE_HALFSPINOR
 #  if ((defined SSE2)||(defined SSE3))
@@ -2511,6 +2511,17 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
     ix=g_eo2lexic[icx];
 
     r=l+(icx-ioff);
+
+
+	const int t = g_coord[ix][0];
+	const int x = g_coord[ix][1];
+	const int y = g_coord[ix][2];
+	const int z = g_coord[ix][3];
+
+	if ( (t == 13) && (x == 0) && (y == 0) && (z == 1) ) {
+		int a = 0;
+	}
+
 
     /*********************** direction +0 ************************/
     iy=g_iup[ix][0]; icy=g_lexic2eosub[iy];

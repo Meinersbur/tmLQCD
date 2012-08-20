@@ -65,7 +65,7 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 		bgq_su3_mvmul(weyl_zup_v0, gauge_zup, weyl_zup_v0);
 		bgq_su3_mvmul(weyl_zup_v1, gauge_zup, weyl_zup_v1);
 
-#ifndef BGQ_HM_NOKAMUL
+#if !BGQ_HM_NOKAMUL
 		bgq_su3_cvmul(weyl_zup_v0, qka3, weyl_zup_v0);
 		bgq_su3_cvmul(weyl_zup_v1, qka3, weyl_zup_v1);
 #endif
