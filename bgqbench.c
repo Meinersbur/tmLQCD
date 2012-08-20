@@ -525,8 +525,14 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 		////////////////////////////////////////////////////////////////////////////////
 		double end_time = MPI_Wtime();
 		double runtime = end_time - start_time;
-		localsumtime += runtime;
-		localsumsqtime += sqr(runtime);
+
+		if (j == 0) {
+			// Just a warmup
+			iterations = 0;
+		} else {
+			localsumtime += runtime;
+			localsumsqtime += sqr(runtime);
+		}
 	}
 
 	double localavgtime = localsumtime / j_max;
@@ -555,7 +561,7 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 		flops_per_lup_surface += 6 * 2 * 2;
 	if (!nosurface)
 		flops_per_lup_surface += 1320 - (6*2*2);
-	double flops = (double)flops_per_lup_body * (double)flops_per_lup_body + (double)flops_per_lup_surface * (double)lups_surface;
+	double flops = (double)flops_per_lup_body * (double)lups_body + (double)flops_per_lup_surface * (double)lups_surface;
 
 
 	benchstat result;
