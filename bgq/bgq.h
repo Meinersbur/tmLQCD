@@ -133,9 +133,9 @@ typedef struct {
 		bgq_mov(dst,tmp);             \
 	}
 
-#define bgq_merge2(dst, a23_to01, b01_to23) \
+#define bgq_merge2(dst,a23_to01,b01_to23) \
 	{                                       \
-		bgq_vector4double_decl(MAKENAME4(merge2,dst,a23_to01, b01_to23));      \
+		bgq_vector4double_decl(MAKENAME4(merge2,dst,a23_to01,b01_to23));      \
 		MAKENAME5(merge2,dst,a23_to01,b01_to23,q0) = NAME2(a23_to01,q2);      \
 		MAKENAME5(merge2,dst,a23_to01,b01_to23,q1) = NAME2(a23_to01,q3);      \
 		MAKENAME5(merge2,dst,a23_to01,b01_to23,q2) = NAME2(b01_to23,q0);      \
@@ -335,9 +335,9 @@ typedef struct {
 
 #define bgq_ccmul(dst,lhs,rhs) \
 	{                                  \
-		bgq_vector4double_decl(tmq);   \
-		bgq_xmul(tmq,rhs,lhs);         \
-		bgq_xxnpmadd(dst,lhs,rhs,tmq); \
+		bgq_vector4double_decl(MAKENAME4(ccmul,dst,lhs,rhs));   \
+		bgq_xmul(MAKENAME4(ccmul,dst,lhs,rhs),rhs,lhs);         \
+		bgq_xxcpnmadd(dst,lhs,rhs,MAKENAME4(ccmul,dst,lhs,rhs)); \
 	}
 
 // conjugated second argument
@@ -350,9 +350,9 @@ typedef struct {
 
 #define bgq_ccmadd(dst,a,b,c)        \
 	{                                \
-		bgq_vector4double_decl(tmq); \
-		bgq_xmadd(tmq,b,a,c);        \
-		bgq_xxcpnmadd(dst,a,b,tmq);  \
+		bgq_vector4double_decl(MAKENAME5(ccmadd,dst,a,b,c)); \
+		bgq_xmadd(MAKENAME5(ccmadd,dst,a,b,c),b,a,c);        \
+		bgq_xxcpnmadd(dst,a,b,MAKENAME5(ccmadd,dst,a,b,c));  \
 	}
 
 #define cvec_piadd(a,b) vec_xxnpmadd((vector4double)(1),b,a)
@@ -608,8 +608,8 @@ typedef struct {
 	bgq_su3_vmerge(dst##_v3, a##_v3, b##_v3)
 
 #define bgq_su3_weyl_merge(dst,a,b)         \
-	bgq_su3_vmerge(dst##_v0, a##_v0, b##_v0); \
-	bgq_su3_vmerge(dst##_v1, a##_v1, b##_v1)
+	bgq_su3_vmerge(NAME2(dst,v0), NAME2(a,v0), NAME2(b,v0)); \
+	bgq_su3_vmerge(NAME2(dst,v1), NAME2(a,v1), NAME2(b,v1))
 
 #define bgq_su3_vmov(dst,src)    \
 	bgq_mov(NAME2(dst,c0), NAME2(src,c0)); \
@@ -617,9 +617,9 @@ typedef struct {
 	bgq_mov(NAME2(dst,c2), NAME2(src,c2))
 
 #define bgq_su3_vmerge(dst,a,b)           \
-	bgq_merge2(dst##_c0, a##_c0, b##_c0); \
-	bgq_merge2(dst##_c1, a##_c1, b##_c1); \
-	bgq_merge2(dst##_c2, a##_c2, b##_c2)
+	bgq_merge2(NAME2(dst,c0), NAME2(a,c0), NAME2(b,c0)); \
+	bgq_merge2(NAME2(dst,c1), NAME2(a,c1), NAME2(b,c1)); \
+	bgq_merge2(NAME2(dst,c2), NAME2(a,c2), NAME2(b,c2))
 
 #define bgq_su3_mmerge(dst,a,b)               \
 	dst##_c00 = cvec_merge(a##_c00, b##_c00); \
@@ -653,9 +653,9 @@ typedef struct {
 	bgq_isub(dst##_c2, v1##_c2, v2##_c2)
 
 #define bgq_su3_cvmul(dst,c,v)     \
-	bgq_cmul(CONCAT(dst,_c0), c, CONCAT(v,_c0)); \
-	bgq_cmul(CONCAT(dst,_c1), c, CONCAT(v,_c1)); \
-	bgq_cmul(CONCAT(dst,_c2), c, CONCAT(v,_c2))
+	bgq_cmul(NAME2(dst,c0), c, NAME2(v,c0)); \
+	bgq_cmul(NAME2(dst,c1), c, NAME2(v,c1)); \
+	bgq_cmul(NAME2(dst,c2), c, NAME2(v,c2))
 
 #define bgq_su3_mvmul(dst,m,v)                                                      \
 	{                                                                               \
@@ -674,17 +674,17 @@ typedef struct {
 
 #define bgq_su3_mvinvmul(dst,m,v)                    \
 	{                                                \
-		bgq_su3_vdecl(tmp);                          \
-		bgq_ccmul (tmp_c0, v##_c0, m##_c00);         \
-		bgq_ccmadd(tmp_c0, v##_c1, m##_c10, tmp_c0); \
-		bgq_ccmadd(tmp_c0, v##_c2, m##_c20, tmp_c0); \
-		bgq_ccmul (tmp_c1, v##_c0, m##_c01);         \
-		bgq_ccmadd(tmp_c1, v##_c1, m##_c11, tmp_c1); \
-		bgq_ccmadd(tmp_c1, v##_c2, m##_c21, tmp_c1); \
-		bgq_ccmul (tmp_c2, v##_c0, m##_c02);         \
-		bgq_ccmadd(tmp_c2, v##_c1, m##_c12, tmp_c2); \
-		bgq_ccmadd(tmp_c2, v##_c2, m##_c22, tmp_c2); \
-		bgq_su3_vmov(dst, tmp);                      \
+		bgq_su3_vdecl(MAKENAME4(mvmul,dst,m,v));                          \
+		bgq_ccmul (MAKENAME5(mvmul,dst,m,v,c0), NAME2(v,c0), NAME2(m,c00));         \
+		bgq_ccmadd(MAKENAME5(mvmul,dst,m,v,c0), NAME2(v,c1), NAME2(m,c10), MAKENAME5(mvmul,dst,m,v,c0)); \
+		bgq_ccmadd(MAKENAME5(mvmul,dst,m,v,c0), NAME2(v,c2), NAME2(m,c20), MAKENAME5(mvmul,dst,m,v,c0)); \
+		bgq_ccmul (MAKENAME5(mvmul,dst,m,v,c1), NAME2(v,c0), NAME2(m,c01));         \
+		bgq_ccmadd(MAKENAME5(mvmul,dst,m,v,c1), NAME2(v,c1), NAME2(m,c11), MAKENAME5(mvmul,dst,m,v,c1)); \
+		bgq_ccmadd(MAKENAME5(mvmul,dst,m,v,c1), NAME2(v,c2), NAME2(m,c21), MAKENAME5(mvmul,dst,m,v,c1)); \
+		bgq_ccmul (MAKENAME5(mvmul,dst,m,v,c2), NAME2(v,c0), NAME2(m,c02));         \
+		bgq_ccmadd(MAKENAME5(mvmul,dst,m,v,c2), NAME2(v,c1), NAME2(m,c12), MAKENAME5(mvmul,dst,m,v,c2)); \
+		bgq_ccmadd(MAKENAME5(mvmul,dst,m,v,c2), NAME2(v,c2), NAME2(m,c22), MAKENAME5(mvmul,dst,m,v,c2)); \
+		bgq_su3_vmov(dst, MAKENAME4(mvmul,dst,m,v));                      \
 	}
 
 #define bgq_su3_spinor_mov(dst,src)  \

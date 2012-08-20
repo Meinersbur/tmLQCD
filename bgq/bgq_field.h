@@ -199,6 +199,7 @@ void bgq_free_spinorfields_allprec();
 void bgq_hm_init_allprec();
 void bgq_hm_free_allprec();
 
+void bgq_update_backward_gauge();
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

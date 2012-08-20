@@ -254,12 +254,14 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 #if BGQ_FIELD_COORDCHECK
 #pragma omp master
 {
+if (!noweylsend) {
 	bgq_weylfield_t_resetcoord(weylxchange_send[TDOWN], 0, !isOdd, 0, 0, 1, 1);
 	bgq_weylfield_t_resetcoord(weylxchange_send[TUP], LOCAL_LT-1, !isOdd, 0, 0, 1, 1);
 	bgq_weylfield_x_resetcoord(weylxchange_send[XDOWN], 0, !isOdd, 0, 0, 1, 1);
 	bgq_weylfield_x_resetcoord(weylxchange_send[XUP], LOCAL_LX-1, !isOdd, 0, 0, 1, 1);
 	bgq_weylfield_y_resetcoord(weylxchange_send[YDOWN], 0, !isOdd, 0, 0, 1, 1);
 	bgq_weylfield_y_resetcoord(weylxchange_send[YUP], LOCAL_LY-1, !isOdd, 0, 0, 1, 1);
+}
 }
 #endif
 
@@ -445,10 +447,13 @@ if (!isOdd) {
 
 
 #if BGQ_FIELD_COORDCHECK
+if (!nobody && !nosurface && !noweylsend) {
 	bgq_spinorfield_resetcoord(targetfield, isOdd, 0,0,1,1);
 	bgq_spinorfield_resetcoord(spinorfield, !isOdd, 8,8,0,0);
 	bgq_gaugefield_resetcoord(gaugefield, 0/*every second -1 coordinate is not read in even/odd iteration*/,1,0,0);
+}
 
+if (!nosurface) {
 	bgq_weylfield_t_resetcoord(weylxchange_send[TUP], LOCAL_LT-1, !isOdd, 0,0,0,0);
 	bgq_weylfield_t_resetcoord(weylxchange_send[TDOWN], 0, !isOdd, 0,0,0,0);
 	bgq_weylfield_t_resetcoord(weylxchange_recv[TUP], LOCAL_LT, !isOdd, 2,2,0,0);
@@ -463,6 +468,7 @@ if (!isOdd) {
 	bgq_weylfield_y_resetcoord(weylxchange_send[YDOWN], 0, !isOdd, 0,0,0,0);
 	bgq_weylfield_y_resetcoord(weylxchange_recv[YUP], LOCAL_LY, !isOdd, 1,1,0,0);
 	bgq_weylfield_y_resetcoord(weylxchange_recv[YDOWN], -1, !isOdd, 1,1,0,0);
+}
 #endif
 
 }

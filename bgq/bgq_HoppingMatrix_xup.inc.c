@@ -70,7 +70,7 @@ void bgq_HoppingMatrix_xup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 	bgq_su3_mvmul(weyl_xup_v0, gauge_xup, weyl_xup_v0);
 	bgq_su3_mvmul(weyl_xup_v1, gauge_xup, weyl_xup_v1);
 
-#ifndef BGQ_HM_NOKAMUL
+#if !BGQ_HM_NOKAMUL
 	// Multiply with custom constant
 	bgq_su3_cvmul(weyl_xup_v0, qka1, weyl_xup_v0);
 	bgq_su3_cvmul(weyl_xup_v1, qka1, weyl_xup_v1);

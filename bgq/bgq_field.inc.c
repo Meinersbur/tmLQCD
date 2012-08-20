@@ -344,6 +344,98 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield const targetfiel
 #endif
 }
 
+double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield, spinor * const reffield) {
+	assert(bgqfield);
+	assert(reffield);
+
+#if BGQ_FIELD_COORDCHECK
+	bgq_spinorfield_resetcoord(bgqfield, isOdd, -1, -1, -1, -1);
+#endif
+
+	double norm1_sum = 0;
+	double norm1_max = 0;
+	double norm2_sum = 0;
+	double norm2_max = 0;
+
+#pragma omp parallel
+	{
+		double worker_norm1_sum = 0;
+		double worker_norm2_sum = 0;
+		double worker_norm1_max = 0;
+		double worker_norm2_max = 0;
+
+#pragma omp for schedule(static) nowait
+		for (int txyz = 0; txyz < VOLUME; txyz += 1) {
+			WORKLOAD_DECL(txyz, VOLUME);
+			const int t = WORKLOAD_CHUNK(LOCAL_LT);
+			const int x = WORKLOAD_CHUNK(LOCAL_LX);
+			const int y = WORKLOAD_CHUNK(LOCAL_LY);
+			const int z = WORKLOAD_CHUNK(LOCAL_LZ);
+			WORKLOAD_CHECK
+
+			if ( ((t+x+y+z)&1) != isOdd )
+				continue;
+
+			const int ix = g_ipt[t][x][y][z]; /* lexic coordinate */
+			assert(ix == Index(t,x,y,z));
+
+			int iy = g_lexic2eo[ix]; /* even/odd coordinate (even and odd sites in two different fields of size VOLUME/2, first even field followed by odd) */
+			assert(0 <= iy && iy < (VOLUME+RAND));
+			int icx = g_lexic2eosub[ix]; /*  even/odd coordinate relative to field base */
+			assert(0 <= icx && icx < VOLUME/2);
+			assert(icx == iy - (isOdd ? (VOLUME+RAND)/2 : 0));
+
+			spinor_array64 *sp = (spinor_array64*) &reffield[icx];
+			for (int v = 0; v < 4; v += 1) {
+				for (int c = 0; c < 3; c += 1) {
+					COMPLEX_PRECISION refvalue = sp->v[v].c[c];
+					COMPLEX_PRECISION bgqvalue = bgq_spinorfield_get(bgqfield, isOdd, t, x, y, z, v, c);
+					double norm1_val = cabs(refvalue - bgqvalue);
+					double norm2_val = norm1_val*norm1_val;
+
+					if (norm1_val > 0.01) {
+						int a = 0;
+					}
+
+					worker_norm1_sum += norm1_val;
+					worker_norm2_sum += norm2_val;
+					worker_norm1_max = max(worker_norm1_max, norm1_val);
+					worker_norm2_max = max(worker_norm2_max, norm2_val);
+				}
+			}
+		}
+//TODO: On BGQ: tm_atomic
+#pragma omp critical
+		{
+			norm1_sum += worker_norm1_sum;
+			norm2_sum += worker_norm2_sum;
+			norm1_max = max(norm1_max, worker_norm1_max);
+			norm2_max = max(norm2_max, worker_norm2_max);
+		}
+	}
+
+#if BGQ_FIELD_COORDCHECK
+	bgq_spinorfield_resetcoord(bgqfield, isOdd, 1, 1, 0, 0);
+#endif
+
+	double send_sum[] = { norm1_sum, norm2_sum };
+	double recv_sum[] = { -1, -1 };
+	MPI_Allreduce(send_sum, recv_sum, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+	norm1_sum = recv_sum[0];
+	norm2_sum = recv_sum[1];
+
+	double send_max[] = { norm1_max, norm2_max };
+	double recv_max[] = { -1, -1 };
+	MPI_Allreduce(send_max, recv_max, 2, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
+	norm1_max = recv_max[0];
+	norm2_max = recv_max[1];
+
+	double avg1 = norm1_sum / (VOLUME * 4 * 3);
+	double avg2 = sqrt(norm2_sum) / (VOLUME * 4 * 3);
+	double norminf = norm1_max;
+
+	return norm1_max;
+}
 
 
 bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, bool isRead, bool isWrite) {

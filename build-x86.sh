@@ -19,7 +19,7 @@ make
 
 cd $ROOTPATH
 
-./configure --with-lapack="-llapack" --with-limedir="${ROOTPATH}/lime" --enable-mpi --with-mpidimension=3 --enable-halfspinor CC="mpicc" CFLAGS="-g -O3 -ffast-math -fopenmp -Wall -Wundef -DBGQ=1 -DBGQ_QPX=0 -DBGQ_FIELD_COORDCHECK=0 -I/usr/lib/gcc/x86_64-linux-gnu/4.6/include -I/usr/include/openmpi -DBGQ_PREFETCH_EXPLICIT=1 -DBGQ_PREFETCH_STREAM=0 -DBGQ_PREFETCH_LIST=0 -DMPI=1" OPTARGS="-O0 -g eart " SOPTARGS="-O0 -g badfg" --enable-optimize=no LDFLAGS="-lgomp -lblas"
+./configure --with-lapack="-llapack" --with-limedir="${ROOTPATH}/lime" --enable-mpi --with-mpidimension=3 --disable-halfspinor CC="mpicc" CFLAGS="-g -O0 -ffast-math -fopenmp -Wall -Wundef -DBGQ=1 -DBGQ_QPX=0 -DBGQ_FIELD_COORDCHECK=1 -I/usr/lib/gcc/x86_64-linux-gnu/4.6/include -I/usr/include/openmpi -DBGQ_PREFETCH_EXPLICIT=0 -DBGQ_PREFETCH_STREAM=0 -DBGQ_PREFETCH_LIST=0 -DMPI=1 -DBGQ_HM_NOKAMUL=0" OPTARGS="-O0 -g eart " SOPTARGS="-O0 -g badfg" --enable-optimize=no LDFLAGS="-lgomp -lblas"
 make -j4 bgqbench benchmark hmc_tm invert
 
 # mpirun -np 16 hmc_tm -v -f input.inp

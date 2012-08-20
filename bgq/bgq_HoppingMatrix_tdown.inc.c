@@ -99,13 +99,14 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 			bgq_su3_spinor_loadorprefetch_left(spinor_tdown_mid, spinorsite_tdown_mid);
 
 			#if !BGQ_HM_TDOWN_PREFETCH
-				// Compute the halfspinor og the left component, i.e. the result of the right component is to be ignored (it will be the same)
+				// Compute the halfspinor of the left component, i.e. the result of the right component is to be ignored (it will be the same)
 				bgq_su3_weyl_decl(weyl_tdown_mid);
 				bgq_su3_vsub(weyl_tdown_mid_v0, spinor_tdown_mid_v0, spinor_tdown_mid_v2);
 				bgq_su3_vsub(weyl_tdown_mid_v1, spinor_tdown_mid_v1, spinor_tdown_mid_v3);
 
 				// Merge both weyls to get the weyl result
-				bgq_su3_weyl_merge(weyl_tdown, weyl_tdown_left, spinor_tdown_mid);
+				bgq_su3_weyl_merge(weyl_tdown, weyl_tdown_left, weyl_tdown_mid);
+				int b = 0;
 			#endif
 		#endif
 		#if (BGQ_HM_TLINEINDENT==-1)
@@ -158,7 +159,7 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		bgq_su3_mvinvmul(weyl_tdown_v0, gauge_tdown, weyl_tdown_v0);
 		bgq_su3_mvinvmul(weyl_tdown_v1, gauge_tdown, weyl_tdown_v1);
 
-		#ifndef BGQ_HM_NOKAMUL
+		#if !BGQ_HM_NOKAMUL
 			bgq_su3_cvmul(weyl_tdown_v0, qka0, weyl_tdown_v0);
 			bgq_su3_cvmul(weyl_tdown_v1, qka0, weyl_tdown_v1);
 		#endif

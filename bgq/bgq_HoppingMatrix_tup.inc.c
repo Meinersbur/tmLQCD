@@ -96,9 +96,9 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 			// Read in the left part of the site like normal
 			bgq_spinorsite *spinorsite_tup_mid = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, tv, x, y, z, t1-1, t1+1, !BGQ_HM_TUP_PREFETCH,false);
 			bgq_su3_spinor_decl(spinor_tup_mid);
-			bgq_su3_spinor_loadorprefetch_left(spinor_tup_mid, spinorsite_tup_mid);
+			bgq_su3_spinor_loadorprefetch_right(spinor_tup_mid, spinorsite_tup_mid);
 
-			// Also compute its halfspinor, but this we have only a right part, hence wasting a few flops
+			// Also compute its halfspinor, but we have only a right part, hence wasting a few flops
 			bgq_su3_weyl_decl(weyl_tup_mid);
 			bgq_su3_vadd(weyl_tup_mid_v0, spinor_tup_mid_v0, spinor_tup_mid_v2);
 			bgq_su3_vadd(weyl_tup_mid_v1, spinor_tup_mid_v1, spinor_tup_mid_v3);
@@ -134,7 +134,7 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 		bgq_su3_mvmul(weyl_tup_v0, gauge_tup, weyl_tup_v0);
 		bgq_su3_mvmul(weyl_tup_v1, gauge_tup, weyl_tup_v1);
 
-		#ifndef BGQ_HM_NOKAMUL
+		#if !BGQ_HM_NOKAMUL
 			bgq_su3_cvmul(weyl_tup_v0, qka0, weyl_tup_v0);
 			bgq_su3_cvmul(weyl_tup_v1, qka0, weyl_tup_v1);
 		#endif
