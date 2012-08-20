@@ -285,7 +285,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 ////////////////////////////////////////////////////////////////////////////////
 // Body kernel
 
-	if (!nobody) {
+if (!nobody) {
 	#pragma omp for schedule(static,1)
 	for (int txy = 0; txy < BODY_ZLINES; txy +=1) {
 		WORKLOAD_DECL(txy, BODY_ZLINES);
@@ -311,7 +311,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 		#undef BGQ_HM_YUP_WEYLREAD
 		#undef BGQ_HM_YDOWN_WEYLREAD
 	}
-	}
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 

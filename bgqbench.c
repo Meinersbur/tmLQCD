@@ -445,6 +445,7 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 	hmflags |= noweylsend*hm_noweylsend;
 	hmflags |= nobody*hm_nobody;
 	hmflags |= nosurface*hm_nosurface;
+	hmflags |= hm_prefetchexplicit;
 
 	for (int j = 0; j < j_max; j += 1) {
 		////////////////////////////////////////////////////////////////////////////////

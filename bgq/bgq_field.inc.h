@@ -97,7 +97,7 @@ void bgq_spinorfield_set(bgq_spinorfield spinorfield, bool isOdd, int t, int x, 
 // Gaugefield
 
 #define g_gaugefield NAME2(g_gaugefield,PRECISION)
-bgq_gaugefield g_gaugefield;
+extern bgq_gaugefield g_gaugefield;
 
 #define bgq_init_gaugefield NAME2(bgq_init_gaugefield,PRECISION)
 void bgq_init_gaugefield();

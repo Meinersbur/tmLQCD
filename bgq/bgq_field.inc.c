@@ -21,7 +21,6 @@
 #include <stddef.h>
 
 
-
 #ifndef BGQ_FIELD_COORDCHECK
 #define BGQ_FIELD_COORDCHECK 0
 #endif
