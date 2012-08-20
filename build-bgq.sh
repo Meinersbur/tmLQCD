@@ -81,6 +81,8 @@ CFLAGS="${CFLAGS} -qsimd=auto"
 CFLAGS="${CFLAGS} -qstrict=none"
 CFLAGS="${CFLAGS} -DBGQ_QPX=1"
 CFLAGS="${CFLAGS} -DBGQ_PREFETCH_EXPLICIT=1"
+CFLAGS="${CFLAGS} -DBGQ_FIELD_COORDCHECK=0"
+CFLAGS="${CFLAGS} -DMPI=1"
 #CFLAGS="${CFLAGS} -qsmp=noauto"
 
 # LDFLAGS="-L/opt/ibmcmp/xlf/bg/14.1/lib64 -L/usr/local/bg_soft/lapack/3.3.0 -lxl -lxlopt -lxlf90_r -L/bgsys/drivers/ppcfloor/bgpm/lib/ -lxlfmath -L/opt/ibmcmp/xlsmp/bg/3.1/bglib64 

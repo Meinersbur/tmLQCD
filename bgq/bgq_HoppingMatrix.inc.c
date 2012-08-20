@@ -287,7 +287,7 @@ if (!noweylsend) {
 ////////////////////////////////////////////////////////////////////////////////
 // Body kernel
 
-	if (!nobody) {
+if (!nobody) {
 	#pragma omp for schedule(static,1)
 	for (int txy = 0; txy < BODY_ZLINES; txy +=1) {
 		WORKLOAD_DECL(txy, BODY_ZLINES);
@@ -313,7 +313,7 @@ if (!noweylsend) {
 		#undef BGQ_HM_YUP_WEYLREAD
 		#undef BGQ_HM_YDOWN_WEYLREAD
 	}
-	}
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 

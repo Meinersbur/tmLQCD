@@ -12,6 +12,7 @@
 #include "complex_c99.h"
 //#include <complex.h>
 #include <assert.h>
+#include <string.h>
 
 #ifndef BGQ_UTILS_C_
 #define EXTERN_INLINE inline

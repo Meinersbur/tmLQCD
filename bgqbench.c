@@ -504,6 +504,7 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 	hmflags |= noweylsend*hm_noweylsend;
 	hmflags |= nobody*hm_nobody;
 	hmflags |= nosurface*hm_nosurface;
+	hmflags |= hm_prefetchexplicit;
 
 	for (int j = 0; j < j_max; j += 1) {
 		////////////////////////////////////////////////////////////////////////////////
@@ -524,8 +525,14 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 		////////////////////////////////////////////////////////////////////////////////
 		double end_time = MPI_Wtime();
 		double runtime = end_time - start_time;
-		localsumtime += runtime;
-		localsumsqtime += sqr(runtime);
+
+		if (j == 0) {
+			// Just a warmup
+			iterations = 0;
+		} else {
+			localsumtime += runtime;
+			localsumsqtime += sqr(runtime);
+		}
 	}
 
 	double localavgtime = localsumtime / j_max;
