@@ -577,13 +577,13 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 #define COUNTOF(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 static bool kamuls[] = { false, true };
-static char* kamuls_desc = { "dslash", "kamul" };
+static char *kamuls_desc[] = { "dslash", "kamul" };
 
 static bool sloppinessess[] = { false, true };
-static char* sloppinessess_desc[] = { "double", "float" };
+static char *sloppinessess_desc[] = { "double", "float" };
 
 static int omp_threads[] = { 1, 2, 4, 8, 16, 32, 64 };
-static char* omp_threads_desc[] = { "1", "2", "4", "8", "16", "32", "64" };
+static char *omp_threads_desc[] = { "1", "2", "4", "8", "16", "32", "64" };
 
 static struct {
 	bool nocom;
