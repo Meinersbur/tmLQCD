@@ -344,6 +344,7 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield const targetfiel
 #endif
 }
 
+
 double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield, spinor * const reffield) {
 	assert(bgqfield);
 	assert(reffield);
@@ -385,6 +386,7 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 			assert(0 <= icx && icx < VOLUME/2);
 			assert(icx == iy - (isOdd ? (VOLUME+RAND)/2 : 0));
 
+			bool first = true;
 			spinor_array64 *sp = (spinor_array64*) &reffield[icx];
 			for (int v = 0; v < 4; v += 1) {
 				for (int c = 0; c < 3; c += 1) {
@@ -394,7 +396,13 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 					double norm2_val = norm1_val*norm1_val;
 
 					if (norm1_val > 0.01) {
-						int a = 0;
+						if (first) {
+							fprintf(stderr, "Coordinate (%d,%d,%d,%d)(%d,%d): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t,x,y,z,v,c,creal(refvalue), cimag(refvalue),creal(bgqvalue),cimag(bgqvalue),norm1_val);
+							if ( (t==4) && (x==1) && (y==1) && (z==0) ) {
+								int a = 0;
+							}
+						}
+						first = false;
 					}
 
 					worker_norm1_sum += norm1_val;
@@ -404,8 +412,12 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 				}
 			}
 		}
-//TODO: On BGQ: tm_atomic
+
+#if BGQ && XLC
+#pragma tm_atomic
+#else
 #pragma omp critical
+#endif
 		{
 			norm1_sum += worker_norm1_sum;
 			norm2_sum += worker_norm2_sum;

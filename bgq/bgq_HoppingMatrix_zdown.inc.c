@@ -42,7 +42,7 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		const int z_left = mod(z-1, PHYSICAL_LZ);
 #endif
 
-
+	#if !BGQ_HM_CARRY
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_zdown);
 		bgq_spinorsite *spinorsite_zdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z_left, t1,t2, !BGQ_HM_ZDOWN_PREFETCH,false);
@@ -55,6 +55,8 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 			bgq_su3_vpisub(weyl_zdown_v0, spinor_zdown_v0, spinor_zdown_v2);
 			bgq_su3_vpiadd(weyl_zdown_v1, spinor_zdown_v1, spinor_zdown_v3);
 		#endif
+	#endif
+
 
 #if BGQ_HM_ZDOWN_COMPUTE
 		bgq_su3_mdecl(gauge_zdown);

@@ -397,11 +397,11 @@ int main(int argc, char *argv[])
 	}
 
 
+	check_correctness_double();
+	check_correctness_float();
 	assert(even_odd_flag);
 	exec_bench();
 
-	check_correctness_double();
-	check_correctness_float();
 
 
 	/* GG */
@@ -462,7 +462,7 @@ static void check_correctness_double() {
 	double compare_odd = bgq_spinorfield_compare_double(true, g_spinorfields_double[k + 2*k_max], g_spinor_field[k + 2*k_max]);
 	assert(compare_odd < 0.001);
 
-	master_print("Numerical instability between double precision implementations: even %f, odd %f\n", compare_even, compare_odd);
+	master_print("Numerical instability between double precision implementations: even %e, odd %e\n", compare_even, compare_odd);
 }
 
 
@@ -478,18 +478,18 @@ static void check_correctness_float() {
 	bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
 	Hopping_Matrix(0, g_spinor_field[k + k_max], g_spinor_field[k]);
 	double compare_even = bgq_spinorfield_compare_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k + k_max]);
-	//assert(compare_even < 0.001);
+	assert(compare_even < 0.001);
 
 	bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
 	Hopping_Matrix(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max]);
 	double compare_odd = bgq_spinorfield_compare_float(true, g_spinorfields_float[k + 2*k_max], g_spinor_field[k + 2*k_max]);
-	//assert(compare_odd < 0.001);
+	assert(compare_odd < 0.001);
 
-	master_print("Numerical instability between float precision implementations: even %f, odd %f\n", compare_even, compare_odd);
+	master_print("Numerical instability between float precision implementations: even %g, odd %g\n", compare_even, compare_odd);
 }
 
 
-benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool nocom, bool nooverlap, bool noweylsend, bool nobody, bool nosurface) {
+benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool nocom, bool nooverlap, bool noweylsend, bool nobody, bool nosurface, bool kamul) {
 	int iterations = 0;
 
 	double localsumtime = 0;
@@ -504,7 +504,8 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 	hmflags |= noweylsend*hm_noweylsend;
 	hmflags |= nobody*hm_nobody;
 	hmflags |= nosurface*hm_nosurface;
-	hmflags |= hm_prefetchexplicit;
+	//hmflags |= hm_prefetchexplicit;
+	hmflags |= kamul*hm_nokamul;
 
 	for (int j = 0; j < j_max; j += 1) {
 		////////////////////////////////////////////////////////////////////////////////
@@ -575,6 +576,9 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 
 #define COUNTOF(arr) (sizeof(arr) / sizeof((arr)[0]))
 
+static bool kamuls[] = { false, true };
+static char* kamuls_desc = { "dslash", "kamul" };
+
 static bool sloppinessess[] = { false, true };
 static char* sloppinessess_desc[] = { "double", "float" };
 
@@ -606,40 +610,48 @@ static void print_repeat(const char * const str, const int count) {
 #define SCELLWIDTH TOSTRING(CELLWIDTH)
 
 static void exec_bench() { print_repeat("\n", 2);
-	for (int i1 = 0; i1 < COUNTOF(sloppinessess); i1 += 1) {
-		bool sloppiness = sloppinessess[i1];
 
-		if (g_proc_id == 0) printf("Benchmarking precision: %s\n", sloppinessess_desc[i1]);
-		if (g_proc_id == 0) printf("%10s|", "");
-		for (int i3 = 0; i3 < COUNTOF(coms); i3 += 1) {
-			if (g_proc_id == 0) printf("%"SCELLWIDTH"s|", com_desc[i3]);
-		}
-		if (g_proc_id == 0) printf("\n");
-		print_repeat("-", 10 + 1 + (CELLWIDTH + 1)*COUNTOF(coms));
-		if (g_proc_id == 0) printf("\n");
-		for (int i2 = 0; i2 < COUNTOF(omp_threads); i2 += 1) {
-			int threads = omp_threads[i2];
+	for (int i0 = 0; i0 < COUNTOF(kamuls); i0 += 1) {
+		bool kamul = kamuls[i0];
+		if (g_proc_id == 0) printf("Benchmark: %s\n", kamuls_desc[i0]);
 
-			if (g_proc_id == 0) printf("%10s|", omp_threads_desc[i2]);
+		for (int i1 = 0; i1 < COUNTOF(sloppinessess); i1 += 1) {
+			bool sloppiness = sloppinessess[i1];
 
+			if (g_proc_id == 0) printf("Benchmarking precision: %s\n", sloppinessess_desc[i1]);
+			if (g_proc_id == 0) printf("%10s|", "");
 			for (int i3 = 0; i3 < COUNTOF(coms); i3 += 1) {
-				bool nocom = coms[i3].nocom;
-				bool nooverlap = coms[i3].comnooverlap;
-				bool noweylsend = coms[i3].noweylsend;
-				bool nobody = coms[i3].nobody;
-				bool nosurface = coms[i3].nosurface;
-
-				benchstat result = runbench(1, 2, sloppiness, threads, nocom, nooverlap, noweylsend, nobody, nosurface);
-
-				char str[80] = {0};
-				snprintf(str, sizeof(str), "%.0f mflops/s" , result.flops / MEGA);
-				if (g_proc_id == 0) printf("%"SCELLWIDTH"s|", str);
-				if (g_proc_id == 0) fflush(stdout);
+				if (g_proc_id == 0) printf("%"SCELLWIDTH"s|", com_desc[i3]);
 			}
 			if (g_proc_id == 0) printf("\n");
 			print_repeat("-", 10 + 1 + (CELLWIDTH + 1)*COUNTOF(coms));
 			if (g_proc_id == 0) printf("\n");
+			for (int i2 = 0; i2 < COUNTOF(omp_threads); i2 += 1) {
+				int threads = omp_threads[i2];
+
+				if (g_proc_id == 0) printf("%10s|", omp_threads_desc[i2]);
+
+				for (int i3 = 0; i3 < COUNTOF(coms); i3 += 1) {
+					bool nocom = coms[i3].nocom;
+					bool nooverlap = coms[i3].comnooverlap;
+					bool noweylsend = coms[i3].noweylsend;
+					bool nobody = coms[i3].nobody;
+					bool nosurface = coms[i3].nosurface;
+
+					benchstat result = runbench(1, 2, sloppiness, threads, nocom, nooverlap, noweylsend, nobody, nosurface, kamul);
+
+					char str[80] = {0};
+					snprintf(str, sizeof(str), "%.0f mflops/s" , result.flops / MEGA);
+					if (g_proc_id == 0) printf("%"SCELLWIDTH"s|", str);
+					if (g_proc_id == 0) fflush(stdout);
+				}
+				if (g_proc_id == 0) printf("\n");
+				print_repeat("-", 10 + 1 + (CELLWIDTH + 1)*COUNTOF(coms));
+				if (g_proc_id == 0) printf("\n");
+			}
+			if (g_proc_id == 0) printf("\n");
 		}
+
 		if (g_proc_id == 0) printf("\n");
 	}
 

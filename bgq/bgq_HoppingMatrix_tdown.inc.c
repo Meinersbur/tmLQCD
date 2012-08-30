@@ -31,6 +31,8 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 #endif
 
 
+#if !BGQ_HM_CARRY
+
 	bgq_su3_weyl_decl(weyl_tdown);
 	#if (BGQ_HM_TDOWN_WEYLREAD==-1)
 	if ( tv != 0 ) {
@@ -76,7 +78,7 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 	#endif
 	#if (BGQ_HM_TDOWN_WEYLREAD==-1) || (BGQ_HM_TDOWN_WEYLREAD==1)
 		#if (BGQ_HM_TLINEINDENT==-1)
-		if ( ((tv+x+y+z)&1) == isOdd ) {
+		if ( ((x+y+z)&1) == isOdd ) {
 		#endif
 		#if (BGQ_HM_TLINEINDENT==-1) || (BGQ_HM_TLINEINDENT==0)
 			assert( t1 == 0 );
@@ -106,7 +108,6 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 				// Merge both weyls to get the weyl result
 				bgq_su3_weyl_merge(weyl_tdown, weyl_tdown_left, weyl_tdown_mid);
-				int b = 0;
 			#endif
 		#endif
 		#if (BGQ_HM_TLINEINDENT==-1)
@@ -134,11 +135,13 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 	}
 	#endif
 
+#endif
+
 
 	#if BGQ_HM_TDOWN_COMPUTE
 		bgq_gaugesite *gaugesite_tdown;
 		#if (BGQ_HM_TLINEINDENT==-1)
-		if ( ((tv+x+y+z)&1) == isOdd ) {
+		if ( ((x+y+z)&1) == isOdd ) {
 		#endif
 		#if (BGQ_HM_TLINEINDENT==-1) || (BGQ_HM_TLINEINDENT==0)
 			gaugesite_tdown = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x, y, z, TUP_SHIFT, t1-1, t2-1, !BGQ_HM_TDOWN_PREFETCH,false);

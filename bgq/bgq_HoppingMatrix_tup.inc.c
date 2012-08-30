@@ -31,6 +31,7 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 {
 #endif
 
+#if !BGQ_HM_CARRY
 
 	bgq_su3_weyl_decl(weyl_tup);
 	#if (BGQ_HM_TUP_WEYLREAD==-1)
@@ -124,6 +125,8 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 	#if (BGQ_HM_TUP_WEYLREAD==-1)
 	}
 	#endif
+
+#endif
 
 
 	#if BGQ_HM_TUP_COMPUTE
