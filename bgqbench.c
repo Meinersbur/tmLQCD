@@ -535,25 +535,27 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 		}
 	}
 
-	double localavgtime = localsumtime / j_max;
+	assert(iterations == j_max-1);
+	double localavgtime = localsumtime / iterations;
 	double localavgsqtime = sqr(localavgtime);
-	double localrmstime = sqrt((localsumsqtime / j_max) - localavgsqtime);
+	double localrmstime = sqrt((localsumsqtime / iterations) - localavgsqtime);
 
 	double localtime[] = { localavgtime, localavgsqtime, localrmstime };
 	double sumreduce[3] = { -1, -1, -1 };
 	MPI_Allreduce(&localtime, &sumreduce, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 	double sumtime = sumreduce[0];
 	double sumsqtime = sumreduce[1];
-
+	double sumrmstime = sumreduce[2];
 
 	double avgtime = sumtime / g_nproc;
-	double avglocalrms = sumreduce[2] / g_nproc;
+	double avglocalrms = sumrmstime / g_nproc;
 	double rmstime = sqrt((sumsqtime / g_nproc) - sqr(avgtime));
 
-	int lups = iterations * LOCAL_LT * LOCAL_LX * LOCAL_LY * LOCAL_LZ;
-	int lups_body = iterations * BODY_ZLINES * PHYSICAL_LP*PHYSICAL_LK *LOCAL_LZ;
-	int lups_surface = iterations * SURFACE_ZLINES * PHYSICAL_LP*PHYSICAL_LK *LOCAL_LZ;
+	int lups = LOCAL_LT * LOCAL_LX * LOCAL_LY * LOCAL_LZ;
+	int lups_body = BODY_ZLINES * PHYSICAL_LP*PHYSICAL_LK * LOCAL_LZ;
+	int lups_surface = SURFACE_ZLINES * PHYSICAL_LP*PHYSICAL_LK * LOCAL_LZ;
 	assert(lups == lups_body + lups_surface);
+	assert(lups == VOLUME);
 	int flops_per_lup = 1320;
 	int flops_per_lup_body = nobody ? 0 : 1320;
 	int flops_per_lup_surface = 0;
@@ -561,7 +563,7 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 		flops_per_lup_surface += 6 * 2 * 2;
 	if (!nosurface)
 		flops_per_lup_surface += 1320 - (6*2*2);
-	double flops = (double)flops_per_lup_body * (double)lups_body + (double)flops_per_lup_surface * (double)lups_surface;
+	double flops = ((double)flops_per_lup_body * (double)lups_body) + ((double)flops_per_lup_surface * (double)lups_surface);
 
 
 	benchstat result;
@@ -629,7 +631,7 @@ static void exec_bench() { print_repeat("\n", 2);
 				bool nobody = coms[i3].nobody;
 				bool nosurface = coms[i3].nosurface;
 
-				benchstat result = runbench(1, 2, sloppiness, threads, nocom, nooverlap, noweylsend, nobody, nosurface);
+				benchstat result = runbench(1, 3, sloppiness, threads, nocom, nooverlap, noweylsend, nobody, nosurface);
 
 				char str[80] = {0};
 				snprintf(str, sizeof(str), "%.0f mflops/s" , result.flops / MEGA);
