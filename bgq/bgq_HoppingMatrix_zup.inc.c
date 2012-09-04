@@ -43,6 +43,7 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 #endif
 
 
+	#if !BGQ_HM_CARRY
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_zup);
 		bgq_spinorsite *spinorsite_zup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z_right, t1,t2, !BGQ_HM_ZUP_PREFETCH,false);
@@ -55,6 +56,7 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 			bgq_su3_vpiadd(weyl_zup_v0, spinor_zup_v0, spinor_zup_v2);
 			bgq_su3_vpisub(weyl_zup_v1, spinor_zup_v1, spinor_zup_v3);
 		#endif
+	#endif
 
 
 #if BGQ_HM_ZUP_COMPUTE

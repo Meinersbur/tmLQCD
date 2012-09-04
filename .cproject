@@ -51,6 +51,7 @@
 									<listOptionValue builtIn="false" value="BGQ_QPX=0"/>
 									<listOptionValue builtIn="false" value="BGQ_PREFETCH_LIST=0"/>
 									<listOptionValue builtIn="false" value="HAVE_CONFIG_H=1"/>
+									<listOptionValue builtIn="false" value="BGQ_HM_CARRY=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1186333786" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>

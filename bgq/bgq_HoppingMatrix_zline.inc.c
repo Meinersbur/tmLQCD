@@ -9,6 +9,9 @@
 #define BGQ_HM_ZLINE_STARTINDENT -1
 #endif
 
+#ifndef BGQ_HM_ZLINE_CARRY
+#define BGQ_HM_ZLINE_CARRY 1
+#endif
 
 #ifndef BGQ_HM_ZLINE_ID
 #error Need some unique string to identify goto labels
@@ -21,11 +24,15 @@
 #include "bgq.h"
 #include "bgq_field.h"
 
+#define BGQ_PRECISION 64
+#include "bgq_precisionselect.inc.c"
+
+#define BGQ_LOADORPREFETCH_LOAD 1
+#include "bgq_loadorprefetch.inc.c"
+
 #define BGQ_HM_SITE_NOFUNC 1
 #define BGQ_HM_DIR_NOFUNC 1
 void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int tv, int x, int y, int t1, int t2) {
-
-
 #else
 {
 #endif
@@ -71,6 +78,71 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 		bgq_prefetch_forward(gaugesite_ydown);
 	}
 	#endif
+
+	if ( ((t1==4) || (t2==4))  && (x==1) && (y==1) && (z==0) ) {
+		int a = 0;
+	}
+
+
+#if BGQ_HM_CARRY
+	bgq_su3_spinor_decl(weyl_zup);
+	bgq_su3_spinor_decl(weyl_znext_tup);
+	bgq_su3_spinor_decl(weyl_znext_tdown);
+	bgq_su3_spinor_decl(weyl_znextnext_zdown);
+
+	bgq_su3_spinor_decl(weyl_tup);
+	bgq_su3_spinor_decl(weyl_tdown);
+	bgq_su3_spinor_decl(weyl_znext_zdown);
+
+	bgq_su3_spinor_decl(weyl_zdown);
+
+
+
+	// Prologue for loading the carry values
+	{
+		// z==-1, carry value for z=0,z_down
+		const int z = PHYSICAL_LZ-2; // such that z+1==-1==PHYSICAL_LZ-1 (z_up) is the site to load
+		#define BGQ_HM_TLINEINDENT BGQ_HM_ZLINE_STARTINDENT
+		#define BGQ_HM_CARRY_NOSHIFT 1
+		#define BGQ_HM_CARRY_NO_ZUP 1
+		#define BGQ_HM_CARRY_NO_T 1
+		#define BGQ_HM_PREFETCH 0
+		#include "bgq_HoppingMatrix_carry.inc.c"
+		#undef BGQ_HM_TLINEINDENT
+		#undef BGQ_HM_CARRY_NOSHIFT
+		#undef BGQ_HM_CARRY_NO_ZUP
+		#undef BGQ_HM_CARRY_NO_T
+		#undef BGQ_HM_PREFETCH
+	}
+
+
+	const int t1_shadowed = t1;
+	const int t2_shadowed = t2;
+	{
+		// shift
+		bgq_su3_weyl_mov(weyl_znext_zdown, weyl_znextnext_zdown);
+
+		const int t1 = t1_shadowed + 1-(t1_shadowed&1)*2;
+		const int t2 = t2_shadowed + 1-(t2_shadowed&1)*2;
+		const int z = -1; // such that z+1==0 (z_up) is the site to load
+
+		// z==0, carry value for z=0,t_up,t_down z=1,z_down
+		#if (BGQ_HM_ZLINE_STARTINDENT==-1)
+		#define BGQ_HM_TLINEINDENT -1
+		#else
+		#define BGQ_HM_TLINEINDENT !BGQ_HM_ZLINE_STARTINDENT
+		#endif
+		#define BGQ_HM_CARRY_NOSHIFT 1
+		#define BGQ_HM_CARRY_NO_ZUP 1
+		#define BGQ_HM_PREFETCH 0
+		#include "bgq_HoppingMatrix_carry.inc.c"
+		#undef BGQ_HM_TLINEINDENT
+		#undef BGQ_HM_CARRY_NOSHIFT
+		#undef BGQ_HM_CARRY_NO_ZUP
+		#undef BGQ_HM_PREFETCH
+	}
+
+#endif
 
 
 	#if (BGQ_HM_ZLINE_STARTINDENT==-1)
@@ -129,6 +201,7 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 #endif
 
 
+#undef BGQ_HM_ZLINE_CARRY
 #undef BGQ_HM_ZLINE_STARTINDENT
 #undef BGQ_HM_ZLINE_ID
 #undef STARTFLUSH

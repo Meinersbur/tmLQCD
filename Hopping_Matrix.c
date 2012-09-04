@@ -2518,7 +2518,7 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
 	const int y = g_coord[ix][2];
 	const int z = g_coord[ix][3];
 
-	if ( (t == 13) && (x == 0) && (y == 0) && (z == 1) ) {
+	if ( (t==4) && (x==1) && (y==1) && (z==0) ) {
 		int a = 0;
 	}
 

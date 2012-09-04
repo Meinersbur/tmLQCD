@@ -126,6 +126,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 		bgq_weylsite *weylsite_tup = BGQ_WEYLSITE_T(weylxchange_send[TDOWN/*!!!*/], !isOdd, t+1, xv, y, z, x1, x2, false, true);
 		bgq_su3_weyl_zeroload(weylsite_tup);
 		bgq_su3_weyl_store(weylsite_tup, weyl_tup);
+		int a = 0;
 	}
 
 
@@ -161,6 +162,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 		bgq_weylsite *weylsite_tdown = BGQ_WEYLSITE_T(weylxchange_send[TUP/*!!!*/], !isOdd, t-1, xv, y, z, x1, x2, false, true);
 		bgq_su3_weyl_zeroload(weylsite_tdown);
 		bgq_su3_weyl_store(weylsite_tdown, weyl_tdown);
+		int a = 0;
 	}
 
 

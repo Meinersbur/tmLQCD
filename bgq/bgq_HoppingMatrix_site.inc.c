@@ -37,9 +37,14 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 	bgq_su3_spinor_zero(result);
 
 
-	if ( (t1==13) && (x==0) && (y==0) && (z==1) ){
+	if ( ((t1==0) || (t2==0)) && (x==0) && (y==0) && (z==0) ) {
 		int a = 0;
 	}
+
+
+#define BGQ_HM_PREFETCH 0
+	#include "bgq_HoppingMatrix_carry.inc.c"
+#undef BGQ_HM_PREFETCH
 
 
 	#if BGQ_PREFETCH_EXPLICIT
@@ -180,7 +185,7 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 	bgq_spinorsite *targetsite = BGQ_SPINORSITE(targetfield, isOdd, tv, x, y, z, t1,t2, false,true);
 	bgq_su3_spinor_zeroload(targetsite);
 	bgq_su3_spinor_store(targetsite, result);
-
+	int dummy = 0;
 
 }
 

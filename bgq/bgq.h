@@ -27,6 +27,7 @@ typedef struct {
 	typedef v4d vector4double;
 	#define BGQ_VECTOR4DOUBLE_SUBSCRIPT(addr,idx) ( ((vector4double*)(addr))->q[(idx)] ) /* emulation using a struct */
 #endif
+#define BGQ_VECTOR4FLOAT_SUBSCRIPT(addr,idx) ( ((v4f*)(addr))->q[(idx)] ) /* emulation using a struct */
 
 typedef struct {
 	float q[4];
@@ -58,22 +59,22 @@ typedef struct {
 
 #define bgq_lda_float(dst,offset,addr)                                 \
 	assert( (((size_t)addr) + offset) % 16 == 0);                \
-	NAME2(dst,q0) = ((v4f*)((char*)(addr) + (offset)))->q[0]; \
-	NAME2(dst,q1) = ((v4f*)((char*)(addr) + (offset)))->q[1]; \
-	NAME2(dst,q2) = ((v4f*)((char*)(addr) + (offset)))->q[2]; \
-	NAME2(dst,q3) = ((v4f*)((char*)(addr) + (offset)))->q[3]
+	NAME2(dst,q0) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 0); \
+	NAME2(dst,q1) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 1); \
+	NAME2(dst,q2) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 2); \
+	NAME2(dst,q3) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 3)
 
-#define bgq_ld2a_double(dst,offset,addr) \
-	assert( (((size_t)(addr)) + (offset)) % 16 == 0);                \
+#define bgq_ld2a_double(dst,offset,addr)                                      \
+	assert( (((size_t)(addr)) + (offset)) % 16 == 0);                          \
 	NAME2(dst,q0) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 0); \
 	NAME2(dst,q1) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 1); \
-	NAME2(dst,q2) = NAME2(dst,q0);                                         \
+	NAME2(dst,q2) = NAME2(dst,q0);                                             \
 	NAME2(dst,q3) = NAME2(dst,q1)
 
 #define bgq_ld2a_float(dst,offset,addr) \
 	assert( (((size_t)(addr)) + (offset)) % 8 == 0);                \
-	NAME2(dst,q0) = ((v4f*)((char*)(addr) + (offset)))->q[0]; \
-	NAME2(dst,q1) = ((v4f*)((char*)(addr) + (offset)))->q[1]; \
+	NAME2(dst,q0) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 0); \
+	NAME2(dst,q1) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 1); \
 	NAME2(dst,q2) = NAME2(dst,q0);                                         \
 	NAME2(dst,q3) = NAME2(dst,q1)
 
@@ -82,14 +83,14 @@ typedef struct {
 	BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 0) = NAME2(src,q0); \
 	BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 1) = NAME2(src,q1); \
 	BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 2) = NAME2(src,q2); \
-	BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 3) = NAME2(src,q3); \
+	BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 3) = NAME2(src,q3)
 
 #define bgq_sta_float(src,offset,addr) \
 	assert( (((size_t)(addr)) + (offset)) % 16 == 0);                \
-	((v4f*)((char*)(addr)) + (offset))->q[0] = NAME2(src,q0); \
-	((v4f*)((char*)(addr)) + (offset))->q[1] = NAME2(src,q1); \
-	((v4f*)((char*)(addr)) + (offset))->q[2] = NAME2(src,q2); \
-	((v4f*)((char*)(addr)) + (offset))->q[3] = NAME2(src,q3); \
+	BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 0) = NAME2(src,q0); \
+	BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 1) = NAME2(src,q1); \
+	BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 2) = NAME2(src,q2); \
+	BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 3) = NAME2(src,q3)
 
 #define bgq_add(dst,lhs,rhs)        \
 	dst##_q0 = lhs##_q0 + rhs##_q0; \
@@ -541,18 +542,18 @@ typedef struct {
 	bgq_ld2a_double(NAME3(dst,v3,c2), 352+16, addr)
 
 #define bgq_su3_spinor_load_right_float(dst,addr) \
-	bgq_ld2a_float(NAME3(dst,v0,c0),   0+16, addr); \
-	bgq_ld2a_float(NAME3(dst,v0,c1),  32+16, addr); \
-	bgq_ld2a_float(NAME3(dst,v0,c2),  64+16, addr); \
-	bgq_ld2a_float(NAME3(dst,v1,c0),  96+16, addr); \
-	bgq_ld2a_float(NAME3(dst,v1,c1), 128+16, addr); \
-	bgq_ld2a_float(NAME3(dst,v1,c2), 160+16, addr); \
-	bgq_ld2a_float(NAME3(dst,v2,c0), 192+16, addr); \
-	bgq_ld2a_float(NAME3(dst,v2,c1), 224+16, addr); \
-	bgq_ld2a_float(NAME3(dst,v2,c2), 256+16, addr); \
-	bgq_ld2a_float(NAME3(dst,v3,c0), 288+16, addr); \
-	bgq_ld2a_float(NAME3(dst,v3,c1), 320+16, addr); \
-	bgq_ld2a_float(NAME3(dst,v3,c2), 352+16, addr)
+	bgq_ld2a_float(NAME3(dst,v0,c0),   0+8, addr); \
+	bgq_ld2a_float(NAME3(dst,v0,c1),  16+8, addr); \
+	bgq_ld2a_float(NAME3(dst,v0,c2),  32+8, addr); \
+	bgq_ld2a_float(NAME3(dst,v1,c0),  48+8, addr); \
+	bgq_ld2a_float(NAME3(dst,v1,c1),  64+8, addr); \
+	bgq_ld2a_float(NAME3(dst,v1,c2),  80+8, addr); \
+	bgq_ld2a_float(NAME3(dst,v2,c0),  96+8, addr); \
+	bgq_ld2a_float(NAME3(dst,v2,c1), 112+8, addr); \
+	bgq_ld2a_float(NAME3(dst,v2,c2), 128+8, addr); \
+	bgq_ld2a_float(NAME3(dst,v3,c0), 144+8, addr); \
+	bgq_ld2a_float(NAME3(dst,v3,c1), 160+8, addr); \
+	bgq_ld2a_float(NAME3(dst,v3,c2), 176+8, addr)
 
 #define bgq_su3_spinor_store NAME2(bgq_su3_spinor_store,PRECISION)
 #define bgq_su3_spinor_store_double(addr,src) \
