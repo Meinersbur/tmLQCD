@@ -41,10 +41,11 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 	//	int a = 0;
 	//}
 
-
+#if BGQ_HM_CARRY
 #define BGQ_HM_PREFETCH 0
 	#include "bgq_HoppingMatrix_carry.inc.c"
 #undef BGQ_HM_PREFETCH
+#endif
 
 
 	#if BGQ_PREFETCH_EXPLICIT
