@@ -11,6 +11,7 @@
 
 #include "../update_backward_gauge.h"
 
+#include <sys/stat.h>
 
 typedef struct {
 	unsigned char tv;
@@ -21,6 +22,95 @@ typedef struct {
 
 bgq_spinor_coord *g_spinor_body_zline_order;
 bgq_spinor_coord *g_spinor_surface_zline_order;
+
+
+char *g_idxdesc[5];
+complexdouble *g_bgqvalue = NULL;
+complexdouble *g_refvalue = NULL;
+
+
+void bgq_initbgqref() {
+	int datasize = sizeof(complexdouble) * VOLUME_SITES * lengthof(g_idxdesc);
+	if (g_refvalue == NULL) {
+		g_bgqvalue = malloc_aligned(datasize, 128);
+		g_refvalue = malloc_aligned(datasize, 128);
+	}
+	memset(g_bgqvalue, 0, datasize);
+	memset(g_refvalue, 0, datasize);
+
+	for (int idx = 0; idx <  lengthof(g_idxdesc); idx+=1) {
+		g_idxdesc[idx] = NULL;
+	}
+}
+
+
+void bgq_setrefvalue(int t, int x, int y, int z, int idx, complexdouble val, char *desc) {
+	g_refvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z] = val;
+	g_idxdesc[idx] = desc;
+}
+void bgq_setbgqvalue(int t, int x, int y, int z, int idx, complexdouble val, char *desc) {
+	g_bgqvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z] = val;
+	g_idxdesc[idx] = desc;
+}
+
+void bgq_savebgqref() {
+	if (g_proc_id != 0)
+		return;
+
+	int i = 0;
+	while (true) {
+		char filename[100];
+		snprintf(filename, sizeof(filename)-1, "cmp_%d.txt", i);
+
+		struct stat buf;
+		if (stat(filename, &buf) != -1) {
+			i += 1;
+			continue;
+		}
+
+		// Create marker file
+		FILE *file =  fopen(filename, "w");
+		fclose(file);
+
+		break;
+	}
+
+	for (int idx = 0; idx <  lengthof(g_idxdesc); idx+=1) {
+		if (!g_idxdesc[idx])
+			continue;
+
+		char reffilename[100];
+		snprintf(reffilename, sizeof(reffilename)-1, "cmp_%d_idx%d_%s_ref.txt", i, idx, g_idxdesc[idx]);
+		char bgqfilename[100];
+		snprintf(bgqfilename, sizeof(bgqfilename)-1, "cmp_%d_idx%d_%s_bgq.txt", i, idx, g_idxdesc[idx]);
+		FILE *reffile =  fopen(reffilename, "w");
+		FILE *bgqfile =  fopen(bgqfilename, "w");
+
+		fprintf(reffile, "%s\n\n", g_idxdesc[idx]);
+		fprintf(bgqfile, "%s\n\n", g_idxdesc[idx]);
+
+		for (int t = 0; t < LOCAL_LT; t += 1) {
+			for (int x = 0; x < LOCAL_LX; x += 1) {
+				for (int y = 0; y < LOCAL_LY; y += 1) {
+					fprintf(reffile, "t=%d x=%d y=%d: ", t,x,y);
+					fprintf(bgqfile, "t=%d x=%d y=%d: ", t,x,y);
+					for (int z = 0; z < LOCAL_LZ; z += 1) {
+						complexdouble refval = g_refvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z];
+						complexdouble bgqval = g_refvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z];
+
+						fprintf(reffile, "%8f + %8fi	", creal(refval), cimag(refval));
+						fprintf(bgqfile, "%8f + %8fi	", creal(bgqval), cimag(bgqval));
+					}
+					fprintf(reffile, "\n");
+					fprintf(bgqfile, "\n");
+				}
+			}
+		}
+
+		fclose(reffile);
+		fclose(bgqfile);
+	}
+}
 
 
 void bgq_init_gaugefield_allprec() {

@@ -81,6 +81,8 @@ CONFIGURE="${CONFIGURE} LDFLAGS="\"'${LDFLAGS}'\"
 
 CONFIGURE="${CONFIGURE} --enable-optimize=no"
 #CONFIGURE="${CONFIGURE} --with-lemondir=${ROOTPATH}/lemon"
+CONFIGURE="${CONFIGURE} --disable-sse2"
+CONFIGURE="${CONFIGURE} --disable-sse3"
 
 
 

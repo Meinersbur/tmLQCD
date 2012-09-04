@@ -331,6 +331,7 @@ EXTERN_INLINE double bgq_wtime() {
 		exit(errcode);              \
 	} while (0)
 
+#define lengthof(X) (sizeof(X)/sizeof((X)[0]))
 
 void *malloc_aligned(size_t size, size_t alignment);
 

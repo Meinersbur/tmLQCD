@@ -201,6 +201,12 @@ void bgq_hm_free_allprec();
 
 void bgq_update_backward_gauge();
 
+void bgq_initbgqref();
+void bgq_setrefvalue(int t, int x, int y, int z, int idx, complexdouble val, char *desc);
+void bgq_setbgqvalue(int t, int x, int y, int z, int idx, complexdouble val, char *desc);
+void bgq_savebgqref();
+
+
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD
 

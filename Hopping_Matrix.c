@@ -2550,6 +2550,8 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
     _vector_assign(temp.s1,psi);
     _vector_assign(temp.s3,psi);
 
+    bgq_setrefvalue(t, x, y, z, 0, temp.s0.c0, "psi+0");
+
     /*********************** direction -0 ************************/
 
     iy=g_idn[ix][0]; icy=g_lexic2eosub[iy];

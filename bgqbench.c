@@ -397,6 +397,7 @@ int main(int argc, char *argv[])
 	}
 
 
+
 	check_correctness_double();
 	check_correctness_float();
 	assert(even_odd_flag);
@@ -452,8 +453,10 @@ static void check_correctness_double() {
 	double compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k]);
 	assert(compare_even_before == 0 /* should be bitwise identical */);
 
+	bgq_initbgqref();
 	bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
 	Hopping_Matrix(0, g_spinor_field[k + k_max], g_spinor_field[k]);
+	bgq_savebgqref();
 	//__asm__("int3");
 	double compare_even = bgq_spinorfield_compare_double(false, g_spinorfields_double[k + k_max], g_spinor_field[k + k_max]);
 	assert(compare_even < 0.001);
