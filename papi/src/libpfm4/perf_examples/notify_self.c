@@ -47,7 +47,7 @@ static int num_fds = 0;
 static int buffer_pages = 1; /* size of buffer payload (must be power of 2)*/
 
 static void
-sigio_handler(int n, siginfo_t *info, void *uc)
+sigio_handler(int n, struct siginfo *info, void *uc)
 {
 	struct perf_event_header ehdr;
 	int ret, id;
@@ -71,13 +71,13 @@ sigio_handler(int n, siginfo_t *info, void *uc)
 	if (id == -1)
 		errx(1, "no event associated with fd=%d", info->si_fd);
 
-	ret = perf_read_buffer(fds+id, &ehdr, sizeof(ehdr));
+	ret = perf_read_buffer(fds[id].buf, fds[id].pgmsk, &ehdr, sizeof(ehdr));
 	if (ret)
 		errx(1, "cannot read event header");
 
 	if (ehdr.type != PERF_RECORD_SAMPLE) {
 		warnx("unexpected sample type=%d, skipping\n", ehdr.type);
-		perf_skip_buffer(fds+id, ehdr.size);
+		perf_skip_buffer(fds[id].buf, ehdr.size);
 		goto skip;
 	}
 	printf("Notification:%lu ", notification_received);
@@ -137,8 +137,8 @@ main(int argc, char **argv)
 	/*
  	 * allocates fd for us
  	 */
-	ret = perf_setup_list_events("cycles,"
-				       "instructions",
+	ret = perf_setup_list_events("PERF_COUNT_HW_CPU_CYCLES,"
+				       "PERF_COUNT_HW_INSTRUCTIONS",
 					&fds, &num_fds);
 	if (ret || (num_fds == 0))
 		exit(1);
@@ -247,7 +247,7 @@ main(int argc, char **argv)
 	for(i=0; i < num_fds; i++)
 		close(fds[i].fd);
 
-	perf_free_fds(fds, num_fds);
+	free(fds);
 	free(val);
 
 	/* free libpfm resources cleanly */

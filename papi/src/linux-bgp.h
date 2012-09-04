@@ -24,6 +24,9 @@
 #include "papi_defines.h"
 #include "linux-bgp-native-events.h"
 
+#define GET_OVERFLOW_ADDRESS(ctx) 0x0
+#define MY_VECTOR _bgp_vectors
+
 // Context structure not used...
 typedef struct bgp_context
 {
@@ -63,7 +66,11 @@ typedef bgp_context_t hwd_context_t;
 extern void _papi_hwd_lock( int );
 extern void _papi_hwd_unlock( int );
 
-#include "linux-bgp-context.h"
+/* Signal handling functions */
+#undef hwd_siginfo_t
+#undef hwd_ucontext_t
+typedef int hwd_siginfo_t;
+typedef ucontext_t hwd_ucontext_t;
 
 extern hwi_search_t *preset_search_map;
 

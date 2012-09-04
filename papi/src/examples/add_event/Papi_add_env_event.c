@@ -57,12 +57,14 @@ int main(){
 	 * if retval == PAPI_ESYS then it might be beneficial
  	 * to call perror as well to see what system call failed
 	 */
-	PAPI_perror("PAPI_library_init");
+	PAPI_perror(retval, errstring, PAPI_MAX_STR_LEN);
+	fprintf(stderr, "Error: %s\n", errstring);
 	exit(-1);
   }
   /* Create space for the EventSet */
   if ( (retval=PAPI_create_eventset( &EventSet ))!=PAPI_OK){
 	PAPI_perror(retval, errstring, PAPI_MAX_STR_LEN);
+        fprintf(stderr, "Error: %s\n", errstring);
         exit(-1);
   }
 
@@ -70,12 +72,14 @@ int main(){
    *  event_code may contain something different than total instructions.
    */
   if ( (retval=PAPI_add_env_event(&EventSet, &event_code, "PAPI_EVENT"))!=PAPI_OK){
-        PAPI_perror("PAPI_add_env_event");
+        PAPI_perror(retval, errstring, PAPI_MAX_STR_LEN);
+        fprintf(stderr, "Error: %s\n", errstring);          
         exit(-1);
   }
   /* Now lets start counting */
   if ( (retval = PAPI_start(EventSet)) != PAPI_OK ){
-        PAPI_perror("PAPI_start");
+        PAPI_perror(retval, errstring, PAPI_MAX_STR_LEN);
+        fprintf(stderr, "Error: %s\n", errstring);          
         exit(-1);
   }
 
@@ -88,12 +92,14 @@ int main(){
   }
 
   if ( (retval = PAPI_stop(EventSet, &values) ) != PAPI_OK ){
-        PAPI_perror("PAPI_stop");
+        PAPI_perror(retval, errstring, PAPI_MAX_STR_LEN);
+        fprintf(stderr, "Error: %s\n", errstring);          
         exit(-1);
   }
 
   if ( (retval=PAPI_event_code_to_name( event_code, event_name))!=PAPI_OK){
-        PAPI_perror("PAPI_event_code_to_name");   
+        PAPI_perror(retval, errstring, PAPI_MAX_STR_LEN);   
+        fprintf(stderr, "Error: %s\n", errstring);
         exit(-1);
   }
 

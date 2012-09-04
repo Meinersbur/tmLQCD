@@ -3,7 +3,6 @@
 /* Headers required by PAPI */
 #include "papi.h"
 #include "papi_internal.h"
-#include "papi_vector.h"
 #include "papi_memory.h"
 
 #include "linux-coretemp.h"
@@ -71,7 +70,7 @@ insert_in_list(char *name, char *units,
 		   free(temp);
 		   PAPIERROR("This shouldn't be possible\n");
 
-		   return PAPI_ECMP;
+		   return PAPI_ESBSTR;
     }
 
     last = temp;
@@ -180,7 +179,7 @@ generateEventList(char *base_dir)
 	     if (fff==NULL) continue;
 	     fclose(fff);
 
-	     snprintf(name, PAPI_MAX_STR_LEN, "%s:in%i_input", 
+	     snprintf(name, PAPI_MAX_STR_LEN, "%s.in%i_input", 
 			 hwmonx->d_name, i);
 	     snprintf(units, PAPI_MIN_STR_LEN, "V");
 	     snprintf(description, PAPI_MAX_STR_LEN, "%s, %s module, label %s",
@@ -222,7 +221,7 @@ generateEventList(char *base_dir)
 	     if (fff==NULL) continue;
 	     fclose(fff);
 
-	     snprintf(name, PAPI_MAX_STR_LEN, "%s:temp%i_input", 
+	     snprintf(name, PAPI_MAX_STR_LEN, "%s.temp%i_input", 
 			 hwmonx->d_name, i);
 	     snprintf(units, PAPI_MIN_STR_LEN, "degrees C");
 	     snprintf(description, PAPI_MAX_STR_LEN, "%s, %s module, label %s",
@@ -263,7 +262,7 @@ generateEventList(char *base_dir)
 	     if (fff==NULL) continue;
 	     fclose(fff);
 
-	     snprintf(name, PAPI_MAX_STR_LEN, "%s:fan%i_input", 
+	     snprintf(name, PAPI_MAX_STR_LEN, "%s.fan%i_input", 
 			 hwmonx->d_name, i);
 	     snprintf(units, PAPI_MIN_STR_LEN, "RPM");
 	     snprintf(description, PAPI_MAX_STR_LEN, "%s, %s module, label %s",
@@ -288,7 +287,7 @@ generateEventList(char *base_dir)
 done_error:
     closedir(d);
     closedir(dir);
-    return PAPI_ECMP;
+    return PAPI_ESBSTR;
 }
 
 static long long
@@ -326,7 +325,7 @@ getEventValue( int index )
  * This is called whenever a thread is initialized
  */
 int 
-_coretemp_init_thread( hwd_context_t *ctx )
+_coretemp_init( hwd_context_t *ctx )
 {
   ( void ) ctx;
   return PAPI_OK;
@@ -339,7 +338,7 @@ _coretemp_init_thread( hwd_context_t *ctx )
  * PAPI process is initialized (IE PAPI_library_init)
  */
 int 
-_coretemp_init_component( int cidx )
+_coretemp_init_substrate( int cidx )
 {
      int i = 0;
      struct temp_event *t,*last;
@@ -355,15 +354,11 @@ _coretemp_init_component( int cidx )
      num_events = generateEventList("/sys/class/hwmon");
 
      if ( num_events < 0 ) {
-        strncpy(_coretemp_vector.cmp_info.disabled_reason,
-		"Cannot open /sys/class/hwmon",PAPI_MAX_STR_LEN);
-	return PAPI_ENOCMP;
+	return num_events;
      }
 
      if ( num_events == 0 ) {
-        strncpy(_coretemp_vector.cmp_info.disabled_reason,
-		"No coretemp events found",PAPI_MAX_STR_LEN);
-	return PAPI_ENOCMP;
+	return PAPI_OK;
      }
 
      t = root;
@@ -472,7 +467,7 @@ _coretemp_stop( hwd_context_t *ctx, hwd_control_state_t *ctl )
 
 /* Shutdown a thread */
 int
-_coretemp_shutdown_thread( hwd_context_t * ctx )
+_coretemp_shutdown( hwd_context_t * ctx )
 {
   ( void ) ctx;
   return PAPI_OK;
@@ -480,10 +475,10 @@ _coretemp_shutdown_thread( hwd_context_t * ctx )
 
 
 /*
- * Clean up what was setup in  coretemp_init_component().
+ * Clean up what was setup in  coretemp_init_substrate().
  */
 int 
-_coretemp_shutdown_component( ) 
+_coretemp_shutdown_substrate( ) 
 {
     if ( is_initialized ) {
        is_initialized = 0;
@@ -494,7 +489,7 @@ _coretemp_shutdown_component( )
 }
 
 
-/* This function sets various options in the component
+/* This function sets various options in the substrate
  * The valid codes being passed in are PAPI_SET_DEFDOM,
  * PAPI_SET_DOMAIN, PAPI_SETDEFGRN, PAPI_SET_GRANUL * and PAPI_SET_INHERIT
  */
@@ -519,7 +514,7 @@ _coretemp_update_control_state(	hwd_control_state_t *ptr,
     ( void ) ptr;
 
     for ( i = 0; i < count; i++ ) {
-	index = native[i].ni_event;
+	index = native[i].ni_event & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 	native[i].ni_position = _coretemp_native_events[index].resources.selector - 1;
     }
     return PAPI_OK;
@@ -574,7 +569,8 @@ _coretemp_reset( hwd_context_t *ctx, hwd_control_state_t *ctl )
 int
 _coretemp_ntv_enum_events( unsigned int *EventCode, int modifier )
 {
-
+	
+     int cidx = PAPI_COMPONENT_INDEX( *EventCode );
      int index;
 
      switch ( modifier ) {
@@ -584,14 +580,14 @@ _coretemp_ntv_enum_events( unsigned int *EventCode, int modifier )
 	   if (num_events==0) {
 	      return PAPI_ENOEVNT;
 	   }
-	   *EventCode = 0;
+	   *EventCode = PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK( cidx );
 
 	   return PAPI_OK;
 		
 
 	case PAPI_ENUM_EVENTS:
 	
-	   index = *EventCode;
+	   index = *EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
 	   if ( index < num_events - 1 ) {
 	      *EventCode = *EventCode + 1;
@@ -613,7 +609,7 @@ _coretemp_ntv_enum_events( unsigned int *EventCode, int modifier )
 int
 _coretemp_ntv_code_to_name( unsigned int EventCode, char *name, int len )
 {
-     int index = EventCode;
+     int index = EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
      if ( index >= 0 && index < num_events ) {
 	strncpy( name, _coretemp_native_events[index].name, len );
@@ -628,7 +624,7 @@ _coretemp_ntv_code_to_name( unsigned int EventCode, char *name, int len )
 int
 _coretemp_ntv_code_to_descr( unsigned int EventCode, char *name, int len )
 {
-     int index = EventCode;
+     int index = EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
      if ( index >= 0 && index < num_events ) {
 	strncpy( name, _coretemp_native_events[index].description, len );
@@ -637,40 +633,15 @@ _coretemp_ntv_code_to_descr( unsigned int EventCode, char *name, int len )
      return PAPI_ENOEVNT;
 }
 
-int
-_coretemp_ntv_code_to_info(unsigned int EventCode, PAPI_event_info_t *info) 
-{
-
-  int index = EventCode;
-
-  if ( ( index < 0) || (index >= num_events )) return PAPI_ENOEVNT;
-
-  strncpy( info->symbol, _coretemp_native_events[index].name, 
-	   sizeof(info->symbol));
-
-  strncpy( info->long_descr, _coretemp_native_events[index].description, 
-	   sizeof(info->long_descr));
-
-  strncpy( info->units, _coretemp_native_events[index].units, 
-	   sizeof(info->units));
-
-
-  return PAPI_OK;
-}
-
-
-
 /*
  *
  */
 papi_vector_t _coretemp_vector = {
 	.cmp_info = {
 				 /* default component information (unspecified values are initialized to 0) */
-				 .name = "coretemp",
-				 .short_name = "coretemp",
-				 .description = "Linux hwmon temperature and other info",
-				 .version = "4.2.1",
-				 .num_mpx_cntrs = CORETEMP_MAX_COUNTERS,
+				 .name = "linux-coretemp.c",
+				 .version = "$Revision$",
+				 .num_mpx_cntrs = PAPI_MPX_DEF_DEG,
 				 .num_cntrs = CORETEMP_MAX_COUNTERS,
 				 .default_domain = PAPI_DOM_USER,
 				 //.available_domains = PAPI_DOM_USER,
@@ -696,14 +667,14 @@ papi_vector_t _coretemp_vector = {
 			 }
 	,
 	/* function pointers in this component */
-	.init_thread =          _coretemp_init_thread,
-	.init_component =       _coretemp_init_component,
+	.init =                 _coretemp_init,
+	.init_substrate =       _coretemp_init_substrate,
 	.init_control_state =   _coretemp_init_control_state,
 	.start =                _coretemp_start,
 	.stop =                 _coretemp_stop,
 	.read =                 _coretemp_read,
-	.shutdown_thread =      _coretemp_shutdown_thread,
-	.shutdown_component =   _coretemp_shutdown_component,
+	.shutdown =             _coretemp_shutdown,
+	.shutdown_substrate =   _coretemp_shutdown_substrate,
 	.ctl =                  _coretemp_ctl,
 
 	.update_control_state = _coretemp_update_control_state,
@@ -713,5 +684,6 @@ papi_vector_t _coretemp_vector = {
 	.ntv_enum_events =      _coretemp_ntv_enum_events,
 	.ntv_code_to_name =     _coretemp_ntv_code_to_name,
 	.ntv_code_to_descr =    _coretemp_ntv_code_to_descr,
-	.ntv_code_to_info =     _coretemp_ntv_code_to_info,
+	.ntv_code_to_bits =     NULL,
+	.ntv_bits_to_info =     NULL,
 };

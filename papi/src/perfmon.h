@@ -2,6 +2,7 @@
 #define _PAPI_PERFMON_H
 /* 
 * File:    perfmon.h
+* CVS:     $Id$
 * Author:  Philip Mucci
 *          mucci@cs.utk.edu
 *
@@ -30,9 +31,9 @@
 #include <sys/ptrace.h>
 #include "perfmon/pfmlib.h"
 #include "perfmon/perfmon_dfl_smpl.h"
-#include "papi_lock.h"
+#include "papi_defines.h"
 
-
+#include "linux-lock.h"
 #include "linux-context.h"
 
 #if defined(DEBUG)
@@ -99,5 +100,7 @@ typedef pfm_reg_alloc_t cmp_reg_alloc_t;
 typedef pfm_register_t cmp_register_t;
 typedef pfm_control_state_t cmp_control_state_t;
 typedef pfm_context_t cmp_context_t;
+
+#define MY_VECTOR _papi_pfm_vector
 
 #endif

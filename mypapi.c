@@ -2,7 +2,7 @@
 #include "config.h"
 
 
-#if (defined BGP && !defined NOPAPI)
+#if PAPI
 
 #include <stdio.h>
 #include <stdint.h>

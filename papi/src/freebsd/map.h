@@ -4,6 +4,7 @@
 
 /* 
 * File:    freebsd-map.h
+* CVS:     $Id$
 * Author:  Harald Servat
 *          redcrash@gmail.com
 */
@@ -31,7 +32,6 @@ enum
 	CPU_CORE2,
 	CPU_CORE2EXTREME,
 	CPU_COREI7,
-	CPU_COREWESTMERE,
 	CPU_LAST
 };
 
@@ -45,11 +45,13 @@ typedef struct Native_Event_Info
 {
 	/* Name and description for all native events */
 	Native_Event_LabelDescription_t *info;
+	/* Mapping between native events <-> PAPI events */
+	hwi_search_t *map;
 } Native_Event_Info_t;
 
 extern Native_Event_Info_t _papi_hwd_native_info[CPU_LAST+1];
 extern void init_freebsd_libpmc_mappings (void);
-extern int freebsd_number_of_events (int processortype);
+extern int freebsd_substrate_number_of_events (int processortype);
 
 #include "map-unknown.h"
 #include "map-p6.h"
@@ -65,6 +67,5 @@ extern int freebsd_number_of_events (int processortype);
 #include "map-core2.h"
 #include "map-core2-extreme.h"
 #include "map-i7.h"
-#include "map-westmere.h"
 
 #endif /* _FreeBSD_MAP_H_ */

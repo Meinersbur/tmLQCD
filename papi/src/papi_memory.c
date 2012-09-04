@@ -1,5 +1,6 @@
 /**
  * @file    papi_memory.c
+ * CVS:     $Id$
  * @author  Kevin London
  *          london@cs.utk.edu
  * PAPI memory allocation provides for checking and maintenance of all memory
@@ -19,10 +20,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "papi.h"
-#include "papi_lock.h"
-#include "papi_memory.h"
 #include "papi_internal.h"
-
+#include "papi_memory.h"
 
 /** Define the amount of extra memory at the beginning of the alloc'd pointer.
  * This is usually the size of a pointer, but in some cases needs to be bigger

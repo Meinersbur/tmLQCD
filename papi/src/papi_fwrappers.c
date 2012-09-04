@@ -37,34 +37,14 @@
 #endif
 
 /* Many Unix systems passes Fortran string lengths as extra arguments */
-#if defined(_AIX) || defined(sun) || defined(linux)
+/* Compaq Visual Fortran on Windows also supports this convention */
+#if defined(_AIX) || defined(sun) || defined(_WIN32) || defined(linux)
 #define _FORTRAN_STRLEN_AT_END
 #endif
 /* The Low Level Wrappers */
 
 /** @defgroup PAPIF PAPI Fortran API 
  *	*/
-
-/* helper routine to convert Fortran strings to C strings */
-#if defined(_FORTRAN_STRLEN_AT_END)
-static void Fortran2cstring( char *cstring, char *Fstring, int clen , int Flen )
-{
-	int slen, i;
-
-	/* What is the maximum number of chars to copy ? */
-	slen = Flen < clen ? Flen : clen;
-	strncpy( cstring, Fstring, ( size_t ) slen );
-
-	/* Remove trailing blanks from initial Fortran string */
-	for ( i = slen - 1; i > -1 && cstring[i] == ' '; cstring[i--] = '\0' );
-
-	/* Make sure string is NULL terminated */
-	cstring[clen - 1] = '\0';
-	if ( slen < clen )
-		cstring[slen] = '\0';
-}
-#endif
-
 /**	@class PAPIF_accum
  *	@ingroup PAPIF
  *	@brief accumulate and reset counters in an event set 
@@ -96,32 +76,6 @@ PAPI_FCALL( papif_add_event, PAPIF_ADD_EVENT,
 {
 	*check = PAPI_add_event( *EventSet, *Event );
 }
-
-/**	@class PAPIF_add_named_event
- *	@ingroup PAPIF
- *	@brief add PAPI preset or native hardware event to an event set by name
- *	
- *	@par Fortran Interface:
- *	\#include "fpapi.h" @n
- *	PAPIF_add_named_event( C_INT EventSet, C_STRING EventName, C_INT check )
- *
- *	@see PAPI_add_named_event
- */
-#if defined(_FORTRAN_STRLEN_AT_END)
-PAPI_FCALL( papif_add_named_event, PAPIF_ADD_NAMED_EVENT,
-			( int *EventSet, char *EventName, int *check, int Event_len ) )
-{
-	char tmp[PAPI_MAX_STR_LEN];
-	Fortran2cstring( tmp, EventName, PAPI_MAX_STR_LEN, Event_len );
-	*check = PAPI_add_named_event( *EventSet, tmp );	
-}
-#else
-PAPI_FCALL( papif_add_named_event, PAPIF_ADD_NAMED_EVENT,
-			( int *EventSet, char *EventName, int *check ) )
-{
-	*check = PAPI_add_named_event( *EventSet, EventName );
-}
-#endif
 
 /**	@class PAPIF_add_events
  *	@ingroup PAPIF
@@ -332,7 +286,7 @@ PAPI_FCALL( papif_get_hardware_info, PAPIF_GET_HARDWARE_INFO, ( int *ncpu,
 		*vendor = hwinfo->vendor;
 		*model = hwinfo->model;
 		*revision = hwinfo->revision;
-		*mhz = hwinfo->cpu_max_mhz;
+		*mhz = hwinfo->mhz;
 #if defined(_FORTRAN_STRLEN_AT_END)
 		strncpy( vendor_str, hwinfo->vendor_string, ( size_t ) vendor_len );
 		for ( i = ( int ) strlen( hwinfo->vendor_string ); i < vendor_len;
@@ -620,26 +574,34 @@ PAPI_FCALL( papif_set_multiplex, PAPIF_SET_MULTIPLEX,
  *
  * @par Fortran Interface:
  * \#include "fpapi.h" @n
- *     PAPIF_perror( C_STRING message )
+ *     PAPIF_perror( C_INT code, C_STRING destination, C_INT check )
  *
  * @see PAPI_perror
  */
 #if defined(_FORTRAN_STRLEN_AT_END)
 PAPI_FCALL( papif_perror, PAPIF_PERROR,
-			( char *message,
-			  int message_len ) )
+			( int *code, char *destination_str, int *check,
+			  int destination_len ) )
 #else
 PAPI_FCALL( papif_perror, PAPIF_PERROR,
-			( char *message ) )
+			( int *code, char *destination, int *check ) )
 #endif
 {
 #if defined(_FORTRAN_STRLEN_AT_END)
-		char tmp[PAPI_MAX_STR_LEN];
-		Fortran2cstring( tmp, message, PAPI_MAX_STR_LEN, message_len );
+	int i;
+	char tmp[PAPI_MAX_STR_LEN];
 
-	PAPI_perror( tmp );
+	*check = PAPI_perror( *code, tmp, PAPI_MAX_STR_LEN );
+	/* tmp has \0 within PAPI_MAX_STR_LEN chars so strncpy is safe */
+	strncpy( destination_str, tmp, ( size_t ) destination_len );
+	/* overwrite any NULLs and trailing garbage in destination_str */
+	for ( i = ( int ) strlen( tmp ); i < destination_len;
+		  destination_str[i++] = ' ' );
 #else
-	PAPI_perror( message );
+	/* Assume that the underlying Fortran implementation 
+	   can handle \0 terminated strings and that the 
+	   passed array is of sufficient size */
+	*check = PAPI_perror( *code, destination, PAPI_MAX_STR_LEN );
 #endif
 }
 
@@ -666,32 +628,6 @@ PAPI_FCALL( papif_query_event, PAPIF_QUERY_EVENT,
 {
 	*check = PAPI_query_event( *EventCode );
 }
-
-/** @class PAPIF_query_named_event
- *	@ingroup PAPIF
- *  @brief Query if named PAPI event exists.
- *
- * @par Fortran Interface:
- * \#include "fpapi.h" @n
- * PAPIF_query_named_event(C_STRING EventName, C_INT check )
- *
- * @see PAPI_query_named_event
- */
-#if defined(_FORTRAN_STRLEN_AT_END)
-PAPI_FCALL( papif_query_named_event, PAPIF_QUERY_NAMED_EVENT,
-			( char *EventName, int *check, int Event_len ) )
-{
-	char tmp[PAPI_MAX_STR_LEN];
-	Fortran2cstring( tmp, EventName, PAPI_MAX_STR_LEN, Event_len );
-	*check = PAPI_query_named_event( tmp );	
-}
-#else
-PAPI_FCALL( papif_query_named_event, PAPIF_QUERY_NAMED_EVENT,
-			( char *EventName, int *check ) )
-{
-	*check = PAPI_query_named_event( EventName );
-}
-#endif
 
 /** @class PAPIF_get_event_info
  *	@ingroup PAPIF
@@ -731,15 +667,9 @@ PAPI_FCALL( papif_get_event_info, PAPIF_GET_EVENT_INFO,
 		strncpy( short_descr, info.short_descr, ( size_t ) short_descr_len );
 		for ( i = ( int ) strlen( info.short_descr ); i < short_descr_len;
 			  short_descr[i++] = ' ' );
-
 		*count = ( int ) info.count;
-
-		int note_len=0;
-
-		strncpy( event_note, info.note,  ( size_t ) event_note_len );
-		note_len=strlen(info.note);
-
-		for ( i =  note_len; i < event_note_len;
+		strncpy( event_note, info.note, ( size_t ) event_note_len );
+		for ( i = ( int ) strlen( info.note ); i < event_note_len;
 			  event_note[i++] = ' ' );
 	}
 #else
@@ -749,9 +679,7 @@ PAPI_FCALL( papif_get_event_info, PAPIF_GET_EVENT_INFO,
 		strncpy( long_descr, info.long_descr, PAPI_MAX_STR_LEN );
 		strncpy( short_descr, info.short_descr, PAPI_MAX_STR_LEN );
 		*count = info.count;
-		if (info.note) 
-                   strncpy( event_note, info.note, 
-			    PAPI_MAX_STR_LEN );
+		strncpy( event_note, info.note, PAPI_MAX_STR_LEN );
 	}
 /*  printf("Check: %d\n", *check); -KSL */
 #endif
@@ -908,32 +836,6 @@ PAPI_FCALL( papif_remove_event, PAPIF_REMOVE_EVENT,
 {
 	*check = PAPI_remove_event( *EventSet, *Event );
 }
-
-/** @class PAPIF_remove_named_event
- *	@ingroup PAPIF
- *  @brief Remove a named hardware event from a PAPI event set. 
- *
- *   @par Fortran interface:
- *   \#include "fpapi.h" @n
- *   PAPIF_remove_named_event( C_INT EventSet, C_STRING EventName, C_INT check )
- *
- * @see PAPI_remove_named_event
- */
-#if defined(_FORTRAN_STRLEN_AT_END)
-PAPI_FCALL( papif_remove_named_event, PAPIF_REMOVE_NAMED_EVENT,
-			( int *EventSet, char *EventName, int *check, int Event_len ) )
-{
-	char tmp[PAPI_MAX_STR_LEN];
-	Fortran2cstring( tmp, EventName, PAPI_MAX_STR_LEN, Event_len );
-	*check = PAPI_remove_named_event( *EventSet, tmp );	
-}
-#else
-PAPI_FCALL( papif_remove_named_event, PAPIF_REMOVE_NAMED_EVENT,
-			( int *EventSet, char *EventName, int *check ) )
-{
-	*check = PAPI_remove_named_event( *EventSet, EventName );
-}
-#endif
 
 /** @class PAPIF_remove_events
  *	@ingroup PAPIF

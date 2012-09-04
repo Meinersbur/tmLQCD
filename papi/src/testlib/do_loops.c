@@ -11,6 +11,7 @@ volatile double a = 0.5, b = 2.2;
 void
 do_reads( int n )
 {
+#if !defined(_WIN32)
 	int i, retval;
 	static int fd = -1;
 	char buf;
@@ -35,6 +36,7 @@ do_reads( int n )
 			exit( 1 );
 		}
 	}
+#endif /* _WIN32 */
 }
 
 void

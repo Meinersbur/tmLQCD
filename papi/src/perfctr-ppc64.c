@@ -4,6 +4,7 @@
 
 /*
 * File:    perfctr-ppc64.c
+* CVS:     $Id$
 * Author:  Maynard Johnson
 *          maynardj@us.ibm.com
 * Mods:    <your name here>
@@ -268,6 +269,11 @@ _papi_hwd_init_control_state( hwd_control_state_t * ptr )
 	return ( PAPI_OK );
 }
 
+/* No longer needed if not implemented
+int _papi_hwd_add_prog_event(hwd_control_state_t * state, unsigned int code, void *tmp, EventInfo_t *tmp2) {
+   return (PAPI_ESBSTR);
+} */
+
 /* At init time, the higher level library should always allocate and 
    reserve EventSet zero. */
 
@@ -278,7 +284,46 @@ int _papi_hwd_shutdown_global(void) {
    return (PAPI_OK);
 } */
 
-
+/* This function examines the event to determine
+    if it can be mapped to counter ctr. 
+    Returns true if it can, false if it can't.
+*/
+/*
+int _papi_hwd_bpt_map_avail(hwd_reg_alloc_t * dst, int ctr)
+{
+	return PAPI_OK;
+}
+*/
+/* This function forces the event to
+    be mapped to only counter ctr. 
+    Returns nothing.
+*/
+/*
+void _papi_hwd_bpt_map_set(hwd_reg_alloc_t * dst, int ctr)
+{
+}
+*/
+/* This function examines the event to determine
+    if it has a single exclusive mapping. 
+    Returns true if exlusive, false if non-exclusive.
+*/
+/*
+int _papi_hwd_bpt_map_exclusive(hwd_reg_alloc_t * dst)
+{
+	return PAPI_OK;
+}
+*/
+/* This function compares the dst and src events
+    to determine if any counters are shared. Typically the src event
+    is exclusive, so this detects a conflict if true.
+    Returns true if conflict, false if no conflict.
+*/
+/*
+int _papi_hwd_bpt_map_shared(hwd_reg_alloc_t * dst, hwd_reg_alloc_t * src)
+{
+	return PAPI_OK;
+}
+*/
 /* this function recusively does Modified Bipartite Graph counter allocation 
      success  return 1
 	 fail     return 0
@@ -321,6 +366,20 @@ do_counter_allocation( ppc64_reg_alloc_t * event_list, int size )
 }
 
 
+
+/* This function removes shared resources available to the src event
+    from the resources available to the dst event,
+    and reduces the rank of the dst event accordingly. Typically,
+    the src event will be exclusive, but the code shouldn't assume it.
+    Returns nothing.  */
+/*
+void _papi_hwd_bpt_map_preempt(hwd_reg_alloc_t *dst, hwd_reg_alloc_t *src) {
+}
+
+void _papi_hwd_bpt_map_update(hwd_reg_alloc_t *dst, hwd_reg_alloc_t *src) {
+}
+*/
+
 /* Register allocation */
 int
 _papi_hwd_allocate_registers( EventSetInfo_t * ESI )
@@ -342,7 +401,7 @@ _papi_hwd_allocate_registers( EventSetInfo_t * ESI )
 				   native_name_map[ESI->NativeInfoArray[i].
 								   ni_event & PAPI_NATIVE_AND_MASK].index ) <
 				 0 )
-				return PAPI_ECNFLCT;
+				return 0;
 			event_list[i].ra_counter_cmd[j] =
 				native_table[index].resources.counter_cmd[j];
 		}
@@ -351,7 +410,7 @@ _papi_hwd_allocate_registers( EventSetInfo_t * ESI )
 				   native_name_map[ESI->NativeInfoArray[i].
 								   ni_event & PAPI_NATIVE_AND_MASK].index ) <
 				 0 )
-				return PAPI_ECNFLCT;
+				return 0;
 			event_list[i].ra_group[j] = native_table[index].resources.group[j];
 		}
 	}
@@ -367,9 +426,9 @@ _papi_hwd_allocate_registers( EventSetInfo_t * ESI )
 		/* update the control structure based on the NativeInfoArray */
 		SUBDBG( "Group ID: %d\n", group );
 
-		return PAPI_OK;
+		return 1;
 	} else {
-		return PAPI_ECNFLCT;
+		return 0;
 	}
 }
 
@@ -487,6 +546,15 @@ _papi_hwd_reset( hwd_context_t * ctx, hwd_control_state_t * cntrl )
 	return ( _papi_hwd_start( ctx, cntrl ) );
 }
 
+/*
+int _papi_hwd_setmaxmem() {
+   return (PAPI_OK);
+}
+
+int _papi_hwd_write(hwd_context_t * ctx, hwd_control_state_t * cntrl, long long * from) {
+   return(PAPI_ESBSTR);
+}
+*/
 
 /* This routine is for shutting down threads, including the
    master thread. */
@@ -619,7 +687,7 @@ int
 _papi_hwd_set_profile( EventSetInfo_t * ESI, int EventIndex, int threshold )
 {
 	/* This function is not used and shouldn't be called. */
-	return PAPI_ECMP;
+	return ( PAPI_ESBSTR );
 }
 
 
@@ -627,7 +695,7 @@ int
 _papi_hwd_stop_profiling( ThreadInfo_t * master, EventSetInfo_t * ESI )
 {
 	ESI->profile.overflowcount = 0;
-	return PAPI_OK;
+	return ( PAPI_OK );
 }
 
 int
@@ -667,6 +735,57 @@ copy_value( unsigned int val, char *nam, char *names, unsigned int *values,
 	*values = val;
 	strncpy( names, nam, len );
 	names[len - 1] = 0;
+}
+
+int
+_papi_hwd_ntv_bits_to_info( hwd_register_t * bits, char *names,
+							unsigned int *values, int name_len, int count )
+{
+	int i = 0;
+	copy_value( bits->selector, "Available counters", &names[i * name_len],
+				&values[i], name_len );
+	if ( ++i == count )
+		return ( i );
+	int j;
+	int event_found = 0;
+	for ( j = 0; j < 5; j++ ) {
+		if ( bits->counter_cmd[j] >= 0 ) {
+			event_found = 1;
+			break;
+		}
+	}
+	if ( event_found ) {
+		copy_value( bits->counter_cmd[j], "Event on first counter",
+					&names[i * name_len], &values[i], name_len );
+	}
+	if ( ++i == count )
+		return ( i );
+
+	int group_sets = 0;
+	int k;
+	for ( k = 0; k < GROUP_INTS; k++ ) {
+		if ( bits->group[k] )
+			group_sets++;
+	}
+	char *msg_base = "Available group";
+	char *set_id_msg = ", set ";
+	char *msg = ( char * ) malloc( 30 );
+	int current_group_set = 0;
+	for ( k = 0; k < GROUP_INTS; k++ ) {
+		if ( bits->group[k] ) {
+			if ( group_sets > 1 ) {
+				sprintf( msg, "%s%s%d", msg_base, set_id_msg,
+						 ++current_group_set );
+				copy_value( bits->group[k], msg, &names[i * name_len],
+							&values[i], name_len );
+			} else {
+				copy_value( bits->group[k], msg_base, &names[i * name_len],
+							&values[i], name_len );
+			}
+		}
+	}
+
+	return ( ++i );
 }
 
 
@@ -742,6 +861,8 @@ papi_svector_t _ppc64_vector_table[] = {
 	 VEC_PAPI_HWD_NTV_CODE_TO_NAME},
 	{( void ( * )(  ) ) _papi_hwd_ntv_code_to_bits,
 	 VEC_PAPI_HWD_NTV_CODE_TO_BITS},
+	{( void ( * )(  ) ) _papi_hwd_ntv_bits_to_info,
+	 VEC_PAPI_HWD_NTV_BITS_TO_INFO},
 	{( void ( * )(  ) ) *_papi_hwd_ntv_code_to_descr,
 	 VEC_PAPI_HWD_NTV_CODE_TO_DESCR},
 	{( void ( * )(  ) ) *_papi_hwd_ntv_enum_events,

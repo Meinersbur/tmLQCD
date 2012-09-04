@@ -10,9 +10,7 @@
 #include "papi.h"
 #include "papi_internal.h"
 
-#include "aix.h"
-
-int
+extern int
 _aix_get_memory_info( PAPI_hw_info_t * mem_info, int type )
 {
 	PAPI_mh_level_t *L = mem_info->mem_hierarchy.level;
@@ -60,7 +58,7 @@ _aix_get_memory_info( PAPI_hw_info_t * mem_info, int type )
 	return PAPI_OK;
 }
 
-int
+extern int
 _aix_get_dmem_info( PAPI_dmem_info_t * d )
 {
 	/* This function has been reimplemented 

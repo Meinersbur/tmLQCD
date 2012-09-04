@@ -1,14 +1,13 @@
 /*
- * File:    linux-timer.c
- *
- */
+* File:    linux-timer.c
+*
+*/
 
 #include <time.h>
 #include <sys/syscall.h>
 
 #include "papi.h"
 #include "papi_internal.h"
-#include "papi_vector.h"
 
 #include <fcntl.h>
 #include <errno.h>
@@ -16,15 +15,16 @@
 
 #include <sys/time.h>
 
-#include <fcntl.h>
+#ifdef __ia64__
+/* for mygettid() on ia64 */
 #include "linux-common.h"
+/* for MY_VECTOR _ia64_vector */
+#include "perfmon-ia64-pfm.h"
+#endif
 
-#include <sys/time.h>
-#include <sys/resource.h>
-
+#if defined(HAVE_PER_THREAD_TIMES)
 #include <sys/times.h>
-
-
+#endif
 
 
 #if defined(HAVE_MMTIMER)
@@ -51,46 +51,47 @@ int mmtimer_setup(void) {
 	  SUBDBG( "MMTIMER Opening %s\n", MMTIMER_FULLNAME );
 	  if ( ( mmdev_fd = open( MMTIMER_FULLNAME, O_RDONLY ) ) == -1 ) {
 	    PAPIERROR( "Failed to open MM timer %s", MMTIMER_FULLNAME );
-	    return PAPI_ESYS;
+	    return ( PAPI_ESYS );
 	  }
 	  SUBDBG( "MMTIMER checking if we can mmap" );
 	  if ( ioctl( mmdev_fd, MMTIMER_MMAPAVAIL, 0 ) != 1 ) {
 	    PAPIERROR( "mmap of MM timer unavailable" );
-	    return PAPI_ESYS;
+	    return ( PAPI_ESBSTR );
 	  }
 	  SUBDBG( "MMTIMER setting close on EXEC flag\n" );
 	  if ( fcntl( mmdev_fd, F_SETFD, FD_CLOEXEC ) == -1 ) {
 	    PAPIERROR( "Failed to fcntl(FD_CLOEXEC) on MM timer FD %d: %s",
 		       mmdev_fd, strerror( errno ) );
-	    return PAPI_ESYS;
+	    return ( PAPI_ESYS );
 	  }
 	  SUBDBG( "MMTIMER is on FD %d, getting offset\n", mmdev_fd );
 	  if ( ( offset = ioctl( mmdev_fd, MMTIMER_GETOFFSET, 0 ) ) < 0 ) {
 	    PAPIERROR( "Failed to get offset of MM timer" );
-	    return PAPI_ESYS;
+	    return ( PAPI_ESYS );
 	  }
 	  SUBDBG( "MMTIMER has offset of %d, getting frequency\n", offset );
 	  if ( ioctl( mmdev_fd, MMTIMER_GETFREQ, &freq ) == -1 ) {
 	    PAPIERROR( "Failed to get frequency of MM timer" );
-	    return PAPI_ESYS;
+	    return ( PAPI_ESYS );
 	  }
 	  SUBDBG( "MMTIMER has frequency %lu Mhz\n", freq / 1000000 );
 	  // don't know for sure, but I think this ratio is inverted
 	  //     mmdev_ratio = (freq/1000000) / (unsigned long)_papi_hwi_system_info.hw_info.mhz;
           mmdev_ratio =
-		  ( unsigned long ) _papi_hwi_system_info.hw_info.cpu_max_mhz / 
-	                      ( freq / 1000000 );
+		  ( unsigned long ) _papi_hwi_system_info.hw_info.mhz / ( freq /
+                                                                                        
+									  1000000 );
           SUBDBG( "MMTIMER has a ratio of %ld to the CPU's clock, getting resolution\n",
 		    mmdev_ratio );
           if ( ioctl( mmdev_fd, MMTIMER_GETRES, &femtosecs_per_tick ) == -1 ) {
 		  PAPIERROR( "Failed to get femtoseconds per tick" );
-		  return PAPI_ESYS;
+		  return ( PAPI_ESYS );
           }
           SUBDBG( "MMTIMER res is %lu femtosecs/tick (10^-15s) or %f Mhz, getting valid bits\n",
 	  femtosecs_per_tick, 1.0e9 / ( double ) femtosecs_per_tick );
           if ( ( result = ioctl( mmdev_fd, MMTIMER_GETBITS, 0 ) ) == -ENOSYS ) {
 	     PAPIERROR( "Failed to get number of bits in MMTIMER" );
-	     return PAPI_ESYS;
+	     return ( PAPI_ESYS );
           }
           mmdev_mask = ~( 0xffffffffffffffff << result );
           SUBDBG( "MMTIMER has %d valid bits, mask 0x%16lx, getting mmaped page\n",
@@ -100,7 +101,7 @@ int mmtimer_setup(void) {
 						 MAP_PRIVATE, mmdev_fd,
 						 0 ) ) == NULL ) {
 	     PAPIERROR( "Failed to mmap MM timer" );
-	     return PAPI_ESYS;
+	     return ( PAPI_ESYS );
           }
           SUBDBG( "MMTIMER page is at %p, actual address is %p\n",
 			mmdev_timer_addr, mmdev_timer_addr + offset );
@@ -126,7 +127,7 @@ int mmtimer_setup(void) { return PAPI_OK; }
    with:
      #if defined(HAVE_CYCLE)
    which is equivalent to
-     #if !defined(HAVE_GETTIMEOFDAY) && !defined(HAVE_CLOCK_GETTIME)
+     #if !defined(HAVE_GETTIMEOFDAY) && !defined(HAVE_CLOCK_GETTIME_REALTIME)
 */
 
 /************************/
@@ -213,7 +214,7 @@ get_cycles( void )
 /* POWER get_cycles()   */
 /************************/
 
-#elif (defined(__powerpc__) || defined(__arm__) || defined(__mips__))
+#elif defined(__powerpc__)
 /*
  * It's not possible to read the cycles from user space on ppc970.
  * There is a 64-bit time-base register (TBU|TBL), but its
@@ -223,32 +224,48 @@ get_cycles( void )
  * _papi_hwd_get_real_usec() for the needed functionality.
 */
 
-static inline long long
-get_cycles( void )
-{
-  return 0;
-}
+#elif defined(__arm__)
+/* um same as POWER */
 
+#elif defined(__mips__)
+/* um same as POWER */
 
-#elif !defined(HAVE_GETTIMEOFDAY) && !defined(HAVE_CLOCK_GETTIME)
-#error "No get_cycles support for this architecture. "
+#elif !defined(HAVE_GETTIMEOFDAY) && !defined(HAVE_CLOCK_GETTIME_REALTIME)
+#error "No get_cycles support for this architecture. Please modify perfmon.c or compile with a different timer"
 #endif
 
-
-
-
-
+long long
+_linux_get_real_usec( void )
+{
+	long long retval;
+#if defined(HAVE_CLOCK_GETTIME_REALTIME)
+	{
+		struct timespec foo;
+		syscall( __NR_clock_gettime, HAVE_CLOCK_GETTIME_REALTIME, &foo );
+		retval = ( long long ) foo.tv_sec * ( long long ) 1000000;
+		retval += ( long long ) ( foo.tv_nsec / 1000 );
+	}
+#elif defined(HAVE_GETTIMEOFDAY)
+	{
+		struct timeval buffer;
+		gettimeofday( &buffer, NULL );
+		retval = ( long long ) buffer.tv_sec * ( long long ) 1000000;
+		retval += ( long long ) ( buffer.tv_usec );
+	}
+#else
+	retval = get_cycles(  ) / ( long long ) _papi_hwi_system_info.hw_info.mhz;
+#endif
+	return retval;
+}
 
 long long
 _linux_get_real_cycles( void )
 {
 	long long retval;
 #if defined(HAVE_GETTIMEOFDAY)||defined(__powerpc__)||defined(__arm__)||defined(__mips__)
-
-	/* Crude estimate, not accurate in prescence of DVFS */
-
-	retval = _papi_os_vector.get_real_usec(  ) *
-		( long long ) _papi_hwi_system_info.hw_info.cpu_max_mhz;
+	retval =
+		_linux_get_real_usec(  ) *
+		( long long ) _papi_hwi_system_info.hw_info.mhz;
 #else
 	retval = get_cycles(  );
 #endif
@@ -256,247 +273,116 @@ _linux_get_real_cycles( void )
 }
 
 
-
-
-/********************************************************************
- * microsecond timers                                               *
- ********************************************************************/
-
-
-/*******************************
- * HAVE_CLOCK_GETTIME          *
- *******************************/
-
-long long
-_linux_get_real_usec_gettime( void )
+#if defined(USE_PROC_PTTIMER)
+int
+init_proc_thread_timer( hwd_context_t *thr_ctx )
 {
-	
-   long long retval;
-
-   struct timespec foo;
-#ifdef HAVE_CLOCK_GETTIME_REALTIME_HR
-   syscall( __NR_clock_gettime, CLOCK_REALTIME_HR, &foo );
-#else
-   syscall( __NR_clock_gettime, CLOCK_REALTIME, &foo );
+	char buf[LINE_MAX];
+	int fd;
+	sprintf( buf, "/proc/%d/task/%d/stat", getpid(  ), mygettid(  ) );
+	fd = open( buf, O_RDONLY );
+	if ( fd == -1 ) {
+		PAPIERROR( "open(%s)", buf );
+		return PAPI_ESYS;
+	}
+	thr_ctx->stat_fd = fd;
+	return PAPI_OK;
+}
 #endif
-   retval = ( long long ) foo.tv_sec * ( long long ) 1000000;
-   retval += ( long long ) ( foo.tv_nsec / 1000 );
-
-   return retval;
-}
-
-/**********************
- * HAVE_GETTIMEOFDAY  *
- **********************/
 
 long long
-_linux_get_real_usec_gettimeofday( void )
+_linux_get_virt_usec( hwd_context_t *zero )
 {
-	
-   long long retval;
+#ifndef USE_PROC_PTTIMER
+	( void ) zero;			 /*unused */
+#endif
+	long long retval;
+#if defined(USE_PROC_PTTIMER)
+	{
+		char buf[LINE_MAX];
+		long long utime, stime;
+		int rv, cnt = 0, i = 0;
 
-   struct timeval buffer;
-   gettimeofday( &buffer, NULL );
-   retval = ( long long ) buffer.tv_sec * ( long long ) 1000000;
-   retval += ( long long ) ( buffer.tv_usec );
-	
-   return retval;
-}
+	  again:
+		rv = read( zero->stat_fd, buf, LINE_MAX * sizeof ( char ) );
+		if ( rv == -1 ) {
+			if ( errno == EBADF ) {
+				int ret = init_proc_thread_timer( zero );
+				if ( ret != PAPI_OK )
+					return ret;
+				goto again;
+			}
+			PAPIERROR( "read()" );
+			return PAPI_ESYS;
+		}
+		lseek( zero->stat_fd, 0, SEEK_SET );
 
+		buf[rv] = '\0';
+		SUBDBG( "Thread stat file is:%s\n", buf );
+		while ( ( cnt != 13 ) && ( i < rv ) ) {
+			if ( buf[i] == ' ' ) {
+				cnt++;
+			}
+			i++;
+		}
+		if ( cnt != 13 ) {
+			PAPIERROR( "utime and stime not in thread stat file?" );
+			return PAPI_ESBSTR;
+		}
 
-long long
-_linux_get_real_usec_cycles( void )
-{
-	
-   long long retval;
+		if ( sscanf( buf + i, "%llu %llu", &utime, &stime ) != 2 ) {
+			PAPIERROR
+				( "Unable to scan two items from thread stat file at 13th space?" );
+			return PAPI_ESBSTR;
+		}
+		retval =
+			( utime +
+			  stime ) * ( long long ) 1000000 / MY_VECTOR.cmp_info.clock_ticks;
+	}
+#elif defined(HAVE_CLOCK_GETTIME_THREAD)
+	{
+		struct timespec foo;
+		syscall( __NR_clock_gettime, HAVE_CLOCK_GETTIME_THREAD, &foo );
+		retval = ( long long ) foo.tv_sec * ( long long ) 1000000;
+		retval += ( long long ) foo.tv_nsec / 1000;
+	}
+#elif defined(HAVE_PER_THREAD_TIMES)
+	{
+		struct tms buffer;
 
-   /* Not accurate in the prescence of DVFS */
+		times( &buffer );
 
-   retval = get_cycles(  ) / 
-            ( long long ) _papi_hwi_system_info.hw_info.cpu_max_mhz;
-
-   return retval;
-}
-
-
-
-/******************************* 
- * HAVE_PER_THREAD_GETRUSAGE   *
- *******************************/
-
-long long
-_linux_get_virt_usec_rusage( void )
-{
-
-    long long retval;
-
-    struct rusage buffer;
-
-    getrusage( RUSAGE_SELF, &buffer );
-    SUBDBG( "user %d system %d\n", ( int ) buffer.ru_utime.tv_sec,
-				( int ) buffer.ru_stime.tv_sec );
-    retval = ( long long ) ( buffer.ru_utime.tv_sec + buffer.ru_stime.tv_sec )
-             * ( long long ) 1000000;
-    retval += (long long) ( buffer.ru_utime.tv_usec + buffer.ru_stime.tv_usec );
-
-    return retval;
-}
-
-/**************************
- * HAVE_PER_THREAD_TIMES  *
- **************************/
-
-long long
-_linux_get_virt_usec_times( void )
-{
-
-   long long retval;
-
-   struct tms buffer;
-
-   times( &buffer );
-
-   SUBDBG( "user %d system %d\n", ( int ) buffer.tms_utime,
+		SUBDBG( "user %d system %d\n", ( int ) buffer.tms_utime,
 				( int ) buffer.tms_stime );
-   retval = ( long long ) ( ( buffer.tms_utime + buffer.tms_stime ) * 
-			    1000000 / sysconf( _SC_CLK_TCK ));
+		retval =
+		  ( long long ) ( ( buffer.tms_utime + buffer.tms_stime ) * 1000000 / sysconf( _SC_CLK_TCK ));
 
-   /* NOT CLOCKS_PER_SEC as in the headers! */
-	
-   return retval;
-}
+		/* NOT CLOCKS_PER_SEC as in the headers! */
+	}
+#elif defined(HAVE_PER_THREAD_GETRUSAGE)
+	{
+		struct rusage buffer;
+		getrusage( RUSAGE_SELF, &buffer );
+		SUBDBG( "user %d system %d\n", ( int ) buffer.tms_utime,
+				( int ) buffer.tms_stime );
+		retval =
+			( long long ) ( buffer.ru_utime.tv_sec +
+							buffer.ru_stime.tv_sec ) * ( long long ) 1000000;
+		retval +=
+			( long long ) ( buffer.ru_utime.tv_usec + buffer.ru_stime.tv_usec );
+	}
 
-/******************************/
-/* HAVE_CLOCK_GETTIME_THREAD  */
-/******************************/
-
-long long
-_linux_get_virt_usec_gettime( void )
-{
-
-    long long retval;
-
-    struct timespec foo;
-
-    syscall( __NR_clock_gettime, CLOCK_THREAD_CPUTIME_ID, &foo );
-    retval = ( long long ) foo.tv_sec * ( long long ) 1000000;
-    retval += ( long long ) foo.tv_nsec / 1000;
-	
-    return retval;
-}
-
-/********************/
-/* USE_PROC_PTTIMER */
-/********************/
-
-long long
-_linux_get_virt_usec_pttimer( void )
-{
-
-   long long retval;
-   char buf[LINE_MAX];
-   long long utime, stime;
-   int rv, cnt = 0, i = 0;
-   int stat_fd;
-
-
-again:
-   sprintf( buf, "/proc/%d/task/%d/stat", getpid(  ), mygettid(  ) );
-   stat_fd = open( buf, O_RDONLY );
-   if ( stat_fd == -1 ) {
-      PAPIERROR( "open(%s)", buf );
-      return PAPI_ESYS;
-   }
-
-   rv = read( stat_fd, buf, LINE_MAX * sizeof ( char ) );
-   if ( rv == -1 ) {
-      if ( errno == EBADF ) {
-	 close(stat_fd);	 
-	 goto again;
-      }
-      PAPIERROR( "read()" );
-      close(stat_fd);
-      return PAPI_ESYS;
-   }
-   lseek( stat_fd, 0, SEEK_SET );
-
-   buf[rv] = '\0';
-   SUBDBG( "Thread stat file is:%s\n", buf );
-   while ( ( cnt != 13 ) && ( i < rv ) ) {
-      if ( buf[i] == ' ' ) {
-	 cnt++;
-      }
-      i++;
-   }
-
-   if ( cnt != 13 ) {
-      PAPIERROR( "utime and stime not in thread stat file?" );
-      close(stat_fd);
-      return PAPI_ESYS;
-   }
-
-   if ( sscanf( buf + i, "%llu %llu", &utime, &stime ) != 2 ) {
-      close(stat_fd);
-      PAPIERROR("Unable to scan two items from thread stat file at 13th space?");
-      return PAPI_ESYS;
-   }
-
-   retval = ( utime + stime ) * ( long long ) 1000000 /_papi_os_info.clock_ticks;
-
-   close(stat_fd);
-
-   return retval;
-}
-
-
-/********************************************************************
- * nanosecond timers                                                *
- ********************************************************************/
-
-
-
-/*******************************
- * HAVE_CLOCK_GETTIME          *
- *******************************/
-
-long long
-_linux_get_real_nsec_gettime( void )
-{
-	
-   long long retval;
-
-   struct timespec foo;
-#ifdef HAVE_CLOCK_GETTIME_REALTIME_HR
-   syscall( __NR_clock_gettime, CLOCK_REALTIME_HR, &foo );
 #else
-   syscall( __NR_clock_gettime, CLOCK_REALTIME, &foo );
+#error "No working per thread virtual timer"
 #endif
-   retval = ( long long ) foo.tv_sec * ( long long ) 1000000000;
-   retval += ( long long ) ( foo.tv_nsec );
-
-   return retval;
+	return retval;
 }
-
-
-/******************************/
-/* HAVE_CLOCK_GETTIME_THREAD  */
-/******************************/
 
 long long
-_linux_get_virt_nsec_gettime( void )
+_linux_get_virt_cycles( hwd_context_t * zero )
 {
-
-    long long retval;
-
-    struct timespec foo;
-
-    syscall( __NR_clock_gettime, CLOCK_THREAD_CPUTIME_ID, &foo );
-    retval = ( long long ) foo.tv_sec * ( long long ) 1000000000;
-    retval += ( long long ) foo.tv_nsec ;
-	
-    return retval;
+	return _linux_get_virt_usec( zero ) *
+		( long long ) _papi_hwi_system_info.hw_info.mhz;
 }
-
-
 
 

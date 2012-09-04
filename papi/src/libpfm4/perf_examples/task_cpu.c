@@ -332,7 +332,7 @@ parent(char **arg)
 		fds = fds_cpus[cpu];
 		for(i=0; i < num_fds; i++)
 			close(fds[i].fd);
-		perf_free_fds(fds, num_fds);
+		free(fds);
 	}
 
 	/* free libpfm resources cleanly */
@@ -408,7 +408,7 @@ main(int argc, char **argv)
 		errx(1, "cannot determine number of online processors");
 
 	if (options.num_groups == 0) {
-		options.events[0] = "cycles,instructions";
+		options.events[0] = "PERF_COUNT_HW_CPU_CYCLES,PERF_COUNT_HW_INSTRUCTIONS";
 		options.num_groups = 1;
 	}
 	if (!argv[optind] && !options.pid)

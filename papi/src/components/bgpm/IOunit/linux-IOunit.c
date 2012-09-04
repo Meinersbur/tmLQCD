@@ -4,6 +4,7 @@
 
 /** 
  * @file    linux-IOunit.c
+ * CVS:     $Id$
  * @author  Heike Jagode
  *          jagode@eecs.utk.edu
  * Mods:	<your name here>
@@ -16,6 +17,7 @@
  *  This file has the source code for a component that enables PAPI-C to 
  *  access hardware monitoring counters for BG/Q through the bgpm library.
  */
+
 
 #include "linux-IOunit.h"
 
@@ -30,10 +32,10 @@ papi_vector_t _IOunit_vector;
  * This is called whenever a thread is initialized
  */
 int
-IOUNIT_init_thread( hwd_context_t * ctx )
+IOUNIT_init( hwd_context_t * ctx )
 {
 #ifdef DEBUG_BGQ
-	printf( "IOUNIT_init_thread\n" );
+	printf( "IOUNIT_init\n" );
 #endif
 	
 	( void ) ctx;
@@ -46,15 +48,15 @@ IOUNIT_init_thread( hwd_context_t * ctx )
  * PAPI process is initialized (IE PAPI_library_init)
  */
 int
-IOUNIT_init_component( int cidx )
+IOUNIT_init_substrate( int cidx )
 {  
 #ifdef DEBUG_BGQ
-	printf( "IOUNIT_init_component\n" );
+	printf( "IOUNIT_init_substrate\n" );
 #endif
 
 	_IOunit_vector.cmp_info.CmpIdx = cidx;
 #ifdef DEBUG_BGQ
-	printf( "IOUNIT_init_component cidx = %d\n", cidx );
+	printf( "IOUNIT_init_substrate cidx = %d\n", cidx );
 #endif
 	
 	return ( PAPI_OK );
@@ -157,10 +159,10 @@ IOUNIT_read( hwd_context_t * ctx, hwd_control_state_t * ptr,
  *
  */
 int
-IOUNIT_shutdown_thread( hwd_context_t * ctx )
+IOUNIT_shutdown( hwd_context_t * ctx )
 {
 #ifdef DEBUG_BGQ
-	printf( "IOUNIT_shutdown_thread\n" );
+	printf( "IOUNIT_shutdown\n" );
 #endif
 	
 	( void ) ctx;
@@ -320,7 +322,7 @@ IOUNIT_set_overflow( EventSetInfo_t * ESI, int EventIndex, int threshold )
 }
 
 
-/* This function sets various options in the component
+/* This function sets various options in the substrate
  * The valid codes being passed in are PAPI_SET_DEFDOM,
  * PAPI_SET_DOMAIN, PAPI_SETDEFGRN, PAPI_SET_GRANUL * and PAPI_SET_INHERIT
  */
@@ -358,7 +360,7 @@ IOUNIT_update_control_state( hwd_control_state_t * ptr,
 		
 	// otherwise, add the events to the eventset
 	for ( i = 0; i < count; i++ ) {
-		index = ( native[i].ni_event ) + OFFSET;
+		index = ( native[i].ni_event & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK ) + OFFSET;
 		
 		native[i].ni_position = i;
 
@@ -469,17 +471,18 @@ IOUNIT_ntv_enum_events( unsigned int *EventCode, int modifier )
 #ifdef DEBUG_BGQ
 	//printf( "IOUNIT_ntv_enum_events\n" );
 #endif
+	int cidx = PAPI_COMPONENT_INDEX( *EventCode );
 
 	switch ( modifier ) {
 	case PAPI_ENUM_FIRST:
-		*EventCode = 0;
+		*EventCode = PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK( cidx );
 
 		return ( PAPI_OK );
 		break;
 
 	case PAPI_ENUM_EVENTS:
 	{
-		int index = ( *EventCode ) + OFFSET;
+		int index = ( *EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK ) + OFFSET;
 
 		if ( index < IOUNIT_MAX_COUNTERS ) {
 			*EventCode = *EventCode + 1;
@@ -520,7 +523,7 @@ IOUNIT_ntv_name_to_code( char *name, unsigned int *event_code )
 	else if ( ret < OFFSET || ret > IOUNIT_MAX_COUNTERS ) // not an IOUnit event
 		return PAPI_ENOEVNT;
 	else
-		*event_code = ( ret - OFFSET ) ;
+		*event_code = ( ret - OFFSET ) | PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK( _IOunit_vector.cmp_info.CmpIdx ) ;
 	
 	return PAPI_OK;
 }
@@ -537,7 +540,7 @@ IOUNIT_ntv_code_to_name( unsigned int EventCode, char *name, int len )
 #endif
 	int index;
 	
-	index = ( EventCode ) + OFFSET;
+	index = ( EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK ) + OFFSET;
 
 	if ( index >= MAX_COUNTERS )
 		return PAPI_ENOEVNT;
@@ -566,7 +569,7 @@ IOUNIT_ntv_code_to_descr( unsigned int EventCode, char *name, int len )
 #endif	
 	int retval, index;
 	
-	index = ( EventCode ) + OFFSET;
+	index = ( EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK ) + OFFSET;
 	
 	retval = Bgpm_GetLongDesc( index, name, &len );
 	CHECK_BGPM_ERROR( retval, "Bgpm_GetLongDesc" );						 
@@ -595,24 +598,28 @@ IOUNIT_ntv_code_to_bits( unsigned int EventCode, hwd_register_t * bits )
 papi_vector_t _IOunit_vector = {
 	.cmp_info = {
 				 /* default component information (unspecified values are initialized to 0) */
-				 .name = "bgpm/IOUnit",
-				 .short_name = "IOUnit",
-				 .description = "Blue Gene/Q IOUnit component",
+				 .name = "$Id: linux-IOunit.c,v 1.2 2011/03/18 21:40:22 jagode Exp $",
+				 .version = "$Revision: 1.2 $",
+				 .CmpIdx = 0, 
 				 .num_cntrs = IOUNIT_MAX_COUNTERS,
-				 .num_mpx_cntrs = IOUNIT_MAX_COUNTERS,
+				 .num_mpx_cntrs = PAPI_MPX_DEF_DEG,
 				 .default_domain = PAPI_DOM_USER,
 				 .available_domains = PAPI_DOM_USER | PAPI_DOM_KERNEL,
 				 .default_granularity = PAPI_GRN_THR,
 				 .available_granularities = PAPI_GRN_THR,
-
+		
+				 .itimer_sig = PAPI_INT_MPX_SIGNAL,
+				 .itimer_num = PAPI_INT_ITIMER,
+				 .itimer_res_ns = 1,
 				 .hardware_intr_sig = PAPI_INT_SIGNAL,
-				 .hardware_intr = 1,
+				 
 		
 				 .kernel_multiplex = 0,
 
 				 /* component specific cmp_info initializations */
 				 .fast_real_timer = 0,
 				 .fast_virtual_timer = 0,
+				 .itimer_ns = PAPI_INT_MPX_DEF_US * 1000,
 				 .attach = 0,
 				 .attach_must_ptrace = 0,
 				 }
@@ -627,13 +634,13 @@ papi_vector_t _IOunit_vector = {
 			 }
 	,
 	/* function pointers in this component */
-	.init_thread = IOUNIT_init_thread,
-	.init_component = IOUNIT_init_component,
+	.init = IOUNIT_init,
+	.init_substrate = IOUNIT_init_substrate,
 	.init_control_state = IOUNIT_init_control_state,
 	.start = IOUNIT_start,
 	.stop = IOUNIT_stop,
 	.read = IOUNIT_read,
-	.shutdown_thread = IOUNIT_shutdown_thread,
+	.shutdown = IOUNIT_shutdown,
 	.set_overflow = IOUNIT_set_overflow,
 	.cleanup_eventset = IOUNIT_cleanup_eventset,
 	.ctl = IOUNIT_ctl,
@@ -646,5 +653,6 @@ papi_vector_t _IOunit_vector = {
 	.ntv_enum_events = IOUNIT_ntv_enum_events,
 	.ntv_code_to_name = IOUNIT_ntv_code_to_name,
 	.ntv_code_to_descr = IOUNIT_ntv_code_to_descr,
-	.ntv_code_to_bits = IOUNIT_ntv_code_to_bits
+	.ntv_code_to_bits = IOUNIT_ntv_code_to_bits,
+	.ntv_bits_to_info = NULL,
 };

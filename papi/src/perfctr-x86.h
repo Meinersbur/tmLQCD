@@ -1,13 +1,35 @@
 #ifndef _PERFCTR_X86_H
 #define _PERFCTR_X86_H
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <signal.h>
+#include <malloc.h>
+#include <unistd.h>
+#include <assert.h>
+#include <string.h>
+#include <math.h>
+#include <ctype.h>
+#include <limits.h>
+#include <time.h>
+#include <errno.h>
+#include <inttypes.h>
+#include <sys/times.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/ucontext.h>
+#include <linux/unistd.h>
+
 #include "perfmon/pfmlib.h"
+#include "papi.h"
+#include "papi_defines.h"
 #include "libperfctr.h"
-#include "papi_lock.h"
 
 #define MAX_COUNTERS 18
 #define MAX_COUNTER_TERMS 8
 #define HW_OVERFLOW 1
+#define MY_VECTOR _x86_vector
 #define hwd_pmc_control vperfctr_control
 
 #include "linux-context.h"
@@ -24,6 +46,9 @@
 #define CONFIG_SMP
 #endif
 
+/* Lock macros */
+extern volatile unsigned int lock[PAPI_MAX_LOCK];
+#include "linux-lock.h"
 
 /* Used in resources.selector to determine on which counters an event can live. */
 #define CNTR1 0x1
@@ -116,7 +141,6 @@ typedef struct X86_perfctr_control
 typedef struct X86_perfctr_context
 {
 	struct vperfctr *perfctr;
-        int stat_fd;
 } X86_perfctr_context_t;
 
 /* Override void* definitions from PAPI framework layer 

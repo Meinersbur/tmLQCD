@@ -52,9 +52,8 @@ pfm_intel_atom_detect(void *this)
 		return PFM_ERR_NOTSUPP;
 
 	switch(pfm_intel_x86_cfg.model) {
-	case 28: /* Pineview/Silverthorne */
+	case 28: /* Bonnell */
 	case 38: /* Lincroft */
-	case 54: /* Cedarview */
 		break;
 	default:
 		return PFM_ERR_NOTSUPP;

@@ -41,7 +41,7 @@
 #include "perf_util.h"
 
 static const char *gen_events[]={
-	"cycles",
+	"PERF_COUNT_HW_CPU_CYCLES",
 	NULL
 };
 
@@ -184,18 +184,12 @@ int
 main(int argc, char **argv)
 {
 	perf_event_desc_t *fds = NULL;
-	long lret;
 	size_t pgsz;
 	uint64_t val;
 	int i, ret, num_fds = 0;
 	int n = 30;
 
-	lret = sysconf(_SC_PAGESIZE);
-	if (lret < 0)
-		err(1, "cannot get page size");
-
-	pgsz = (size_t)lret;
-
+	pgsz = sysconf(_SC_PAGESIZE);
 	/*
 	 * Initialize pfm library (required before we can use it)
 	 */
@@ -251,7 +245,7 @@ main(int argc, char **argv)
 		munmap(fds[i].buf, pgsz);
 		close(fds[i].fd);
 	}
-	perf_free_fds(fds, num_fds);
+	free(fds);
 
 	/* free libpfm resources cleanly */
 	pfm_terminate();

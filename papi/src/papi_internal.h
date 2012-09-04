@@ -11,6 +11,7 @@
 *	       london@cs.utk.edu
 * @author  Haihang You
 *          you@cs.utk.edu
+* CVS:     $Id$
 */
 
 #ifndef _PAPI_INTERNAL_H
@@ -25,14 +26,8 @@
 
 #define DEADBEEF 0xdedbeef
 extern int papi_num_components;
-extern int _papi_num_compiled_components;
-extern int init_level;
-extern int _papi_hwi_errno;
-extern int _papi_hwi_num_errors;
-extern char **_papi_errlist;
 
-
-/********************************************************/
+  /********************************************************/
 /* This block provides general strings used in PAPI     */
 /* If a new string is needed for PAPI prompts           */
 /* it should be placed in this file and referenced by   */
@@ -49,9 +44,15 @@ extern char **_papi_errlist;
 
 /* Signal used for overflow delivery */
 
+/****WIN32 We'll need to figure out how to handle this for Windows */
+#ifdef _WIN32
+#define PAPI_INT_SIGNAL 1
+#define PAPI_INT_ITIMER 1
+#else
 #define PAPI_INT_MPX_SIGNAL SIGPROF
 #define PAPI_INT_SIGNAL SIGPROF
 #define PAPI_INT_ITIMER ITIMER_PROF
+#endif
 
 #define PAPI_INT_ITIMER_MS 1
 #if defined(linux)
@@ -87,7 +88,7 @@ extern char **_papi_errlist;
 #define THREADS_LOCK		PAPI_NUM_LOCK+2	/* threads.c */
 #define HIGHLEVEL_LOCK		PAPI_NUM_LOCK+3	/* papi_hl.c */
 #define MEMORY_LOCK		PAPI_NUM_LOCK+4	/* papi_memory.c */
-#define COMPONENT_LOCK          PAPI_NUM_LOCK+5	/* per-component */
+#define SUBSTRATE_LOCK          PAPI_NUM_LOCK+5	/* <substrate.c> */
 #define GLOBAL_LOCK          	PAPI_NUM_LOCK+6	/* papi.c for global variable (static and non) initialization/shutdown */
 #define CPUS_LOCK		PAPI_NUM_LOCK+7	/* cpus.c */
 #define NAMELIB_LOCK            PAPI_NUM_LOCK+8 /* papi_pfm4_events.c */
@@ -97,8 +98,19 @@ extern char **_papi_errlist;
 #define NEED_CONTEXT		1
 #define DONT_NEED_CONTEXT 	0
 
-#define PAPI_EVENTS_IN_DERIVED_EVENT	8
+/* Replacement for bogus supports_multiple_threads item */
+/* xxxx Should this be at the component level or the hw info level? I think it's system wide... */
+#define SUPPORTS_MULTIPLE_THREADS(cmp_info) (cmp_info.available_granularities & PAPI_GRN_THR)
 
+/* This was defined by each substrate as = (MAX_COUNTERS < 8) ? MAX_COUNTERS : 8 
+    Now it's defined globally as 8 for everything. Mainly applies to max terms in
+    derived events.
+*/
+#ifdef __bgp__
+#define PAPI_MAX_COUNTER_TERMS	19
+#else
+#define PAPI_MAX_COUNTER_TERMS	8
+#endif
 
 /* these vestigial pointers are to structures defined in the components
     they are opaque to the framework and defined as void at this level
@@ -112,11 +124,12 @@ extern char **_papi_errlist;
 
 /* DEFINES END HERE */
 
-#ifndef NO_CONFI
+#if !(defined(_WIN32) || defined(NO_CONFIG))
 #include "config.h"
 #endif
 
-#include OSCONTEXT
+//#include OS_HEADER
+#include SUBSTRATE
 #include "papi_preset.h"
 
 #ifndef inline_static
@@ -167,15 +180,15 @@ typedef struct _EventSetProfileInfo {
 
 /** This contains info about an individual event added to the EventSet.
   The event can be either PRESET or NATIVE, and either simple or derived.
-  If derived, it can consist of up to PAPI_EVENTS_IN_DERIVED_EVENT 
-  native events.
+  If derived, it can consist of up to MAX_COUNTER_TERMS native events.
   An EventSet contains a pointer to an array of these structures to define
   each added event.
   @internal
  */
 typedef struct _EventInfo {
    unsigned int event_code;     /**< Preset or native code for this event as passed to PAPI_add_event() */
-   int pos[PAPI_EVENTS_IN_DERIVED_EVENT];   /**< position in the counter array for this events components */
+   /* should this be MAX_COUNTER_TERMS instead of MAX_COUNTERS ?? (dkt 10/9/03) */
+   int pos[MAX_COUNTER_TERMS];   /**< position in the counter array for this events components */
    char *ops;                   /**< operation string of preset (points into preset event struct) */
    int derived;                 /**< Counter derivation command used for derived events */
 } EventInfo_t;
@@ -186,14 +199,10 @@ typedef struct _EventInfo {
   @internal 
  */
 typedef struct _NativeInfo {
-   int ni_event;                /**< native event code; 
-                                     always non-zero unless empty */
-   int ni_position;             /**< counter array position where this 
-				     native event lives */
-   int ni_owners;               /**< specifies how many owners share 
-				     this native event */
-   hwd_register_t *ni_bits;     /**< Component defined resources used by 
-				     this native event */
+   int ni_event;                /**< native event code; always non-zero unless empty */
+   int ni_position;             /**< counter array position where this native event lives */
+   int ni_owners;               /**< specifies how many owners share this native event */
+   hwd_register_t *ni_bits;     /**< Substrate defined resources used by this native event */
 } NativeInfo_t;
 
 
@@ -243,8 +252,35 @@ typedef struct _threadlist {
    struct _threadlist *next;
 } Threadlist;
 
-/* Ugh, should move this out and into all callers of papi_internal.h */
-#include "sw_multiplex.h"
+/* Structure contained in the EventSet structure that
+   holds information about multiplexing. */
+
+typedef enum
+{ MPX_STOPPED, MPX_RUNNING } MPX_status;
+
+/** Structure contained in the EventSet structure that
+    holds information about multiplexing.
+ @internal */
+typedef struct _MPX_EventSet {
+   MPX_status status;
+   /** Pointer to this thread's structure */
+   struct _threadlist *mythr;
+   /** Pointers to this EventSet's MPX entries in the master list for this thread */
+   struct _masterevent *(mev[PAPI_MPX_DEF_DEG]);
+   /** Number of entries in above list */
+   int num_events;
+   /** Not sure... */
+   long long start_c, stop_c;
+   long long start_values[PAPI_MPX_DEF_DEG];
+   long long stop_values[PAPI_MPX_DEF_DEG];
+   long long start_hc[PAPI_MPX_DEF_DEG];
+} MPX_EventSet;
+
+typedef struct EventSetMultiplexInfo {
+  MPX_EventSet *mpx_evset;
+  int ns;
+  int flags; 
+} EventSetMultiplexInfo_t;
 
 /** Opaque struct, not defined yet...due to threads.h <-> papi_internal.h 
  @internal */
@@ -254,7 +290,7 @@ struct _CpuInfo;
 /** Fields below are ordered by access in PAPI_read for performance 
  @internal */
 typedef struct _EventSetInfo {
-  struct _ThreadInfo *master;  /**< Pointer to thread that owns this EventSet*/
+  struct _ThreadInfo *master;  /**< Pointer to the thread that owns this EventSet */
   struct _CpuInfo    *CpuInfo; /**< Pointer to cpu that owns this EventSet */
   
   int state;                   /**< The state of this entire EventSet; can be
@@ -266,34 +302,27 @@ typedef struct _EventSetInfo {
 				  kernel or the code that directly 
 				  accesses the counters. */
   
-  hwd_control_state_t *ctl_state; /**< This contains the encoding necessary 
-                                       for the hardware to set the counters 
-                                       to the appropriate conditions */
+  hwd_control_state_t *ctl_state; /**< This contains the encoding necessary for the 
+                                   hardware to set the counters to the appropriate
+                                   conditions */
 
-  unsigned long int tid;       /**< Thread ID, only used if 
-                                    PAPI_thread_init() is called  */
+  unsigned long int tid;       /**< Thread ID, only used if PAPI_thread_init() is called  */
   
   int EventSetIndex;           /**< Index of the EventSet in the array  */
 
-  int CmpIdx;		       /**< Which Component this EventSet Belongs to */
+   int CmpIdx;		    /**< Which Component this EventSet Belongs to */
   
   int NumberOfEvents;          /**< Number of events added to EventSet */
   
-  long long *hw_start;         /**< Array of length num_mpx_cntrs to hold
-				    unprocessed, out of order, 
-                                    long long counter registers */
+  long long *hw_start;         /**< Array of length _papi_hwi_system_info.num_cntrs that contains
+				  unprocessed, out of order, long long counter registers */
   
-  long long *sw_stop;          /**< Array of length num_mpx_cntrs that 
-                                    contains processed, in order, PAPI 
-                                    counter values when used or stopped */
+  long long *sw_stop;          /**< Array of length ESI->NumberOfCounters that contains
+				  processed, in order, PAPI counter values when used or stopped */
   
-  int NativeCount;             /**< Number of native events in 
-                                    NativeInfoArray */
+  int NativeCount;             /**< How many native events in the array below. */
   
-  NativeInfo_t *NativeInfoArray;  /**< Info about each native event in 
-                                       the set */
-  hwd_register_t *NativeBits;     /**< Component-specific bits corresponding
-				       to the native events */
+  NativeInfo_t *NativeInfoArray;  /**< Info about each native event in the set */
   
   EventSetDomainInfo_t domain;
   EventSetGranularityInfo_t granularity;
@@ -314,7 +343,7 @@ typedef struct _dynamic_array {
    int lowestEmptySlot;         /**< index of lowest empty dataSlotArray    */
 } DynamicArray_t;
 
-/* Component option types for _papi_hwd_ctl. */
+/* Substrate option types for _papi_hwd_ctl. */
 
 typedef struct _papi_int_attach {
    unsigned long tid;
@@ -405,40 +434,109 @@ typedef struct {
 typedef struct _papi_mdi {
    DynamicArray_t global_eventset_map;  /**< Global structure to maintain int<->EventSet mapping */
    pid_t pid;                   /**< Process identifier */
+/*   PAPI_substrate_info_t sub_info; *//* See definition in papi.h */
    PAPI_hw_info_t hw_info;      /**< See definition in papi.h */
    PAPI_exe_info_t exe_info;    /**< See definition in papi.h */
+/*   PAPI_mpx_info_t mpx_info; */   /* See definition in papi.h */
    PAPI_shlib_info_t shlib_info;    /**< See definition in papi.h */
    PAPI_preload_info_t preload_info; /**< See definition in papi.h */ 
 } papi_mdi_t;
 
 extern papi_mdi_t _papi_hwi_system_info;
 extern int _papi_hwi_error_level;
-/* extern const hwi_describe_t _papi_hwi_err[PAPI_NUM_ERRORS]; */
+extern const hwi_describe_t _papi_hwi_err[PAPI_NUM_ERRORS];
 /*extern volatile int _papi_hwi_using_signal;*/
 extern int _papi_hwi_using_signal[PAPI_NSIG];
 
-/** @ingroup papi_data_structures */
-typedef struct _papi_os_option {
-   char name[PAPI_MAX_STR_LEN];     /**< Name of the operating system */
-   char version[PAPI_MAX_STR_LEN];  /**< descriptive OS Version */
-   int os_version;                  /**< numerical, for workarounds */
-   int itimer_sig;                  /**< Signal used by the multiplex timer, 0 if not */
-   int itimer_num;                  /**< Number of the itimer used by mpx and overflow/profile emulation */
-   int itimer_ns;                   /**< ns between mpx switching and overflow/profile emulation */
-   int itimer_res_ns;               /**< ns of resolution of itimer */
-   int clock_ticks;                 /**< clock ticks per second */
-   unsigned long reserved[8];       /* For future expansion */
-} PAPI_os_info_t;
-
-extern PAPI_os_info_t _papi_os_info; /* For internal PAPI use only */
-
-#include "papi_lock.h"
 #include "threads.h"
 #include "cpus.h"
+#include "papi_vector.h"
+#include "papi_protos.h"
 
-EventSetInfo_t *_papi_hwi_lookup_EventSet( int eventset );
-int _papi_hwi_is_sw_multiplex( EventSetInfo_t * ESI );
-hwd_context_t *_papi_hwi_get_context( EventSetInfo_t * ESI, int *is_dirty );
+inline_static EventSetInfo_t *
+_papi_hwi_lookup_EventSet( int eventset )
+{
+	const DynamicArray_t *map = &_papi_hwi_system_info.global_eventset_map;
+	EventSetInfo_t *set;
+
+	if ( ( eventset < 0 ) || ( eventset > map->totalSlots ) )
+		return ( NULL );
+
+	set = map->dataSlotArray[eventset];
+#ifdef DEBUG
+	if ( ( ISLEVEL( DEBUG_THREADS ) ) && ( _papi_hwi_thread_id_fn ) &&
+		 ( set->master->tid != _papi_hwi_thread_id_fn(  ) ) )
+		return ( NULL );
+#endif
+
+	return ( set );
+}
+
+inline_static int
+_papi_hwi_is_sw_multiplex( EventSetInfo_t * ESI )
+{
+	/* Are we multiplexing at all */
+	if ( ( ESI->state & PAPI_MULTIPLEXING ) == 0 )
+		return ( 0 );
+	/* Does the substrate support kernel multiplexing */
+	if ( _papi_hwd[ESI->CmpIdx]->cmp_info.kernel_multiplex ) {
+		/* Have we forced software multiplexing */
+		if ( ESI->multiplex.flags == PAPI_MULTIPLEX_FORCE_SW )
+			return ( 1 );
+		return ( 0 );
+	} else
+		return ( 1 );
+}
+
+inline_static int
+_papi_hwi_invalid_cmp( int cidx )
+{
+	return ( cidx < 0 || cidx >= papi_num_components );
+}
+
+inline_static hwd_context_t *
+_papi_hwi_get_context( EventSetInfo_t * ESI, int *is_dirty )
+{
+	INTDBG("Entry: ESI: %p, is_dirty: %p\n", ESI, is_dirty);
+	int dirty_ctx;
+	hwd_context_t *ctx=NULL;
+
+	/* assume for now the control state is clean (last updated by this ESI) */
+	dirty_ctx = 0;
+	
+	/* get a context pointer based on if we are counting for a thread or for a cpu */
+	if (ESI->state & PAPI_CPU_ATTACHED) {
+		/* use cpu context */
+		ctx = ESI->CpuInfo->context[ESI->CmpIdx];
+
+		/* if the user wants to know if the control state was last set by the same event set, tell him */
+		if (is_dirty != NULL) {
+			if (ESI->CpuInfo->from_esi != ESI) {
+				dirty_ctx = 1;
+			}
+			*is_dirty = dirty_ctx;
+		}
+		ESI->CpuInfo->from_esi = ESI;
+	   
+	} else {
+
+		/* use thread context */
+		ctx = ESI->master->context[ESI->CmpIdx];
+
+		/* if the user wants to know if the control state was last set by the same event set, tell him */
+		if (is_dirty != NULL) {
+			if (ESI->master->from_esi != ESI) {
+				dirty_ctx = 1;
+			}
+			*is_dirty = dirty_ctx;
+		}
+		ESI->master->from_esi = ESI;
+
+	}
+	return( ctx );
+}
+
+/* function declarations */
 
 extern int _papi_hwi_error_level;
 extern PAPI_debug_handler_t _papi_hwi_debug_handler;
@@ -449,8 +547,9 @@ int _papi_hwi_create_eventset( int *EventSet, ThreadInfo_t * handle );
 int _papi_hwi_lookup_EventCodeIndex( const EventSetInfo_t * ESI,
 				     unsigned int EventCode );
 int _papi_hwi_remove_EventSet( EventSetInfo_t * ESI );
-void _papi_hwi_map_events_to_native( EventSetInfo_t *ESI);
+void _papi_hwi_remap_event_position( EventSetInfo_t * ESI, int thisindex, int total_events );
 int _papi_hwi_add_event( EventSetInfo_t * ESI, int EventCode );
+int _papi_hwi_add_pevent( EventSetInfo_t * ESI, int EventCode, void *inout );
 int _papi_hwi_remove_event( EventSetInfo_t * ESI, int EventCode );
 int _papi_hwi_read( hwd_context_t * context, EventSetInfo_t * ESI,
 		    long long *values );
@@ -458,26 +557,10 @@ int _papi_hwi_cleanup_eventset( EventSetInfo_t * ESI );
 int _papi_hwi_convert_eventset_to_multiplex( _papi_int_multiplex_t * mpx );
 int _papi_hwi_init_global( void );
 int _papi_hwi_init_global_internal( void );
-int _papi_hwi_init_os(void);
-void _papi_hwi_init_errors(void);
-PAPI_os_info_t *_papi_hwi_get_os_info(void);
 void _papi_hwi_shutdown_global_internal( void );
 void _papi_hwi_dummy_handler( int EventSet, void *address, long long overflow_vector,
 			      void *context );
-int _papi_hwi_get_preset_event_info( int EventCode, PAPI_event_info_t * info );
-int _papi_hwi_derived_type( char *tmp, int *code );
-
-int _papi_hwi_query_native_event( unsigned int EventCode );
-int _papi_hwi_get_native_event_info( unsigned int EventCode,
-                                     PAPI_event_info_t * info );
-int _papi_hwi_native_name_to_code( char *in, int *out );
-int _papi_hwi_native_code_to_name( unsigned int EventCode, char *hwi_name,
-                                   int len );
-
-
-int _papi_hwi_invalid_cmp( int cidx );
-int _papi_hwi_component_index( int event_code );
-int _papi_hwi_native_to_eventcode(int cidx, int event_code);
-int _papi_hwi_eventcode_to_native(int event_code);
+int _papi_hwi_bipartite_alloc( hwd_reg_alloc_t * event_list, int count, int cidx );
+int _papi_hwi_get_event_info( int EventCode, PAPI_event_info_t * info );
 
 #endif /* PAPI_INTERNAL_H */

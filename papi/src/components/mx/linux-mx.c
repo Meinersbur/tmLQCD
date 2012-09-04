@@ -6,7 +6,6 @@
 
 #include "papi.h"
 #include "papi_internal.h"
-#include "papi_vector.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -175,7 +174,7 @@ read_mx_counters( long long *counters )
 	fp = popen( mx_counters_exe, "r" );
 	if ( !fp ) {
 	   perror( "popen" );
-	   return PAPI_ECMP;
+	   return PAPI_ESBSTR;
 	}
 
 
@@ -212,7 +211,7 @@ read_mx_counters( long long *counters )
 
 
 /*
- * Component setup and shutdown
+ * Substrate setup and shutdown
  */
 
 /* Initialize hardware counters, setup the function vector table
@@ -220,7 +219,7 @@ read_mx_counters( long long *counters )
  * PAPI process is initialized (IE PAPI_library_init)
  */
 int
-_mx_init_component(  )
+_mx_init_substrate(  )
 {
 
 	FILE *fff;
@@ -238,9 +237,7 @@ _mx_init_component(  )
 	   if (fgets(test_string,BUFSIZ,fff)==NULL) {
 	      pclose(fff);
 	      /* neither real nor fake found */
-	      strncpy(_mx_vector.cmp_info.disabled_reason,
-		      "No MX utilities found",PAPI_MAX_STR_LEN);
-	      return PAPI_ECMP;
+	      return PAPI_ESBSTR;
 	   }
 	}
 	pclose(fff);
@@ -256,7 +253,7 @@ _mx_init_component(  )
  * This is called whenever a thread is initialized
  */
 int
-_mx_init_thread( hwd_context_t * ctx )
+_mx_init( hwd_context_t * ctx )
 {
 	( void ) ctx;			 /*unused */
 	return PAPI_OK;
@@ -264,13 +261,13 @@ _mx_init_thread( hwd_context_t * ctx )
 
 
 int
-_mx_shutdown_component(void) 
+_mx_shutdown_substrate(void) 
 {
   return PAPI_OK;
 }
 
 int
-_mx_shutdown_thread( hwd_context_t * ctx )
+_mx_shutdown( hwd_context_t * ctx )
 {
 	( void ) ctx;			 /*unused */
 	return PAPI_OK;
@@ -300,7 +297,7 @@ _mx_update_control_state( hwd_control_state_t *ctl, NativeInfo_t *native,
 	MX_control_state_t *mx_ctl = (MX_control_state_t *)ctl;
 
 	for(i=0; i<count; i++ ) {
-	    index = native[i].ni_event;
+	    index = native[i].ni_event & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 	    mx_ctl->which_counter[i]=index;
 	    //	    printf("Mapping event# %d to HW counter %d (count=%d)\n",
 	    //	   i,index,count); 
@@ -403,7 +400,7 @@ _mx_write( hwd_context_t * ctx, hwd_control_state_t * ctrl, long long *from )
  * Functions for setting up various options
  */
 
-/* This function sets various options in the component
+/* This function sets various options in the substrate
  * The valid codes being passed in are PAPI_SET_DEFDOM,
  * PAPI_SET_DOMAIN, PAPI_SETDEFGRN, PAPI_SET_GRANUL * and PAPI_SET_INHERIT
  */
@@ -452,7 +449,7 @@ int
 _mx_ntv_code_to_name( unsigned int EventCode, char *name, int len )
 {
 
-	int event=EventCode;
+	int event=EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
 	if (event >=0 && event < num_events) {
 	  strncpy( name, mx_native_table[event].name, len );
@@ -466,7 +463,7 @@ _mx_ntv_code_to_name( unsigned int EventCode, char *name, int len )
 int
 _mx_ntv_code_to_descr( unsigned int EventCode, char *name, int len )
 {
-    int event=EventCode;
+    int event=EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
     if (event >=0 && event < num_events) {
        strncpy( name, mx_native_table[event].description, len );
@@ -480,15 +477,16 @@ _mx_ntv_code_to_descr( unsigned int EventCode, char *name, int len )
 int
 _mx_ntv_enum_events( unsigned int *EventCode, int modifier )
 {
+	int cidx = PAPI_COMPONENT_INDEX( *EventCode );
 
 	if ( modifier == PAPI_ENUM_FIRST ) {
 	   if (num_events==0) return PAPI_ENOEVNT;
-	   *EventCode = 0;
+	   *EventCode = PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK( cidx );
 	   return PAPI_OK;
 	}
 
 	if ( modifier == PAPI_ENUM_EVENTS ) {
-		int index = *EventCode;
+		int index = *EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
 		if ( mx_native_table[index + 1].resources.selector ) {
 			*EventCode = *EventCode + 1;
@@ -504,11 +502,9 @@ _mx_ntv_enum_events( unsigned int *EventCode, int modifier )
 
 papi_vector_t _mx_vector = {
 	.cmp_info = {
-	    .name = "mx",
-		.short_name = "mx",
+	    .name = "linux-mx.c",
 	    .version = "1.4",
-	    .description = "Myricom MX (Myrinet Express) statistics",
-	    .num_mpx_cntrs = MX_MAX_COUNTERS,
+	    .num_mpx_cntrs = PAPI_MPX_DEF_DEG,
 	    .num_cntrs = MX_MAX_COUNTERS,
 	    .default_domain = PAPI_DOM_USER,
 	    .default_granularity = PAPI_GRN_THR,
@@ -531,14 +527,14 @@ papi_vector_t _mx_vector = {
 	    .reg_alloc = sizeof ( MX_reg_alloc_t ),
   },
         /* function pointers in this component */
-	.init_thread =          _mx_init_thread,
-	.init_component =       _mx_init_component,
+	.init =                 _mx_init,
+	.init_substrate =       _mx_init_substrate,
 	.init_control_state =   _mx_init_control_state,
 	.start =                _mx_start,
 	.stop =                 _mx_stop,
 	.read =                 _mx_read,
-	.shutdown_thread =      _mx_shutdown_thread,
-	.shutdown_component =   _mx_shutdown_component,
+	.shutdown =             _mx_shutdown,
+	.shutdown_substrate =   _mx_shutdown_substrate,
 	.ctl =                  _mx_ctl,
 	.update_control_state = _mx_update_control_state,
 	.set_domain =           _mx_set_domain,

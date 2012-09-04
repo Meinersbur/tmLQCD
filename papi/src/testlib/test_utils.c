@@ -20,11 +20,8 @@ static int TEST_WARN = 0;
 int
 papi_print_header( char *prompt, const PAPI_hw_info_t ** hwinfo )
 {
-	int cnt, mpx;
-	
-	if ( ( *hwinfo = PAPI_get_hardware_info(  ) ) == NULL ) {
-   		return PAPI_ESYS;
-	}
+	if ( ( *hwinfo = PAPI_get_hardware_info(  ) ) == NULL )
+		return ( PAPI_ESBSTR );
 
 	printf( "%s", prompt );
 	printf
@@ -44,8 +41,8 @@ papi_print_header( char *prompt, const PAPI_hw_info_t ** hwinfo )
 			( "CPUID Info               : Family: %d  Model: %d  Stepping: %d\n",
 			  ( *hwinfo )->cpuid_family, ( *hwinfo )->cpuid_model,
 			  ( *hwinfo )->cpuid_stepping );
-	printf( "CPU Max Megahertz        : %d\n", ( *hwinfo )->cpu_max_mhz );
-	printf( "CPU Min Megahertz        : %d\n", ( *hwinfo )->cpu_min_mhz );
+	printf( "CPU Megahertz            : %f\n", ( *hwinfo )->mhz );
+	printf( "CPU Clock Megahertz      : %d\n", ( *hwinfo )->clock_mhz );
 	if ( ( *hwinfo )->threads > 0 )
 		printf( "Hdw Threads per core     : %d\n", ( *hwinfo )->threads );
 	if ( ( *hwinfo )->cores > 0 )
@@ -56,23 +53,10 @@ papi_print_header( char *prompt, const PAPI_hw_info_t ** hwinfo )
 		printf( "NUMA Nodes               : %d\n", ( *hwinfo )->nnodes );
 	printf( "CPUs per Node            : %d\n", ( *hwinfo )->ncpu );
 	printf( "Total CPUs               : %d\n", ( *hwinfo )->totalcpus );
-	printf( "Running in a VM          : %s\n", ( *hwinfo )->virtualized?
-		"yes":"no");
-	if ( (*hwinfo)->virtualized) {
-           printf( "VM Vendor:               : %s\n", (*hwinfo)->virtual_vendor_string);
-	}
-	cnt = PAPI_get_opt( PAPI_MAX_HWCTRS, NULL );
-	mpx = PAPI_get_opt( PAPI_MAX_MPX_CTRS, NULL );
-	if ( cnt >= 0 ) {
-		printf( "Number Hardware Counters : %d\n",cnt );
-	} else {
-		printf( "Number Hardware Counters : PAPI error %d: %s\n", cnt, PAPI_strerror(cnt));
-	}
-	if ( mpx >= 0 ) {
-		printf( "Max Multiplex Counters   : %d\n", mpx );
-	} else {
-		printf( "Max Multiplex Counters   : PAPI error %d: %s\n", mpx, PAPI_strerror(mpx));
-	}
+	printf( "Number Hardware Counters : %d\n",
+			PAPI_get_opt( PAPI_MAX_HWCTRS, NULL ) );
+	printf( "Max Multiplex Counters   : %d\n",
+			PAPI_get_opt( PAPI_MAX_MPX_CTRS, NULL ) );
 	printf
 		( "--------------------------------------------------------------------------------\n" );
 	printf( "\n" );
@@ -156,27 +140,6 @@ int is_event_derived(unsigned int event) {
 }
 
 
-int find_nonderived_event( void )
-{
-	/* query and set up the right event to monitor */
-	PAPI_event_info_t info;
-	int potential_evt_to_add[3] = { PAPI_FP_OPS, PAPI_FP_INS, PAPI_TOT_INS };
-	int i;
-
-	for ( i = 0; i < 3; i++ ) {
-		if ( PAPI_query_event( potential_evt_to_add[i] ) == PAPI_OK ) {
-			if ( PAPI_get_event_info( potential_evt_to_add[i], &info ) ==
-				 PAPI_OK ) {
-				if ( ( info.count > 0 ) &&
-					 !strcmp( info.derived, "NOT_DERIVED" ) )
-					return ( potential_evt_to_add[i] );
-			}
-		}
-	}
-	return ( 0 );
-}
-
-
 /* Add events to an EventSet, as specified by a mask.
 
    Returns: number = number of events added
@@ -203,6 +166,7 @@ struct test_events_t test_events[MAX_TEST_EVENTS] = {
   { MASK_BR_PRC,  PAPI_BR_PRC },
   { MASK_TOT_IIS, PAPI_TOT_IIS},
   { MASK_L1_DCR,  PAPI_L1_DCR},
+  { MASK_L1_DCW,  PAPI_L1_DCW},
   { MASK_L1_DCW,  PAPI_L1_DCW},
   { MASK_L1_DCA,  PAPI_L1_DCA},
   { MASK_FP_OPS,  PAPI_FP_OPS},
@@ -541,7 +505,9 @@ test_fail( char *file, int line, char *call, int retval )
 		fprintf( stdout, "Error: %s\n", call );
 #endif
   } else {
-     fprintf( stdout, "Error in %s: %s\n", call, PAPI_strerror( retval ) );
+     char errstring[PAPI_MAX_STR_LEN];
+     PAPI_perror( retval, errstring, PAPI_MAX_STR_LEN );
+     fprintf( stdout, "Error in %s: %s\n", call, errstring );
   }
 
   fprintf( stdout, "\n" );
@@ -602,7 +568,9 @@ test_warn( char *file, int line, char *call, int retval )
 	} else if ( retval == 0 ) {
 		fprintf( stdout, "Warning: %s\n", call );
 	} else {
-		fprintf( stdout, "Warning in %s: %s\n", call, PAPI_strerror( retval ));
+		char errstring[PAPI_MAX_STR_LEN];
+		PAPI_perror( retval, errstring, PAPI_MAX_STR_LEN );
+		fprintf( stdout, "Warning in %s: %s\n", call, errstring );
 	}
 
 	fprintf( stdout, "\n" );
@@ -625,45 +593,67 @@ test_skip( char *file, int line, char *call, int retval )
 		} else if ( retval == PAPI_EPERM ) {
 			fprintf( stdout, "Line # %d\n", line );
 			fprintf( stdout, "Invalid permissions for %s.", call );
-		} else if ( retval == PAPI_ECMP ) {
+		} else if ( retval == PAPI_ESBSTR ) {
 			fprintf( stdout, "Line # %d\n", line );
 			fprintf( stdout, "%s.", call );
 		} else if ( retval >= 0 ) {
 			fprintf( stdout, "Line # %d\n", line );
 			fprintf( stdout, "Error calculating: %s\n", call );
 		} else if ( retval < 0 ) {
+			char errstring[PAPI_MAX_STR_LEN];
 			fprintf( stdout, "Line # %d\n", line );
-			fprintf( stdout, "Error in %s: %s\n", call, PAPI_strerror(retval) );
+			PAPI_perror( retval, errstring, PAPI_MAX_STR_LEN );
+			fprintf( stdout, "Error in %s: %s\n", call, errstring );
 		}
 		fprintf( stdout, "\n" );
 	}
 	exit( 0 );
 }
 
+#ifdef _WIN32
+#undef exit
+void
+wait( char *prompt )
+{
+	HANDLE hStdIn;
+	BOOL bSuccess;
+	INPUT_RECORD inputBuffer;
+	DWORD dwInputEvents;			   /* number of events actually read */
+
+	printf( prompt );
+	hStdIn = GetStdHandle( STD_INPUT_HANDLE );
+	do {
+		bSuccess = ReadConsoleInput( hStdIn, &inputBuffer, 1, &dwInputEvents );
+	}
+	while ( !
+			( inputBuffer.EventType == KEY_EVENT &&
+			  inputBuffer.Event.KeyEvent.bKeyDown ) );
+}
+
+int
+wait_exit( int retval )
+{
+	if ( !TESTS_QUIET )
+		wait( "Press any key to continue...\n" );
+	exit( retval );
+}
+
+#define exit wait_exit
+#endif
 
 void
 test_print_event_header( char *call, int evset )
 {
-        int *ev_ids;
+	int ev_ids[PAPI_MAX_HWCTRS + PAPI_MPX_DEF_DEG];
 	int i, nev;
 	int retval;
 	char evname[PAPI_MAX_STR_LEN];
 
-	if ( *call )
-		fprintf( stdout, "%s", call );
-
-	if ((nev = PAPI_get_cmp_opt(PAPI_MAX_MPX_CTRS,NULL,0)) <= 0) {
-		fprintf( stdout, "Can not list event names.\n" );
-		return;
-	}
-
-	if ((ev_ids = calloc(nev,sizeof(int))) == NULL) {
-		fprintf( stdout, "Can not list event names.\n" );
-		return;
-	}
-
+	nev = PAPI_MAX_HWCTRS + PAPI_MPX_DEF_DEG;
 	retval = PAPI_list_events( evset, ev_ids, &nev );
 
+	if ( *call )
+		fprintf( stdout, "%s", call );
 	if ( retval == PAPI_OK ) {
 		for ( i = 0; i < nev; i++ ) {
 			PAPI_event_code_to_name( ev_ids[i], evname );
@@ -673,7 +663,6 @@ test_print_event_header( char *call, int evset )
 		fprintf( stdout, "Can not list event names." );
 	}
 	fprintf( stdout, "\n" );
-	free(ev_ids);
 }
 
 int
@@ -688,7 +677,7 @@ add_two_events( int *num_events, int *papi_event, int *mask ) {
       {( unsigned int ) PAPI_TOT_INS, MASK_TOT_INS}
     };
   int i = 0;
-  int counters = 0;
+  int counters, event_found = 0;
 
   *mask = 0;
   counters = PAPI_num_hwctrs(  );
@@ -698,22 +687,26 @@ add_two_events( int *num_events, int *papi_event, int *mask ) {
   }
 
   /* This code tries to ensure that the event  generated will fit in the */
-  /* number of available counters. It has the potential to leak up to    */
-  /* two event sets if events fail to add successfully.                  */
+  /* number of available counters. It doesn't account for the number     */
+  /* of counters used by the cycle counter.                              */
 
   for(i=0;i<3;i++) {
-	if ( PAPI_query_event( (int) potential_evt_to_add[i][0] ) == PAPI_OK ) {
-		if ( PAPI_get_event_info( (int) potential_evt_to_add[i][0], &info ) == PAPI_OK ) {
-			if ( ( info.count > 0 ) && ( (unsigned) counters > info.count ) ) {
-				*papi_event = ( int ) potential_evt_to_add[i][0];
-				*mask = ( int ) potential_evt_to_add[i][1] | MASK_TOT_CYC;
-				EventSet = add_test_events( num_events, mask, 1 );
-				if ( *num_events == 2 ) break;
-			}
-		}
-	}
+    if ( PAPI_query_event( (int) potential_evt_to_add[i][0] ) == PAPI_OK ) {
+			
+       if ( PAPI_get_event_info( (int) potential_evt_to_add[i][0], &info ) == PAPI_OK ) {
+	 if ( ( info.count > 0 ) && ( (unsigned) counters > info.count ) ) {
+	     event_found = 1;
+	     break;
+	  }
+       }
+    }
   }
-  if ( i == 3 ) {
+
+  if ( event_found ) {
+     *papi_event = ( int ) potential_evt_to_add[i][0];
+     *mask = ( int ) potential_evt_to_add[i][1] | MASK_TOT_CYC;
+     EventSet = add_test_events( num_events, mask, 1 );
+  } else {
      test_fail( __FILE__, __LINE__, "Not enough room to add an event!", 0 );
   }
   return EventSet;
@@ -733,25 +726,26 @@ add_two_nonderived_events( int *num_events, int *papi_event, int *mask ) {
 		  {( unsigned int ) PAPI_TOT_INS, MASK_TOT_INS}
 		};
 
-  int i;
+  int event_found = 0,i;
 
   *mask = 0;
-  
-   /* could leak up to two event sets. */
+	
   for(i=0;i<POTENTIAL_EVENTS;i++) {
 
      if ( PAPI_query_event( ( int ) potential_evt_to_add[i][0] ) == PAPI_OK ) {
        if ( !is_event_derived(potential_evt_to_add[i][0])) {
-		 *papi_event = ( int ) potential_evt_to_add[i][0];
-		 *mask = ( int ) potential_evt_to_add[i][1] | MASK_TOT_CYC;
-		 EventSet = add_test_events( num_events, mask, 0 );
-		 if ( *num_events == 2 ) break;
+	  event_found = 1;
+	  break;
        }
     }
   }
 	
-  if ( i == POTENTIAL_EVENTS ) {
-     test_fail( __FILE__, __LINE__, "Can't find a non-derived event!", 0 );
+  if ( event_found ) {
+     *papi_event = ( int ) potential_evt_to_add[i][0];
+     *mask = ( int ) potential_evt_to_add[i][1] | MASK_TOT_CYC;
+     EventSet = add_test_events( num_events, mask, 0 );
+  } else {
+     test_fail( __FILE__, __LINE__, "Not enough room to add an event!", 0 );
   }
   return EventSet;
 }
@@ -759,8 +753,7 @@ add_two_nonderived_events( int *num_events, int *papi_event, int *mask ) {
 /* add native events to use all counters */
 int
 enum_add_native_events( int *num_events, int **evtcodes, 
-			int need_interrupt, int no_software_events,
-			int cidx)
+			int need_interrupt, int no_software_events )
 {
 	/* query and set up the right event to monitor */
      int EventSet = PAPI_NULL;
@@ -770,10 +763,10 @@ enum_add_native_events( int *num_events, int **evtcodes,
      const PAPI_component_info_t *s = NULL;
      const PAPI_hw_info_t *hw_info = NULL;
    
-     s = PAPI_get_component_info( cidx );
+     s = PAPI_get_component_info( 0 );
      if ( s == NULL ) {
 	test_fail( __FILE__, __LINE__, 
-			   "PAPI_get_component_info", PAPI_ECMP );
+			   "PAPI_get_component_info", PAPI_ESBSTR );
      }
 
      hw_info = PAPI_get_hardware_info(  );
@@ -809,13 +802,13 @@ enum_add_native_events( int *num_events, int **evtcodes,
      /* For platform independence, always ASK FOR the first event */
      /* Don't just assume it'll be the first numeric value */
      i = 0 | PAPI_NATIVE_MASK;
-     PAPI_enum_cmp_event( &i, PAPI_ENUM_FIRST, cidx );
+     PAPI_enum_event( &i, PAPI_ENUM_FIRST );
 
      do {
         retval = PAPI_get_event_info( i, &info );
 
 	/* HACK! FIXME */
-        if (no_software_events && ( strstr(info.symbol,"PERF_COUNT_SW") || strstr(info.long_descr, "PERF_COUNT_SW") ) ) {
+        if (no_software_events && strstr(info.symbol,"PERF_COUNT_SW")) {
 	   if (!TESTS_QUIET) {
 	      printf("Blocking event %s as a SW event\n", info.symbol);
 	   }
@@ -825,7 +818,7 @@ enum_add_native_events( int *num_events, int **evtcodes,
 	if ( s->cntr_umasks ) {
 	   k = i;
 			
-	   if ( PAPI_enum_cmp_event( &k, PAPI_NTV_ENUM_UMASKS, cidx ) == PAPI_OK ) {
+	   if ( PAPI_enum_event( &k, PAPI_NTV_ENUM_UMASKS ) == PAPI_OK ) {
 	      do {
 	         retval = PAPI_get_event_info( k, &info );
 		 event_code = ( int ) info.event_code;
@@ -844,7 +837,7 @@ enum_add_native_events( int *num_events, int **evtcodes,
 			       event_code, info.symbol );
 		    }
 		 }
-	      } while ( PAPI_enum_cmp_event( &k, PAPI_NTV_ENUM_UMASKS, cidx ) == PAPI_OK
+	      } while ( PAPI_enum_event( &k, PAPI_NTV_ENUM_UMASKS ) == PAPI_OK
 						&& event_found < counters );
 	   } else {
 	      event_code = ( int ) info.event_code;
@@ -873,7 +866,7 @@ enum_add_native_events( int *num_events, int **evtcodes,
 			}
 		}
 	}
-     while ( PAPI_enum_cmp_event( &i, PAPI_ENUM_EVENTS, cidx ) == PAPI_OK &&
+	while ( PAPI_enum_event( &i, PAPI_ENUM_EVENTS ) == PAPI_OK &&
 			event_found < counters );
 
 	*num_events = ( int ) event_found;

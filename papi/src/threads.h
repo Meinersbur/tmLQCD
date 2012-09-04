@@ -6,6 +6,10 @@
 #ifndef PAPI_THREADS_H
 #define PAPI_THREADS_H
 
+#ifdef NO_CPU_COUNTERS
+#include "papi_lock.h"
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -43,7 +47,7 @@ extern volatile ThreadInfo_t *_papi_hwi_thread_head;
 extern THREAD_LOCAL_STORAGE_KEYWORD ThreadInfo_t *_papi_hwi_my_thread;
 #endif
 
-/** Function that returns an unsigned long int thread identifier 
+/** Function that returns and unsigned long int thread identifier 
  *	@internal */
 
 extern unsigned long int ( *_papi_hwi_thread_id_fn ) ( void );
@@ -97,10 +101,12 @@ _papi_hwi_lookup_thread( int custom_tid )
 
 
 	if (custom_tid==0) {
+
 #ifdef HAVE_THREAD_LOCAL_STORAGE
-	   THRDBG( "TLS returning %p\n", _papi_hwi_my_thread );
-	   return ( _papi_hwi_my_thread );
-#else
+	THRDBG( "TLS returning %p\n", _papi_hwi_my_thread );
+	return ( _papi_hwi_my_thread );
+#endif
+
 	   if ( _papi_hwi_thread_id_fn == NULL ) {
 	      THRDBG( "Threads not initialized, returning master thread at %p\n",
 				_papi_hwi_thread_head );
@@ -108,7 +114,6 @@ _papi_hwi_lookup_thread( int custom_tid )
 	   }
 
 	   tid = ( *_papi_hwi_thread_id_fn ) (  );
-#endif
 	}
 	else {
 	  tid=custom_tid;
@@ -155,14 +160,5 @@ _papi_hwi_lookup_or_create_thread( ThreadInfo_t ** here, int tid )
 
 	return ( retval );
 }
-
-/* Prototypes */
-void _papi_hwi_shutdown_the_thread_list( void );
-void _papi_hwi_cleanup_thread_list( void );
-int _papi_hwi_insert_in_thread_list( ThreadInfo_t * ptr );
-ThreadInfo_t *_papi_hwi_lookup_in_thread_list(  );
-void _papi_hwi_shutdown_the_thread_list( void );
-int _papi_hwi_get_thr_context( void ** );
-int _papi_hwi_gather_all_thrspec_data( int tag, PAPI_all_thr_spec_t * where );
 
 #endif

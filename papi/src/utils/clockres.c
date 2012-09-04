@@ -1,7 +1,6 @@
-/** file clockres.c
+/** file: clockres.c
   *
-  * @page papi_clockres 
-  * @brief The papi_clockres utility.
+  * @page papi_clockres The papi_clockres utility.
   *	@section Name
   * papi_clockres - measures and reports clock latency and resolution for PAPI timers. 
   *

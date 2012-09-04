@@ -84,7 +84,7 @@ papi_xml_hwinfo( FILE * f )
 	const PAPI_hw_info_t *hwinfo;
 
 	if ( ( hwinfo = PAPI_get_hardware_info(  ) ) == NULL )
-		return PAPI_ESYS;
+		return ( PAPI_ESBSTR );
 
 	fprintf( f, "<hardware>\n" );
 
@@ -102,8 +102,8 @@ papi_xml_hwinfo( FILE * f )
 	fprintf( f, "    <model value=\"%d\"/>\n", hwinfo->cpuid_model );
 	fprintf( f, "    <stepping value=\"%d\"/>\n", hwinfo->cpuid_stepping );
 	fprintf( f, "  </cpuID>\n" );
-	fprintf( f, "  <cpuMaxMegahertz value=\"%d\"/>\n", hwinfo->cpu_max_mhz );
-	fprintf( f, "  <cpuMinMegahertz value=\"%d\"/>\n", hwinfo->cpu_min_mhz );
+	fprintf( f, "  <cpuMegahertz value=\"%f\"/>\n", hwinfo->mhz );
+	fprintf( f, "  <cpuClockMegahertz value=\"%d\"/>\n", hwinfo->clock_mhz );
 	fprintf( f, "  <threads value=\"%d\"/>\n", hwinfo->threads );
 	fprintf( f, "  <cores value=\"%d\"/>\n", hwinfo->cores );
 	fprintf( f, "  <sockets value=\"%d\"/>\n", hwinfo->sockets );
@@ -176,23 +176,23 @@ enum_preset_events( FILE * f, int cidx)
 	int retval;
 	PAPI_event_info_t info;
 
-	i = PAPI_PRESET_MASK;
+	i = PAPI_COMPONENT_MASK( cidx ) | PAPI_PRESET_MASK;
 	fprintf( f, "  <eventset type=\"PRESET\">\n" );
 	num = -1;
-	retval = PAPI_enum_cmp_event( &i, PAPI_ENUM_FIRST, cidx );
+	retval = PAPI_enum_event( &i, PAPI_ENUM_FIRST );
 
 	while ( retval == PAPI_OK ) {
 	   num++;
 	   retval = PAPI_get_event_info( i, &info );
 	   if ( retval != PAPI_OK ) {
-	     retval = PAPI_enum_cmp_event( &i, PAPI_ENUM_EVENTS, cidx );
+	      retval = PAPI_enum_event( &i, PAPI_ENUM_EVENTS );
 	      continue;
 	   }
 	   if ( test_event( i ) == PAPI_OK ) {
 	      xmlize_event( f, &info, num );
 	      fprintf( f, "    </event>\n" );
 	   }
-	   retval = PAPI_enum_cmp_event( &i, PAPI_ENUM_EVENTS, cidx );
+	   retval = PAPI_enum_event( &i, PAPI_ENUM_EVENTS );
 	}
 	fprintf( f, "  </eventset>\n" );
 }
@@ -208,23 +208,23 @@ enum_native_events( FILE * f, int cidx)
 	int retval;
 	PAPI_event_info_t info;
 
-	i = PAPI_NATIVE_MASK;
+	i = PAPI_COMPONENT_MASK( cidx ) | PAPI_NATIVE_MASK;
 	fprintf( f, "  <eventset type=\"NATIVE\">\n" );
 	num = -1;
-	retval = PAPI_enum_cmp_event( &i, PAPI_ENUM_FIRST, cidx );
+	retval = PAPI_enum_event( &i, PAPI_ENUM_FIRST );
 
 	while ( retval == PAPI_OK ) {
 
 	   num++;
 	   retval = PAPI_get_event_info( i, &info );
 	   if ( retval != PAPI_OK ) {
-	      retval = PAPI_enum_cmp_event( &i, PAPI_ENUM_EVENTS, cidx );
+	      retval = PAPI_enum_event( &i, PAPI_ENUM_EVENTS );
 	      continue;
 	   }
 			
 	   /* enumerate any umasks */
 	   k = i;
-	   if ( PAPI_enum_cmp_event( &k, PAPI_NTV_ENUM_UMASKS, cidx ) == PAPI_OK ) {
+	   if ( PAPI_enum_event( &k, PAPI_NTV_ENUM_UMASKS ) == PAPI_OK ) {
 		 
 	      /* Test if event can be added */
 	      if ( test_event( k ) == PAPI_OK ) {
@@ -237,12 +237,12 @@ enum_native_events( FILE * f, int cidx)
 		    retval = PAPI_get_event_info( k, &info );
 		    if ( retval == PAPI_OK ) {
 		       if ( test_event( k )!=PAPI_OK ) {
-			 retval = PAPI_enum_cmp_event( &i, PAPI_ENUM_EVENTS, cidx );
+			  retval = PAPI_enum_event( &i, PAPI_ENUM_EVENTS );
 			  continue;
 		       }
 		       xmlize_event( f, &info, -1 );
 		    }
-		 } while ( PAPI_enum_cmp_event( &k, PAPI_NTV_ENUM_UMASKS, cidx ) == PAPI_OK);
+		 } while ( PAPI_enum_event( &k, PAPI_NTV_ENUM_UMASKS ) == PAPI_OK );
 		 fprintf( f, "    </event>\n" );
 	      }
 	   } else {		 
@@ -252,7 +252,7 @@ enum_native_events( FILE * f, int cidx)
 		 fprintf( f, "    </event>\n" );
 	      }
 	   }
-	   retval = PAPI_enum_cmp_event( &i, PAPI_ENUM_EVENTS, cidx );
+	   retval = PAPI_enum_event( &i, PAPI_ENUM_EVENTS );
 	}
 	fprintf( f, "  </eventset>\n" );
 }

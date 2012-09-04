@@ -3,6 +3,7 @@
 /****************************/
 /* 
 * File:    freebsd-libpmc.c
+* CVS:     $Id$
 * Author:  Kevin London
 *          london@cs.utk.edu
 * Mods:    Harald Servat
@@ -24,10 +25,12 @@
 #include <assert.h>
 
 #include "papi.h"
+#include "papi_defines.h"
 #include <pmc.h>
 
 #include "freebsd-config.h"
 
+#define MY_VECTOR			_papi_freebsd_vector
 #define MAX_COUNTERS		HWPMC_NUM_COUNTERS
 #define MAX_COUNTER_TERMS	MAX_COUNTERS
 
@@ -36,6 +39,7 @@
 #undef hwd_reg_alloc_t
 #undef hwd_control_state_t
 #undef hwd_context_t
+#undef hwd_ucontext_t
 #undef hwd_libpmc_context_t
 
 typedef struct hwd_siginfo {
@@ -55,7 +59,7 @@ typedef struct hwd_control_state {
 	int hwc_domain;      /* HWC domain {user|kernel} */
 	unsigned *caps;      /* Capabilities for each counter */
 	pmc_id_t *pmcs;      /* PMC identifiers */
-	pmc_value_t *values; /* Stored values for each counter */
+	long long *values;   /* Stored values for each counter */
 	char **counters;     /* Name of each counter (with mode) */
 } hwd_control_state_t;
 
@@ -63,13 +67,18 @@ typedef struct hwd_context {
 	int placeholder; 
 } hwd_context_t;
 
-#include "freebsd-context.h"
+typedef struct hwd_ucontext {
+	int placeholder; 
+} hwd_ucontext_t;
 
 typedef struct hwd_libpmc_context {
-	int CPUtype;
+	int CPUsubstrate;
 	int use_rdtsc;
 } hwd_libpmc_context_t;
 
 #define _papi_hwd_lock_init() { ; }
+#define _papi_hwd_lock(a) { ; }
+#define _papi_hwd_unlock(a) { ; }
+#define GET_OVERFLOW_ADDRESS(ctx) (0x80000000)
 
-#endif /* _PAPI_FreeBSD_H */
+#endif /* _PAPI_FreeBSD_LIBPMC_H */

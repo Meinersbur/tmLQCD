@@ -4,6 +4,7 @@
 
 /** 
  * @file    linux-L2unit.c
+ * CVS:     $Id$
  * @author  Heike Jagode
  *          jagode@eecs.utk.edu
  * Mods:	<your name here>
@@ -16,6 +17,7 @@
  *  This file has the source code for a component that enables PAPI-C to 
  *  access hardware monitoring counters for BG/Q through the bgpm library.
  */
+
 
 #include "linux-L2unit.h"
 
@@ -30,10 +32,10 @@ papi_vector_t _L2unit_vector;
  * This is called whenever a thread is initialized
  */
 int
-L2UNIT_init_thread( hwd_context_t * ctx )
+L2UNIT_init( hwd_context_t * ctx )
 {
 #ifdef DEBUG_BGQ
-	printf( "L2UNIT_init_thread\n" );
+	printf( "L2UNIT_init\n" );
 #endif
 	
 	( void ) ctx;
@@ -46,15 +48,15 @@ L2UNIT_init_thread( hwd_context_t * ctx )
  * PAPI process is initialized (IE PAPI_library_init)
  */
 int
-L2UNIT_init_component( int cidx )
+L2UNIT_init_substrate( int cidx )
 { 
 #ifdef DEBUG_BGQ
-	printf( "L2UNIT_init_component\n" );
+	printf( "L2UNIT_init_substrate\n" );
 #endif
 	
 	_L2unit_vector.cmp_info.CmpIdx = cidx;
 #ifdef DEBUG_BGQ
-	printf( "L2UNIT_init_component cidx = %d\n", cidx );
+	printf( "L2UNIT_init_substrate cidx = %d\n", cidx );
 #endif
 	
 	return ( PAPI_OK );
@@ -168,10 +170,10 @@ L2UNIT_read( hwd_context_t * ctx, hwd_control_state_t * ptr,
  *
  */
 int
-L2UNIT_shutdown_thread( hwd_context_t * ctx )
+L2UNIT_shutdown( hwd_context_t * ctx )
 {
 #ifdef DEBUG_BGQ
-	printf( "L2UNIT_shutdown_thread\n" );
+	printf( "L2UNIT_shutdown\n" );
 #endif
 	
 	( void ) ctx;
@@ -354,7 +356,7 @@ L2UNIT_set_overflow( EventSetInfo_t * ESI, int EventIndex, int threshold )
 
 
 
-/* This function sets various options in the component
+/* This function sets various options in the substrate
  * The valid codes being passed in are PAPI_SET_DEFDOM,
  * PAPI_SET_DOMAIN, PAPI_SETDEFGRN, PAPI_SET_GRANUL * and PAPI_SET_INHERIT
  */
@@ -419,7 +421,7 @@ L2UNIT_update_control_state( hwd_control_state_t * ptr,
 	
 	// otherwise, add the events to the eventset
 	for ( i = 0; i < count; i++ ) {
-		index = ( native[i].ni_event ) + OFFSET;
+		index = ( native[i].ni_event & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK ) + OFFSET;
 		
 		native[i].ni_position = i;
 		
@@ -513,17 +515,18 @@ L2UNIT_ntv_enum_events( unsigned int *EventCode, int modifier )
 #ifdef DEBUG_BGQ
 	//printf( "L2UNIT_ntv_enum_events, EventCode = %x\n", *EventCode );
 #endif
+	int cidx = PAPI_COMPONENT_INDEX( *EventCode );
 
 	switch ( modifier ) {
 	case PAPI_ENUM_FIRST:
-		*EventCode = 0;
+		*EventCode = PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK( cidx );
 
 		return ( PAPI_OK );
 		break;
 
 	case PAPI_ENUM_EVENTS:
 	{
-		int index = ( *EventCode ) + OFFSET;
+		int index = ( *EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK ) + OFFSET;
 
 		if ( index < L2UNIT_MAX_COUNTERS ) {
 			*EventCode = *EventCode + 1;
@@ -564,7 +567,7 @@ L2UNIT_ntv_name_to_code( char *name, unsigned int *event_code )
 	else if ( ret < OFFSET || ret > L2UNIT_MAX_COUNTERS ) // not a L2Unit event
 		return PAPI_ENOEVNT;
 	else
-		*event_code = ( ret - OFFSET );
+		*event_code = ( ret - OFFSET ) | PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK( _L2unit_vector.cmp_info.CmpIdx ) ;
 
 	return PAPI_OK;
 }
@@ -581,7 +584,7 @@ L2UNIT_ntv_code_to_name( unsigned int EventCode, char *name, int len )
 #endif
 	int index;
 	
-	index = ( EventCode ) + OFFSET;
+	index = ( EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK ) + OFFSET;
 
 	if ( index >= MAX_COUNTERS )
 		return PAPI_ENOEVNT;
@@ -610,7 +613,7 @@ L2UNIT_ntv_code_to_descr( unsigned int EventCode, char *name, int len )
 #endif
 	int retval, index;
 	
-	index = ( EventCode ) + OFFSET;
+	index = ( EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK ) + OFFSET;
 	
 	retval = Bgpm_GetLongDesc( index, name, &len );
 	CHECK_BGPM_ERROR( retval, "Bgpm_GetLongDesc" );						 
@@ -639,16 +642,19 @@ L2UNIT_ntv_code_to_bits( unsigned int EventCode, hwd_register_t * bits )
 papi_vector_t _L2unit_vector = {
 	.cmp_info = {
 				 /* default component information (unspecified values are initialized to 0) */
-				 .name = "bgpm/L2Unit",
-				 .short_name = "L2Unit",
-				 .description = "Blue Gene/Q L2Unit component",
+				 .name = "$Id: linux-L2unit.c,v 1.2 2011/03/18 21:40:22 jagode Exp $",
+				 .version = "$Revision: 1.2 $",
+				 .CmpIdx = 0, 
 				 .num_cntrs = L2UNIT_MAX_COUNTERS,
-				 .num_mpx_cntrs = L2UNIT_MAX_COUNTERS,
+				 .num_mpx_cntrs = PAPI_MPX_DEF_DEG,
 				 .default_domain = PAPI_DOM_USER,
 				 .available_domains = PAPI_DOM_USER | PAPI_DOM_KERNEL,
 				 .default_granularity = PAPI_GRN_THR,
 				 .available_granularities = PAPI_GRN_THR,
 		
+				 .itimer_sig = PAPI_INT_MPX_SIGNAL,
+				 .itimer_num = PAPI_INT_ITIMER,
+				 .itimer_res_ns = 1,
 				 .hardware_intr_sig = PAPI_INT_SIGNAL,
 				 .hardware_intr = 1,
 		
@@ -657,6 +663,7 @@ papi_vector_t _L2unit_vector = {
 				 /* component specific cmp_info initializations */
 				 .fast_real_timer = 0,
 				 .fast_virtual_timer = 0,
+				 .itimer_ns = PAPI_INT_MPX_DEF_US * 1000,
 				 .attach = 0,
 				 .attach_must_ptrace = 0,
 				 }
@@ -671,13 +678,13 @@ papi_vector_t _L2unit_vector = {
 			 }
 	,
 	/* function pointers in this component */
-	.init_thread = L2UNIT_init_thread,
-	.init_component = L2UNIT_init_component,
+	.init = L2UNIT_init,
+	.init_substrate = L2UNIT_init_substrate,
 	.init_control_state = L2UNIT_init_control_state,
 	.start = L2UNIT_start,
 	.stop = L2UNIT_stop,
 	.read = L2UNIT_read,
-	.shutdown_thread = L2UNIT_shutdown_thread,
+	.shutdown = L2UNIT_shutdown,
 	.set_overflow = L2UNIT_set_overflow,
 	.cleanup_eventset = L2UNIT_cleanup_eventset,
 	.ctl = L2UNIT_ctl,
@@ -690,5 +697,6 @@ papi_vector_t _L2unit_vector = {
 	.ntv_enum_events = L2UNIT_ntv_enum_events,
 	.ntv_code_to_name = L2UNIT_ntv_code_to_name,
 	.ntv_code_to_descr = L2UNIT_ntv_code_to_descr,
-	.ntv_code_to_bits = L2UNIT_ntv_code_to_bits
+	.ntv_code_to_bits = L2UNIT_ntv_code_to_bits,
+	.ntv_bits_to_info = NULL,
 };

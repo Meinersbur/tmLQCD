@@ -285,7 +285,6 @@ void close_cpu(int c)
 {
 	perf_event_desc_t *fds = NULL;
 	int i, j;
-	int total = 0;
 
 	fds = all_fds[c];
 
@@ -295,9 +294,9 @@ void close_cpu(int c)
 	for(i=0; i < options.num_groups; i++) {
 		for(j=0; j < options.nevents[i]; j++)
 			close(fds[j].fd);
-		total += options.nevents[i];
 	}
-	perf_free_fds(fds, total);
+
+	free(fds);
 }
 
 void
@@ -327,9 +326,6 @@ measure(void)
 
 	for(c=cmin ; c < cmax; c++)
 		setup_cpu(c, cfd);
-
-	if (options.cgroup_name)
-		close(cfd);
 
 	printf("<press CTRL-C to quit before %ds time limit>\n", options.delay);
 	/*
@@ -438,7 +434,7 @@ main(int argc, char **argv)
 		options.delay = 20;
 
 	if (!options.events[0]) {
-		options.events[0] = "cycles,instructions";
+		options.events[0] = "PERF_COUNT_HW_CPU_CYCLES,PERF_COUNT_HW_INSTRUCTIONS";
 		options.num_groups = 1;
 	}
 

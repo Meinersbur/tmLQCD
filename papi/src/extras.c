@@ -4,6 +4,7 @@
 
 /* 
 * File:    extras.c
+* CVS:     $Id$
 * Author:  Philip Mucci
 *          mucci@cs.utk.edu
 * Mods:    dan terpstra
@@ -19,16 +20,29 @@
 /* This file contains portable routines to do things that we wish the
 vendors did in the kernel extensions or performance libraries. */
 
+/* It also contains a new section at the end with Windows routines
+ to emulate standard stuff found in Unix/Linux, but not Windows! */
+
 #include "papi.h"
 #include "papi_internal.h"
 #include "papi_vector.h"
 #include "papi_memory.h"
-#include "extras.h"
-#include "threads.h"
 
-#if (!defined(HAVE_FFSLL) || defined(__bgp__))
-int ffsll( long long lli );
+
+/*******************/
+/* BEGIN EXTERNALS */
+/*******************/
+
+extern papi_mdi_t _papi_hwi_system_info;
+
+#ifdef ANY_THREAD_GETS_SIGNAL
+extern void _papi_hwi_lookup_thread_symbols( void );
+extern int ( *_papi_hwi_thread_kill_fn ) ( int, int );
 #endif
+
+/*****************/
+/* END EXTERNALS */
+/*****************/
 
 /****************/
 /* BEGIN LOCALS */
@@ -39,6 +53,8 @@ static unsigned int _rnum = DEADBEEF;
 /**************/
 /* END LOCALS */
 /**************/
+
+extern unsigned long int ( *_papi_hwi_thread_id_fn ) ( void );
 
 inline_static unsigned short
 random_ushort( void )
@@ -196,25 +212,25 @@ _papi_hwi_dispatch_profile( EventSetInfo_t * ESI, caddr_t pc,
    _papi_hwi_system_info.supports_hw_overflow is in CRAY some processors
    may use hardware overflow, some may use software overflow.
 
-   overflow_bit: if the component can get the overflow bit when overflow
-                 occurs, then this should be passed by the component;
+   overflow_bit: if the substrate can get the overflow bit when overflow
+                 occurs, then this should be passed by the substrate;
 
    If both genOverflowBit and isHardwareSupport are true, that means
-     the component doesn't know how to get the overflow bit from the
+     the substrate doesn't know how to get the overflow bit from the
      kernel directly, so we generate the overflow bit in this function 
     since this function can access the ESI->overflow struct;
-   (The component can only set genOverflowBit parameter to true if the
+   (The substrate can only set genOverflowBit parameter to true if the
      hardware doesn't support multiple hardware overflow. If the
-     component supports multiple hardware overflow and you don't know how 
+     substrate supports multiple hardware overflow and you don't know how 
      to get the overflow bit, then I don't know how to deal with this 
      situation).
 */
 
 int
 _papi_hwi_dispatch_overflow_signal( void *papiContext, caddr_t address,
-				   int *isHardware, long long overflow_bit,
-				   int genOverflowBit, ThreadInfo_t ** t,
-				   int cidx )
+									int *isHardware, long long overflow_bit,
+									int genOverflowBit, ThreadInfo_t ** t,
+									int cidx )
 {
 	int retval, event_counter, i, overflow_flag, pos;
 	int papi_index, j;
@@ -315,7 +331,7 @@ _papi_hwi_dispatch_overflow_signal( void *papiContext, caddr_t address,
 						 * events that contain more than one counter without being  *
 						 * derived. You've gotta scan all terms to make sure you    *
 						 * find the one to profile. */
-						for ( k = 0, pos = 0; k < PAPI_EVENTS_IN_DERIVED_EVENT && pos >= 0;
+						for ( k = 0, pos = 0; k < MAX_COUNTER_TERMS && pos >= 0;
 							  k++ ) {
 							pos = ESI->EventInfoArray[papi_index].pos[k];
 							if ( i == pos ) {
@@ -356,6 +372,69 @@ _papi_hwi_dispatch_overflow_signal( void *papiContext, caddr_t address,
 	return ( PAPI_OK );
 }
 
+#ifdef _WIN32
+
+volatile int _papi_hwi_using_signal = 0;
+static MMRESULT wTimerID;			   // unique ID for referencing this timer
+static UINT wTimerRes;				   // resolution for this timer
+
+int
+_papi_hwi_start_timer( int ns )
+{
+	int retval = PAPI_OK;
+	int milliseconds = ns / 1000000;
+	TIMECAPS tc;
+	DWORD threadID;
+
+	// get the timer resolution capability on this system
+	if ( timeGetDevCaps( &tc, sizeof ( TIMECAPS ) ) != TIMERR_NOERROR )
+		return ( PAPI_ESYS );
+
+	// get the ID of the current thread to read the context later
+	// NOTE: Use of this code is restricted to W2000 and later...
+	threadID = GetCurrentThreadId(  );
+
+	// set the minimum usable resolution of the timer
+	wTimerRes = min( max( tc.wPeriodMin, 1 ), tc.wPeriodMax );
+	timeBeginPeriod( wTimerRes );
+
+	// initialize a periodic timer
+	//    triggering every (milliseconds) 
+	//    and calling (_papi_hwd_timer_callback())
+	//    with no data
+	wTimerID = timeSetEvent( milliseconds, wTimerRes,
+							 ( LPTIMECALLBACK ) _papi_hwd_timer_callback,
+							 threadID, TIME_PERIODIC );
+	if ( !wTimerID )
+		return PAPI_ESYS;
+
+	return ( retval );
+}
+
+int
+_papi_hwi_start_signal( int signal, int need_context, int cidx )
+{
+	return ( PAPI_OK );
+}
+
+int
+_papi_hwi_stop_signal( int signal )
+{
+	return ( PAPI_OK );
+}
+
+int
+_papi_hwi_stop_timer( void )
+{
+	int retval = PAPI_OK;
+
+	if ( timeKillEvent( wTimerID ) != TIMERR_NOERROR )
+		retval = PAPI_ESYS;
+	timeEndPeriod( wTimerRes );
+	return ( retval );
+}
+
+#else
 #include <sys/time.h>
 #include <errno.h>
 #include <string.h>
@@ -481,7 +560,192 @@ _papi_hwi_stop_timer( int timer, int signal )
 	return ( PAPI_OK );
 }
 
+#endif /* _WIN32 */
 
+/*
+  Hardware independent routines to support an opaque native event table.
+  These routines assume the existence of two hardware dependent routines:
+    _papi_hwd_native_code_to_name()
+    _papi_hwd_native_code_to_descr()
+  A third routine is required to extract hardware dependent mapping info from the structure:
+    _papi_hwd_native_code_to_bits()
+  In addition, two more optional hardware dependent routines provide for the creation
+  of new native events that may not be included in the distribution:
+    _papi_hwd_encode_native()
+    _papi_hwd_decode_native()
+  These five routines provide the mapping from the opaque hardware dependent
+  native event structure array to the higher level hardware independent interface.
+*/
+
+/* Returns PAPI_OK if native EventCode found, or PAPI_ENOEVNT if not;
+   Used to enumerate the entire array, e.g. for native_avail.c */
+int
+_papi_hwi_query_native_event( unsigned int EventCode )
+{
+	char name[PAPI_HUGE_STR_LEN];	   /* probably overkill, but should always be big enough */
+	int cidx = ( int ) PAPI_COMPONENT_INDEX( EventCode );
+
+	if ( _papi_hwi_invalid_cmp( cidx ) )
+		return ( PAPI_ENOCMP );
+
+	return ( _papi_hwd[cidx]->
+			 ntv_code_to_name( EventCode, name, sizeof ( name ) ) );
+}
+
+/* Converts an ASCII name into a native event code usable by other routines
+   Returns code = 0 and PAPI_OK if name not found.
+   This allows for sparse native event arrays */
+int
+_papi_hwi_native_name_to_code( char *in, int *out )
+{
+	int retval = PAPI_ENOEVNT;
+	char name[PAPI_HUGE_STR_LEN];	   /* make sure it's big enough */
+	unsigned int i, j;
+
+
+	for ( j = 0, i = 0 | PAPI_NATIVE_MASK;
+		  j < ( unsigned int ) papi_num_components;
+		  j++, i = 0 | PAPI_NATIVE_MASK ) {
+		/* first check each component for name_to_code */
+		if ( vector_find_dummy
+			 ( ( void * ) _papi_hwd[j]->ntv_name_to_code, NULL ) == NULL ) {
+			/* if ntv_name_to_code is set and != NULL */
+			retval = _papi_hwd[j]->ntv_name_to_code( in, ( unsigned * ) out );
+		} else {
+			_papi_hwd[j]->ntv_enum_events( &i, PAPI_ENUM_FIRST );
+			_papi_hwi_lock( INTERNAL_LOCK );
+
+			do {
+				retval =
+					_papi_hwd[j]->ntv_code_to_name( i, name, sizeof ( name ) );
+/*				printf("name =|%s|\ninput=|%s|\n", name, in); */
+				if ( retval == PAPI_OK ) {
+					if ( strcasecmp( name, in ) == 0 ) {
+						*out = ( int ) ( i | PAPI_COMPONENT_MASK( j ) );
+						break;
+					} else
+						retval = PAPI_ENOEVNT;
+				} else {
+					*out = 0;
+					retval = PAPI_ENOEVNT;
+					break;
+				}
+			}
+			while ( ( _papi_hwd[j]->ntv_enum_events( &i, PAPI_ENUM_EVENTS ) ==
+					  PAPI_OK ) );
+
+			_papi_hwi_unlock( INTERNAL_LOCK );
+		}
+
+		if ( retval == PAPI_OK )
+			return ( retval );
+	}
+	return ( retval );
+}
+
+
+/* Returns event name based on native event code. 
+   Returns NULL if name not found */
+int
+_papi_hwi_native_code_to_name( unsigned int EventCode, char *hwi_name, int len )
+{
+	int cidx = ( int ) PAPI_COMPONENT_INDEX( EventCode );
+
+	if ( _papi_hwi_invalid_cmp( cidx ) )
+		return ( PAPI_ENOCMP );
+
+	if ( EventCode & PAPI_NATIVE_MASK ) {
+		return ( _papi_hwd[cidx]->
+				 ntv_code_to_name( EventCode, hwi_name, len ) );
+	}
+	return ( PAPI_ENOEVNT );
+}
+
+
+/* Returns event description based on native event code.
+   Returns NULL if description not found */
+int
+_papi_hwi_native_code_to_descr( unsigned int EventCode, char *hwi_descr,
+								int len )
+{
+	int retval = PAPI_ENOEVNT;
+	int cidx = ( int ) PAPI_COMPONENT_INDEX( EventCode );
+
+	if ( _papi_hwi_invalid_cmp( cidx ) )
+		return ( PAPI_ENOCMP );
+
+	if ( EventCode & PAPI_NATIVE_MASK ) {
+		_papi_hwi_lock( INTERNAL_LOCK );
+		retval =
+			_papi_hwd[cidx]->ntv_code_to_descr( EventCode, hwi_descr, len );
+		_papi_hwi_unlock( INTERNAL_LOCK );
+	}
+	return ( retval );
+}
+
+
+/* The native event equivalent of PAPI_get_event_info */
+int
+_papi_hwi_get_native_event_info( unsigned int EventCode,
+								 PAPI_event_info_t * info )
+{
+	hwd_register_t *bits = NULL;
+	int retval;
+	int cidx = ( int ) PAPI_COMPONENT_INDEX( EventCode );
+
+	if ( _papi_hwi_invalid_cmp( cidx ) )
+		return ( PAPI_ENOCMP );
+
+	if ( EventCode & PAPI_NATIVE_MASK ) {
+		memset( info, 0, sizeof ( *info ) );
+		retval =
+			_papi_hwd[cidx]->ntv_code_to_name( EventCode, info->symbol,
+											   sizeof ( info->symbol ) );
+		if ( retval == PAPI_OK || retval == PAPI_EBUF ) {
+
+			/* Fill in the info structure */
+			info->event_code = ( unsigned int ) EventCode;
+			retval =
+				_papi_hwd[cidx]->ntv_code_to_descr( EventCode, info->long_descr,
+													sizeof ( info->
+															 long_descr ) );
+			if ( retval == PAPI_OK || retval == PAPI_EBUF ) {
+				info->short_descr[0] = '\0';
+				info->derived[0] = '\0';
+				info->postfix[0] = '\0';
+
+				/* Convert the register bits structure for this EventCode into
+				   arrays of names and values (substrate dependent).
+				 */
+				bits =
+					papi_malloc( ( size_t ) _papi_hwd[cidx]->size.reg_value );
+				if ( bits == NULL ) {
+					info->count = 0;
+					return ( PAPI_ENOMEM );
+				}
+				retval = _papi_hwd[cidx]->ntv_code_to_bits( EventCode, bits );
+				if ( retval == PAPI_OK )
+					retval =
+						_papi_hwd[cidx]->ntv_bits_to_info( bits,
+														   ( char * ) &info->
+														   name[0][0],
+														   info->code,
+														   PAPI_2MAX_STR_LEN,
+														   PAPI_MAX_INFO_TERMS );
+				if ( retval < 0 )
+					info->count = 0;
+				else
+					info->count = ( unsigned int ) retval;
+				if ( bits )
+					papi_free( bits );
+				return ( PAPI_OK );
+			}
+		}
+	}
+	if ( bits )
+		papi_free( bits );
+	return ( PAPI_ENOEVNT );
+}
 
 #if (!defined(HAVE_FFSLL) || defined(__bgp__))
 /* find the first set bit in long long */
@@ -508,3 +772,55 @@ ffsll( long long lli )
 	return PAPI_OK;
 }
 #endif
+
+
+/**********************************************************************
+	Windows Compatability stuff
+	Delimited by the _WIN32 define
+**********************************************************************/
+#ifdef _WIN32
+
+/*
+ This routine normally lives in <strings> on Unix.
+ Microsoft Visual C++ doesn't have this file.
+*/
+extern int
+ffs( int i )
+{
+	int c = 1;
+
+	do {
+		if ( i & 1 )
+			return ( c );
+		i = i >> 1;
+		c++;
+	} while ( i );
+	return ( 0 );
+}
+
+/*
+ More Unix routines that I can't find in Windows
+ This one returns a pseudo-random integer
+ given an unsigned int seed.
+*/
+extern int
+rand_r( unsigned int *Seed )
+{
+	srand( *Seed );
+	return ( rand(  ) );
+}
+
+/*
+  Another Unix routine that doesn't exist in Windows.
+  Kevin uses it in the memory stuff, specifically in PAPI_get_dmem_info().
+*/
+extern int
+getpagesize( void )
+{
+	SYSTEM_INFO SystemInfo;			   // system information structure  
+
+	GetSystemInfo( &SystemInfo );
+	return ( ( int ) SystemInfo.dwPageSize );
+}
+
+#endif /* _WIN32 */

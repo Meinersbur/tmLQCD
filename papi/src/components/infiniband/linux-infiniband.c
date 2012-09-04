@@ -23,9 +23,7 @@
 
 #include "papi.h"
 #include "papi_internal.h"
-#include "papi_vector.h"
 #include "papi_memory.h"
-
 #include "linux-infiniband.h"
 
 struct ibmad_port *srcport;
@@ -492,7 +490,7 @@ host_deleteStringList( string_list * to_delete )
  * This is called whenever a thread is initialized
  */
 int
-INFINIBAND_init_thread( hwd_context_t * ctx )
+INFINIBAND_init( hwd_context_t * ctx )
 {
 	string_list *counter_list = NULL;
 	int i;
@@ -529,7 +527,7 @@ INFINIBAND_init_thread( hwd_context_t * ctx )
  * PAPI process is initialized (IE PAPI_library_init)
  */
 int
-INFINIBAND_init_component(  )
+INFINIBAND_init_substrate(  )
 {
 	int i;
 
@@ -620,7 +618,7 @@ INFINIBAND_read( hwd_context_t * ctx, hwd_control_state_t * ctrl,
  *
  */
 int
-INFINIBAND_shutdown_thread( hwd_context_t * ctx )
+INFINIBAND_shutdown( hwd_context_t * ctx )
 {
 	( void ) ctx;
 	host_finalize(  );
@@ -629,7 +627,7 @@ INFINIBAND_shutdown_thread( hwd_context_t * ctx )
 
 
 
-/* This function sets various options in the component
+/* This function sets various options in the substrate
  * The valid codes being passed in are PAPI_SET_DEFDOM,
  * PAPI_SET_DOMAIN, PAPI_SETDEFGRN, PAPI_SET_GRANUL * and PAPI_SET_INHERIT
  */
@@ -659,7 +657,8 @@ INFINIBAND_update_control_state( hwd_control_state_t * ptr,
 	int i, index;
 
 	for ( i = 0; i < count; i++ ) {
-		index = native[i].ni_event;
+		index =
+			native[i].ni_event & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 		native[i].ni_position = index;
 	}
 
@@ -716,13 +715,16 @@ INFINIBAND_reset( hwd_context_t * ctx, hwd_control_state_t * ctrl )
 int
 INFINIBAND_ntv_enum_events( unsigned int *EventCode, int modifier )
 {
+	int cidx = PAPI_COMPONENT_INDEX( *EventCode );
+
 	if ( modifier == PAPI_ENUM_FIRST ) {
-		*EventCode = 0;
-		return PAPI_OK;
+		/* assumes first native event is always 0x4000000 */
+		*EventCode = PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK( cidx );
+		return ( PAPI_OK );
 	}
 
 	if ( modifier == PAPI_ENUM_EVENTS ) {
-		int index = *EventCode;
+		int index = *EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
 		if ( infiniband_native_table[index + 1] ) {
 			*EventCode = *EventCode + 1;
@@ -740,9 +742,11 @@ INFINIBAND_ntv_enum_events( unsigned int *EventCode, int modifier )
 int
 INFINIBAND_ntv_code_to_name( unsigned int EventCode, char *name, int len )
 {
-	strncpy( name, infiniband_native_table[EventCode]->name, len );
+	strncpy( name,
+			 infiniband_native_table[EventCode & PAPI_NATIVE_AND_MASK &
+									 PAPI_COMPONENT_AND_MASK]->name, len );
 
-	return PAPI_OK;
+	return ( PAPI_OK );
 }
 
 
@@ -752,9 +756,12 @@ INFINIBAND_ntv_code_to_name( unsigned int EventCode, char *name, int len )
 int
 INFINIBAND_ntv_code_to_descr( unsigned int EventCode, char *name, int len )
 {
-	strncpy( name, infiniband_native_table[EventCode]->description, len );
+	strncpy( name,
+			 infiniband_native_table[EventCode & PAPI_NATIVE_AND_MASK &
+									 PAPI_COMPONENT_AND_MASK]->description,
+			 len );
 
-	return PAPI_OK;
+	return ( PAPI_OK );
 }
 
 
@@ -765,10 +772,11 @@ int
 INFINIBAND_ntv_code_to_bits( unsigned int EventCode, hwd_register_t * bits )
 {
 	memcpy( ( INFINIBAND_register_t * ) bits,
-			infiniband_native_table[EventCode],
+			infiniband_native_table[EventCode & PAPI_NATIVE_AND_MASK &
+									PAPI_COMPONENT_AND_MASK],
 			sizeof ( INFINIBAND_register_t ) );
 
-	return PAPI_OK;
+	return ( PAPI_OK );
 }
 
 
@@ -778,11 +786,9 @@ INFINIBAND_ntv_code_to_bits( unsigned int EventCode, hwd_register_t * bits )
 papi_vector_t _infiniband_vector = {
 	.cmp_info = {
 				 /* default component information (unspecified values are initialized to 0) */
-				 .name ="infiniband",
-				 .short_name="infiniband",
-				 .version = "4.2.1",
-				 .description = "Infiniband statistics",
-				 .num_mpx_cntrs = INFINIBAND_MAX_COUNTERS,
+				 .name ="linux-infiniband.c",
+				 .version = "$Revision$",
+				 .num_mpx_cntrs = PAPI_MPX_DEF_DEG,
 				 .num_cntrs = INFINIBAND_MAX_COUNTERS,
 				 .default_domain = PAPI_DOM_USER,
 				 .available_domains = PAPI_DOM_USER,
@@ -808,13 +814,13 @@ papi_vector_t _infiniband_vector = {
 			 }
 	,
 	/* function pointers in this component */
-	.init_thread = INFINIBAND_init_thread,
-	.init_component = INFINIBAND_init_component,
+	.init = INFINIBAND_init,
+	.init_substrate = INFINIBAND_init_substrate,
 	.init_control_state = INFINIBAND_init_control_state,
 	.start = INFINIBAND_start,
 	.stop = INFINIBAND_stop,
 	.read = INFINIBAND_read,
-	.shutdown_thread = INFINIBAND_shutdown_thread,
+	.shutdown = INFINIBAND_shutdown,
 	.ctl = INFINIBAND_ctl,
 
 	.update_control_state = INFINIBAND_update_control_state,
@@ -825,4 +831,5 @@ papi_vector_t _infiniband_vector = {
 	.ntv_code_to_name = INFINIBAND_ntv_code_to_name,
 	.ntv_code_to_descr = INFINIBAND_ntv_code_to_descr,
 	.ntv_code_to_bits = INFINIBAND_ntv_code_to_bits,
+	.ntv_bits_to_info = NULL,
 };

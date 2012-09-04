@@ -143,7 +143,6 @@ measure(void)
 	switch(pid=fork()) {
 		case -1:
 			err(1, "cannot create child\n");
-			exit(1); /* not reached */
 		case 0:
 			/* do not inherit session fd */
 			for(i=0; i < num_fds; i++)
@@ -216,7 +215,7 @@ measure(void)
 	for(i=0; i < num_fds; i++)
 		close(fds[i].fd);
 
-	perf_free_fds(fds, num_fds);
+	free(fds);
 
 	/* free libpfm resources cleanly */
 	pfm_terminate();
@@ -255,7 +254,7 @@ main(int argc, char **argv)
 		}
 	}
 	if (!options.events)
-		options.events = "cycles,instructions";
+		options.events = "PERF_COUNT_HW_CPU_CYCLES,PERF_COUNT_HW_INSTRUCTIONS";
 
 	if (options.delay == -1)
 		options.delay = 10;

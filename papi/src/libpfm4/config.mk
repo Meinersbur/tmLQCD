@@ -67,10 +67,6 @@ ifeq (mips,$(findstring mips,$(ARCH)))
 override ARCH=mips
 endif
 
-ifeq (MINGW,$(findstring MINGW,$(SYS)))
-override SYS=WINDOWS
-endif
-
 #
 # CONFIG_PFMLIB_SHARED: y=compile static and shared versions, n=static only
 # CONFIG_PFMLIB_DEBUG: enable debugging output support
@@ -173,7 +169,6 @@ endif
 CC?=gcc
 LIBS=
 INSTALL=install
-LDCONFIG=ldconfig
 LN?=ln -sf
 PFMINCDIR=$(TOPDIR)/include
 PFMLIBDIR=$(TOPDIR)/lib
@@ -184,13 +179,8 @@ PFMLIBDIR=$(TOPDIR)/lib
 ifeq ($(SYS),Darwin)
 # older gcc-4.2 does not like -Wextra and some of our initialization code
 DBG?=-g -Wall -Werror
-LDCONFIG=true
-else
-ifeq (icc,$(findstring icc,$(CC)))
-DBG?=-g -Wall -Werror -Wextra
 else
 DBG?=-g -Wall -Werror -Wextra -Wno-unused-parameter
-endif
 endif
 
 CFLAGS+=$(OPTIM) $(DBG) -I$(SYSINCDIR) -I$(PFMINCDIR)
@@ -232,8 +222,4 @@ endif
 ifeq ($(CONFIG_PFMLIB_SHARED),n)
 LDFLAGS+= -static
 CONFIG_PFMLIB_NOPYTHON=y
-endif
-
-ifeq ($(SYS),WINDOWS)
-CFLAGS +=-DPFMLIB_WINDOWS
 endif

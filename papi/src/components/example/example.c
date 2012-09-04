@@ -1,3 +1,7 @@
+/****************************/
+/* THIS IS OPEN SOURCE CODE */
+/****************************/
+
 /**
  * @file    example.c
  * @author  Joachim Protze
@@ -20,13 +24,11 @@
 /* Headers required by PAPI */
 #include "papi.h"
 #include "papi_internal.h"
-#include "papi_vector.h"
 #include "papi_memory.h"    /* defines papi_malloc(), etc. */
 
 /** This driver supports three counters counting at once      */
 /*  This is artificially low to allow testing of multiplexing */
 #define EXAMPLE_MAX_SIMULTANEOUS_COUNTERS 3
-#define EXAMPLE_MAX_MULTIPLEX_COUNTERS 4
 
 /* Declare our vector in advance */
 /* This allows us to modify the component info */
@@ -74,7 +76,7 @@ typedef struct example_control_state
   int overflow;
   int inherit;
   int which_counter[EXAMPLE_MAX_SIMULTANEOUS_COUNTERS]; 
-  long long counter[EXAMPLE_MAX_MULTIPLEX_COUNTERS];   /**< Copy of counts, holds results when stopped */
+  long long counter[EXAMPLE_MAX_SIMULTANEOUS_COUNTERS];   /**< Copy of counts, holds results when stopped */
 } example_control_state_t;
 
 /** Holds per-thread information */
@@ -120,6 +122,7 @@ example_hardware_reset( example_context_t *ctx )
 static long long
 example_hardware_read( int which_one, example_context_t *ctx )
 {
+
 	long long old_value;
 
 	switch ( which_one ) {
@@ -136,7 +139,7 @@ example_hardware_read( int which_one, example_context_t *ctx )
 		example_global_autoinc_value++;
 		return old_value;
 	default:
-	        fprintf(stderr,"Invalid counter read %x\n",which_one );
+		perror( "Invalid counter read" );
 		return -1;
 	}
 
@@ -184,15 +187,15 @@ detect_example(void) {
  * PAPI process is initialized (IE PAPI_library_init)
  */
 int
-_example_init_component( int cidx )
+_example_init_substrate( int cidx )
 {
 
-	SUBDBG( "_example_init_component..." );
+	SUBDBG( "_example_init_substrate..." );
 
    
         /* First, detect that our hardware is available */
         if (detect_example()!=PAPI_OK) {
-	   return PAPI_ECMP;
+	   return PAPI_ESBSTR;
 	}
    
 	/* we know in advance how many events we want                       */
@@ -245,14 +248,14 @@ _example_init_component( int cidx )
 
 /** This is called whenever a thread is initialized */
 int
-_example_init_thread( hwd_context_t *ctx )
+_example_init( hwd_context_t *ctx )
 {
 
         example_context_t *example_context = (example_context_t *)ctx;
 
         example_context->autoinc_value=0;
    
-	SUBDBG( "_example_init_thread %p...", ctx );
+	SUBDBG( "_example_init %p...", ctx );
 
 	return PAPI_OK;
 }
@@ -295,7 +298,7 @@ _example_update_control_state( hwd_control_state_t *ctl,
    if (count==0) return PAPI_OK;
 
    for( i = 0; i < count; i++ ) {
-      index = native[i].ni_event;
+      index = native[i].ni_event & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
       
       /* Map counter #i to Measure Event "index" */
       example_ctl->which_counter[i]=index;
@@ -423,10 +426,10 @@ _example_reset( hwd_context_t *ctx, hwd_control_state_t *ctl )
 
 /** Triggered by PAPI_shutdown() */
 int
-_example_shutdown_component(void)
+_example_shutdown_substrate()
 {
 
-	SUBDBG( "example_shutdown_component..." );
+	SUBDBG( "example_shutdown_substrate..." );
 
         /* Free anything we allocated */
    
@@ -437,12 +440,12 @@ _example_shutdown_component(void)
 
 /** Called at thread shutdown */
 int
-_example_shutdown_thread( hwd_context_t *ctx )
+_example_shutdown( hwd_context_t *ctx )
 {
 
         (void) ctx;
 
-	SUBDBG( "example_shutdown_thread... %p", ctx );
+	SUBDBG( "example_shutdown... %p", ctx );
 
 	/* Last chance to clean up thread */
 
@@ -451,7 +454,7 @@ _example_shutdown_thread( hwd_context_t *ctx )
 
 
 
-/** This function sets various options in the component
+/** This function sets various options in the substrate
   @param[in] ctx -- hardware context
   @param[in] code valid are PAPI_SET_DEFDOM, PAPI_SET_DOMAIN, 
                         PAPI_SETDEFGRN, PAPI_SET_GRANUL and PAPI_SET_INHERIT
@@ -524,8 +527,12 @@ _example_set_domain( hwd_control_state_t * cntrl, int domain )
 int
 _example_ntv_enum_events( unsigned int *EventCode, int modifier )
 {
-  int index;
+  int cidx,index;
 
+  /* Get our component index number, this can change depending */
+  /* on how PAPI was configured.                               */
+
+  cidx = PAPI_COMPONENT_INDEX( *EventCode );
 
   switch ( modifier ) {
 
@@ -533,12 +540,12 @@ _example_ntv_enum_events( unsigned int *EventCode, int modifier )
 	case PAPI_ENUM_FIRST:
 	   /* return the first event that we support */
 
-	   *EventCode = 0;
+	   *EventCode = PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK( cidx );
 	   return PAPI_OK;
 
 		/* return EventCode of next available event */
 	case PAPI_ENUM_EVENTS:
-	   index = *EventCode;
+	   index = *EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
 	   /* Make sure we have at least 1 more event after us */
 	   if ( index < num_events - 1 ) {
@@ -568,7 +575,7 @@ _example_ntv_code_to_name( unsigned int EventCode, char *name, int len )
 {
   int index;
 
-  index = EventCode;
+  index = EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
   /* Make sure we are in range */
   if (index >= 0 && index < num_events) {
@@ -588,7 +595,7 @@ int
 _example_ntv_code_to_descr( unsigned int EventCode, char *descr, int len )
 {
   int index;
-  index = EventCode;
+  index = EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
   /* make sure event is in range */
   if (index >= 0 && index < num_events) {
@@ -607,21 +614,52 @@ papi_vector_t _example_vector = {
                 /* we explicitly set them to zero in this example */
                 /* to show what settings are available            */
 
-		.name = "example",
-		.short_name = "example",
-		.description = "A simple example component",
+		.name = "example.c",
 		.version = "1.15",
 		.support_version = "n/a",
 		.kernel_version = "n/a",
-		.num_cntrs =               EXAMPLE_MAX_SIMULTANEOUS_COUNTERS, 
-		.num_mpx_cntrs =           EXAMPLE_MAX_SIMULTANEOUS_COUNTERS,
-		.default_domain =          PAPI_DOM_USER,
-		.available_domains =       PAPI_DOM_USER,
-		.default_granularity =     PAPI_GRN_THR,
+		.CmpIdx = 0,            /* set by init_substrate */
+		.num_cntrs = EXAMPLE_MAX_SIMULTANEOUS_COUNTERS, 
+		.num_mpx_cntrs = PAPI_MPX_DEF_DEG,
+		.num_preset_events = 0,
+		.num_native_events = 0, /* set by init_substrate */
+		.default_domain = PAPI_DOM_USER,
+		.available_domains = PAPI_DOM_USER,
+		.default_granularity = PAPI_GRN_THR,
 		.available_granularities = PAPI_GRN_THR,
-		.hardware_intr_sig =       PAPI_INT_SIGNAL,
+		.itimer_sig = 0,       /* set by init_substrate */
+		.itimer_num = 0,       /* set by init_substrate */
+		.itimer_ns = 0,        /* set by init_substrate */
+		.itimer_res_ns = 0,    /* set by init_substrate */
+		.hardware_intr_sig = PAPI_INT_SIGNAL,
+		.clock_ticks = 0,      /* set by init_substrate */
+		.opcode_match_width = 0, /* set by init_substrate */ 
+		.os_version = 0,       /* set by init_substrate */ 
+
 
 		/* component specific cmp_info initializations */
+		.hardware_intr = 0,
+		.precise_intr = 0,
+		.posix1b_timers = 0,
+		.kernel_profile = 0,
+		.kernel_multiplex = 0,
+		.data_address_range = 0,
+		.instr_address_range = 0,
+		.fast_counter_read = 0,
+		.fast_real_timer = 0,
+		.fast_virtual_timer = 0,
+		.attach = 0,
+		.attach_must_ptrace = 0,
+		.edge_detect = 0,
+		.invert = 0,
+		.profile_ear = 0,
+		.cntr_groups = 0,
+		.cntr_umasks = 0,
+		.cntr_IEAR_events = 0,
+		.cntr_DEAR_events = 0,
+		.cntr_OPCM_events = 0,
+		.cpu = 0,
+		.inherit = 0,
 	},
 
 	/* sizes of framework-opaque component-private structures */
@@ -645,13 +683,13 @@ papi_vector_t _example_vector = {
 	.read =                 _example_read,
 	.reset =                _example_reset,	
 	.write =                _example_write,
-	.init_component =       _example_init_component,	
-	.init_thread =          _example_init_thread,
+	.init_substrate =       _example_init_substrate,	
+	.init =                 _example_init,
 	.init_control_state =   _example_init_control_state,
 	.update_control_state = _example_update_control_state,	
 	.ctl =                  _example_ctl,	
-	.shutdown_thread =      _example_shutdown_thread,
-	.shutdown_component =   _example_shutdown_component,
+	.shutdown =             _example_shutdown,
+	.shutdown_substrate =   _example_shutdown_substrate,
 	.set_domain =           _example_set_domain,
 	/* .cleanup_eventset =     NULL, */
 	/* called in add_native_events() */
@@ -680,6 +718,7 @@ papi_vector_t _example_vector = {
 	/* Which currently only uses the info for printing native   */
 	/* event info, not for any sort of internal use.            */
 	/* .ntv_code_to_bits =  NULL, */
+	/* .ntv_bits_to_info =  NULL, */
 
 };
 

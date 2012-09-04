@@ -1,17 +1,19 @@
 #include <stdio.h>
 #include <unistd.h>
-#if defined(_AIX) || defined (__FreeBSD__) || defined (__APPLE__)
+#if defined(_AIX)
 #include <sys/wait.h>		 /* ARGH! */
 #else
 #include <wait.h>
 #endif
 #include "papi_test.h"
 
+extern int TESTS_QUIET;
+
 int
 main( int argc, char **argv )
 {
 	int retval, pid, status, EventSet = PAPI_NULL;
-	long long int values[] = {0,0};
+	long long int values[2];
 	PAPI_option_t opt;
 
         tests_quiet( argc, argv );
@@ -29,8 +31,8 @@ main( int argc, char **argv )
 	opt.inherit.inherit = PAPI_INHERIT_ALL;
 	opt.inherit.eventset = EventSet;
 	if ( ( retval = PAPI_set_opt( PAPI_INHERIT, &opt ) ) != PAPI_OK ) {
-		if ( retval == PAPI_ECMP) {
-			test_skip( __FILE__, __LINE__, "Inherit not supported by current component.\n", retval );
+		if ( retval == PAPI_ESBSTR) {
+			test_skip( __FILE__, __LINE__, "Inherit not supported by current substrate.\n", retval );
 		} else {
 			test_fail_exit( __FILE__, __LINE__, "PAPI_set_opt", retval );
 		}
@@ -42,13 +44,10 @@ main( int argc, char **argv )
 	if ( ( retval = PAPI_add_event( EventSet, PAPI_TOT_CYC ) ) != PAPI_OK )
 		test_fail_exit( __FILE__, __LINE__, "PAPI_add_event", retval );
 
-	retval = PAPI_query_event( PAPI_FP_INS );
-	if ( retval == PAPI_ENOEVNT ) {
-		test_warn( __FILE__, __LINE__, "PAPI_FP_INS", retval);
-		values[1] = NUM_FLOPS; /* fake a return value to pass the test */
-	} else if ( retval != PAPI_OK )
+	if ( ( retval = PAPI_query_event( PAPI_FP_INS ) ) != PAPI_OK )
 		test_fail_exit( __FILE__, __LINE__, "PAPI_query_event", retval );
-	else if ( ( retval = PAPI_add_event( EventSet, PAPI_FP_INS ) ) != PAPI_OK )
+
+	if ( ( retval = PAPI_add_event( EventSet, PAPI_FP_INS ) ) != PAPI_OK )
 		test_fail_exit( __FILE__, __LINE__, "PAPI_add_event", retval );
 
 	if ( ( retval = PAPI_start( EventSet ) ) != PAPI_OK )
@@ -63,6 +62,7 @@ main( int argc, char **argv )
 	  perror( "waitpid()" );
 	  exit( 1 );
 	}
+
 
 	if ( ( retval = PAPI_stop( EventSet, values ) ) != PAPI_OK )
 		test_fail_exit( __FILE__, __LINE__, "PAPI_stop", retval );
@@ -86,7 +86,7 @@ main( int argc, char **argv )
 	}
 
 	if ( values[0] < values[1]) {
-		test_fail( __FILE__, __LINE__, "PAPI_TOT_CYC < PAPI_FP_INS", 1 );
+		test_fail( __FILE__, __LINE__, "PAPI_TOT_CYC", 1 );
 	}
 
 	test_pass( __FILE__, NULL, 0 );
