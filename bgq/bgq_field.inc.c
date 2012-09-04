@@ -360,13 +360,15 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 	double norm1_max = 0;
 	double norm2_sum = 0;
 	double norm2_max = 0;
+	int count = 0;
 
-#pragma omp parallel
+//#pragma omp parallel
 	{
 		double worker_norm1_sum = 0;
 		double worker_norm2_sum = 0;
 		double worker_norm1_max = 0;
 		double worker_norm2_max = 0;
+		int worker_count = 0;
 
 #pragma omp for schedule(static) nowait
 		for (int txyz = 0; txyz < VOLUME; txyz += 1) {
@@ -400,7 +402,9 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 
 					if (norm1_val > 0.01) {
 						if (first) {
-							fprintf(stderr, "Coordinate (%d,%d,%d,%d)(%d,%d): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t,x,y,z,v,c,creal(refvalue), cimag(refvalue),creal(bgqvalue),cimag(bgqvalue),norm1_val);
+							master_print("Coordinate (%d,%d,%d,%d)(%d,%d): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t,x,y,z,v,c,creal(refvalue), cimag(refvalue),creal(bgqvalue),cimag(bgqvalue),norm1_val);
+							worker_count += 1;
+							//fprintf(stderr, "Coordinate (%d,%d,%d,%d)(%d,%d): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t,x,y,z,v,c,creal(refvalue), cimag(refvalue),creal(bgqvalue),cimag(bgqvalue),norm1_val);
 							//__asm__("int3");
 						}
 						first = false;
@@ -424,6 +428,7 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 			norm2_sum += worker_norm2_sum;
 			norm1_max = max(norm1_max, worker_norm1_max);
 			norm2_max = max(norm2_max, worker_norm2_max);
+			count += worker_count;
 		}
 	}
 
@@ -446,6 +451,10 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 	double avg1 = norm1_sum / (VOLUME * 4 * 3);
 	double avg2 = sqrt(norm2_sum) / (VOLUME * 4 * 3);
 	double norminf = norm1_max;
+
+	if (count>0) {
+		master_print("%d sites of %d wrong\n", count, VOLUME);
+	}
 
 	return norm1_max;
 }

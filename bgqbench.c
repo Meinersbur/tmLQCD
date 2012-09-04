@@ -558,13 +558,23 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 	int lups_surface = SURFACE_ZLINES * PHYSICAL_LP*PHYSICAL_LK * LOCAL_LZ;
 	assert(lups == lups_body + lups_surface);
 	assert(lups == VOLUME);
+
 	int flops_per_lup = 1320;
-	int flops_per_lup_body = nobody ? 0 : 1320;
+	int flops_per_lup_body = 0;
+	if (!nobody) {
+		flops_per_lup_body += 1320;
+		if (kamul)
+			flops_per_lup_body += 8 * 2 * 3 * 6;
+	}
+
 	int flops_per_lup_surface = 0;
 	if (!noweylsend)
 		flops_per_lup_surface += 6 * 2 * 2;
-	if (!nosurface)
+	if (!nosurface) {
 		flops_per_lup_surface += 1320 - (6*2*2);
+		if (kamul)
+			flops_per_lup_surface += 8 * 2 * 3 * 6;
+	}
 	double flops = ((double)flops_per_lup_body * (double)lups_body) + ((double)flops_per_lup_surface * (double)lups_surface);
 
 

@@ -21,17 +21,19 @@ typedef struct {
 	double q[4];
 } v4d;
 
-#ifdef XLC
-	#define BGQ_VECTOR4DOUBLE_SUBSCRIPT(addr,idx) ( ((vector4double*)(addr))[(idx)] ) /* allows subscript like an array */
-#else
-	typedef v4d vector4double;
-	#define BGQ_VECTOR4DOUBLE_SUBSCRIPT(addr,idx) ( ((vector4double*)(addr))->q[(idx)] ) /* emulation using a struct */
-#endif
-#define BGQ_VECTOR4FLOAT_SUBSCRIPT(addr,idx) ( ((v4f*)(addr))->q[(idx)] ) /* emulation using a struct */
-
 typedef struct {
 	float q[4];
 } v4f;
+
+#if XLC
+	#define BGQ_VECTOR4DOUBLE_SUBSCRIPT(addr,idx) ( (*((vector4double*)(addr)))[(idx)] ) /* allows subscript like an array */
+#else
+	typedef v4d vector4double;
+	#define BGQ_VECTOR4DOUBLE_SUBSCRIPT(addr,idx) ( ((v4d*)(addr))->q[(idx)] ) /* emulation using a struct */
+#endif
+#define BGQ_VECTOR4FLOAT_SUBSCRIPT(addr,idx) ( ((v4f*)(addr))->q[(idx)] ) /* emulation using a struct */
+
+
 
 
 #if !BGQ_QPX
@@ -708,8 +710,8 @@ typedef struct {
 #define bgq_prefetch_backward(addr)
 #define bgq_flush(addr)
 
-#define bgq_l1_zero(addr) \
-	memset((addr),0,64)
+#define bgq_l1_zero(addr) {}
+	//memset((addr),0,64)
 
 #else
 

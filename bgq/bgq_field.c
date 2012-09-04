@@ -23,6 +23,8 @@ bgq_spinor_coord *g_spinor_body_zline_order;
 bgq_spinor_coord *g_spinor_surface_zline_order;
 
 
+
+
 void bgq_init_gaugefield_allprec() {
 	bgq_init_gaugefield_double();
 	bgq_init_gaugefield_float();

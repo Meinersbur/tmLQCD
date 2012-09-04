@@ -43,7 +43,8 @@ echo Configure tmLQCD.....
 module load lapack
 
 #--with-lapack="-L/bgsys/local/lib/ -L/usr/local/bg_soft/lapack/3.3.0/lib -lesslbg -llapack -lesslbg -lxlf90_r -L/opt/ibmcmp/xlf/bg/14.1/lib64 -lxl -lxlopt -lxlf90_r -lxlfmath 
-# -L/opt/ibmcmp/xlsmp/bg/3.1/bglib64 -lxlsmp -lpthread" 
+# -L/opt/ibmcmp/xlsmp/bg/3.1/bglib64 -lxlsmp -lpthread"
+LAPACK=""
 LAPACK="${LAPACK} -L/bgsys/local/lib/"
 LAPACK="${LAPACK} -L/usr/local/bg_soft/lapack/3.3.0/lib"
 LAPACK="${LAPACK} -lesslbg"
@@ -72,18 +73,21 @@ CFLAGS="${CFLAGS} -qmaxmem=-1"
 CFLAGS="${CFLAGS} -qsmp=noauto"
 #CFLAGS="${CFLAGS} -qstrict=all"
 CFLAGS="${CFLAGS} -DBGQ=1"
-CFLAGS="${CFLAGS} -DXLC=1"
+#CFLAGS="${CFLAGS} -DXLC=1"
+#CFLAGS="${CFLAGS} -qipa=level=2"
 
 CFLAGS="${CFLAGS} -g"
-CFLAGS="${CFLAGS} -DNDEBUG=1"
+#CFLAGS="${CFLAGS} -DNDEBUG=1"
 #CFLAGS="${CFLAGS} -DBGQ_HM_NOKAMUL=1"
-CFLAGS="${CFLAGS} -qsimd=auto"
+#CFLAGS="${CFLAGS} -qsimd=auto"
 CFLAGS="${CFLAGS} -qstrict=none"
-CFLAGS="${CFLAGS} -DBGQ_QPX=1"
-CFLAGS="${CFLAGS} -DBGQ_PREFETCH_EXPLICIT=1"
+CFLAGS="${CFLAGS} -DBGQ_QPX=0"
+CFLAGS="${CFLAGS} -DBGQ_PREFETCH_EXPLICIT=0"
+CFLAGS="${CFLAGS} -DBGQ_PREFETCH_STREAM=0"
+CFLAGS="${CFLAGS} -DBGQ_PREFETCH_LIST=0"
 CFLAGS="${CFLAGS} -DBGQ_FIELD_COORDCHECK=0"
 CFLAGS="${CFLAGS} -DMPI=1"
-CFLAGS="${CFLAGS} -DBGQ_HM_CARRY=1"
+CFLAGS="${CFLAGS} -DBGQ_HM_CARRY=0"
 CFLAGS="${CFLAGS} -DBGQ_REPLACE=0"
 #CFLAGS="${CFLAGS} -qsmp=noauto"
 
@@ -104,7 +108,7 @@ LDFLAGS="${LDFLAGS} -L/bgsys/ibm_essl/prod/opt/ibmmath/lib64"
 
 LDFLAGS="${LDFLAGS} -lSPI_l1p"
 LDFLAGS="${LDFLAGS} -L/bgsys/drivers/ppcfloor/spi/lib"
-LDFLAGS="${LDFLAGS} -qipa=level=2"
+#LDFLAGS="${LDFLAGS} -qipa=level=2"
 #LDFLAGS="${LDFLAGS} -L/opt/ibmcmp/xlsmp/bg/3.1/bglib64"
 #LDFLAGS="${LDFLAGS} -L/bgsys/ibm_essl/prod/opt/ibmmath/lib64"
 #LDFLAGS="${LDFLAGS} -L/usr/local/bg_soft/lapack/3.3.0/lib"
@@ -151,6 +155,6 @@ eval ./configure ${CONFIGURE}
 
 echo 
 echo Making tmLQCD
-make -j16 benchmark invert hmc_tm
+make -j32 bgqbench benchmark invert hmc_tm
 
 
