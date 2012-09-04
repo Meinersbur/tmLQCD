@@ -1,5 +1,6 @@
 /* 
 * File:    overflow_allcounters.c
+* CVS:     $Id$
 * Author:  Haihang You
 *          you@cs.utk.edu
 * Mods:    Vince Weaver
@@ -22,8 +23,13 @@
 
 #include "papi_test.h"
 
+#if defined(_WIN32)
+#define OVER_FMT	"handler(%d ) Overflow at %p! bit=0x%llx \n"
+#define OUT_FMT		"%-12s : %16I64d%16I64d\n"
+#else
 #define OVER_FMT	"handler(%d ) Overflow at %p! bit=0x%llx \n"
 #define OUT_FMT		"%-12s : %16lld%16lld\n"
+#endif
 
 static int total = 0;				   /* total overflows */
 
@@ -51,12 +57,11 @@ main( int argc, char **argv )
 	const PAPI_hw_info_t *hw_info = NULL;
 	int num_events, *ovt;
 	char name[PAPI_MAX_STR_LEN];
+	const PAPI_component_info_t *comp_info = NULL;
 	int using_perfmon = 0;
 	int using_aix = 0;
-	int cid;
 
-	/* Set TESTS_QUIET variable */
-	tests_quiet( argc, argv );	
+	tests_quiet( argc, argv );	/* Set TESTS_QUIET variable */
 
 	retval = PAPI_library_init( PAPI_VER_CURRENT );
 	if ( retval != PAPI_VER_CURRENT ) {
@@ -68,17 +73,24 @@ main( int argc, char **argv )
 	   test_fail( __FILE__, __LINE__, "PAPI_get_hardware_info", retval );
 	}
 
-        cid = PAPI_get_component_index("perfmon");
-	if (cid>=0) using_perfmon = 1;
+	comp_info = PAPI_get_component_info( 0 );
+	if ( hw_info == NULL ) {
+	   test_fail( __FILE__, __LINE__, "PAPI_get_component_info", retval );
+	}
 
-        cid = PAPI_get_component_index("aix");
-	if (cid>=0) using_aix = 1;
+	if ( strstr( comp_info->name, "perfmon.c" ) ) {
+	   using_perfmon = 1;
+	}
+
+	if ( strstr( comp_info->name, "aix.c" ) ) {
+	   using_aix = 1;
+	}
 
 	/* add PAPI_TOT_CYC and one of the events in */
 	/* PAPI_FP_INS, PAPI_FP_OPS PAPI_TOT_INS,    */
         /* depending on the availability of the event*/
 	/* on the platform */
-	EventSet = enum_add_native_events( &num_events, &events, 1 , 1, 0);
+	EventSet = enum_add_native_events( &num_events, &events, 1 , 1);
 
 	if (!TESTS_QUIET) printf("Trying %d events\n",num_events);
 
@@ -106,8 +118,8 @@ main( int argc, char **argv )
 		if ( tmp ) {
 			mythreshold = atoi( tmp );
 		}
-		else if (hw_info->cpu_max_mhz!=0) {
-		   mythreshold = ( int ) hw_info->cpu_max_mhz * 20000;
+		else if (hw_info->mhz!=0) {
+		   mythreshold = ( int ) hw_info->mhz * 20000;
 		  if (!TESTS_QUIET) printf("Using a threshold of %d (20,000 * MHz)\n",mythreshold);
 
 		}
@@ -248,11 +260,11 @@ main( int argc, char **argv )
 
 			if ( using_perfmon )
 				test_warn( __FILE__, __LINE__,
-						   "perfmon component handles overflow differently than perf_events",
+						   "perfmon substrate handles overflow differently than perf_events",
 						   1 );
 			else if ( using_aix )
 				test_warn( __FILE__, __LINE__,
-						   "AIX (pmapi) component handles overflow differently than various other components",
+						   "AIX (pmapi) substrate handles overflow differently than various other substrates",
 						   1 );
 			else {
 				sprintf( error_string,

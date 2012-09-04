@@ -86,7 +86,6 @@ static pfmlib_pmu_t *pfmlib_pmus[]=
 	&intel_wsm_unc_support,
 	&intel_snb_support,
 	&intel_snb_ep_support,
-	&intel_ivb_support,
 	&intel_x86_arch_support, /* must always be last for x86 */
 #endif
 
@@ -283,7 +282,7 @@ pfmlib_pmu_initialized(pfmlib_pmu_t *pmu)
 static inline pfm_pmu_t
 idx2pmu(int idx)
 {
-	return (pfm_pmu_t)(idx >> PFMLIB_PMU_SHIFT) & PFMLIB_PMU_MASK;
+	return (idx >> PFMLIB_PMU_SHIFT) & PFMLIB_PMU_MASK;
 }
 
 static inline pfmlib_pmu_t *
@@ -305,7 +304,7 @@ static pfmlib_pmu_t *
 pfmlib_idx2pidx(int idx, int *pidx)
 {
 	pfmlib_pmu_t *pmu;
-	pfm_pmu_t pmu_id;
+	int pmu_id;
 
 	if (PFMLIB_INITIALIZED() == 0)
 		return NULL;
@@ -313,7 +312,7 @@ pfmlib_idx2pidx(int idx, int *pidx)
 	if (idx < 0)
 		return NULL;
 
-	pmu_id = idx2pmu(idx);
+	pmu_id = (idx >> PFMLIB_PMU_SHIFT) & PFMLIB_PMU_MASK;
 
 	pmu = pmu2pmuidx(pmu_id);
 	if (!pmu)
@@ -366,8 +365,8 @@ pfmlib_check_struct(void *st, size_t usz, size_t refsz, size_t sz)
 	 * by caller assuming the library set those bits.
 	 */
 	if (usz > sz) {
-		char *addr = (char *)st + sz;
-		char *end = (char *)st + usz;
+		char *addr = st + sz;
+		char *end = st + usz;
 		while (addr != end) {
 			if (*addr++) {
 				DPRINT("pfmlib_check_struct: invalid extra bits\n");
@@ -707,11 +706,6 @@ pfmlib_parse_event_attr(char *str, pfmlib_event_desc_t *d)
 		for(aidx = 0; aidx < d->npattrs; aidx++) {
 			if (!strcasecmp(d->pattrs[aidx].name, s)) {
 				ainfo = d->pattrs + aidx;
-				/* disambiguate modifier and umask
-				 * with the same name : snb::L2_LINES_IN:I:I=1
-				 */
-				if (has_val && ainfo->type == PFM_ATTR_UMASK)
-					continue;
 				goto found_attr;
 			}
 		}

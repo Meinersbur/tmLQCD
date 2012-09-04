@@ -26,7 +26,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+  /* Windows doesn't have a unistd.h */
+#ifndef _WIN32
 #include <unistd.h>
+#endif
+
 #include <errno.h>
 #include <sys/types.h>
 #include <memory.h>
@@ -36,9 +40,11 @@
 #undef NDEBUG
 #include <assert.h>
 
-#define PAPI_EVENTS_IN_DERIVED_EVENT 8	/* to satisfy papi_preset.h */
+#define NO_LIBPAPI
+#define PAPI_MAX_COUNTER_TERMS 8	/* to satisfy papi_preset.h */
 #include "papi_preset.h"
-#include "papi_common_strings.h"
+#include "papi_data.c"
+#undef NO_LIB_PAPI
 /*
 	The following array is used to create a series of defines
 	for use with PAPI in Fortran programs.
@@ -96,8 +102,8 @@ const hwi_describe_t _papi_def[] = {
 	{PAPI_DEFGRN, "PAPI_DEFGRN", NULL},
 	{PAPI_GRANUL, "PAPI_GRANUL", NULL},
 	{PAPI_DEF_MPX_NS, "PAPI_DEF_MPX_NS", NULL},
-	//	{PAPI_EDGE_DETECT, "PAPI_EDGE_DETECT", NULL},
-	//{PAPI_INVERT, "PAPI_INVERT", NULL},
+	{PAPI_EDGE_DETECT, "PAPI_EDGE_DETECT", NULL},
+	{PAPI_INVERT, "PAPI_INVERT", NULL},
 	{PAPI_MAX_MPX_CTRS, "PAPI_MAX_MPX_CTRS", NULL},
 	{PAPI_PROFIL, "PAPI_PROFIL", NULL},
 	{PAPI_PRELOAD, "PAPI_PRELOAD", NULL},
@@ -156,34 +162,7 @@ const hwi_describe_t _papi_def[] = {
 	{PAPIF_DMEM_LOCKED, "PAPIF_DMEM_LOCKED", NULL},
 	{PAPIF_DMEM_STACK, "PAPIF_DMEM_STACK", NULL},
 	{PAPIF_DMEM_PAGESIZE, "PAPIF_DMEM_PAGESIZE", NULL},
-	{PAPIF_DMEM_MAXVAL, "PAPIF_DMEM_MAXVAL", NULL},
-
-/* PAPI error defines */
- /* 0 */ {PAPI_OK, "PAPI_OK", "No error"},
-    /* 1 */ {PAPI_EINVAL, "PAPI_EINVAL", "Invalid argument"},
-    /* 2 */ {PAPI_ENOMEM, "PAPI_ENOMEM", "Insufficient memory"},
-    /* 3 */ {PAPI_ESYS, "PAPI_ESYS", "A System/C library call failed"},
-    /* 4 */ {PAPI_ECMP, "PAPI_ECMP", "Not supported by component"},
-    /* 5 */ {PAPI_ECLOST, "PAPI_ECLOST", "Access to the counters was lost or interrupted"},
-    /* 6 */ {PAPI_EBUG, "PAPI_EBUG", "Internal error, please send mail to the developers"},
-    /* 7 */ {PAPI_ENOEVNT, "PAPI_ENOEVNT", "Event does not exist"},
-    /* 8 */ {PAPI_ECNFLCT, "PAPI_ECNFLCT", "Event exists, but cannot be counted due to hardware resource limits"},
-    /* 9 */ {PAPI_ENOTRUN, "PAPI_ENOTRUN", "EventSet is currently not running"},
-    /*10 */ {PAPI_EISRUN, "PAPI_EISRUN", "EventSet is currently counting"},
-    /*11 */ {PAPI_ENOEVST, "PAPI_ENOEVST", "No such EventSet available"},
-    /*12 */ {PAPI_ENOTPRESET, "PAPI_ENOTPRESET", "Event in argument is not a valid preset"},
-    /*13 */ {PAPI_ENOCNTR, "PAPI_ENOCNTR", "Hardware does not support performance counters"},
-    /*14 */ {PAPI_EMISC, "PAPI_EMISC", "Unknown error code"},
-    /*15 */ {PAPI_EPERM, "PAPI_EPERM", "Permission level does not permit operation"},
-    /*16 */ {PAPI_ENOINIT, "PAPI_ENOINIT", "PAPI hasn't been initialized yet"},
-    /*17 */ {PAPI_ENOCMP, "PAPI_ENOCMP", "Component Index isn't set"},
-    /*18 */ {PAPI_ENOSUPP, "PAPI_ENOSUPP", "Not supported"},
-    /*19 */ {PAPI_ENOIMPL, "PAPI_ENOIMPL", "Not implemented"},
-    /*20 */ {PAPI_EBUF, "PAPI_EBUF", "Buffer size exceeded"},
-    /*21 */ {PAPI_EINVAL_DOM, "PAPI_EINVAL_DOM", "EventSet domain is not supported for the operation"},
-    /*22 */ {PAPI_EATTR, "PAPI_EATTR", "Invalid or missing event attributes"},
-    /*23 */ {PAPI_ECOUNT, "PAPI_ECOUNT", "Too many events or attributes"},
-    /*24 */ {PAPI_ECOMBO, "PAPI_ECOMBO", "Bad combination of features"}
+	{PAPIF_DMEM_MAXVAL, "PAPIF_DMEM_MAXVAL", NULL}
 
 };
 
@@ -279,13 +258,16 @@ main( int argc, char **argv )
 	/* create defines for the internal array pairs */
 	createDef( "General purpose defines.", _papi_def, sizeof ( _papi_def ),
 			   deftype );
+	createDef( "Error defines.", _papi_hwi_err, sizeof ( _papi_hwi_err ),
+			   deftype );
+
 	/* create defines for each member of the PRESET array */
 	printf( "\n%c\n%c  PAPI preset event values.\n%c\n\n", comment_char,
 			comment_char, comment_char );
 
 	for ( i = 0; i < PAPI_MAX_PRESET_EVENTS; i++ ) {
-		if ( _papi_hwi_presets[i].symbol ) {	/* if the event is in the preset table */
-			define_val( _papi_hwi_presets[i].symbol,
+		if ( _papi_hwi_preset_info[i].symbol ) {	/* if the event is in the preset table */
+			define_val( _papi_hwi_preset_info[i].symbol,
 						( i | PAPI_PRESET_MASK ), deftype );
 		}
 	}

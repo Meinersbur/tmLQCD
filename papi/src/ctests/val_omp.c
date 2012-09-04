@@ -59,7 +59,7 @@ Thread( int n )
 	/* add PAPI_TOT_CYC and one of the events in PAPI_FP_INS, PAPI_FP_OPS or
 	   PAPI_TOT_INS, depending on the availability of the event on the
 	   platform */
-	EventSet1 = add_two_events( &num_events1, &PAPI_event, &mask1 );
+	EventSet1 = add_two_events( &num_events1, &PAPI_event, hw_info, &mask1 );
 
 	retval = PAPI_event_code_to_name( PAPI_event, event_name );
 	if ( retval != PAPI_OK )
@@ -142,7 +142,7 @@ main( int argc, char **argv )
 		PAPI_thread_init( ( unsigned
 							long ( * )( void ) ) ( omp_get_thread_num ) );
 	if ( retval != PAPI_OK )
-		if ( retval == PAPI_ECMP )
+		if ( retval == PAPI_ESBSTR )
 			test_skip( __FILE__, __LINE__, "PAPI_thread_init", retval );
 		else
 			test_fail( __FILE__, __LINE__, "PAPI_thread_init", retval );

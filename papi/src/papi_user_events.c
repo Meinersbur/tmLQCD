@@ -14,6 +14,7 @@
  *		Keywords for getting info out of hw_info or something like it. 
  */
 
+#ifdef USER_EVENTS
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,8 +23,7 @@
 
 #include "papi.h"
 #include "papi_internal.h"
-#include "papi_vector.h"  /* for _papi__hwd[].  Should we modify the */
-                          /* code to not depend on component 0?      */
+#include "papi_vector.h"
 #include "papi_memory.h"
 #include "papi_user_events.h"
 
@@ -36,6 +36,8 @@
 #define SHOW_LOADS
 extern unsigned int PAPI_NATIVE_EVENT_SHIFT;
 extern unsigned int PAPI_NATIVE_UMASK_SHIFT;
+
+extern hwi_presets_t _papi_hwi_presets;
 
 typedef struct def_list {
   char name[PAPI_MIN_STR_LEN];
@@ -208,7 +210,7 @@ get_event_line( char **place, FILE * table, char **tmp_perfmon_events_table )
 	int ret = 0;
 	int i;
 	char *line = place[0];
-	int c = 0;
+	char c = 0;
 
 	if ( table ) {
 	  if ( fgets( place[0], USER_EVENT_OPERATION_LEN, table ) ) { 
@@ -244,7 +246,7 @@ get_event_line( char **place, FILE * table, char **tmp_perfmon_events_table )
 	return ( ret );
 }
 
-int add_define( char *line, list_t* LIST ) {
+void add_define( char *line, list_t* LIST ) {
   char *t;
   char local_line[USER_EVENT_OPERATION_LEN];
   list_t *temp;
@@ -255,10 +257,10 @@ int add_define( char *line, list_t* LIST ) {
 
   if ( NULL == temp ) {
 	PAPIERROR("outof memory" );
-	return PAPI_ENOMEM;
+	exit(1);
   }
 
-  strtok(local_line, " "); /* throw out the #define */
+  t = strtok(local_line, " "); /* throw out the #define */
   
   /* next token should be the name */
   t = strtok(NULL, " ");
@@ -271,8 +273,6 @@ int add_define( char *line, list_t* LIST ) {
 
   temp->next = LIST->next;
   LIST->next = temp;
-
-  return PAPI_OK;
 }
 
 int renumber_ops_string(char *dest, char *src, int start) {
@@ -368,13 +368,15 @@ check_preset_events (char *target, user_defined_event_t* ue, int* msi)
   int length = PAPI_MIN_STR_LEN;
 
   memset(temp, 0, PAPI_MIN_STR_LEN);
-  for ( j = 0; ( j < PAPI_MAX_PRESET_EVENTS) && (_papi_hwi_presets[j].symbol != NULL ); j++ ) {
-	if ( strcasecmp( target, _papi_hwi_presets[j].symbol ) == 0) {
+  while ( _papi_hwi_presets.info[j].symbol != NULL ) {
+	if ( strcasecmp( target, _papi_hwi_presets.info[j].symbol ) == 0) {
 #ifdef SHOW_LOADS
-	  INTDBG("\tFound a match for preset event %s\n", _papi_hwi_presets[j].symbol);
+	  INTDBG("\tFound a match for preset event %s\n", _papi_hwi_presets.info[j].symbol);
 #endif
+	  length = strlen(ue->operation);
+
 	  /* Check that the preset event we're trying to add is actually available on this system */
-	  if ( _papi_hwi_presets[j].count == 0 ) {
+	  if ( _papi_hwi_presets.count[j] == 0 ) {
 		PAPIERROR("NEXTLINE:\t%s is not available on this platform. Skipping event %s\n", 
 			target, ue->symbol);
 		/* clean up this and ditch this whole line */
@@ -382,10 +384,7 @@ check_preset_events (char *target, user_defined_event_t* ue, int* msi)
 		return -1;
 	  } 
 
-	  length = strlen(ue->operation);
-
-	  /* Deal with singleton events */
-	  if (!_papi_hwi_presets[j].derived_int) {
+	  if (!_papi_hwi_presets.data[j]->derived) {
 		sprintf(temp, "N%d|", magic_string_int++);
 		length = strlen(ue->operation) + strlen(temp);
 		if ( length >= USER_EVENT_OPERATION_LEN ) {
@@ -393,16 +392,16 @@ check_preset_events (char *target, user_defined_event_t* ue, int* msi)
 		  return -1;
 		}
 		strcat(ue->operation, temp);
-		ue->events[ue->count++] = _papi_hwi_presets[j].code[0];
+		ue->events[ue->count++] = _papi_hwi_presets.data[j]->native[0];
 	  } else {
 		op = '-';
-		switch ( _papi_hwi_presets[j].derived_int ) {
+		switch ( _papi_hwi_presets.data[j]->derived ) {
 		  case DERIVED_ADD:
 		  case DERIVED_ADD_PS:
 			op = '+';
 		  case DERIVED_SUB:
-			for ( k = 0; k < (int) _papi_hwi_presets[j].count; k++) {
-			  ue->events[ue->count++] = _papi_hwi_presets[j].code[k];
+			for ( k = 0; k < (int) _papi_hwi_presets.count[j]; k++) {
+			  ue->events[ue->count++] = _papi_hwi_presets.data[j]->native[k];
 			  if (k%2)
 				sprintf(temp, "N%d|%c|", magic_string_int++, op);
 			  else 
@@ -418,13 +417,13 @@ check_preset_events (char *target, user_defined_event_t* ue, int* msi)
 			break;
 
 		  case DERIVED_POSTFIX: 
-			for ( k = 0; k < (int)_papi_hwi_presets[j].count; k++ ) {
-			  ue->events[ue->count++] = _papi_hwi_presets[j].code[k];
+			for ( k = 0; k < (int)_papi_hwi_presets.count[j]; k++ ) {
+			  ue->events[ue->count++] = _papi_hwi_presets.data[j]->native[k];
 			}
 			/* so we need to go through the ops string and renumber the N's
 			   as we place it in our ue ops string */
 			magic_string_int = renumber_ops_string(temp, 
-				_papi_hwi_presets[j].postfix, magic_string_int);
+				_papi_hwi_presets.data[j]->operation, magic_string_int);
 			length = strlen( temp ) + strlen( ue->operation );
 			if ( length >= USER_EVENT_OPERATION_LEN ) {
 			  PAPIERROR( "User Event %s's expression is too long.", ue->symbol );
@@ -439,6 +438,7 @@ check_preset_events (char *target, user_defined_event_t* ue, int* msi)
 	  break;
 	} /* /symbol match */
 
+	j++;
   } /* end while(preset events) */
 
   *msi = magic_string_int;
@@ -515,7 +515,6 @@ load_user_event_table( char *file_name)
   int tokens		= 0;
   int found			= 0;
   int error;
-  int oops;
   int len = 0;
   int magic_string_int;
   FILE* table		= NULL;
@@ -566,12 +565,7 @@ load_user_event_table( char *file_name)
 	/* Deal with comments and constants */
 	if (t[0] == '#') {
 	  if ( 0 == strncmp("define",t+1,6) ) {
-		if ( PAPI_OK != (oops = add_define( t , &defines ) ) ) {
-		  papi_free(foo);
-		  if (table)
-		    fclose(table);
-		  return oops;
-		}
+		add_define( t , &defines );
 		continue;
 	  }
 	  goto nextline;
@@ -724,3 +718,4 @@ _papi_user_defined_events_setup(char *name)
   return( PAPI_OK );
 }
 
+#endif /* #ifdef USER_EVENTS */

@@ -41,7 +41,12 @@
 #define POWER_MAX_COUNTERS MAX_COUNTERS
 #define MAX_COUNTER_TERMS MAX_COUNTERS
 
-#include "linux-context.h"
+
+/* overflow */
+typedef siginfo_t hwd_siginfo_t;
+typedef ucontext_t hwd_ucontext_t;
+
+#define GET_OVERFLOW_ADDRESS(ctx) (caddr_t)ctx->ucontext->uc_mcontext.regs->nip
 
 
 #endif /* _LINUX_PPC64_H */

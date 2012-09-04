@@ -17,16 +17,13 @@
 
 #include "papi.h"
 #include "papi_internal.h"
-#include "papi_vector.h"
 #include "papi_memory.h"
 #include "linux-cuda.h"
 
-papi_vector_t _cuda_vector;
 
-
-/******************************************************************************
- ********  BEGIN FUNCTIONS USED INTERNALLY SPECIFIC TO THIS COMPONENT *********
- *****************************************************************************/
+/*******************************************************************************
+ ********  BEGIN FUNCTIONS USED INTERNALLY SPECIFIC TO THIS COMPONENT **********
+ ******************************************************************************/
 /*
  * Specify device(s): Counts number of cuda events available in this system
  */
@@ -42,14 +39,18 @@ detectDevice( void )
 
 	/* CUDA initialization  */
 	err = cuInit( 0 );
-	if ( err != CUDA_SUCCESS ) 
+	if ( err != CUDA_SUCCESS ) {
+		printf( "Initialization of CUDA library failed.\n" );
 		return ( PAPI_ENOSUPP );
+	}
 
 	/* How many gpgpu devices do we have? */
 	err = cuDeviceGetCount( &deviceCount );
 	CHECK_CU_ERROR( err, "cuDeviceGetCount" );
-	if ( deviceCount == 0 )
+	if ( deviceCount == 0 ) {
+		printf( "There is no device supporting CUDA.\n" );
 		return ( PAPI_ENOSUPP );
+	}
 
 	/* allocate memory for device data table */
 	device = ( DeviceData_t * ) malloc( sizeof ( DeviceData_t ) * deviceCount );
@@ -293,10 +294,11 @@ createNativeEvents( void )
 	int cuptiDomainId;
 	int i;
 	int devNameLen;
+	cmp_id_t component;
 
 	/* component name and description */
-	strcpy( _cuda_vector.cmp_info.short_name, "CUDA" );
-	strcpy( _cuda_vector.cmp_info.description,
+	strcpy( component.name, "CUDA" );
+	strcpy( component.descr,
 			"CuPTI provides the API for monitoring CUDA hardware events" );
 
 	/* create events for every GPU device and every domain per device  */
@@ -316,7 +318,8 @@ createNativeEvents( void )
 				  eventId++ ) {
 				/* Save native event data */
 				sprintf( cuda_native_table[id].name,
-						 "%s:%s:%s",
+						 "%s.%s.%s.%s",
+						 component.name,
 						 device[deviceId].name,
 						 device[deviceId].domain[domainId].name,
 						 device[deviceId].domain[domainId].event[eventId].
@@ -400,7 +403,7 @@ getEventValue( long long *counts, CUpti_EventGroup eventGroup, AddedEvents_t add
  * This is called whenever a thread is initialized
  */
 int
-CUDA_init_thread( hwd_context_t * ctx )
+CUDA_init( hwd_context_t * ctx )
 {
 	CUDA_context_t * CUDA_ctx = ( CUDA_context_t * ) ctx;
 	/* Initialize number of events in EventSet for update_control_state() */
@@ -422,11 +425,11 @@ CUDA_init_thread( hwd_context_t * ctx )
  * It's possible to create a different context for each thread, but then we are
  * likely running into a limitation that only one context can be profiled at a time.
  * ==> and we don't want this. That's why CUDA context creation is done in 
- * CUDA_init_component() (called only by main thread) rather than CUDA_init() 
+ * CUDA_init_substrate() (called only by main thread) rather than CUDA_init() 
  * or CUDA_init_control_state() (both called by each thread).
  */
 int
-CUDA_init_component(  )
+CUDA_init_substrate(  )
 {
 	CUresult cuErr = CUDA_SUCCESS;
 	
@@ -438,13 +441,12 @@ CUDA_init_component(  )
 	
 	/* want create a CUDA context for either the default device or
 	 the device specified with cudaSetDevice() in user code */
-	if ( CUDA_SUCCESS != cudaGetDevice( &currentDeviceID ) )
+	if ( CUDA_SUCCESS != cudaGetDevice( &currentDeviceID ) ) {
+		printf( "There is no device supporting CUDA.\n" );
 		return ( PAPI_ENOSUPP );
-	
-	if ( getenv( "PAPI_VERBOSE" ) ) {
-		printf( "DEVICE USED: %s (%d)\n", device[currentDeviceID].name,
-			   currentDeviceID );
 	}
+	printf( "DEVICE USED: %s (%d)\n", device[currentDeviceID].name,
+		   currentDeviceID );
 	
 	/* get the CUDA context from the calling CPU thread */
 	cuErr = cuCtxGetCurrent( &cuCtx );
@@ -462,8 +464,10 @@ CUDA_init_component(  )
 	   if cudaFree(NULL) returns success then we are able to use the context in subsequent calls
 	   if cudaFree(NULL) returns an error (or subsequent cupti* calls) then the context is not usable,
 	   and will never be useable */
-	if ( CUDA_SUCCESS != cudaFree( NULL ) )
+	if ( CUDA_SUCCESS != cudaFree( NULL ) ) {
+		printf( "The CUDA context is not initialized and cannot be used.\n" );
 		return ( PAPI_ENOSUPP );
+	}
 		
 	/* Create dynamic event table */
 	cuda_native_table = ( CUDA_native_event_entry_t * )
@@ -473,8 +477,10 @@ CUDA_init_component(  )
 		return ( PAPI_ENOSUPP );
 	}
 
-	if ( NUM_EVENTS != createNativeEvents(  ) ) 
+	if ( NUM_EVENTS != createNativeEvents(  ) ) {
+		fprintf( stderr, "Number of CUDA events mismatch!\n" );
 		return ( PAPI_ENOSUPP );
+	}
 	
 	return ( PAPI_OK );
 }
@@ -571,23 +577,14 @@ CUDA_read( hwd_context_t * ctx, hwd_control_state_t * ctrl,
 	return ( PAPI_OK );
 }
 
-/* 
- *
- */
-int
-CUDA_shutdown_thread( hwd_context_t *ctx )
-{
-	CUDA_context_t *CUDA_ctx = (CUDA_context_t*)ctx;
-	free( CUDA_ctx->state.addedEvents.list );
-	return (PAPI_OK);
-}
 
 /*
  *
  */
 int
-CUDA_shutdown_component( void )
+CUDA_shutdown( hwd_context_t * ctx )
 {
+	CUDA_context_t * CUDA_ctx = ( CUDA_context_t * ) ctx;
 	CUresult cuErr = CUDA_SUCCESS;
 	
 	/* if running a threaded application, we need to make sure that 
@@ -608,11 +605,11 @@ CUDA_shutdown_component( void )
 
 		free( device );
 		free( cuda_native_table );
+		free( CUDA_ctx->state.addedEvents.list );
 		
 		/* destroy floating CUDA context */
 		cuErr = cuCtxDestroy( cuCtx );
-		if ( cuErr != CUDA_SUCCESS )
-			return ( PAPI_ENOSUPP );			// Not supported
+		CHECK_CU_ERROR( cuErr, "cuCtxDestroy" );		
 	}
 
 	
@@ -620,7 +617,7 @@ CUDA_shutdown_component( void )
 }
 
 
-/* This function sets various options in the component
+/* This function sets various options in the substrate
  * The valid codes being passed in are PAPI_SET_DEFDOM,
  * PAPI_SET_DOMAIN, PAPI_SETDEFGRN, PAPI_SET_GRANUL * and PAPI_SET_INHERIT
  */
@@ -649,6 +646,7 @@ CUDA_update_control_state( hwd_control_state_t * ptr,
 	CUDA_control_state_t * CUDA_ptr = ( CUDA_control_state_t * ) ptr;
 	int index;
 	CUptiResult cuptiErr = CUPTI_SUCCESS;
+	char *device_tmp;
 
 	cuptiErr = cuptiEventGroupDisable( CUDA_ptr->eventGroup );
 	CHECK_CUPTI_ERROR( cuptiErr, "cuptiEventGroupDisable" );
@@ -663,7 +661,9 @@ CUDA_update_control_state( hwd_control_state_t * ptr,
 		/* Keep track of events in EventGroup if an event is removed */
 		CUDA_ptr->old_count = count;
 	} else {
-		index = native[count - 1].ni_event;
+		index =
+			native[count -
+				   1].ni_event & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 		native[count - 1].ni_position = index;
 
 		/* store events, that have been added to the CuPTI eveentGroup 
@@ -672,11 +672,15 @@ CUDA_update_control_state( hwd_control_state_t * ptr,
 		CUDA_ptr->addedEvents.count = count;
 		CUDA_ptr->addedEvents.list[count - 1] = index;
 
+		/* determine the device name from the event name chosen */
+		device_tmp = strchr( cuda_native_table[index].name, '.' );
+
 		/* if this device name is different from the actual device the code is running on, then exit */
 		if ( 0 != strncmp( device[currentDeviceID].name,
-						   cuda_native_table[index].name,
+						   device_tmp + 1,
 						   strlen( device[currentDeviceID].name ) ) ) {
-			fprintf( stderr, "Device %s is used -- BUT event %s is collected. \n ---> ERROR: Specify events for the device that is used!\n\n",
+			printf
+				( "Device %s is used -- BUT event %s is collected. \n ---> ERROR: Specify events for the device that is used!\n\n",
 				  device[currentDeviceID].name, cuda_native_table[index].name );
 			
 			return ( PAPI_ENOSUPP );	// Not supported 
@@ -774,17 +778,18 @@ CUDA_cleanup_eventset( hwd_control_state_t * ctrl )
 int
 CUDA_ntv_enum_events( unsigned int *EventCode, int modifier )
 {
+	int cidx = PAPI_COMPONENT_INDEX( *EventCode );
 
 	switch ( modifier ) {
 	case PAPI_ENUM_FIRST:
-		*EventCode = 0;
+		*EventCode = PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK( cidx );
 
 		return ( PAPI_OK );
 		break;
 
 	case PAPI_ENUM_EVENTS:
 	{
-		int index = *EventCode;
+		int index = *EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
 		if ( index < NUM_EVENTS - 1 ) {
 			*EventCode = *EventCode + 1;
@@ -807,7 +812,7 @@ CUDA_ntv_enum_events( unsigned int *EventCode, int modifier )
 int
 CUDA_ntv_code_to_name( unsigned int EventCode, char *name, int len )
 {
-	int index = EventCode;
+	int index = EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
 	strncpy( name, cuda_native_table[index].name, len );
 	return ( PAPI_OK );
@@ -820,7 +825,7 @@ CUDA_ntv_code_to_name( unsigned int EventCode, char *name, int len )
 int
 CUDA_ntv_code_to_descr( unsigned int EventCode, char *name, int len )
 {
-	int index = EventCode;
+	int index = EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
 	strncpy( name, cuda_native_table[index].description, len );
 	return ( PAPI_OK );
@@ -833,7 +838,7 @@ CUDA_ntv_code_to_descr( unsigned int EventCode, char *name, int len )
 int
 CUDA_ntv_code_to_bits( unsigned int EventCode, hwd_register_t * bits )
 {
-	int index = EventCode;
+	int index = EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
 	memcpy( ( CUDA_register_t * ) bits,
 			&( cuda_native_table[index].resources ),
@@ -849,10 +854,10 @@ CUDA_ntv_code_to_bits( unsigned int EventCode, hwd_register_t * bits )
 papi_vector_t _cuda_vector = {
 	.cmp_info = {
 				 /* default component information (unspecified values are initialized to 0) */
-				 .name = "cuda",
-				 .short_name = "cuda",
-				 .version = "5.0",
-				 .num_mpx_cntrs = CUDA_MAX_COUNTERS,
+				 .name =
+				 "$Id$",
+				 .version = "$Revision$",
+				 .num_mpx_cntrs = PAPI_MPX_DEF_DEG,
 				 .num_cntrs = CUDA_MAX_COUNTERS,
 				 .default_domain = PAPI_DOM_USER,
 				 .default_granularity = PAPI_GRN_THR,
@@ -877,14 +882,13 @@ papi_vector_t _cuda_vector = {
 			 }
 	,
 	/* function pointers in this component */
-	.init_thread = CUDA_init_thread,
-	.init_component = CUDA_init_component,
+	.init = CUDA_init,
+	.init_substrate = CUDA_init_substrate,
 	.init_control_state = CUDA_init_control_state,
 	.start = CUDA_start,
 	.stop = CUDA_stop,
 	.read = CUDA_read,
-	.shutdown_component = CUDA_shutdown_component,
-	.shutdown_thread = CUDA_shutdown_thread,
+	.shutdown = CUDA_shutdown,
 	.cleanup_eventset = CUDA_cleanup_eventset,
 	.ctl = CUDA_ctl,
 	.update_control_state = CUDA_update_control_state,
@@ -895,4 +899,5 @@ papi_vector_t _cuda_vector = {
 	.ntv_code_to_name = CUDA_ntv_code_to_name,
 	.ntv_code_to_descr = CUDA_ntv_code_to_descr,
 	.ntv_code_to_bits = CUDA_ntv_code_to_bits,
+	.ntv_bits_to_info = NULL,
 };

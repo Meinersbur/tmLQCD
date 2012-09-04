@@ -3,8 +3,8 @@
 /****************************/
 
 /**
- * @file    appio.h
- * CVS:     $Id: appio.h,v 1.1.2.4 2012/02/01 05:01:00 tmohan Exp $
+ * @file    linux-net.h
+ * CVS:     $Id$
  *
  * @author  Philip Mucci
  *          phil.mucci@samaratechnologygroup.com
@@ -12,9 +12,12 @@
  * @author  Tushar Mohan
  *          tushar.mohan@samaratechnologygroup.com
  *
+ * @author  Jose Pedro Oliveira
+ *          jpo@di.uminho.pt
+ *
  * @ingroup papi_components
  *
- * @brief appio component
+ * @brief net component
  *  This file contains the source code for a component that enables
  *  PAPI to access application level file and socket I/O information.
  *  It does this through function replacement in the first person and
@@ -28,8 +31,7 @@
 
 /*************************  DEFINES SECTION  ***********************************/
 
-/* Set this equal to the number of elements in _appio_counter_info array */
-#define APPIO_MAX_COUNTERS 29
+#define APPIO_MAX_COUNTERS 256
 
 /** Structure that stores private information of each event */
 typedef struct APPIO_register
@@ -51,8 +53,8 @@ typedef struct APPIO_register
 typedef struct APPIO_native_event_entry
 {
     APPIO_register_t resources;
-    const char* name;
-    const char* description;
+    char name[PAPI_MAX_STR_LEN];
+    char description[PAPI_MAX_STR_LEN];
 } APPIO_native_event_entry_t;
 
 
@@ -64,9 +66,8 @@ typedef struct APPIO_reg_alloc
 
 typedef struct APPIO_control_state
 {
-    int num_events;
-    int counter_bits[APPIO_MAX_COUNTERS];
     long long values[APPIO_MAX_COUNTERS]; // used for caching
+    long long lastupdate;
 } APPIO_control_state_t;
 
 

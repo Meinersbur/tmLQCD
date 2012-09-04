@@ -8,8 +8,6 @@
 */
 #include "papi.h"
 #include "papi_internal.h"
-#include "papi_vector.h"
-
 #include "linux-bgp-native-events.h"
 
 /* PAPI PRESETS */
@@ -442,7 +440,6 @@ const hwi_search_t _bgp_preset_map[] = {
 					PAPI_NULL},
 				   {0,}}},
 
-#if 0
 	/*
 	 * Torus 32B Chunks Sent
 	 */
@@ -468,7 +465,6 @@ const hwi_search_t _bgp_preset_map[] = {
 						 PNE_BGP_TORUS_ZM_PACKETS,
 						 PAPI_NULL},
 						{0,}}},
-#endif
 
 	/* PAPI Null */
 	{0, {0, {PAPI_NULL, PAPI_NULL}, {0,}}}

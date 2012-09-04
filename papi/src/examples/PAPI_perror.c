@@ -42,7 +42,8 @@ int main()
 
    if ((retval = PAPI_add_event(EventSet, PAPI_TOT_INS)) != PAPI_OK)
    {
-      PAPI_perror( "PAPI_add_event" );
+      PAPI_perror(retval,error_str,PAPI_MAX_STR_LEN);
+      fprintf(stderr,"PAPI_error %d: %s\n",retval,error_str);
       exit(1);
    }
 
@@ -50,7 +51,8 @@ int main()
 
    if ((retval = PAPI_start(EventSet)) != PAPI_OK)
    {
-      PAPI_perror( "PAPI_start" );
+      PAPI_perror(retval,error_str,PAPI_MAX_STR_LEN);
+      fprintf(stderr,"PAPI_error %d: %s\n",retval,error_str);
       exit(1);
    }
 
@@ -62,7 +64,8 @@ int main()
 
    if ((retval = PAPI_start(EventSet)) != PAPI_OK)
    {
-      PAPI_perror( "PAPI_start" );
+      PAPI_perror(retval,error_str,PAPI_MAX_STR_LEN);
+      fprintf(stderr,"PAPI_error %d: %s\n",retval,error_str);
    }
 
    /* The function PAPI_strerror returns the corresponding error string 

@@ -23,7 +23,7 @@ endif
 OPTIM := $(CFLAGS)
 CFLAGS-3.y := -DPFM30 
 CFLAGS += -I$(PFM_INC_PATH) $(ALTIX) $(CFLAGS-$(VERSION))
-MISCHDRS += linux-lock.h mb.h
+MISCHDRS += perfmon-ia64-pfm.h linux-lock.h mb.h
 SHLIBDEPS = -Bdynamic -L$(PFM_LIB_PATH) -lpfm
 PFM_OBJS = $(shell $(AR) t $(PFM_LIB_PATH)/libpfm.a 2>/dev/null)
 MISCOBJS = $(PFM_OBJS) $(MISCSRCS:.c=.o)
@@ -31,11 +31,7 @@ MISCOBJS = $(PFM_OBJS) $(MISCSRCS:.c=.o)
 ifeq (,$(PFM_OBJS))
 $(PFM_LIB_PATH)/libpfm.a:
 ifneq (,${PFM_ROOT})
-ifeq (1, $(HAVE_NO_OVERRIDE_INIT))
-	$(MAKE) -C $(PFM_ROOT) ARCH="$(ARCH)" CC="$(CC)" OPTIM="$(OPTIM)" CONFIG_PFMLIB_OLD_PFMV2="$(PFM_OLD_PFMV2)" -Wno-override-init lib
-else
 	$(MAKE) -C $(PFM_ROOT) ARCH="$(ARCH)" CC="$(CC)" OPTIM="$(OPTIM)" CONFIG_PFMLIB_OLD_PFMV2="$(PFM_OLD_PFMV2)" lib
-endif
 else
 	@echo '$@ not installed!'; exit 1
 endif

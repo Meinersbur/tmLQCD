@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 # Copyright (c) 2008 Google, Inc.
 # Contributed by Arun Sharma <arun.sharma@google.com>

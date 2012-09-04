@@ -39,7 +39,7 @@ handler( int EventSet, void *address, long long overflow_vector, void *context )
 	total[EventSet]++;
 }
 
-long long mythreshold=0;
+int mythreshold;
 
 void *
 Thread( void *arg )
@@ -75,10 +75,10 @@ Thread( void *arg )
 
 	elapsed_cyc = PAPI_get_real_cyc(  );
 
-	if ((retval = PAPI_overflow( EventSet1, papi_event, 
-				     mythreshold, 0, handler ) ) != PAPI_OK ) {
-	   test_fail( __FILE__, __LINE__, "PAPI_overflow", retval );
-	}
+	if ( ( retval =
+		   PAPI_overflow( EventSet1, papi_event, mythreshold, 0, handler ) )
+		 != PAPI_OK )
+		test_fail( __FILE__, __LINE__, "PAPI_overflow", retval );
 
 	/* start_timer(1); */
 	if ( ( retval = PAPI_start( EventSet1 ) ) != PAPI_OK )
@@ -146,13 +146,13 @@ main( int argc, char **argv )
 		   PAPI_thread_init( ( unsigned
 							   long ( * )( void ) ) ( pthread_self ) ) ) !=
 		 PAPI_OK ) {
-		if ( retval == PAPI_ECMP )
+		if ( retval == PAPI_ESBSTR )
 			test_skip( __FILE__, __LINE__, "PAPI_thread_init", retval );
 		else
 			test_fail( __FILE__, __LINE__, "PAPI_thread_init", retval );
 	}
 #if defined(linux)
-	mythreshold = hw_info->cpu_max_mhz * 10000 * 2;
+	mythreshold = ( int ) hw_info->mhz * 10000 * 2;
 #else
 	mythreshold = THRESHOLD * 2;
 #endif

@@ -57,7 +57,6 @@ typedef struct {
 typedef struct {
 	const char	*name;			/* name */
 	const char	*desc;			/* description */
-	const char	*equiv;			/* event is aliased to */
 	uint64_t	id;			/* perf_hw_id or equivalent */
 	int		modmsk;			/* modifiers bitmask */
 	int		type;			/* perf_type_id */
@@ -73,35 +72,16 @@ typedef struct {
 #define PERF_FL_DEFAULT	0x1	/* umask is default for group */
 
 #define PERF_INVAL_OVFL_IDX ((unsigned long)-1)
-
 #define PCL_EVT(f, t, m)	\
 	{ .name = #f,		\
 	  .id = (f),		\
 	  .type = (t),		\
 	  .desc = #f,		\
-	  .equiv = NULL,	\
 	  .numasks = 0,		\
 	  .modmsk = (m),	\
 	  .ngrp = 0,		\
 	  .umask_ovfl_idx = PERF_INVAL_OVFL_IDX,\
 	}
-
-#define PCL_EVTA(f, t, m, a)	\
-	{ .name = #f,		\
-	  .id = a,		\
-	  .type = t,		\
-	  .desc = #a,		\
-	  .equiv = #a,		\
-	  .numasks = 0,		\
-	  .modmsk = m,		\
-	  .ngrp = 0,		\
-	  .umask_ovfl_idx = PERF_INVAL_OVFL_IDX,\
-	}
-
-#define PCL_EVT_HW(n) PCL_EVT(PERF_COUNT_HW_##n, PERF_TYPE_HARDWARE, PERF_ATTR_HW)
-#define PCL_EVT_SW(n) PCL_EVT(PERF_COUNT_SW_##n, PERF_TYPE_SOFTWARE, PERF_ATTR_SW)
-#define PCL_EVT_AHW(n, a) PCL_EVTA(n, PERF_TYPE_HARDWARE, PERF_ATTR_HW, PERF_COUNT_HW_##a)
-#define PCL_EVT_ASW(n, a) PCL_EVTA(n, PERF_TYPE_SOFTWARE, PERF_ATTR_SW, PERF_COUNT_SW_##a)
 
 #ifndef MAXPATHLEN
 #define MAXPATHLEN	1024
@@ -119,21 +99,6 @@ static perf_event_t *perf_pe = perf_static_events;
 static perf_event_t  *perf_pe_free, *perf_pe_end;
 static perf_umask_t *perf_um, *perf_um_free, *perf_um_end;
 static int perf_pe_count, perf_um_count;
-
-static inline int
-pfm_perf_pmu_supported_plm(void *this)
-{
-	pfmlib_pmu_t *pmu;
-
-	pmu = pfmlib_get_pmu_by_type(PFM_PMU_TYPE_CORE);
-	if (!pmu) {
-		DPRINT("no core CPU PMU, going with default\n");
-		pmu = this;
-	} else {
-		DPRINT("guessing plm from %s PMU plm=0x%x\n", pmu->name, pmu->supported_plm);
-	}
-	return pmu->supported_plm;
-}
 
 static inline unsigned long
 perf_get_ovfl_umask_idx(perf_umask_t *um)
@@ -538,14 +503,11 @@ pfm_perf_detect(void *this)
 static int
 pfm_perf_init(void *this)
 {
-	pfmlib_pmu_t *pmu = this;
 	perf_pe = perf_static_events;
 
-	/* must dynamically add tracepoints */
 	gen_tracepoint_table();
-	/* dynamically patch supported plm based on CORE PMU plm */
-	pmu->supported_plm = pfm_perf_pmu_supported_plm(pmu);
 
+	/* must dynamically add tracepoints */
 	return PFM_SUCCESS;
 }
 
@@ -810,7 +772,7 @@ pfm_perf_get_event_info(void *this, int idx, pfm_event_info_t *info)
 	info->name  = perf_pe[idx].name;
 	info->desc  = perf_pe[idx].desc;
 	info->code  = perf_pe[idx].id;
-	info->equiv = perf_pe[idx].equiv;
+	info->equiv = NULL;
 	info->idx   = idx;
 	info->pmu   = pmu->pmu;
 	info->is_precise = 0;
@@ -971,15 +933,28 @@ pfm_perf_get_event_nattrs(void *this, int idx)
  * priv level masks are. It looks for a TYPE_CORE PMU and uses the
  * first event to determine supported priv level masks.
  */
+static inline int
+pfm_perf_pmu_supported_plm(void)
+{
+	pfmlib_pmu_t *pmu;
+
+	pmu = pfmlib_get_pmu_by_type(PFM_PMU_TYPE_CORE);
+	if (!pmu) {
+		DPRINT("no core CPU PMU\n");
+		return 0;
+	}
+	DPRINT("guessing plm from %s PMU\n", pmu->name);
+	return pmu->supported_plm;
+}
+
 /*
  * remove attrs which are in conflicts (or duplicated) with os layer
  */
 static void
 pfm_perf_perf_validate_pattrs(void *this, pfmlib_event_desc_t *e)
 {
-	pfmlib_pmu_t *pmu = this;
 	int i, compact, type;
-	int plm = pmu->supported_plm;
+	int plm = pfm_perf_pmu_supported_plm();
 
 	for (i = 0; i < e->npattrs; i++) {
 		compact = 0;
@@ -996,7 +971,7 @@ pfm_perf_perf_validate_pattrs(void *this, pfmlib_event_desc_t *e)
 		 * precise mode or hypervisor mode
 		 *
 		 * there is no way to know for sure for those events
-		 * so we allow the modifiers and leave it to the kernel
+		 * so we allow the modifiers tand leave it to the kernel
 		 * to decide
 		 */
 		type = perf_pe[e->event].type;
@@ -1035,7 +1010,6 @@ pfmlib_pmu_t perf_event_support={
 	.pme_count		= PME_PERF_EVENT_COUNT,
 	.type			= PFM_PMU_TYPE_OS_GENERIC,
 	.max_encoding		= 1,
-	.supported_plm		= PERF_PLM_ALL,
 	.pmu_detect		= pfm_perf_detect,
 	.pmu_init		= pfm_perf_init,
 	.pmu_terminate		= pfm_perf_terminate,

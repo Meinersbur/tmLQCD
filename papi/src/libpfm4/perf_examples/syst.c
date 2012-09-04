@@ -78,20 +78,13 @@ void
 measure(void)
 {
 	perf_event_desc_t *fds;
-	long lret;
 	int c, cmin, cmax, ncpus;
 	int i, ret, l;
 
 	printf("<press CTRL-C to quit before %ds time limit>\n", options.delay);
 
 	cmin = 0;
-
-	lret = sysconf(_SC_NPROCESSORS_ONLN);
-	if (lret < 0)
-		err(1, "cannot get number of online processors");
-
-	cmax = (int)lret;
-
+	cmax = (int)sysconf(_SC_NPROCESSORS_ONLN);
 	ncpus = cmax;
 	if (options.cpu != -1) {
 		cmin = options.cpu;
@@ -160,8 +153,8 @@ measure(void)
 		fds = all_fds[c];
 		for(i=0; i < num_fds[c]; i++)
 			close(fds[i].fd);
-		perf_free_fds(fds, num_fds[c]);
 	}
+	free(all_fds);
 }
 
 static void
@@ -205,7 +198,7 @@ main(int argc, char **argv)
 		options.delay = 20;
 
 	if (!options.events)
-		options.events = "cycles,instructions";
+		options.events = "PERF_COUNT_HW_CPU_CYCLES,PERF_COUNT_HW_INSTRUCTIONS";
 
 	ret = pfm_initialize();
 	if (ret != PFM_SUCCESS)

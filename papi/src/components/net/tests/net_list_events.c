@@ -45,7 +45,7 @@ int main (int argc, char **argv)
             test_fail(__FILE__, __LINE__,"PAPI_get_component_info failed\n",-1);
         }
 
-        if ( strstr(cmpinfo->name, "net") == NULL) {
+        if ( strstr(cmpinfo->name, "linux-net.c") == NULL) {
             continue;
         }
 
@@ -55,9 +55,9 @@ int main (int argc, char **argv)
                 cmpinfo->num_native_events, cmpinfo->name);
         }
 
-        code = PAPI_NATIVE_MASK;
+        code = PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK(cid);
 
-        r = PAPI_enum_cmp_event( &code, PAPI_ENUM_FIRST, cid );
+        r = PAPI_enum_event( &code, PAPI_ENUM_FIRST );
         while ( r == PAPI_OK ) {
 
             retval = PAPI_event_code_to_name( code, event_name );
@@ -71,7 +71,7 @@ int main (int argc, char **argv)
 
             total_events++;
 
-            r = PAPI_enum_cmp_event( &code, PAPI_ENUM_EVENTS, cid );
+            r = PAPI_enum_event( &code, PAPI_ENUM_EVENTS );
         }
 
     }

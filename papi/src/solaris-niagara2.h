@@ -13,7 +13,7 @@
  * Author: fg215045
  *
  * Description: Data structures used for the communication between PAPI and the 
- * component. Additionally some macros are defined here. See solaris-niagara2.c.
+ * substrate. Additionally some macros are defined here. See solaris-niagara2.c.
  *
  *      ***** Feel free to convert this header to the PAPI default *****
  *
@@ -129,7 +129,8 @@ typedef struct _niagara2_control_state
 
 typedef int hwd_register_map_t;
 
-#include "solaris-context.h"
+typedef siginfo_t _niagara2_siginfo_t;
+typedef ucontext_t _niagara2_ucontext_t;
 
 typedef _niagara2_control_state_t _niagara2_context_t;
 
@@ -154,5 +155,13 @@ rwlock_t lock[PAPI_MAX_LOCK];
 
 #undef  hwd_register_t
 #define hwd_register_t		_niagara2_register_t
+
+#undef  hwd_siginfo_t
+#define hwd_siginfo_t		_niagara2_siginfo_t
+
+#undef  hwd_ucontext_t
+#define hwd_ucontext_t		_niagara2_ucontext_t
+
+#define MY_VECTOR _niagara2_vector
 
 #endif

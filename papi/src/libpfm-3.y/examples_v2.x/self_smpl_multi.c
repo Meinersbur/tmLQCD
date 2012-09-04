@@ -150,11 +150,8 @@ do_cycles(void)
 				pthread_kill(pthread_self(), SIGUSR1);
 			sum += x;
 		}
-/* 
 		if (sum < 0)
 			printf("==>>  SUM IS NEGATIVE !!  <<==\n");
-*** SUM IS UNSIGNED! ***
-*/
 		iter[myid]++;
 
 		gettimeofday(&now, NULL);

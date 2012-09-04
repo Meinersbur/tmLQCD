@@ -4,6 +4,7 @@
 
 /** 
  * @file    linux-CNKunit.c
+ * CVS:     $Id$
  * @author  Heike Jagode
  *          jagode@eecs.utk.edu
  * Mods:	<your name here>
@@ -16,6 +17,7 @@
  *  This file has the source code for a component that enables PAPI-C to 
  *  access hardware monitoring counters for BG/Q through the bgpm library.
  */
+
 
 #include "linux-CNKunit.h"
 
@@ -30,10 +32,10 @@ papi_vector_t _CNKunit_vector;
  * This is called whenever a thread is initialized
  */
 int
-CNKUNIT_init_thread( hwd_context_t * ctx )
+CNKUNIT_init( hwd_context_t * ctx )
 {
 #ifdef DEBUG_BGQ
-	printf( "CNKUNIT_init_thread\n" );
+	printf( "CNKUNIT_init\n" );
 #endif
 	
 	( void ) ctx;
@@ -46,15 +48,15 @@ CNKUNIT_init_thread( hwd_context_t * ctx )
  * PAPI process is initialized (IE PAPI_library_init)
  */
 int
-CNKUNIT_init_component( int cidx )
+CNKUNIT_init_substrate( int cidx )
 {  
 #ifdef DEBUG_BGQ
-	printf( "CNKUNIT_init_component\n" );
+	printf( "CNKUNIT_init_substrate\n" );
 #endif
 
 	_CNKunit_vector.cmp_info.CmpIdx = cidx;
 #ifdef DEBUG_BGQ
-	printf( "CNKUNIT_init_component cidx = %d\n", cidx );
+	printf( "CNKUNIT_init_substrate cidx = %d\n", cidx );
 #endif
 	
 	return ( PAPI_OK );
@@ -162,17 +164,17 @@ CNKUNIT_read( hwd_context_t * ctx, hwd_control_state_t * ptr,
  *
  */
 int
-CNKUNIT_shutdown_thread( hwd_context_t * ctx )
+CNKUNIT_shutdown( hwd_context_t * ctx )
 {
 #ifdef DEBUG_BGQ
-	printf( "CNKUNIT_shutdown_thread\n" );
+	printf( "CNKUNIT_shutdown\n" );
 #endif
 	( void ) ctx;
 	return ( PAPI_OK );
 }
 
 
-/* This function sets various options in the component
+/* This function sets various options in the substrate
  * The valid codes being passed in are PAPI_SET_DEFDOM,
  * PAPI_SET_DOMAIN, PAPI_SETDEFGRN, PAPI_SET_GRANUL * and PAPI_SET_INHERIT
  */
@@ -210,7 +212,7 @@ CNKUNIT_update_control_state( hwd_control_state_t * ptr,
 		
 	// otherwise, add the events to the eventset
 	for ( i = 0; i < count; i++ ) {
-		index = ( native[i].ni_event ) + OFFSET;
+		index = ( native[i].ni_event & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK ) + OFFSET;
 		
 		native[i].ni_position = i;
 		
@@ -321,17 +323,18 @@ CNKUNIT_ntv_enum_events( unsigned int *EventCode, int modifier )
 #ifdef DEBUG_BGQ
 //	printf( "CNKUNIT_ntv_enum_events\n" );
 #endif
+	int cidx = PAPI_COMPONENT_INDEX( *EventCode );
 
 	switch ( modifier ) {
 	case PAPI_ENUM_FIRST:
-		*EventCode = 0;
+		*EventCode = PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK( cidx );
 
 		return ( PAPI_OK );
 		break;
 
 	case PAPI_ENUM_EVENTS:
 	{
-		int index = ( *EventCode ) + OFFSET;
+		int index = ( *EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK ) + OFFSET;
 
 		if ( index < CNKUNIT_MAX_COUNTERS ) {
 			*EventCode = *EventCode + 1;
@@ -372,7 +375,7 @@ CNKUNIT_ntv_name_to_code( char *name, unsigned int *event_code )
 	else if ( ret < OFFSET || ret > CNKUNIT_MAX_COUNTERS ) // not a CNKUnit event
 		return PAPI_ENOEVNT;
 	else
-		*event_code = ( ret - OFFSET ) ;
+		*event_code = ( ret - OFFSET ) | PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK( _CNKunit_vector.cmp_info.CmpIdx ) ;
 	
 	return PAPI_OK;
 }
@@ -389,7 +392,7 @@ CNKUNIT_ntv_code_to_name( unsigned int EventCode, char *name, int len )
 #endif
 	int index;
 	
-	index = ( EventCode ) + OFFSET;
+	index = ( EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK ) + OFFSET;
 
 	if ( index >= MAX_COUNTERS )
 		return PAPI_ENOEVNT;
@@ -419,7 +422,7 @@ CNKUNIT_ntv_code_to_descr( unsigned int EventCode, char *name, int len )
 #endif
 	int retval, index;
 	
-	index = ( EventCode ) + OFFSET;
+	index = ( EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK ) + OFFSET;
 	
 	retval = Bgpm_GetLongDesc( index, name, &len );
 	CHECK_BGPM_ERROR( retval, "Bgpm_GetLongDesc" );						 
@@ -448,11 +451,11 @@ CNKUNIT_ntv_code_to_bits( unsigned int EventCode, hwd_register_t * bits )
 papi_vector_t _CNKunit_vector = {
 	.cmp_info = {
 				 /* default component information (unspecified values are initialized to 0) */
-				 .name = "bgpm/CNKUnit",
-				 .short_name = "CNKUnit",
-				 .description = "Blue Gene/Q CNKUnit component",
+				 .name = "$Id: linux-CNKunit.c,v 1.2 2011/03/18 21:40:22 jagode Exp $",
+				 .version = "$Revision: 1.2 $",
+				 .CmpIdx = 0,
 				 .num_cntrs = CNKUNIT_MAX_COUNTERS,
-				 .num_mpx_cntrs = CNKUNIT_MAX_COUNTERS,
+				 .num_mpx_cntrs = PAPI_MPX_DEF_DEG,
 				 .default_domain = PAPI_DOM_USER,
 				 .available_domains = PAPI_DOM_USER | PAPI_DOM_KERNEL,
 				 .default_granularity = PAPI_GRN_THR,
@@ -460,7 +463,6 @@ papi_vector_t _CNKunit_vector = {
 		
 				 .hardware_intr_sig = PAPI_INT_SIGNAL,
 				 .hardware_intr = 1,
-		
 				 .kernel_multiplex = 0,
 
 				 /* component specific cmp_info initializations */
@@ -481,13 +483,13 @@ papi_vector_t _CNKunit_vector = {
 			 }
 	,
 	/* function pointers in this component */
-	.init_thread = CNKUNIT_init_thread,
-	.init_component = CNKUNIT_init_component,
+	.init = CNKUNIT_init,
+	.init_substrate = CNKUNIT_init_substrate,
 	.init_control_state = CNKUNIT_init_control_state,
 	.start = CNKUNIT_start,
 	.stop = CNKUNIT_stop,
 	.read = CNKUNIT_read,
-	.shutdown_thread = CNKUNIT_shutdown_thread,
+	.shutdown = CNKUNIT_shutdown,
 	.cleanup_eventset = CNKUNIT_cleanup_eventset,
 	.ctl = CNKUNIT_ctl,
 
@@ -499,5 +501,6 @@ papi_vector_t _CNKunit_vector = {
 	.ntv_enum_events = CNKUNIT_ntv_enum_events,
 	.ntv_code_to_name = CNKUNIT_ntv_code_to_name,
 	.ntv_code_to_descr = CNKUNIT_ntv_code_to_descr,
-	.ntv_code_to_bits = CNKUNIT_ntv_code_to_bits
+	.ntv_code_to_bits = CNKUNIT_ntv_code_to_bits,
+	.ntv_bits_to_info = NULL,
 };

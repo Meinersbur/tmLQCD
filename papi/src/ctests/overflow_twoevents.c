@@ -11,9 +11,15 @@
 
 #include "papi_test.h"
 
+#if defined(_WIN32)
+#define OVER_FMT	"handler(%d) Overflow at %p! overflow_vector=0x%x!\n"
+#define OUT_FMT		"%-12s : %18I64d%18I64d%18I64d\n"
+#define VEC_FMT		"   at vector %I64d, event %s: %6d\n"
+#else
 #define OVER_FMT	"handler(%d) Overflow at %p! vector=0x%llx\n"
 #define OUT_FMT		"%-12s : %18lld%18lld%18lld\n"
 #define VEC_FMT		"        at vector 0x%llx, event %-12s : %6d\n"
+#endif
 
 typedef struct
 {
@@ -78,6 +84,26 @@ handler_interleaf( int EventSet, void *address, long long overflow_vector,
 	handler( 1, address, overflow_vector, context );
 }
 
+static int
+find_nonderived_event( void )
+{
+	/* query and set up the right event to monitor */
+	PAPI_event_info_t info;
+	int potential_evt_to_add[3] = { PAPI_FP_OPS, PAPI_FP_INS, PAPI_TOT_INS };
+	int i;
+
+	for ( i = 0; i < 3; i++ ) {
+		if ( PAPI_query_event( potential_evt_to_add[i] ) == PAPI_OK ) {
+			if ( PAPI_get_event_info( potential_evt_to_add[i], &info ) ==
+				 PAPI_OK ) {
+				if ( ( info.count > 0 ) &&
+					 !strcmp( info.derived, "NOT_DERIVED" ) )
+					return ( potential_evt_to_add[i] );
+			}
+		}
+	}
+	return ( 0 );
+}
 
 int
 main( int argc, char **argv )

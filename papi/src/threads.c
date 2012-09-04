@@ -4,6 +4,7 @@
 
 /* 
 * File:    threads.c
+* CVS:     $Id$
 * Author:  Philip Mucci
 *          mucci@cs.utk.edu
 * Mods:    Kevin London
@@ -14,7 +15,6 @@
 
 #include "papi.h"
 #include "papi_internal.h"
-#include "papi_vector.h"
 #include "papi_memory.h"
 #include <string.h>
 #include <unistd.h>
@@ -284,16 +284,15 @@ _papi_hwi_initialize_thread( ThreadInfo_t ** dest, int tid )
 		return PAPI_ENOMEM;
 	}
 
-	/* Call the component to fill in anything special. */
+	/* Call the substrate to fill in anything special. */
 
 	for ( i = 0; i < papi_num_components; i++ ) {
-	    if (_papi_hwd[i]->cmp_info.disabled) continue;
-	    retval = _papi_hwd[i]->init_thread( thread->context[i] );
-	    if ( retval ) {
-	       free_thread( &thread );
-	       *dest = NULL;
-	       return retval;
-	    }
+		retval = _papi_hwd[i]->init( thread->context[i] );
+		if ( retval ) {
+			free_thread( &thread );
+			*dest = NULL;
+			return retval;
+		}
 	}
 
 	insert_thread( thread, tid );
@@ -327,9 +326,9 @@ _papi_hwi_broadcast_signal( unsigned int mytid )
 				/* xxxx mpx_info inside _papi_mdi_t _papi_hwi_system_info is commented out.
 				   See papi_internal.h for details. The multiplex_timer_sig value is now part of that structure */
 			  THRDBG("Thread %ld sending signal %d to thread %ld\n",mytid,foo->tid,
-				  (foo->running_eventset[i]->state & PAPI_OVERFLOWING ? _papi_hwd[i]->cmp_info.hardware_intr_sig : _papi_os_info.itimer_sig));
+				  (foo->running_eventset[i]->state & PAPI_OVERFLOWING ? _papi_hwd[i]->cmp_info.hardware_intr_sig : _papi_hwd[i]->cmp_info.itimer_sig));
 			  retval = (*_papi_hwi_thread_kill_fn)(foo->tid, 
-				  (foo->running_eventset[i]->state & PAPI_OVERFLOWING ? _papi_hwd[i]->cmp_info.hardware_intr_sig : _papi_os_info.itimer_sig));
+				  (foo->running_eventset[i]->state & PAPI_OVERFLOWING ? _papi_hwd[i]->cmp_info.hardware_intr_sig : _papi_hwd[i]->cmp_info.itimer_sig));
 			  if (retval != 0)
 				return(PAPI_EMISC);
 			}
@@ -398,6 +397,7 @@ static int _papi_hwi_thread_free_eventsets(long tid) {
 	    THRDBG("Attempting to remove %d from tid %ld\n",ESI->EventSetIndex,tid);
 
 	    /* Code copied from _papi_hwi_remove_EventSet(ESI);      */
+            /* We can't just call that, as it uses INTERNAL_LOCK too */
 	    _papi_hwi_free_EventSet( ESI );
 	    map->dataSlotArray[i] = NULL;
 	    map->availSlots++;
@@ -437,10 +437,10 @@ _papi_hwi_shutdown_thread( ThreadInfo_t * thread )
 
 		remove_thread( thread );
 		THRDBG( "Shutting down thread %ld at %p\n", thread->tid, thread );
-		for( i = 0; i < papi_num_components; i++ ) {
-		   if (_papi_hwd[i]->cmp_info.disabled) continue;
-		   retval = _papi_hwd[i]->shutdown_thread( thread->context[i]);
-		   if ( retval != PAPI_OK ) failure = retval;
+		for ( i = 0; i < papi_num_components; i++ ) {
+			retval = _papi_hwd[i]->shutdown( thread->context[i] );
+			if ( retval != PAPI_OK )
+				failure = retval;
 		}
 		free_thread( &thread );
 		return ( failure );
@@ -544,9 +544,8 @@ _papi_hwi_init_global_threads( void )
 #endif
 
 	retval = _papi_hwi_initialize_thread( &tmp , 0);
-	if ( retval == PAPI_OK ) {
-	   retval = lookup_and_set_thread_symbols(  );
-	}
+	if ( retval == PAPI_OK )
+		retval = lookup_and_set_thread_symbols(  );
 
 	_papi_hwi_unlock( GLOBAL_LOCK );
 

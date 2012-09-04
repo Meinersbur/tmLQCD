@@ -55,8 +55,12 @@ main( int argc, char **argv )
 	int retval;
 	const PAPI_hw_info_t *hwinfo = NULL;
 
-	/* Set TESTS_QUIET variable */
-	tests_quiet( argc, argv );	
+#if defined(__ALPHA) && defined(__osf__)
+	test_skip( __FILE__, __LINE__,
+			   "thread support not available on this platform!", PAPI_ESBSTR );
+#endif
+
+	tests_quiet( argc, argv );	/* Set TESTS_QUIET variable */
 
 	if ( ( retval =
 		   PAPI_library_init( PAPI_VER_CURRENT ) ) != PAPI_VER_CURRENT )
@@ -68,7 +72,7 @@ main( int argc, char **argv )
 	retval =
 		PAPI_thread_init( ( unsigned long ( * )( void ) ) ( pthread_self ) );
 	if ( retval != PAPI_OK ) {
-		if ( retval == PAPI_ECMP )
+		if ( retval == PAPI_ESBSTR )
 			test_skip( __FILE__, __LINE__, "PAPI_thread_init", retval );
 		else
 			test_fail( __FILE__, __LINE__, "PAPI_thread_init", retval );

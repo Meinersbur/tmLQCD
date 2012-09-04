@@ -88,10 +88,8 @@ case1( void )
 		if ( PAPI_get_event_info( i, &pset ) == PAPI_OK ) {
 			if ( pset.count && ( strcmp( pset.derived, "NOT_DERIVED" ) == 0 ) ) {
 				retval = PAPI_add_event( EventSet, ( int ) pset.event_code );
-				if ( retval != PAPI_OK ) {
-				   printf("Failed trying to add %s\n",pset.symbol);
-				   break;
-				}
+				if ( retval != PAPI_OK )
+					test_fail( __FILE__, __LINE__, "PAPI_add_event", retval );
 				else {
 					printf( "Added %s\n", pset.symbol );
 					j++;

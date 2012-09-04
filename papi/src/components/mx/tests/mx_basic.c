@@ -47,16 +47,16 @@ int main (int argc, char **argv)
 	      test_fail(__FILE__, __LINE__,"PAPI_get_component_info failed\n", 0);
 	   }
 
-	   if (strstr(cmpinfo->name,"mx")) {
+	   if (strstr(cmpinfo->name,"linux-mx")) {
 	     if (!TESTS_QUIET) printf("\tFound Myrinet component %d - %s\n", cid, cmpinfo->name);
 	   }
 	   else {
 	     continue;
 	   }
 
-	   code = PAPI_NATIVE_MASK;
+	   code = PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK(cid);
 
-           r = PAPI_enum_cmp_event( &code, PAPI_ENUM_FIRST, cid );
+           r = PAPI_enum_event( &code, PAPI_ENUM_FIRST );
 
 	   while ( r == PAPI_OK ) {
 	      retval = PAPI_event_code_to_name( code, event_name );
@@ -108,7 +108,7 @@ int main (int argc, char **argv)
 
 	      total_events++;
 	      
-	      r = PAPI_enum_cmp_event( &code, PAPI_ENUM_EVENTS, cid );
+	      r = PAPI_enum_event( &code, PAPI_ENUM_EVENTS );
 	   }
         }
 

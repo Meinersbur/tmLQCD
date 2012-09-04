@@ -24,8 +24,13 @@
 
 #include "papi_test.h"
 
+#if defined(_WIN32)
+#define OVER_FMT    "handler(%d ) Overflow at %p! bit=0x%llx \n"
+#define OUT_FMT     "%-12s : %16I64d%16I64d\n"
+#else
 #define OVER_FMT    "handler(%d ) Overflow at %p! bit=0x%llx \n"
 #define OUT_FMT     "%-12s : %16lld%16lld\n"
+#endif
 
 int total = 0;						   /* total overflows */
 extern int TESTS_QUIET;				   /* Declared in test_utils.c */
@@ -66,14 +71,19 @@ main( int argc, char **argv )
 	PAPI_event = PAPI_TOT_INS;
 #else
 	/* query and set up the right instruction to monitor */
-	PAPI_event = find_nonderived_event( );
+	if ( PAPI_query_event( PAPI_FP_INS ) == PAPI_OK )
+		PAPI_event = PAPI_FP_INS;
+	else if ( PAPI_query_event( PAPI_FP_OPS ) == PAPI_OK )
+		PAPI_event = PAPI_FP_OPS;
+	else
+		PAPI_event = PAPI_TOT_INS;
 #endif
 
-	if (( PAPI_event == PAPI_FP_OPS ) || ( PAPI_event == PAPI_FP_INS ))
+	if ( PAPI_event == PAPI_FP_INS )
 		mythreshold = THRESHOLD;
 	else
 #if defined(linux)
-		mythreshold = ( int ) hw_info->cpu_max_mhz * 10000 * 2;
+		mythreshold = ( int ) hw_info->mhz * 10000 * 2;
 #else
 		mythreshold = THRESHOLD * 2;
 #endif
@@ -119,7 +129,7 @@ main( int argc, char **argv )
 		test_fail( __FILE__, __LINE__, "PAPI_overflow", retval );
 
 	num_flops = NUM_FLOPS;
-#if defined(linux) || defined(__ia64__) || defined(_POWER4)
+#if defined(linux) || defined(__ia64__) || defined(_WIN32) || defined(_POWER4)
 	num_flops *= 2;
 #endif
 

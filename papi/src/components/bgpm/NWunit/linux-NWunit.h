@@ -4,6 +4,7 @@
 
 /** 
  * @file    linux-NWunit.h
+ * CVS:     $Id$
  * @author  Heike Jagode
  *          jagode@eecs.utk.edu
  * Mods:	<your name here>
@@ -22,9 +23,7 @@
 
 #include "papi.h"
 #include "papi_internal.h"
-#include "papi_vector.h"
 #include "papi_memory.h"
-#include "extras.h"
 #include "../../../linux-bgq-common.h"
 
 

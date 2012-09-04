@@ -23,9 +23,10 @@
 #include "papi_internal.h"
 #include "papi_memory.h" /* papi_calloc() */
 
-#include "x86_cpuid_info.h"
+#include SUBSTRATE
 
-#include "linux-lock.h"
+extern int x86_cache_info( PAPI_mh_info_t * mh_info );
+
 
 /* 2.6.19 has this:
 VmPeak:     4588 kB
@@ -54,7 +55,7 @@ _linux_get_dmem_info( PAPI_dmem_info_t * d )
 	f = fopen( fn, "r" );
 	if ( f == NULL ) {
 		PAPIERROR( "fopen(%s): %s\n", fn, strerror( errno ) );
-		return PAPI_ESYS;
+		return PAPI_ESBSTR;
 	}
 	while ( 1 ) {
 		if ( fgets( tmp, PATH_MAX, f ) == NULL )
@@ -106,7 +107,7 @@ _linux_get_dmem_info( PAPI_dmem_info_t * d )
 	f = fopen( fn, "r" );
 	if ( f == NULL ) {
 		PAPIERROR( "fopen(%s): %s\n", fn, strerror( errno ) );
-		return PAPI_ESYS;
+		return PAPI_ESBSTR;
 	}
 	ret =
 		fscanf( f, "%lld %lld %lld %lld %lld %lld %lld", &dum, &dum, &shr, &dum,
@@ -114,7 +115,7 @@ _linux_get_dmem_info( PAPI_dmem_info_t * d )
 	if ( ret != 7 ) {
 		PAPIERROR( "fscanf(7 items): %d\n", ret );
 		fclose(f);
-		return PAPI_ESYS;
+		return PAPI_ESBSTR;
 	}
 	d->pagesize = getpagesize(  );
 	d->shared = ( shr * d->pagesize ) / 1024;
@@ -134,14 +135,16 @@ x86_get_memory_info( PAPI_hw_info_t * hw_info )
 {
 	int retval = PAPI_OK;
 
+	extern int x86_cache_info( PAPI_mh_info_t * mh_info );
+
 	switch ( hw_info->vendor ) {
 	case PAPI_VENDOR_AMD:
 	case PAPI_VENDOR_INTEL:
-		retval = _x86_cache_info( &hw_info->mem_hierarchy );
+		retval = x86_cache_info( &hw_info->mem_hierarchy );
 		break;
 	default:
 		PAPIERROR( "Unknown vendor in memory information call for x86." );
-		return PAPI_ENOIMPL;
+		return PAPI_ESBSTR;
 	}
 	return retval;
 }
@@ -712,7 +715,6 @@ sparc_get_memory_info( PAPI_hw_info_t * hw_info )
 
 	fclose( f );
 
-	/*
 	if ( sparc_sysfs_cpu_attr( "clock_tick", &s ) == -1 )
 		return PAPI_ESYS;
 
@@ -721,7 +723,6 @@ sparc_get_memory_info( PAPI_hw_info_t * hw_info )
 
 	hw_info->mhz = cycles_per_second / 1000000;
 	hw_info->clock_mhz = hw_info->mhz;
-	*/
 
 	/* Now fetch the cache info */
 	hw_info->mem_hierarchy.levels = 3;

@@ -1,4 +1,4 @@
-/* This file utility reports hardware info and native event availability */
+/* This file performs the following test: hardware info and which native events are available */
 /** file native_avail.c
   *	@page papi_native_avail
   * @brief papi_native_avail utility. 
@@ -41,6 +41,7 @@
  */
 
 #include "papi_test.h"
+extern int TESTS_QUIET;				   /* Declared in test_utils.c */
 
 #define EVT_LINE 80
 
@@ -247,9 +248,13 @@ main( int argc, char **argv )
 	if ( flags.named ) {
 	   if ( PAPI_event_name_to_code( flags.name, &i ) == PAPI_OK ) {
 	      if ( PAPI_get_event_info( i, &info ) == PAPI_OK ) {
-		 printf( "%-30s%s\n",
-			 "Event name:", info.symbol);
+		 printf( "%-30s%s\n%-30s%d\n",
+			 "Event name:", info.symbol,
+			 "Number of Register Values:", info.count );
 		 printf( "%-29s|%s|\n", "Description:", info.long_descr );
+		 for ( k = 0; k < ( int ) info.count; k++ )
+		     printf( " Register[%2d]:               |%s|\n", 
+			     k, info.name[k] );
 
 		     /* if unit masks exist but none specified, process all */
 		     if ( !strchr( flags.name, ':' ) ) {
@@ -261,6 +266,9 @@ main( int argc, char **argv )
 				 if ( parse_unit_masks( &info ) ) {
 				    printf( "%-29s|%s|%s|\n", " Mask Info:",
 					    info.symbol, info.long_descr );
+				    for ( k = 0; k < ( int ) info.count; k++ )
+					printf( "  Register[%2d]:  0x%08x  |%s|\n",
+					       k, info.code[k], info.name[k] );
 				 }
 			      }
 			   } while ( PAPI_enum_event( &i, PAPI_NTV_ENUM_UMASKS ) == PAPI_OK );
@@ -288,18 +296,34 @@ main( int argc, char **argv )
 	       const PAPI_component_info_t *component;
 	       component=PAPI_get_component_info(cid);
 
-	       /* Skip disabled components */
-	       if (component->disabled) continue;
+	       /* Skip if requested enumeration not available */
+	       if (( flags.dear ) && !( component->cntr_DEAR_events )) {
+		 continue;
+	       }
+	       if (( flags.darr ) && !( component->data_address_range)) {
+		 continue;
+	       }
+               if (( flags.iear ) && !( component->cntr_IEAR_events )) {
+		 continue;
+	       }
+	       if (( flags.iarr ) && !( component->instr_address_range )) {
+		 continue;
+	       }
+	       if (( flags.opcm ) && !( component->cntr_OPCM_events )) {
+		 continue;
+	       }
+
 
 	       printf( "===============================================================================\n" );
-	       printf( " Native Events in Component: %s\n",component->name);
+	       printf( " Events in Component: %s\n",component->name);
 	       printf( "===============================================================================\n" );
 	     
 	       /* Always ASK FOR the first event */
 	       /* Don't just assume it'll be the first numeric value */
-	       i = 0 | PAPI_NATIVE_MASK;
+	       i = 0 | PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK( cid );
 
-	       retval=PAPI_enum_cmp_event( &i, PAPI_ENUM_FIRST, cid );
+	       /* UGH PAPI_enum_event() really needs a component field */
+	       PAPI_enum_event( &i, PAPI_ENUM_FIRST );
 
 	       do {
 		  memset( &info, 0, sizeof ( info ) );
@@ -314,12 +338,15 @@ main( int argc, char **argv )
 
 		  print_event( &info, 0 );
 
-		  if (flags.details) {
-		    if (info.units[0]) printf( "|     Units: %-67s|\n", 
-					       info.units );
+		  /* Does this matter on anything but perfctr? */
+		  if ( flags.details ) {
+		     for ( k = 0; k < ( int ) info.count; k++ ) {
+			 if ( strlen( info.name[k] ) ) {
+			    printf( "  Register[%d] Name: %-20s  Value: 0x%-28x|\n",
+				    k, info.name[k], info.code[k] );
+			 }
+		     }
 		  }
-		    
-
 
 /*		modifier = PAPI_NTV_ENUM_GROUPS returns event codes with a
 			groups id for each group in which this
@@ -330,12 +357,12 @@ main( int argc, char **argv )
 		  /* This is an IBM Power issue */
 		  if ( flags.groups ) {
 		     k = i;
-		     if ( PAPI_enum_cmp_event( &k, PAPI_NTV_ENUM_GROUPS, cid ) == PAPI_OK ) {
+		     if ( PAPI_enum_event( &k, PAPI_NTV_ENUM_GROUPS ) == PAPI_OK ) {
 			printf( "Groups: " );
 			do {
 			  printf( "%4d", ( ( k & PAPI_NTV_GROUP_AND_MASK ) >>
 					     PAPI_NTV_GROUP_SHIFT ) - 1 );
-			} while ( PAPI_enum_cmp_event( &k, PAPI_NTV_ENUM_GROUPS, cid ) ==PAPI_OK );
+			} while ( PAPI_enum_event( &k, PAPI_NTV_ENUM_GROUPS ) ==PAPI_OK );
 			printf( "\n" );
 		     }
 		  }
@@ -345,20 +372,20 @@ main( int argc, char **argv )
 
 	          if ( flags.umask ) { 
 		     k = i;
-		     if ( PAPI_enum_cmp_event( &k, PAPI_NTV_ENUM_UMASKS, cid ) == PAPI_OK ) {
+		     if ( PAPI_enum_event( &k, PAPI_NTV_ENUM_UMASKS ) == PAPI_OK ) {
 		        do {
 			   retval = PAPI_get_event_info( k, &info );
 			   if ( retval == PAPI_OK ) {
 			      if ( parse_unit_masks( &info ) )
 			         print_event( &info, 2 );
 			   }
-		        } while ( PAPI_enum_cmp_event( &k, PAPI_NTV_ENUM_UMASKS, cid ) == PAPI_OK );
+		        } while ( PAPI_enum_event( &k, PAPI_NTV_ENUM_UMASKS ) == PAPI_OK );
 		     }
 
 		  }
 		  printf( "--------------------------------------------------------------------------------\n" );
 
-	       } while (PAPI_enum_cmp_event( &i, enum_modifier, cid ) == PAPI_OK );
+	       } while ( PAPI_enum_event( &i, enum_modifier ) == PAPI_OK );
 	   }
 	   	   	
 	

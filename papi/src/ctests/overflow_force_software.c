@@ -34,9 +34,15 @@ The Eventset contains:
 
 #include "papi_test.h"
 
+#if defined(_WIN32)
+#define OVER_FMT "handler(%d) Overflow at %p! overflow_vector=0x%x!\n"
+#define OUT_FMT		"%-12s : %16I64d%16d%16I64d\n"
+#else
 #define OVER_FMT "handler(%d) Overflow at %p overflow_vector=0x%llx!\n"
 #define OUT_FMT		"%-12s : %16lld%16d%16lld\n"
+#endif
 
+#define HARD_TOLERANCE 0.25
 #define SOFT_TOLERANCE 0.90
 #define MY_NUM_TESTS 5
 
@@ -79,24 +85,21 @@ main( int argc, char **argv )
 	if ( PAPI_query_event( PAPI_FP_INS ) == PAPI_OK ) {
 		if ( PAPI_query_event( PAPI_FP_INS ) == PAPI_OK ) {
 			PAPI_get_event_info( PAPI_FP_INS, &info );
-			if ( info.count == 1 || 
-                             !strcmp( info.derived, "DERIVED_CMPD" ) )
+			if ( info.count == 1 || !strcmp( info.derived, "DERIVED_CMPD" ) )
 				PAPI_event = PAPI_FP_INS;
 		}
 	}
 	if ( PAPI_event == 0 ) {
 		if ( PAPI_query_event( PAPI_FP_OPS ) == PAPI_OK ) {
 			PAPI_get_event_info( PAPI_FP_OPS, &info );
-			if ( info.count == 1 || 
-                             !strcmp( info.derived, "DERIVED_CMPD" ) )
+			if ( info.count == 1 || !strcmp( info.derived, "DERIVED_CMPD" ) )
 				PAPI_event = PAPI_FP_OPS;
 		}
 	}
 	if ( PAPI_event == 0 ) {
 		if ( PAPI_query_event( PAPI_TOT_INS ) == PAPI_OK ) {
 			PAPI_get_event_info( PAPI_TOT_INS, &info );
-			if ( info.count == 1 || 
-                             !strcmp( info.derived, "DERIVED_CMPD" ) )
+			if ( info.count == 1 || !strcmp( info.derived, "DERIVED_CMPD" ) )
 				PAPI_event = PAPI_TOT_INS;
 		}
 	}
@@ -113,7 +116,7 @@ main( int argc, char **argv )
 		mythreshold = THRESHOLD;
 	else
 #if defined(linux)
-		mythreshold = ( int ) hw_info->cpu_max_mhz * 20000;
+		mythreshold = ( int ) hw_info->mhz * 20000;
 #else
 		mythreshold = THRESHOLD * 2;
 #endif
@@ -285,10 +288,10 @@ main( int argc, char **argv )
 	}
 
 	hard_min =
-		( long long ) ( ( ( double ) values[0] * ( 1.0 - OVR_TOLERANCE ) ) /
+		( long long ) ( ( ( double ) values[0] * ( 1.0 - HARD_TOLERANCE ) ) /
 						( double ) mythreshold );
 	hard_max =
-		( long long ) ( ( ( double ) values[0] * ( 1.0 + OVR_TOLERANCE ) ) /
+		( long long ) ( ( ( double ) values[0] * ( 1.0 + HARD_TOLERANCE ) ) /
 						( double ) mythreshold );
 	soft_min =
 		( long long ) ( ( ( double ) values[0] * ( 1.0 - SOFT_TOLERANCE ) ) /
@@ -296,7 +299,6 @@ main( int argc, char **argv )
 	soft_max =
 		( long long ) ( ( ( double ) values[0] * ( 1.0 + SOFT_TOLERANCE ) ) /
 						( double ) mythreshold );
-	
 	if ( total[1] > hard_max || total[1] < hard_min )
 		test_fail( __FILE__, __LINE__, "Hardware Overflows outside limits", 1 );
 

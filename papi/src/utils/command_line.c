@@ -1,11 +1,10 @@
-/* file command_line.c
+/* file: command_line.c
  * This simply tries to add the events listed on the command line one at a time
  * then starts and stops the counters and prints the results
 */
 
 /** 
-  *	@page papi_command_line 
-  * @brief executes PAPI preset or native events from the command line. 
+  *	@page papi_command_line executes PAPI preset or native events from the command line. 
   *
   *	@section Synopsis
   *		papi_command_line < event > < event > ...
@@ -72,7 +71,7 @@ main( int argc, char **argv )
 			test_fail_exit( __FILE__, __LINE__, "PAPI_event_name_to_code", retval );
 
 		if ( ( retval = PAPI_add_event( EventSet, event ) ) != PAPI_OK ) {
-			PAPI_perror( "PAPI_add_event");
+			PAPI_perror( retval, errstr, 1024 );
 			printf( "Failed adding: %s\nbecause: %s\n", argv[i], errstr );
 			success[i] = 0;
 		} else {

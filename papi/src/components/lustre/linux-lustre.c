@@ -23,7 +23,6 @@
 
 #include "papi.h"
 #include "papi_internal.h"
-#include "papi_vector.h"
 #include "papi_memory.h"
 
 /** describes a single counter with its properties */
@@ -152,7 +151,7 @@ addLustreFS( const char *name,
 	if ( fff == NULL ) {
 	  SUBDBG("can not open '%s'\n", procpath_general );
 	  free(fs);
-	  return PAPI_ESYS;
+	  return PAPI_ESBSTR;
 	}
 	fclose(fff);
 
@@ -161,7 +160,7 @@ addLustreFS( const char *name,
 	if ( fff == NULL ) {
 	  SUBDBG("can not open '%s'\n", procpath_readahead );
 	  free(fs);
-	  return PAPI_ESYS;
+	  return PAPI_ESBSTR;
 	}
 	fclose(fff);
 
@@ -220,7 +219,7 @@ init_lustre_counters( void  )
 	proc_dir = opendir( lustre_dir );
 	if ( proc_dir == NULL ) {
 	   SUBDBG("Cannot open %s\n",lustre_dir);
-	   return PAPI_ESYS;
+	   return PAPI_ESBSTR;
 	}
 
 	entry = readdir( proc_dir );
@@ -380,7 +379,7 @@ detect_lustre()
 	proc_dir = opendir( proc_base_path );
 	if ( proc_dir == NULL ) {
 	  SUBDBG("we are not able to read %s\n",lustre_directory);
-	   return PAPI_ESYS;
+	   return PAPI_ESBSTR;
 	}
 
 	closedir(proc_dir);
@@ -394,22 +393,18 @@ detect_lustre()
  *****************************************************************************/
 
 /*
- * Component setup and shutdown
+ * Substrate setup and shutdown
  */
 
 int
-_lustre_init_component(  )
+_lustre_init_substrate(  )
 {
 
 	int ret = PAPI_OK;
 
 	/* See if lustre filesystem exists */
 	ret=detect_lustre();
-	if (ret!=PAPI_OK) {
-	   strncpy(_lustre_vector.cmp_info.disabled_reason,
-		   "No lustre filesystems found",PAPI_MAX_STR_LEN);
-	   return ret;
-	}
+	if (ret!=PAPI_OK) return ret;
 
 	ret=init_lustre_counters();
 
@@ -426,7 +421,7 @@ _lustre_init_component(  )
  * This is called whenever a thread is initialized
  */
 int
-_lustre_init_thread( hwd_context_t * ctx )
+_lustre_init( hwd_context_t * ctx )
 {
   (void) ctx;
 
@@ -438,7 +433,7 @@ _lustre_init_thread( hwd_context_t * ctx )
  *
  */
 int
-_lustre_shutdown_component( void )
+_lustre_shutdown_substrate( void )
 {
 
 	host_finalize(  );
@@ -450,7 +445,7 @@ _lustre_shutdown_component( void )
  *
  */
 int
-_lustre_shutdown_thread( hwd_context_t * ctx )
+_lustre_shutdown( hwd_context_t * ctx )
 {
 	( void ) ctx;
 
@@ -488,7 +483,7 @@ _lustre_update_control_state( hwd_control_state_t *ctl,
     int i, index;
 
     for ( i = 0; i < count; i++ ) {
-       index = native[i].ni_event;
+       index = native[i].ni_event & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
        lustre_ctl->which_counter[i]=index;
        native[i].ni_position = i;
     }
@@ -613,7 +608,7 @@ _lustre_write( hwd_context_t * ctx, hwd_control_state_t * ctrl, long long *from 
  * Functions for setting up various options
  */
 
-/* This function sets various options in the component
+/* This function sets various options in the substrate
  * The valid codes being passed in are PAPI_SET_DEFDOM,
  * PAPI_SET_DOMAIN, PAPI_SETDEFGRN, PAPI_SET_GRANUL * and PAPI_SET_INHERIT
  */
@@ -666,7 +661,7 @@ int
 _lustre_ntv_code_to_name( unsigned int EventCode, char *name, int len )
 {
 
-  int event=EventCode;
+  int event=EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
   if (event >=0 && event < num_events) {
      strncpy( name, lustre_native_table[event]->name, len );
@@ -683,7 +678,7 @@ int
 _lustre_ntv_code_to_descr( unsigned int EventCode, char *name, int len )
 {
 
-  int event=EventCode;
+  int event=EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
   if (event >=0 && event < num_events) {
 	strncpy( name, lustre_native_table[event]->description, len );
@@ -699,15 +694,16 @@ _lustre_ntv_code_to_descr( unsigned int EventCode, char *name, int len )
 int
 _lustre_ntv_enum_events( unsigned int *EventCode, int modifier )
 {
+	int cidx = PAPI_COMPONENT_INDEX( *EventCode );
 
 	if ( modifier == PAPI_ENUM_FIRST ) {
 	   if (num_events==0) return PAPI_ENOEVNT;
-	   *EventCode = 0;
+	   *EventCode = PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK( cidx );
 	   return PAPI_OK;
 	}
 
 	if ( modifier == PAPI_ENUM_EVENTS ) {
-		int index = *EventCode;
+		int index = *EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
 		if ( lustre_native_table[index + 1] ) {
 			*EventCode = *EventCode + 1;
@@ -728,11 +724,9 @@ _lustre_ntv_enum_events( unsigned int *EventCode, int modifier )
 papi_vector_t _lustre_vector = {
    .cmp_info = {
         /* component information (unspecified values initialized to 0) */
-       .name = "lustre",
-	   .short_name = "lustre",
+       .name = "linux-lustre.c",
        .version = "1.9",
-       .description = "Lustre filesystem statistics",
-       .num_mpx_cntrs = LUSTRE_MAX_COUNTERS,
+       .num_mpx_cntrs = PAPI_MPX_DEF_DEG,
        .num_cntrs = LUSTRE_MAX_COUNTERS,
        .default_domain = PAPI_DOM_USER,
        .default_granularity = PAPI_GRN_THR,
@@ -756,14 +750,14 @@ papi_vector_t _lustre_vector = {
   },
 
      /* function pointers in this component */
-  .init_thread =           _lustre_init_thread,
-  .init_component =        _lustre_init_component,
+  .init =                  _lustre_init,
+  .init_substrate =        _lustre_init_substrate,
   .init_control_state =    _lustre_init_control_state,
   .start =                 _lustre_start,
   .stop =                  _lustre_stop,
   .read =                  _lustre_read,
-  .shutdown_thread =       _lustre_shutdown_thread,
-  .shutdown_component =    _lustre_shutdown_component,
+  .shutdown =              _lustre_shutdown,
+  .shutdown_substrate =    _lustre_shutdown_substrate,
   .ctl =                   _lustre_ctl,
   .update_control_state =  _lustre_update_control_state,
   .set_domain =            _lustre_set_domain,

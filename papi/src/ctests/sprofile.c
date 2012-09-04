@@ -1,5 +1,6 @@
 /* 
 * File:    sprofile.c
+* CVS:     $Id$
 * Author:  Philip Mucci
 *          mucci@cs.utk.edu
 * Mods:    Maynard Johnson
@@ -40,9 +41,8 @@ main( int argc, char **argv )
 
 	start = prginfo->address_info.text_start;
 	end = prginfo->address_info.text_end;
-	if ( start > end ) {
-	   test_fail( __FILE__, __LINE__, "Profile length < 0!", PAPI_ESYS );
-	}
+	if ( start > end )
+		test_fail( __FILE__, __LINE__, "Profile length < 0!", PAPI_ESBSTR );
 	length = ( unsigned long ) ( end - start );
 	prof_print_address
 		( "Test case sprofile: POSIX compatible profiling over multiple regions.\n",

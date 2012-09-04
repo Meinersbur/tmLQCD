@@ -1,3 +1,4 @@
+/* This file performs the following test: hardware info and which native events are available */
 /** file component.c
   *	@page papi_component_avail
   * @brief papi_component_avail utility. 
@@ -23,6 +24,7 @@
  */
 
 #include "papi_test.h"
+extern int TESTS_QUIET;				   /* Declared in test_utils.c */
 
 #define EVT_LINE 80
 
@@ -38,7 +40,8 @@ static void
 print_help( char **argv )
 {
 	printf( "This is the PAPI component avail program.\n" );
-	printf( "It provides availability of installed PAPI components.\n" );
+	printf
+		( "It provides availability of installed PAPI components.\n" );
 	printf( "Usage: %s [options]\n", argv[0] );
 	printf( "Options:\n\n" );
 	printf( "  --help, -h    print this help message\n" );
@@ -100,38 +103,12 @@ main( int argc, char **argv )
 		test_fail( __FILE__, __LINE__, "PAPI_get_hardware_info", 2 );
 
 
-	/* Compiled-in Components */
-	numcmp = PAPI_num_components(  );
-
-	printf("Compiled-in components:\n");
-	for ( cid = 0; cid < numcmp; cid++ ) {
-	  cmpinfo = PAPI_get_component_info( cid );
-
-	  printf( "Name:   %-23s %s\n", cmpinfo->name ,cmpinfo->description);
-
-	  if (cmpinfo->disabled) {
-	    printf("   \\-> Disabled: %s\n",cmpinfo->disabled_reason);
-	  }
-
-	  if ( flags.details ) {
-		printf( "Version:\t\t\t%s\n", cmpinfo->version );
-		printf( "Number of native events:\t%d\n", cmpinfo->num_native_events);
-		printf( "Number of preset events:\t%d\n", cmpinfo->num_preset_events); 
-		printf("\n");
-	  }
-	}
-
-	printf("\nActive components:\n");
 	numcmp = PAPI_num_components(  );
 
 	for ( cid = 0; cid < numcmp; cid++ ) {
 	  cmpinfo = PAPI_get_component_info( cid );
-	  if (cmpinfo->disabled) continue;
 
-	  printf( "Name:   %-23s %s\n", cmpinfo->name ,cmpinfo->description);
-	  printf( "        %-23s Native: %d, Preset: %d, Counters: %d\n\n", 
-		  " ", cmpinfo->num_native_events, cmpinfo->num_preset_events,
-		  cmpinfo->num_cntrs);
+	  printf( "Name:\t\t\t\t%s\n", cmpinfo->name );
 
 	  if ( flags.details ) {
 		printf( "Version:\t\t\t%s\n", cmpinfo->version );

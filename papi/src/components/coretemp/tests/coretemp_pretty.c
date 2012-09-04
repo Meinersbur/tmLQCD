@@ -51,7 +51,7 @@ int main (int argc, char **argv)
 	   test_fail(__FILE__, __LINE__,"PAPI_get_component_info failed\n", 0);
 	}
 
-	if (strstr(cmpinfo->name,"coretemp")) {
+	if (strstr(cmpinfo->name,"linux-coretemp")) {
 	   coretemp_cid=cid;
 	   if (!TESTS_QUIET) printf("Found coretemp component at cid %d\n",
 				    coretemp_cid);
@@ -65,9 +65,9 @@ int main (int argc, char **argv)
 
 
 
-     code = PAPI_NATIVE_MASK;
+     code = PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK(coretemp_cid);
 
-     r = PAPI_enum_cmp_event( &code, PAPI_ENUM_FIRST, coretemp_cid );
+     r = PAPI_enum_event( &code, PAPI_ENUM_FIRST );
 
      while ( r == PAPI_OK ) {
 
@@ -248,7 +248,7 @@ int main (int argc, char **argv)
 	  /* Skip unknown */
 	}
   	      
-        r = PAPI_enum_cmp_event( &code, PAPI_ENUM_EVENTS, coretemp_cid );
+        r = PAPI_enum_event( &code, PAPI_ENUM_EVENTS );
      }
         
      test_pass( __FILE__, NULL, 0 );

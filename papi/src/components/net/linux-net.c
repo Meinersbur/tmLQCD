@@ -1,5 +1,10 @@
+/****************************/
+/* THIS IS OPEN SOURCE CODE */
+/****************************/
+
 /**
  * @file    linux-net.c
+ * CVS:     $Id$
  *
  * @author  Haihang You
  *          you@cs.utk.edu
@@ -26,7 +31,6 @@
 /* Headers required by PAPI */
 #include "papi.h"
 #include "papi_internal.h"
-#include "papi_vector.h"
 #include "papi_memory.h"
 
 #include "linux-net.h"
@@ -75,23 +79,23 @@ static const struct net_counters {
     char *description;
 } _net_counter_info[NET_INTERFACE_COUNTERS] = {
     /* Receive */
-    { "rx:bytes",      "receive bytes"},
-    { "rx:packets",    "receive packets"},
-    { "rx:errors",     "receive errors"},
-    { "rx:dropped",    "receive dropped"},
-    { "rx:fifo",       "receive fifo"},
-    { "rx:frame",      "receive frame"},
-    { "rx:compressed", "receive compressed"},
-    { "rx:multicast",  "receive multicast"},
+    { "rx.bytes",      "receive bytes"},
+    { "rx.packets",    "receive packets"},
+    { "rx.errors",     "receive errors"},
+    { "rx.dropped",    "receive dropped"},
+    { "rx.fifo",       "receive fifo"},
+    { "rx.frame",      "receive frame"},
+    { "rx.compressed", "receive compressed"},
+    { "rx.multicast",  "receive multicast"},
     /* Transmit */
-    { "tx:bytes",      "transmit bytes"},
-    { "tx:packets",    "transmit packets"},
-    { "tx:errors",     "transmit errors"},
-    { "tx:dropped",    "transmit dropped"},
-    { "tx:fifo",       "transmit fifo"},
-    { "tx:colls",      "transmit colls"},
-    { "tx:carrier",    "transmit carrier"},
-    { "tx:compressed", "transmit compressed"},
+    { "tx.bytes",      "transmit bytes"},
+    { "tx.packets",    "transmit packets"},
+    { "tx.errors",     "transmit errors"},
+    { "tx.dropped",    "transmit dropped"},
+    { "tx.fifo",       "transmit fifo"},
+    { "tx.colls",      "transmit colls"},
+    { "tx.carrier",    "transmit carrier"},
+    { "tx.compressed", "transmit compressed"},
 };
 
 
@@ -162,11 +166,11 @@ generateNetEventList( void )
                 free(temp);
                 fclose(fin);
                 PAPIERROR("This shouldn't be possible\n");
-                return PAPI_ECMP;
+                return PAPI_ESBSTR;
             }
             last = temp;
 
-            snprintf(temp->name, PAPI_MAX_STR_LEN, "%s:%s",
+            snprintf(temp->name, PAPI_MAX_STR_LEN, "%s.%s",
                     ifname, _net_counter_info[j].name);
             snprintf(temp->description, PAPI_MAX_STR_LEN, "%s %s",
                     ifname, _net_counter_info[j].description);
@@ -283,7 +287,7 @@ read_net_counters( long long *values )
  * This is called whenever a thread is initialized
  */
 int
-_net_init_thread( hwd_context_t *ctx )
+_net_init( hwd_context_t *ctx )
 {
     ( void ) ctx;
 
@@ -296,7 +300,7 @@ _net_init_thread( hwd_context_t *ctx )
  * PAPI process is initialized (IE PAPI_library_init)
  */
 int
-_net_init_component( int cidx  )
+_net_init_substrate( int cidx  )
 {
     int i = 0;
     struct temp_event *t, *last;
@@ -430,7 +434,7 @@ _net_stop( hwd_context_t *ctx, hwd_control_state_t *ctl )
  * Thread shutdown
  */
 int
-_net_shutdown_thread( hwd_context_t *ctx )
+_net_shutdown( hwd_context_t *ctx )
 {
     ( void ) ctx;
 
@@ -439,10 +443,10 @@ _net_shutdown_thread( hwd_context_t *ctx )
 
 
 /*
- * Clean up what was setup in net_init_component().
+ * Clean up what was setup in net_init_substrate().
  */
 int
-_net_shutdown_component( void )
+_net_shutdown_substrate( void )
 {
     if ( is_initialized ) {
         is_initialized = 0;
@@ -454,7 +458,7 @@ _net_shutdown_component( void )
 }
 
 
-/* This function sets various options in the component
+/* This function sets various options in the substrate
  * The valid codes being passed in are PAPI_SET_DEFDOM,
  * PAPI_SET_DOMAIN, PAPI_SETDEFGRN, PAPI_SET_GRANUL and
  * PAPI_SET_INHERIT
@@ -480,7 +484,7 @@ _net_update_control_state( hwd_control_state_t *ctl,
     int i, index;
 
     for ( i = 0; i < count; i++ ) {
-        index = native[i].ni_event;
+        index = native[i].ni_event & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
         native[i].ni_position = _net_native_events[index].resources.selector - 1;
     }
 
@@ -533,18 +537,19 @@ int
 _net_ntv_enum_events( unsigned int *EventCode, int modifier )
 {
     int index;
+    int cidx = PAPI_COMPONENT_INDEX( *EventCode );
 
     switch ( modifier ) {
         case PAPI_ENUM_FIRST:
             if (num_events==0) {
                 return PAPI_ENOEVNT;
             }
-            *EventCode = 0;
+            *EventCode = PAPI_NATIVE_MASK | PAPI_COMPONENT_MASK(cidx);
             return PAPI_OK;
             break;
 
         case PAPI_ENUM_EVENTS:
-            index = *EventCode;
+            index = *EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
             if ( index < num_events - 1 ) {
                 *EventCode = *EventCode + 1;
                 return PAPI_OK;
@@ -571,8 +576,9 @@ _net_ntv_name_to_code( char *name, unsigned int *EventCode )
 
     for ( i=0; i<num_events; i++) {
         if (strcmp(name, _net_native_events[i].name) == 0) {
-	   *EventCode = i;
-
+            *EventCode = i |
+                PAPI_NATIVE_MASK |
+                PAPI_COMPONENT_MASK(_net_vector.cmp_info.CmpIdx);
             return PAPI_OK;
         }
     }
@@ -587,7 +593,7 @@ _net_ntv_name_to_code( char *name, unsigned int *EventCode )
 int
 _net_ntv_code_to_name( unsigned int EventCode, char *name, int len )
 {
-    int index = EventCode;
+    int index = EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
     if ( index >= 0 && index < num_events ) {
         strncpy( name, _net_native_events[index].name, len );
@@ -604,7 +610,7 @@ _net_ntv_code_to_name( unsigned int EventCode, char *name, int len )
 int
 _net_ntv_code_to_descr( unsigned int EventCode, char *name, int len )
 {
-    int index = EventCode;
+    int index = EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
     if ( index >= 0 && index < num_events ) {
         strncpy( name, _net_native_events[index].description, len );
@@ -621,7 +627,7 @@ _net_ntv_code_to_descr( unsigned int EventCode, char *name, int len )
 int
 _net_ntv_code_to_bits( unsigned int EventCode, hwd_register_t *bits )
 {
-    int index = EventCode;
+    int index = EventCode & PAPI_NATIVE_AND_MASK & PAPI_COMPONENT_AND_MASK;
 
     if ( index >= 0 && index < num_events ) {
         memcpy( ( NET_register_t * ) bits,
@@ -640,11 +646,10 @@ _net_ntv_code_to_bits( unsigned int EventCode, hwd_register_t *bits )
 papi_vector_t _net_vector = {
     .cmp_info = {
         /* default component information (unspecified values are initialized to 0) */
-        .name = "net",
-        .short_name = "net",
-        .version               = "4.2.1",
-	.description = "Linux network driver statistics",
-        .num_mpx_cntrs         = NET_MAX_COUNTERS,
+        .name = "linux-net.c",
+        .version               = "$Revision$",
+        .CmpIdx                = 0,              /* set by init_substrate */
+        .num_mpx_cntrs         = PAPI_MPX_DEF_DEG,
         .num_cntrs             = NET_MAX_COUNTERS,
         .default_domain        = PAPI_DOM_USER,
         //.available_domains   = PAPI_DOM_USER,
@@ -669,14 +674,14 @@ papi_vector_t _net_vector = {
     },
 
     /* function pointers in this component */
-    .init_thread               = _net_init_thread,
-    .init_component            = _net_init_component,
+    .init                      = _net_init,
+    .init_substrate            = _net_init_substrate,
     .init_control_state        = _net_init_control_state,
     .start                     = _net_start,
     .stop                      = _net_stop,
     .read                      = _net_read,
-    .shutdown_thread           = _net_shutdown_thread,
-    .shutdown_component        = _net_shutdown_component,
+    .shutdown                  = _net_shutdown,
+    .shutdown_substrate        = _net_shutdown_substrate,
     .ctl                       = _net_ctl,
 
     .update_control_state      = _net_update_control_state,
@@ -688,6 +693,7 @@ papi_vector_t _net_vector = {
     .ntv_code_to_name          = _net_ntv_code_to_name,
     .ntv_code_to_descr         = _net_ntv_code_to_descr,
     .ntv_code_to_bits          = _net_ntv_code_to_bits,
+    .ntv_bits_to_info          = NULL,
 };
 
 /* vim:set ts=4 sw=4 sts=4 et: */

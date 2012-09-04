@@ -1,5 +1,6 @@
 /* 
 * File:    multiplex.c
+* CVS:     $Id$
 * Author:  Philip Mucci
 *          mucci@cs.utk.edu
 * Mods:    <your name here>
@@ -13,18 +14,16 @@
 
 /* Event to use in all cases; initialized in init_papi() */
 
-#define TOTAL_EVENTS 6
-
-int solaris_preset_PAPI_events[TOTAL_EVENTS] = {
+int solaris_preset_PAPI_events[PAPI_MPX_DEF_DEG] = {
   PAPI_TOT_CYC, PAPI_BR_MSP, PAPI_L2_TCM, PAPI_L1_ICM, 0
 };
-int power6_preset_PAPI_events[TOTAL_EVENTS] = {
+int power6_preset_PAPI_events[PAPI_MPX_DEF_DEG] = {
 	PAPI_TOT_CYC, PAPI_FP_INS, PAPI_L1_DCM, PAPI_L1_ICM, 0
 };
-int preset_PAPI_events[TOTAL_EVENTS] = {
+int preset_PAPI_events[PAPI_MPX_DEF_DEG] = {
   PAPI_TOT_CYC, PAPI_FP_INS, PAPI_TOT_INS, PAPI_L1_DCM, PAPI_L1_ICM, 0
 };
-static int PAPI_events[TOTAL_EVENTS] = { 0, };
+static int PAPI_events[PAPI_MPX_DEF_DEG] = { 0, };
 static int PAPI_events_len = 0;
 
 #define CPP_TEST_FAIL(string, retval) test_fail(__FILE__, __LINE__, string, retval)

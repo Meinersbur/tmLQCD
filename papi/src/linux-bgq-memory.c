@@ -11,7 +11,6 @@
 
 #include "papi.h"
 #include "papi_internal.h"
-#include "linux-bgq.h"
 #ifdef __LINUX__
 #include <limits.h>
 #endif

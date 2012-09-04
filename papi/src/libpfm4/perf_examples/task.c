@@ -302,7 +302,7 @@ parent(char **arg)
 	for(i=0; i < num_fds; i++)
 		close(fds[i].fd);
 
-	perf_free_fds(fds, num_fds);
+	free(fds);
 
 	/* free libpfm resources cleanly */
 	pfm_terminate();
@@ -373,7 +373,7 @@ main(int argc, char **argv)
 		}
 	}
 	if (options.num_groups == 0) {
-		options.events[0] = "cycles,instructions";
+		options.events[0] = "PERF_COUNT_HW_CPU_CYCLES,PERF_COUNT_HW_INSTRUCTIONS";
 		options.num_groups = 1;
 	}
 	if (!argv[optind] && !options.pid)
