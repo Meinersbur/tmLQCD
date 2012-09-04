@@ -168,7 +168,7 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 	while (true) {
 		// Begin with flush line
 		STARTFLUSH:
-		if (z >= PHYSICAL_LX)
+		if (z >= PHYSICAL_LZ)
 			break;
 		{
 			#define BGQ_HM_TLINEINDENT 0
@@ -181,7 +181,7 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 		// There is always a ragged line following
 		STARTRAGGED:
-		if (z >= PHYSICAL_LX)
+		if (z >= PHYSICAL_LZ)
 			break;
 		{
 			#define BGQ_HM_TLINEINDENT 1

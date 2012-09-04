@@ -219,6 +219,9 @@ void bgq_init_spinorfields(int count) {
 	if (mod(LOCAL_LX,2)!=0) /* even/odd */
 		master_error(1, "ERROR: Local X-dimension must be a multiple of 2 for even/odd\n");
 
+	if (mod(LOCAL_LX,4)!=0)
+		master_error(1, "ERROR: Local X-dimension must be a multiple of 4 (vector width * 2 for even/odd) because of vectorized transmission of halfspinors in T-direction\n");
+
 	if (LOCAL_LY < 2) /* border up- and down- surfaces cannot collapse */
 		master_error(1, "ERROR: Local Y-dimension must be larger than 2, such that surfaces do not overlap\n");
 
@@ -398,9 +401,7 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 					if (norm1_val > 0.01) {
 						if (first) {
 							fprintf(stderr, "Coordinate (%d,%d,%d,%d)(%d,%d): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t,x,y,z,v,c,creal(refvalue), cimag(refvalue),creal(bgqvalue),cimag(bgqvalue),norm1_val);
-							if ( (t==4) && (x==1) && (y==1) && (z==0) ) {
-								int a = 0;
-							}
+							//__asm__("int3");
 						}
 						first = false;
 					}
