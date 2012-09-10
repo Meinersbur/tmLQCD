@@ -24,13 +24,13 @@ bgq_spinor_coord *g_spinor_body_zline_order;
 bgq_spinor_coord *g_spinor_surface_zline_order;
 
 
-char *g_idxdesc[BGQREF_count];
+char *(g_idxdesc[BGQREF_count]);
 complexdouble *g_bgqvalue = NULL;
 complexdouble *g_refvalue = NULL;
 
 
 void bgq_initbgqref() {
-	int datasize = sizeof(complexdouble) * VOLUME_SITES * lengthof(g_idxdesc);
+	int datasize = sizeof(complexdouble) * VOLUME * lengthof(g_idxdesc);
 	if (g_refvalue == NULL) {
 		g_bgqvalue = malloc_aligned(datasize, 128);
 		g_refvalue = malloc_aligned(datasize, 128);
