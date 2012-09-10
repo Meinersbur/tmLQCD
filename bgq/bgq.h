@@ -25,6 +25,14 @@ typedef struct {
 	float q[4];
 } v4f;
 
+typedef struct {
+	_Complex double q[2];
+} v2cd;
+
+typedef struct {
+	_Complex float q[2];
+} v2cf;
+
 #if XLC
 	#define BGQ_VECTOR4DOUBLE_SUBSCRIPT(addr,idx) ( (*((vector4double*)(addr)))[(idx)] ) /* allows subscript like an array */
 #else
@@ -37,6 +45,12 @@ typedef struct {
 
 
 #if !BGQ_QPX
+#define bgq_cmplxval1(name) \
+	(NAME2(name,q0) + NAME2(name,q1) * _Complex_I)
+
+#define bgq_cmplxval2(name) \
+	(NAME2(name,q2) + NAME2(name,q3) * _Complex_I)
+
 #define bgq_vector4double_decl(name) \
 	double NAME2(name,q0); \
 	double NAME2(name,q1); \
@@ -195,6 +209,11 @@ typedef struct {
 	NAME2(dst,q3) = 0
 
 #else
+#define bgq_cmplxval1(name) \
+	((name)[0] + (name)[1] * _Complex_I)
+
+#define bgq_cmplxval2(name) \
+	((name)[2] + (name)[3] * _Complex_I)
 
 #define bgq_vector4double_decl(name) \
 	vector4double name

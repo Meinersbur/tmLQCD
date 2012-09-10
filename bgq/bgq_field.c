@@ -24,7 +24,7 @@ bgq_spinor_coord *g_spinor_body_zline_order;
 bgq_spinor_coord *g_spinor_surface_zline_order;
 
 
-char *g_idxdesc[5];
+char *g_idxdesc[BGQREF_count];
 complexdouble *g_bgqvalue = NULL;
 complexdouble *g_refvalue = NULL;
 
@@ -63,7 +63,7 @@ void bgq_savebgqref() {
 		snprintf(filename, sizeof(filename)-1, "cmp_%d.txt", i);
 
 		struct stat buf;
-		if (stat(filename, &buf) != -1) {
+		if (stat(filename, &buf) == -1) {
 			i += 1;
 			continue;
 		}

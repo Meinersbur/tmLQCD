@@ -156,6 +156,9 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 			bgq_su3_vadd(result_v2, result_v2, weyl_tup_v0);
 			bgq_su3_vadd(result_v3, result_v3, weyl_tup_v1);
 		#endif
+
+		bgq_setbgqvalue(t1, x, y, z, BGQREF_TUP, bgq_cmplxval1(weyl_tup_v0_c0), "weyl_tup");
+		bgq_setbgqvalue(t2, x, y, z, BGQREF_TUP, bgq_cmplxval2(weyl_tup_v0_c0), "weyl_tup");
 	#endif
 
 

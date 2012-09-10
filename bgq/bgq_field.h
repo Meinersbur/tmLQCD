@@ -201,6 +201,19 @@ void bgq_hm_free_allprec();
 
 void bgq_update_backward_gauge();
 
+enum {
+	BGQREF_TUP,
+	BGQREF_TDOWN,
+	BGQREF_XUP,
+	BGQREF_XDOWN,
+	BGQREF_YUP,
+	BGQREF_YDOWN,
+	BGQREF_ZUP,
+	BGQREF_ZDOWN,
+	BGQREF_STORE,
+	BGQREF_count
+};
+
 void bgq_initbgqref();
 void bgq_setrefvalue(int t, int x, int y, int z, int idx, complexdouble val, char *desc);
 void bgq_setbgqvalue(int t, int x, int y, int z, int idx, complexdouble val, char *desc);

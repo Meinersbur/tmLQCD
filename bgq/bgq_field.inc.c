@@ -243,7 +243,7 @@ void bgq_init_spinorfields(int count) {
 	if ( pow(PHYSICAL_LTV*LOCAL_LX*LOCAL_LZ,1.0/3.0) >=  LOCAL_LZ)
 		master_print("WARNING: Make the local Z-dimension the longest, data reuse has been optimized for it\n");
 
-	master_print("INFO: Body-to-volume site ration: %f (the higher the better)\n", (double)BODY_SITES / (double)VOLUME_SITES);
+	master_print("INFO: Body-to-volume site ratio: %f (the higher the better)\n", (double)BODY_SITES / (double)VOLUME_SITES);
 
 	#pragma omp parallel
 	{

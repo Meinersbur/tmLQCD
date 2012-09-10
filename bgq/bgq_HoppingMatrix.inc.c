@@ -290,7 +290,7 @@ if (!noweylsend) {
 // Body kernel
 
 if (!nobody) {
-	#pragma omp for schedule(static,1)
+	#pragma omp for schedule(static)
 	for (int txy = 0; txy < BODY_ZLINES; txy +=1) {
 		WORKLOAD_DECL(txy, BODY_ZLINES);
 		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV-2) + 1;
@@ -360,7 +360,7 @@ L1P_PatternResume();
 #endif
 
 if (!nosurface) {
-#pragma omp for schedule(static)
+	#pragma omp for schedule(static)
 	for (int xyz = 0; xyz < SURFACE_ZLINES; xyz += 1) {
 		WORKLOAD_DECL(xyz, SURFACE_ZLINES);
 		int tv;

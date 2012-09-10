@@ -174,10 +174,11 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		bgq_su3_vadd(result_v1, result_v1, weyl_tdown_v1);
 		bgq_su3_vsub(result_v2, result_v2, weyl_tdown_v0);
 		bgq_su3_vsub(result_v3, result_v3, weyl_tdown_v1);
+
+		bgq_setbgqvalue(t1, x, y, z, BGQREF_TDOWN, bgq_cmplxval1(weyl_tdown_v0_c0), "weyl_tdown");
+		bgq_setbgqvalue(t2, x, y, z, BGQREF_TDOWN, bgq_cmplxval2(weyl_tdown_v0_c0), "weyl_tdown");
 	#endif
 
-	bgq_setbgqvalue(t1, x, y, z, 0, result_v0_c0_q0 + result_v0_c0_q1 * _Complex_I, "psi+0");
-	bgq_setbgqvalue(t2, x, y, z, 0, result_v0_c0_q2 + result_v0_c0_q3 * _Complex_I, "psi+0");
 
 }
 

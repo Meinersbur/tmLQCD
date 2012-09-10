@@ -89,11 +89,13 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		bgq_su3_vadd(result_v1, result_v1, weyl_xdown_v1);
 		bgq_su3_vpiadd(result_v2, result_v2, weyl_xdown_v1);
 		bgq_su3_vpiadd(result_v3, result_v3, weyl_xdown_v0);
+
+		bgq_setbgqvalue(t1, x, y, z, BGQREF_XDOWN, bgq_cmplxval1(weyl_xdown_v0_c0), "weyl_xdown");
+		bgq_setbgqvalue(t2, x, y, z, BGQREF_XDOWN, bgq_cmplxval2(weyl_xdown_v0_c0), "weyl_xdown");
 #endif
 
 
 }
-
 
 
 #include "bgq_loadorprefetch.inc.c"
