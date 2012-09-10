@@ -92,8 +92,13 @@
 #include "init_dirac_halfspinor.h"
 #include "update_backward_gauge.h"
 #include "Hopping_Matrix.h"
+#include "bgq/bgq_field.h"
 
 #define HopVerMsg printf("Hopping_Matrix unknown edition");
+
+static inline _Complex double c2c(complex arg) {
+	return arg.re + arg.im * _Complex_I;
+}
 
 #ifdef OMP
 #include "Hopping_Matrix_omp.c"
@@ -2541,6 +2546,7 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
 
     _vector_assign(temp.s0,psi);
     _vector_assign(temp.s2,psi);
+    bgq_setrefvalue(t, x, y, z, BGQREF_TUP, c2c(psi.c0), "weyl_tup");
 
     _vector_add(psi,(*sp).s1,(*sp).s3);
 
@@ -2549,8 +2555,6 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
 
     _vector_assign(temp.s1,psi);
     _vector_assign(temp.s3,psi);
-
-    bgq_setrefvalue(t, x, y, z, 0, temp.s0.c0, "psi+0");
 
     /*********************** direction -0 ************************/
 
@@ -2570,6 +2574,7 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
 
     _vector_add_assign(temp.s0,psi);
     _vector_sub_assign(temp.s2,psi);
+    bgq_setrefvalue(t, x, y, z, BGQREF_TDOWN, c2c(psi.c0), "weyl_tdown");
 
     _vector_sub(psi,(*sm).s1,(*sm).s3);
 
@@ -2598,6 +2603,7 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
 
     _vector_add_assign(temp.s0,psi);
     _vector_i_sub_assign(temp.s3,psi);
+    bgq_setrefvalue(t, x, y, z, BGQREF_XUP, c2c(psi.c0), "weyl_xup");
 
     _vector_i_add(psi,(*sp).s1,(*sp).s2);
 
@@ -2625,6 +2631,7 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
 
     _vector_add_assign(temp.s0,psi);
     _vector_i_add_assign(temp.s3,psi);
+    bgq_setrefvalue(t, x, y, z, BGQREF_XDOWN, c2c(psi.c0), "weyl_xdown");
 
     _vector_i_sub(psi,(*sm).s1,(*sm).s2);
 
@@ -2651,6 +2658,7 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
 
     _vector_add_assign(temp.s0,psi);
     _vector_add_assign(temp.s3,psi);
+    bgq_setrefvalue(t, x, y, z, BGQREF_YUP, c2c(psi.c0), "weyl_yup");
 
     _vector_sub(psi,(*sp).s1,(*sp).s2);
 
@@ -2679,6 +2687,7 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
 
     _vector_add_assign(temp.s0,psi);
     _vector_sub_assign(temp.s3,psi);
+    bgq_setrefvalue(t, x, y, z, BGQREF_YDOWN, c2c(psi.c0), "weyl_ydown");
 
     _vector_add(psi,(*sm).s1,(*sm).s2);
 
@@ -2705,6 +2714,7 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
 
     _vector_add_assign(temp.s0,psi);
     _vector_i_sub_assign(temp.s2,psi);
+    bgq_setrefvalue(t, x, y, z, BGQREF_ZUP, c2c(psi.c0), "weyl_zup");
 
     _vector_i_sub(psi,(*sp).s1,(*sp).s3);
 
@@ -2732,6 +2742,7 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
 
     _vector_add((*r).s0, temp.s0, psi);
     _vector_i_add((*r).s2, temp.s2, psi);
+    bgq_setrefvalue(t, x, y, z, BGQREF_ZDOWN, c2c(psi.c0), "weyl_zdown");
 
     _vector_i_add(psi,(*sm).s1,(*sm).s3);
 
@@ -2740,6 +2751,7 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
 
     _vector_add((*r).s1, temp.s1, psi);
     _vector_i_sub((*r).s3, temp.s3, psi);
+    bgq_setrefvalue(t, x, y, z, BGQREF_STORE, c2c((*r).s0.c0), "store");
     /************************ end of loop ************************/
   }
 }
