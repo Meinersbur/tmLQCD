@@ -109,6 +109,8 @@ void bgq_savebgqref() {
 
 		fclose(reffile);
 		fclose(bgqfile);
+
+		master_printf("Cmp data written to %s and %s\n", reffilename, bgqfilename);
 	}
 }
 
