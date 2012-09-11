@@ -281,7 +281,7 @@ if (!noweylsend) {
 // Body kernel
 
 if (!nobody) {
-	#pragma omp for schedule(static)
+	#pragma omp for schedule(static,1)
 	for (int txy = 0; txy < BODY_ZLINES; txy +=1) {
 		WORKLOAD_DECL(txy, BODY_ZLINES);
 		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV-2) + 1;
