@@ -271,13 +271,13 @@ if (!noweylsend) {
 			//if (g_proc_id == 0)
 			//	fprintf(stderr, "MK HM Isend\n");
 			for (direction d = TUP; d <= YDOWN; d += 1) {
-				memset(weylxchange_send[d], 's', weylxchange_size[d]);
+				memset(weylxchange_send[d], 's', weylxchange_size[d/2]);
 			}
 			MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_send), weylexchange_request_send));
 			for (direction d = TUP; d <= YDOWN; d += 1) {
 				for (char *p = (char*)weylxchange_send[d]; p < (char*)weylxchange_send[d] + weylxchange_size[d/2]; p+=1)
 				if (*p != 's') {
-					fprintf(stderr, "Wrong MPI data at %d %d!=%d\n", p - (char*)weylxchange_send[d], *p, 'r');
+					fprintf(stderr, "Wrong MPI data at %d %d!=%d\n", (int)(p - (char*)weylxchange_send[d]), (int)*p, (int)'r');
 				}
 			}
 		}
@@ -334,13 +334,13 @@ if (!nobody) {
 			//if (g_proc_id == 0)
 			//	fprintf(stderr, "MK HM Isend\n");
 			for (direction d = TUP; d <= YDOWN; d += 1) {
-				memset(weylxchange_recv[d], 's', weylxchange_size[d/2]);
+				memset(weylxchange_send[d], 's', weylxchange_size[d/2]);
 			}
 			MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_send), weylexchange_request_send));
 			for (direction d = TUP; d <= YDOWN; d += 1) {
-				for (char *p = (char*)weylxchange_recv[d]; p < (char*)weylxchange_recv[d] + weylxchange_size[d/2]; p+=1)
-				if (*p != 'r') {
-					fprintf(stderr, "Wrong MPI data at %d %d!=%d\n", p - (char*)weylxchange_recv[d], *p, 'r');
+				for (char *p = (char*)weylxchange_send[d]; p < (char*)weylxchange_send[d] + weylxchange_size[d/2]; p+=1)
+				if (*p != 's') {
+					fprintf(stderr, "Wrong MPI data at %d %d!=%d\n", (int)(p - (char*)weylxchange_send[d]), (int)*p, (int)'r');
 				}
 			}
 		}
@@ -362,7 +362,7 @@ if (!nobody) {
 			for (direction d = TUP; d <= YDOWN; d += 1) {
 				for (char *p = (char*)weylxchange_recv[d]; p < (char*)weylxchange_recv[d] + weylxchange_size[d/2]; p+=1)
 				if (*p != 's') {
-					fprintf(stderr, "Wrong recv MPI data at %d %d!=%d\n", p - (char*)weylxchange_recv[d], *p, 'r');
+					fprintf(stderr, "Wrong recv MPI data at %d %d!=%d\n", (int)(p - (char*)weylxchange_recv[d]), (int)*p, (int)'r');
 				}
 			}
 		}
