@@ -52,6 +52,9 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	if (!nocom) {
 		//if (g_proc_id == 0)
 		//	fprintf(stderr, "MK HM Irecv\n");
+		for (direction d = TUP; d <= YDOWN; d += 1) {
+			memset(weylxchange_recv[d], 'r', weylxchange_size[d]);
+		}
 		MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_recv), weylexchange_request_recv));
 		//MPI_CHECK(MPI_Barrier(g_cart_grid)); // To ensure that all ranks started the receive requests (necessary? how expensive is this?)
 	}
@@ -116,7 +119,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 		bgq_su3_vadd(weyl_tup_v0, spinor_tup_v0, spinor_tup_v2);
 		bgq_su3_vadd(weyl_tup_v1, spinor_tup_v1, spinor_tup_v3);
 
-		// Store the halfspinor to be transfered to the neighbor node
+		// Store the halfspinor to be transferred to the neighbor node
 		bgq_weylsite *weylsite_tup = BGQ_WEYLSITE_T(weylxchange_send[TDOWN/*!!!*/], !isOdd, t+1, xv, y, z, x1, x2, false, true);
 		bgq_su3_weyl_zeroload(weylsite_tup);
 		bgq_su3_weyl_store(weylsite_tup, weyl_tup);
@@ -267,7 +270,16 @@ if (!noweylsend) {
 		{
 			//if (g_proc_id == 0)
 			//	fprintf(stderr, "MK HM Isend\n");
+			for (direction d = TUP; d <= YDOWN; d += 1) {
+				memset(weylxchange_send[d], 's', weylxchange_size[d]);
+			}
 			MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_send), weylexchange_request_send));
+			for (direction d = TUP; d <= YDOWN; d += 1) {
+				for (char *p = (char*)weylxchange_send[d]; p < (char*)weylxchange_send[d] + weylxchange_size[d/2]; p+=1)
+				if (*p != 's') {
+					fprintf(stderr, "Wrong MPI data at %d %d!=%d\n", p - (char*)weylxchange_send[d], *p, 'r');
+				}
+			}
 		}
 	}
 #endif
@@ -321,7 +333,16 @@ if (!nobody) {
 		{
 			//if (g_proc_id == 0)
 			//	fprintf(stderr, "MK HM Isend\n");
+			for (direction d = TUP; d <= YDOWN; d += 1) {
+				memset(weylxchange_recv[d], 's', weylxchange_size[d/2]);
+			}
 			MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_send), weylexchange_request_send));
+			for (direction d = TUP; d <= YDOWN; d += 1) {
+				for (char *p = (char*)weylxchange_recv[d]; p < (char*)weylxchange_recv[d] + weylxchange_size[d/2]; p+=1)
+				if (*p != 'r') {
+					fprintf(stderr, "Wrong MPI data at %d %d!=%d\n", p - (char*)weylxchange_recv[d], *p, 'r');
+				}
+			}
 		}
 	}
 
@@ -338,6 +359,12 @@ if (!nobody) {
 					assert(get_MPI_count(&weylxchange_recv_statuses[d]) == weylxchange_size[d/2]);
 				}
 			#endif
+			for (direction d = TUP; d <= YDOWN; d += 1) {
+				for (char *p = (char*)weylxchange_recv[d]; p < (char*)weylxchange_recv[d] + weylxchange_size[d/2]; p+=1)
+				if (*p != 's') {
+					fprintf(stderr, "Wrong recv MPI data at %d %d!=%d\n", p - (char*)weylxchange_recv[d], *p, 'r');
+				}
+			}
 		}
 	}
 #endif

@@ -96,7 +96,7 @@ void bgq_savebgqref() {
 					fprintf(bgqfile, "t=%d x=%d y=%d: ", t,x,y);
 					for (int z = 0; z < LOCAL_LZ; z += 1) {
 						complexdouble refval = g_refvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z];
-						complexdouble bgqval = g_refvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z];
+						complexdouble bgqval = g_bgqvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z];
 
 						fprintf(reffile, "%8f + %8fi	", creal(refval), cimag(refval));
 						fprintf(bgqfile, "%8f + %8fi	", creal(bgqval), cimag(bgqval));
@@ -109,6 +109,8 @@ void bgq_savebgqref() {
 
 		fclose(reffile);
 		fclose(bgqfile);
+
+		master_print("Cmp data written to %s and %s\n", reffilename, bgqfilename);
 	}
 }
 

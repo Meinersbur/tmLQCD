@@ -2169,7 +2169,7 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
     /************************ end of loop ************************/
   }
 }
-#  elif defined XLC
+#  elif 0
 #define HopVerMsg printf("Hopping_Matrix full_spinor xlc edition");
 static su3_vector psi1, psi2, psi, chi, phi1, phi3;
 
