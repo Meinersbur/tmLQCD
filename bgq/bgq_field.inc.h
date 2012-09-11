@@ -136,6 +136,10 @@ extern bgq_weylfield weylxchange_send[6];
 extern size_t weylxchange_size[3];
 #define weylexchange_destination NAME2(weylexchange_destination,PRECISION)
 extern int weylexchange_destination[6];
+#define weylexchange_request_recv NAME2(weylexchange_request_recv,PRECISION)
+extern MPI_Request weylexchange_request_recv[6];
+#define weylexchange_request_send NAME2(weylexchange_request_send,PRECISION)
+extern MPI_Request weylexchange_request_send[6];
 
 #define bgq_hm_init NAME2(bgq_hm_init,PRECISION)
 void bgq_hm_init();

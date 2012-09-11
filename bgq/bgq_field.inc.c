@@ -262,19 +262,19 @@ void bgq_init_spinorfields(int count) {
 	g_num_spinorfields = count;
 	int datasize = count * sizeof(*g_spinorfields_data) * VOLUME_SITES;
 	g_spinorfields_data = malloc_aligned(datasize, 128);
-#if BGQ_FIELD_COORDCHECK
-	g_spinorfields_data_coords = malloc_aligned(datasize, 128);
-#endif
+	#if BGQ_FIELD_COORDCHECK
+		g_spinorfields_data_coords = malloc_aligned(datasize, 128);
+	#endif
 
 	g_spinorfields = malloc(count * sizeof(*g_spinorfields));
-#if BGQ_FIELD_COORDCHECK
-	g_spinorfield_isOdd = malloc(count * sizeof(*g_spinorfield_isOdd));
-#endif
+	#if BGQ_FIELD_COORDCHECK
+		g_spinorfield_isOdd = malloc(count * sizeof(*g_spinorfield_isOdd));
+	#endif
 	for (int i = 0; i < count; i += 1) {
 		g_spinorfields[i] = g_spinorfields_data + i * VOLUME_SITES;
-#if BGQ_FIELD_COORDCHECK
-		g_spinorfield_isOdd[i] = -1; // Unknown yet
-#endif
+		#if BGQ_FIELD_COORDCHECK
+			g_spinorfield_isOdd[i] = -1; // Unknown yet
+		#endif
 	}
 }
 
@@ -1061,6 +1061,8 @@ bgq_weylfield weylxchange_recv[6];
 bgq_weylfield weylxchange_send[6];
 size_t weylxchange_size[3];
 int weylexchange_destination[6];
+MPI_Request weylexchange_request_recv[6];
+MPI_Request weylexchange_request_send[6];
 
 #if BGQ_FIELD_COORDCHECK
 static bgq_weylcoord *weylxchange_recv_debug[PHYSICAL_LP][6];
@@ -1075,24 +1077,29 @@ void bgq_hm_init() {
 	weylxchange_size[XUP / 2] = PHYSICAL_LTV * PHYSICAL_LY * PHYSICAL_LZ * sizeof(bgq_weylsite);
 	weylxchange_size[YUP / 2] = PHYSICAL_LTV * PHYSICAL_LX * PHYSICAL_LZ * sizeof(bgq_weylsite);
 
-	for (direction d = TUP; d <= YDOWN; d += 1) {
-		size_t size = weylxchange_size[d/2];
-		weylxchange_recv[d] = (bgq_weylfield)malloc_aligned(size, 128);
-		weylxchange_send[d] = (bgq_weylfield)malloc_aligned(size, 128);
-#if BGQ_FIELD_COORDCHECK
-		for (int isOdd = false; isOdd <= true; isOdd += 1) {
-			weylxchange_recv_debug[isOdd][d] = (bgq_weylcoord*) malloc_aligned(size, 128);
-			weylxchange_send_debug[isOdd][d] = (bgq_weylcoord*) malloc_aligned(size, 128);
-		}
-#endif
-	}
-
 	weylexchange_destination[TUP] = g_nb_t_up;
 	weylexchange_destination[TDOWN] = g_nb_t_dn;
 	weylexchange_destination[XUP] = g_nb_x_up;
 	weylexchange_destination[XDOWN] = g_nb_x_dn;
 	weylexchange_destination[YUP] = g_nb_y_up;
 	weylexchange_destination[YDOWN] = g_nb_y_dn;
+
+	for (direction d = TUP; d <= YDOWN; d += 1) {
+		size_t size = weylxchange_size[d/2];
+		weylxchange_recv[d] = (bgq_weylfield)malloc_aligned(size, 128);
+		weylxchange_send[d] = (bgq_weylfield)malloc_aligned(size, 128);
+		#if BGQ_FIELD_COORDCHECK
+				for (int isOdd = false; isOdd <= true; isOdd += 1) {
+					weylxchange_recv_debug[isOdd][d] = (bgq_weylcoord*) malloc_aligned(size, 128);
+					weylxchange_send_debug[isOdd][d] = (bgq_weylcoord*) malloc_aligned(size, 128);
+				}
+		#endif
+
+		MPI_CHECK(MPI_Recv_init(weylxchange_recv[d], weylxchange_size[d/2], MPI_BYTE, weylexchange_destination[d], d^1, MPI_COMM_WORLD, &weylexchange_request_recv[d]));
+		MPI_CHECK(MPI_Send_init(weylxchange_send[d], weylxchange_size[d/2], MPI_BYTE, weylexchange_destination[d], d, MPI_COMM_WORLD, &weylexchange_request_send[d]));
+	}
+
+
 
 #pragma omp parallel
 	{
@@ -1124,6 +1131,9 @@ void bgq_hm_free() {
 			weylxchange_send_debug[isOdd][d] = NULL;
 		}
 #endif
+
+		MPI_Request_free(&weylexchange_request_recv[d]);
+		MPI_Request_free(&weylexchange_request_send[d]);
 	}
 
 #if BGQ_PREFETCH_LIST

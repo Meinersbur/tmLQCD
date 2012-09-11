@@ -182,9 +182,11 @@ int main(int argc, char *argv[])
 
 	verbose = 0;
 
-	MPI_Init(&argc, &argv);
+	//MPI_Init(&argc, &argv);
+	int provided_threadlevel;
+	MPI_CHECK(MPI_Init_thread(&argc, &argv, MPI_THREAD_SERIALIZED, &provided_threadlevel));
 	/* GG */
-	MPI_Comm_rank(MPI_COMM_WORLD, &g_proc_id);
+	MPI_CHECK(MPI_Comm_rank(MPI_COMM_WORLD, &g_proc_id));
 #endif
 	g_rgi_C1 = 1.;
 

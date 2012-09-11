@@ -63,7 +63,7 @@ void bgq_savebgqref() {
 		snprintf(filename, sizeof(filename)-1, "cmp_%d.txt", i);
 
 		struct stat buf;
-		if (stat(filename, &buf) == -1) {
+		if (stat(filename, &buf) != -1) {
 			i += 1;
 			continue;
 		}
