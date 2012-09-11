@@ -49,16 +49,10 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	uint64_t generate_depth;
 
 #ifdef MPI
-	MPI_Request request_recv[6];
 	if (!nocom) {
-		//TODO: Persistent communication
 		//if (g_proc_id == 0)
 		//	fprintf(stderr, "MK HM Irecv\n");
-
-		for (int d = TUP; d <= YDOWN; d += 1) {
-			MPI_CHECK(MPI_Irecv(weylxchange_recv[d], weylxchange_size[d/2], MPI_BYTE, weylexchange_destination[d], d^1, MPI_COMM_WORLD, &request_recv[d]));
-		}
-
+		MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_recv), weylexchange_request_recv));
 		//MPI_CHECK(MPI_Barrier(g_cart_grid)); // To ensure that all ranks started the receive requests (necessary? how expensive is this?)
 	}
 #endif
@@ -273,10 +267,7 @@ if (!noweylsend) {
 		{
 			//if (g_proc_id == 0)
 			//	fprintf(stderr, "MK HM Isend\n");
-			MPI_Request request_send[6];
-			for (int d = TUP; d <= YDOWN; d += 1) {
-				MPI_CHECK(MPI_Isend(weylxchange_send[d], weylxchange_size[d/2], MPI_BYTE, weylexchange_destination[d], d, MPI_COMM_WORLD, &request_send[d]));
-			}
+			MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_send), weylexchange_request_send));
 		}
 	}
 #endif
@@ -330,10 +321,7 @@ if (!nobody) {
 		{
 			//if (g_proc_id == 0)
 			//	fprintf(stderr, "MK HM Isend\n");
-			MPI_Request request_send[6];
-			for (int d = TUP; d <= YDOWN; d += 1) {
-				MPI_CHECK(MPI_Isend(weylxchange_send[d], weylxchange_size[d/2], MPI_BYTE, weylexchange_destination[d], d, MPI_COMM_WORLD, &request_send[d]));
-			}
+			MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_send), weylexchange_request_send));
 		}
 	}
 
@@ -342,12 +330,12 @@ if (!nobody) {
 		{
 			//if (g_proc_id == 0)
 			//	fprintf(stderr, "MK HM Waitall\n");
-			MPI_Status weylxchange_recv_status[6];
-			MPI_CHECK(MPI_Waitall(6, request_recv, weylxchange_recv_status));
+			MPI_Status weylxchange_recv_statuses[6];
+			MPI_CHECK(MPI_Waitall(lengthof(weylexchange_request_recv), weylexchange_request_recv, weylxchange_recv_statuses));
 			#ifndef NDEBUG
 				for (int d = TUP; d <= YDOWN; d += 1) {
 					//fprintf(stderr, "MK(rank: %d) Waitall got: %d, expected: %d\n", g_proc_id, get_MPI_count(&weylxchange_recv_status[d]), weylxchange_size[d]);
-					assert(get_MPI_count(&weylxchange_recv_status[d]) == weylxchange_size[d/2]);
+					assert(get_MPI_count(&weylxchange_recv_statuses[d]) == weylxchange_size[d/2]);
 				}
 			#endif
 		}
