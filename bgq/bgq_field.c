@@ -5,6 +5,8 @@
  *      Author: meinersbur
  */
 
+#define BGQ_FIELD_C_H_
+
 #include "bgq_field.h"
 #include "bgq_field_double.h"
 #include "bgq_field_float.h"
@@ -146,6 +148,11 @@ void bgq_free_spinorfields_allprec() {
 	g_spinor_surface_zline_order = NULL;
 }
 
+
+//double recvbuf;
+//MPI_Request recvrequest;
+//double sendbuf;
+//MPI_Request sendrequest;
 
 void bgq_hm_init_allprec() {
 	bgq_hm_init_double();

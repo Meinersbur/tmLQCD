@@ -141,6 +141,15 @@ extern MPI_Request weylexchange_request_recv[6];
 #define weylexchange_request_send NAME2(weylexchange_request_send,PRECISION)
 extern MPI_Request weylexchange_request_send[6];
 
+#define recvbuf NAME2(recvbuf,PRECISION)
+//extern double recvbuf;
+#define recvrequest NAME2(recvrequest,PRECISION)
+extern MPI_Request recvrequest;
+#define sendbuf NAME2(sendbuf,PRECISION)
+//extern double sendbuf;
+#define sendrequest NAME2(sendrequest,PRECISION)
+extern MPI_Request sendrequest;
+
 #define bgq_hm_init NAME2(bgq_hm_init,PRECISION)
 void bgq_hm_init();
 #define bgq_hm_free NAME2(bgq_hm_free,PRECISION)
@@ -167,6 +176,55 @@ bool assert_weylfield_y(bgq_weylfield weylfield, bool isOdd, int t, int x, int y
 #define bgq_weylfield_y_resetcoord NAME2(bgq_weylfield_y_resetcoord,PRECISION)
 void bgq_weylfield_y_resetcoord(bgq_weylfield weylfield, int y, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max);
 
+#define bgq_weylfield_setcoordfield NAME2(bgq_weylfield_setcoordfield,PRECISION)
+static inline void bgq_weylfield_setcoordfield(bgq_weylfield weylfield, direction dir, bool isOdd, bool isSend) {
+
+	if (isSend) {
+		switch (dir) {
+		case XDOWN:
+		case XUP: {
+			//for (direction d = XUP; d <= XDOWN; d+=1)
+				for (int tv = 0; tv < PHYSICAL_LTV; tv+=1)
+					for (int y = 0; y < LOCAL_LY; y+=1)
+						for (int z = 0; z < LOCAL_LY; z+=1) {
+							int x = (dir==XUP) ? -1 : LOCAL_LX;
+							const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
+							const int t2 = t1 + 2;
+							bgq_weylsite *weylsite_send = BGQ_WEYLSITE_X(weylfield, !isOdd, tv, x + 2*(dir==XUP)-1, y, z, t1, t2, false, false);
+							for (int i = 0; i < 2; i+=1)
+								for (int l = 0; l < 3; l+=1) {
+									weylsite_send->s[i][l][0] = t1 + dir*_Complex_I;
+									weylsite_send->s[i][l][0] = t2 + dir*_Complex_I;
+								}
+						}
+		} break;
+		default:
+			break;
+		}
+	} else {
+		switch (dir) {
+		case XDOWN:
+		case XUP: {
+			//for (direction d = XUP; d <= XDOWN; d+=1)
+						for (int tv = 0; tv < PHYSICAL_LTV; tv+=1)
+							for (int y = 0; y < LOCAL_LY; y+=1)
+								for (int z = 0; z < LOCAL_LY; z+=1) {
+									int x = (dir==XUP) ?  LOCAL_LX-1 : 0;
+									const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
+									const int t2 = t1 + 2;
+									bgq_weylsite *weylsite_recv = BGQ_WEYLSITE_X(weylfield, !isOdd, tv, x + 2*(dir==XUP)-1, y, z, t1, t2, false, false);
+									for (int i = 0; i < 2; i+=1)
+										for (int l = 0; l < 3; l+=1) {
+											weylsite_recv->s[i][l][0] = t1 - dir*_Complex_I;
+											weylsite_recv->s[i][l][0] = t2 - dir*_Complex_I;
+										}
+								}
+		} break;
+		default:
+			break;
+		}
+	}
+}
 
 
 //#ifndef BGQ_FIELD_INC_C_

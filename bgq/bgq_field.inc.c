@@ -1072,6 +1072,13 @@ static bgq_weylcoord *weylxchange_send_debug[PHYSICAL_LP][6];
 static bool l1p_first = true;
 
 
+
+//double recvbuf;
+MPI_Request recvrequest;
+//double sendbuf;
+MPI_Request sendrequest;
+
+
 void bgq_hm_init() {
 	weylxchange_size[TUP / 2] = PHYSICAL_LXV * PHYSICAL_LY * PHYSICAL_LZ * sizeof(bgq_weylsite);
 	weylxchange_size[XUP / 2] = PHYSICAL_LTV * PHYSICAL_LY * PHYSICAL_LZ * sizeof(bgq_weylsite);
@@ -1084,6 +1091,7 @@ void bgq_hm_init() {
 	weylexchange_destination[YUP] = g_nb_y_up;
 	weylexchange_destination[YDOWN] = g_nb_y_dn;
 
+	master_print("g_proc_id=%d g_cart_id=%d\n", g_proc_id, g_cart_id);
 	for (direction d = TUP; d <= YDOWN; d += 1) {
 		size_t size = weylxchange_size[d/2];
 		weylxchange_recv[d] = (bgq_weylfield)malloc_aligned(size, 128);
@@ -1095,10 +1103,13 @@ void bgq_hm_init() {
 				}
 		#endif
 
-		MPI_CHECK(MPI_Recv_init(weylxchange_recv[d], weylxchange_size[d/2], MPI_BYTE, weylexchange_destination[d], d^1, MPI_COMM_WORLD, &weylexchange_request_recv[d]));
-		MPI_CHECK(MPI_Send_init(weylxchange_send[d], weylxchange_size[d/2], MPI_BYTE, weylexchange_destination[d], d, MPI_COMM_WORLD, &weylexchange_request_send[d]));
+		MPI_CHECK(MPI_Recv_init(weylxchange_recv[d], size / PRECISION_BYTES, MPI_PRECISION, weylexchange_destination[d], weylexchange_destination[d], MPI_COMM_WORLD, &(weylexchange_request_recv[d])));
+		MPI_CHECK(MPI_Send_init(weylxchange_send[d], size / PRECISION_BYTES, MPI_PRECISION, weylexchange_destination[d], g_cart_id, MPI_COMM_WORLD, &(weylexchange_request_send[d])));
 	}
 
+
+	MPI_CHECK(MPI_Recv_init(weylxchange_recv[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_dn, g_nb_t_dn, MPI_COMM_WORLD, &recvrequest));
+	MPI_CHECK(MPI_Send_init(weylxchange_send[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_up, g_proc_id, MPI_COMM_WORLD, &sendrequest));
 
 
 #pragma omp parallel
@@ -1195,6 +1206,8 @@ static void bgq_weylfield_checkcoord(bgq_weylfield weylfield, bool isOdd, int t,
 	}
 }
 #endif
+
+
 
 
 void bgq_weylfield_t_resetcoord(bgq_weylfield weylfield, int t, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max) {

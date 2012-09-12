@@ -11,7 +11,8 @@
 #undef PRECISION_DOUBLE
 #undef PRECISION_FLOAT
 #undef PRECISION_BITS
-
+#undef PRECISION_BYTES
+#undef MPI_PRECISION
 
 #ifndef BGQ_PRECISION
 	// Just undef everything
@@ -23,6 +24,8 @@
 		#define PRECISION_DOUBLE 1
 		#define PRECISION_FLOAT 0
 		#define PRECISION_BITS 64
+		#define PRECISION_BYTES 8
+		#define MPI_PRECISION MPI_DOUBLE
 	#elif (BGQ_PRECISION==32)
 		// single precision
 		#define PRECISION float
@@ -30,6 +33,8 @@
 		#define PRECISION_DOUBLE 0
 		#define PRECISION_FLOAT 1
 		#define PRECISION_BITS 32
+		#define PRECISION_BYTES 4
+		#define MPI_PRECISION MPI_FLOAT
 	#else
 		#warning Unsupported precision
 	#endif

@@ -13,6 +13,8 @@
 //#include <complex.h>
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifndef BGQ_UTILS_C_
 #define EXTERN_INLINE inline
@@ -88,7 +90,7 @@ EXTERN_INLINE complex c992cs(double _Complex c99) {
 
 EXTERN_INLINE int get_MPI_count(MPI_Status *status) {
 	int count;
-	MPI_Get_count(status, MPI_BYTE, &count);
+	MPI_CHECK(MPI_Get_count(status, MPI_BYTE, &count));
 	return count;
 }
 

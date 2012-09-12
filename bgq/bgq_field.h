@@ -205,7 +205,9 @@ enum {
 	BGQREF_TUP,
 	BGQREF_TDOWN,
 	BGQREF_XUP,
+	BGQREF_XUP_WEYLSEND,
 	BGQREF_XDOWN,
+	BGQREF_XDOWN_WEYLREAD,
 	BGQREF_YUP,
 	BGQREF_YDOWN,
 	BGQREF_ZUP,
@@ -218,6 +220,9 @@ void bgq_initbgqref();
 void bgq_setrefvalue(int t, int x, int y, int z, int idx, complexdouble val, char *desc);
 void bgq_setbgqvalue(int t, int x, int y, int z, int idx, complexdouble val, char *desc);
 void bgq_savebgqref();
+
+
+
 
 
 #undef EXTERN_INLINE
