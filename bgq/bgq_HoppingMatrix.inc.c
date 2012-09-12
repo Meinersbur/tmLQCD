@@ -53,7 +53,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 		//if (g_proc_id == 0)
 		//	fprintf(stderr, "MK HM Irecv\n");
 		for (direction d = TUP; d <= YDOWN; d += 1) {
-			memset(weylxchange_recv[d], 'r', weylxchange_size[d]);
+			memset(weylxchange_recv[d], 'r', weylxchange_size[d/2]);
 		}
 		MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_recv), weylexchange_request_recv));
 		//MPI_CHECK(MPI_Barrier(g_cart_grid)); // To ensure that all ranks started the receive requests (necessary? how expensive is this?)
