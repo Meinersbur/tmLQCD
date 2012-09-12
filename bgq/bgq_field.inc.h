@@ -141,6 +141,15 @@ extern MPI_Request weylexchange_request_recv[6];
 #define weylexchange_request_send NAME2(weylexchange_request_send,PRECISION)
 extern MPI_Request weylexchange_request_send[6];
 
+#define recvbuf NAME2(recvbuf,PRECISION)
+//extern double recvbuf;
+#define recvrequest NAME2(recvrequest,PRECISION)
+extern MPI_Request recvrequest;
+#define sendbuf NAME2(sendbuf,PRECISION)
+//extern double sendbuf;
+#define sendrequest NAME2(sendrequest,PRECISION)
+extern MPI_Request sendrequest;
+
 #define bgq_hm_init NAME2(bgq_hm_init,PRECISION)
 void bgq_hm_init();
 #define bgq_hm_free NAME2(bgq_hm_free,PRECISION)
@@ -167,6 +176,8 @@ bool assert_weylfield_y(bgq_weylfield weylfield, bool isOdd, int t, int x, int y
 #define bgq_weylfield_y_resetcoord NAME2(bgq_weylfield_y_resetcoord,PRECISION)
 void bgq_weylfield_y_resetcoord(bgq_weylfield weylfield, int y, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max);
 
+//#define bgq_weylfield_setcoord NAME2(bgq_weylfield_setcoord,PRECISION)
+//static void bgq_weylfield_setcoord(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, int z, int v, int c, COMPLEX_PRECISION *value);
 
 
 //#ifndef BGQ_FIELD_INC_C_

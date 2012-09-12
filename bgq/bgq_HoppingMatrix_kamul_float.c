@@ -16,8 +16,10 @@
 #define BGQ_PRECISION 32
 #include "bgq_precisionselect.inc.c"
 
+#ifndef XLC
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
 
 #if !defined(BGQ_HM_NOKAMUL) || (BGQ_HM_NOKAMUL==0)
 #define BGQ_HM_NOKAMUL 0
