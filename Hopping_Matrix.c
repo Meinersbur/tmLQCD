@@ -2625,9 +2625,11 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
 #    endif
 
     _vector_i_sub(psi,(*sm).s0,(*sm).s3);
-    if ( (x== 0) || (x==LX-1) ) {
-    	bgq_setrefvalue(t, x, y, z, BGQREF_XDOWN_WEYLREAD, c2c(psi.c0), "weyl_recv_xdown");
-    	bgq_setrefvalue(t, x, y, z, BGQREF_XUP_WEYLSEND, c2c(psi.c0), "weyl_send_xdown");
+    if ( x==0 ) {
+    	bgq_setrefvalue(t, x-1, y, z, BGQREF_XDOWN_SENDBUF, c2c(psi.c0), "weyl_xdown_sendbuf");
+    }
+    if ( x==LX-1 ) {
+        bgq_setrefvalue(t, x+1, y, z, BGQREF_XUP_SENDBUF, c2c(psi.c0), "weyl_xup_sendbuf");
     }
 
     _su3_inverse_multiply(chi,(*um),psi);

@@ -419,7 +419,7 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 		}
 
 #if BGQ && XLC
-#pragma tm_atomic
+#pragma omp tm_atomic
 #else
 #pragma omp critical
 #endif
@@ -1103,13 +1103,13 @@ void bgq_hm_init() {
 				}
 		#endif
 
-		MPI_CHECK(MPI_Recv_init(weylxchange_recv[d], size / PRECISION_BYTES, MPI_PRECISION, weylexchange_destination[d], weylexchange_destination[d], MPI_COMM_WORLD, &(weylexchange_request_recv[d])));
-		MPI_CHECK(MPI_Send_init(weylxchange_send[d], size / PRECISION_BYTES, MPI_PRECISION, weylexchange_destination[d], g_cart_id, MPI_COMM_WORLD, &(weylexchange_request_send[d])));
+		MPI_CHECK(MPI_Recv_init(weylxchange_recv[d], size / PRECISION_BYTES, MPI_PRECISION, weylexchange_destination[d], d^1, MPI_COMM_WORLD, &(weylexchange_request_recv[d])));
+		MPI_CHECK(MPI_Send_init(weylxchange_send[d], size / PRECISION_BYTES, MPI_PRECISION, weylexchange_destination[d], d, MPI_COMM_WORLD, &(weylexchange_request_send[d])));
 	}
 
 
-	MPI_CHECK(MPI_Recv_init(weylxchange_recv[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_dn, g_nb_t_dn, MPI_COMM_WORLD, &recvrequest));
-	MPI_CHECK(MPI_Send_init(weylxchange_send[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_up, g_proc_id, MPI_COMM_WORLD, &sendrequest));
+	MPI_CHECK(MPI_Recv_init(weylxchange_recv[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_dn, 0, MPI_COMM_WORLD, &recvrequest));
+	MPI_CHECK(MPI_Send_init(weylxchange_send[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_up, 0, MPI_COMM_WORLD, &sendrequest));
 
 
 #pragma omp parallel
@@ -1534,6 +1534,58 @@ bool assert_weylfield_y(bgq_weylfield weylfield, bool isOdd, int t, int x, int y
 	return true;
 }
 
+
+static void bgq_weylfield_x_foreach(bgq_weylfield weylfield, direction dir, bool isSend, bool isOdd, bgq_weylsite_callback callback, int tag) {
+	assert(weylfield);
+	assert( (dir==XUP) || (dir==XDOWN) );
+	assert(callback);
+
+	int x;
+	int xsrc;
+	switch (dir) {
+	case XUP:
+		x = isSend ? LOCAL_LX : LOCAL_LX-1;
+		xsrc = isSend ? LOCAL_LX-1 : LOCAL_LX;
+		break;
+	case XDOWN:
+		x = isSend ? -1 : 0;
+		xsrc = isSend ? 0 : -1;
+		break;
+	}
+
+	#pragma omp for schedule(static)
+	for (int tyz = 0; tyz < PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ; tyz+=1) {
+		WORKLOAD_DECL(tyz,PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ);
+		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
+		const int y = WORKLOAD_PARAM(PHYSICAL_LY);
+		const int z = WORKLOAD_PARAM(PHYSICAL_LZ);
+		WORKLOAD_CHECK
+
+		const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
+		const int t2 = t1 + 2;
+
+		bgq_weylsite *weylsite = BGQ_WEYLSITE_X(weylfield, !isOdd, tv, xsrc, y, z, t1, t2, false, false);
+
+		for (int v = 0; v < 2; v+=1) {
+			for (int c = 0; c < 3; c+=1) {
+				(*callback)(weylfield, dir, isSend, isOdd, t1, x,y,z,v,c, &weylsite->s[v][c][0], tag);
+				(*callback)(weylfield, dir, isSend, isOdd, t2, x,y,z,v,c, &weylsite->s[v][c][1], tag);
+			}
+		}
+	}
+}
+
+void bgq_weylfield_foreach(bgq_weylfield weylfield, direction dir, bool isSend, bool isOdd, bgq_weylsite_callback callback, int tag) {
+	switch (dir) {
+	case XUP:
+	case XDOWN:
+		bgq_weylfield_x_foreach(weylfield,dir,isSend,isOdd,callback,tag);
+		break;
+	default:
+		assert(!"Not yet implemented");
+		break;
+	}
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 

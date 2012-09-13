@@ -40,8 +40,8 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		bgq_su3_weyl_loadorprefetch(weyl_xdown, weylsite_xdown);
 
 		#if !BGQ_HM_XDOWN_PREFETCH
-			bgq_setbgqvalue(t1, x, y, z, BGQREF_XDOWN_WEYLREAD, bgq_cmplxval1(weyl_xdown_v0_c0), "weyl_recv_xdown");
-			bgq_setbgqvalue(t2, x, y, z, BGQREF_XDOWN_WEYLREAD, bgq_cmplxval2(weyl_xdown_v0_c0), "weyl_recv_xdown");
+			//bgq_setbgqvalue(t1, x, y, z, BGQREF_XDOWN_WEYLREAD, bgq_cmplxval1(weyl_xdown_v0_c0), "weyl_recv_xdown");
+			//bgq_setbgqvalue(t2, x, y, z, BGQREF_XDOWN_WEYLREAD, bgq_cmplxval2(weyl_xdown_v0_c0), "weyl_recv_xdown");
 		#endif
 #endif
 #if BGQ_HM_XDOWN_WEYLREAD==-1

@@ -6,6 +6,7 @@
  */
 
 #include "bgq_field.h"
+#include <omp.h>
 
 #ifndef BGQ_PRECISION
 #warning Specify a precision before including this file
@@ -175,6 +176,25 @@ bool assert_weylval_y(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, 
 bool assert_weylfield_y(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, int z, int tv, int k, bool isRead, bool isWrite);
 #define bgq_weylfield_y_resetcoord NAME2(bgq_weylfield_y_resetcoord,PRECISION)
 void bgq_weylfield_y_resetcoord(bgq_weylfield weylfield, int y, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max);
+
+
+#define bgq_weylsite_callback NAME2(bgq_weylsite_callback,PRECISION)
+typedef void (*bgq_weylsite_callback)(bgq_weylfield weylfield, direction dir, bool isSend, bool isOdd, int t, int x, int y, int z, int v, int c, COMPLEX_PRECISION *val, int tag);
+
+#define bgq_weylfield_foreach NAME2(bgq_weylfield_foreach,PRECISION)
+void bgq_weylfield_foreach(bgq_weylfield weylfield, direction dir, bool isSend, bool isOdd, bgq_weylsite_callback callback, int tag);
+
+
+#define bgq_setbgqval NAME2(bgq_setbgqval,PRECISION)
+static void bgq_setbgqval(bgq_weylfield weylfield, direction dir, bool isSend, bool isOdd, int t, int x, int y, int z, int v, int c, COMPLEX_PRECISION *val, int tag) {
+	if ( (v==0) && (c==0) ) {
+		char buf[20];
+		snprintf(buf, sizeof(buf), "bgqval%d", tag);
+		bgq_setbgqvalue(t,x,y,z,tag,*val,buf);
+	}
+}
+
+
 
 #define bgq_expected NAME2(bgq_expected,PRECISION)
 static COMPLEX_PRECISION bgq_expected(direction dir, bool isOdd, int t, int x, int y, int z, int v, int c, bool isSend, int tag) {

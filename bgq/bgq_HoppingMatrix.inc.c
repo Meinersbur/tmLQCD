@@ -102,10 +102,10 @@ if (!nocom) {
 			memset(weylxchange_recv[d], 0xFF, weylxchange_size[d/2]);
 			memset(weylxchange_send[d], 0xFE, weylxchange_size[d/2]);
 		}
-		bgq_weylfield_setcoordfield(weylxchange_send[XUP], XUP, isOdd, true,2);
-		bgq_weylfield_setcoordfield(weylxchange_send[XDOWN], XDOWN, isOdd, true,2);
-		bgq_weylfield_setcoordfield(weylxchange_recv[XUP], XUP, isOdd, false,2);
-		bgq_weylfield_setcoordfield(weylxchange_recv[XDOWN], XDOWN, isOdd, false,2);
+		//bgq_weylfield_setcoordfield(weylxchange_send[XUP], XUP, isOdd, true,2);
+		//bgq_weylfield_setcoordfield(weylxchange_send[XDOWN], XDOWN, isOdd, true,2);
+		//bgq_weylfield_setcoordfield(weylxchange_recv[XUP], XUP, isOdd, false,2);
+		//bgq_weylfield_setcoordfield(weylxchange_recv[XDOWN], XDOWN, isOdd, false,2);
 	#endif
 	MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_recv), weylexchange_request_recv));
 	//MPI_CHECK(MPI_Barrier(g_cart_grid)); // To ensure that all ranks started the receive requests (necessary? how expensive is this?)
@@ -312,10 +312,12 @@ if (!noweylsend) {
 			//for (direction d = TUP; d <= YDOWN; d += 1) {
 			//	memset(weylxchange_send[d], 's', weylxchange_size[d/2]);
 			//}
-			bgq_weylfield_setcoordfield(weylxchange_send[XUP], XUP, isOdd, true,3);
-			bgq_weylfield_setcoordfield(weylxchange_send[XDOWN], XDOWN, isOdd, true,3);
-			bgq_weylfield_setcoordfield(weylxchange_recv[XUP], XUP, isOdd, false,4);
-			bgq_weylfield_setcoordfield(weylxchange_recv[XDOWN], XDOWN, isOdd, false,4);
+			//bgq_weylfield_setcoordfield(weylxchange_send[XUP], XUP, isOdd, true,3);
+			//bgq_weylfield_setcoordfield(weylxchange_send[XDOWN], XDOWN, isOdd, true,3);
+			//bgq_weylfield_setcoordfield(weylxchange_recv[XUP], XUP, isOdd, false,4);
+			//bgq_weylfield_setcoordfield(weylxchange_recv[XDOWN], XDOWN, isOdd, false,4);
+			bgq_weylfield_foreach(weylxchange_send[XUP], XUP, true, isOdd, &bgq_setbgqval, BGQREF_XUP_SENDBUF);
+			bgq_weylfield_foreach(weylxchange_send[XDOWN], XDOWN, true, isOdd, &bgq_setbgqval, BGQREF_XDOWN_SENDBUF);
 			MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_send), weylexchange_request_send));
 			//for (direction d = TUP; d <= YDOWN; d += 1) {
 			//	for (char *p = (char*)weylxchange_send[d]; p < (char*)weylxchange_send[d] + weylxchange_size[d/2]; p+=1)
@@ -378,10 +380,10 @@ if (!nobody) {
 			//for (direction d = TUP; d <= YDOWN; d += 1) {
 			//	memset(weylxchange_send[d], 's', weylxchange_size[d/2]);
 			//}
-			bgq_weylfield_setcoordfield(weylxchange_send[XUP], XUP, isOdd, true,3);
-			bgq_weylfield_setcoordfield(weylxchange_send[XDOWN], XDOWN, isOdd, true,3);
-			bgq_weylfield_setcoordfield(weylxchange_recv[XUP], XUP, isOdd, false,4);
-			bgq_weylfield_setcoordfield(weylxchange_recv[XDOWN], XDOWN, isOdd, false,4);
+			//bgq_weylfield_setcoordfield(weylxchange_send[XUP], XUP, isOdd, true,3);
+			//bgq_weylfield_setcoordfield(weylxchange_send[XDOWN], XDOWN, isOdd, true,3);
+			//bgq_weylfield_setcoordfield(weylxchange_recv[XUP], XUP, isOdd, false,4);
+			//bgq_weylfield_setcoordfield(weylxchange_recv[XDOWN], XDOWN, isOdd, false,4);
 			MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_send), weylexchange_request_send));
 			//for (direction d = TUP; d <= YDOWN; d += 1) {
 			//	for (char *p = (char*)weylxchange_send[d]; p < (char*)weylxchange_send[d] + weylxchange_size[d/2]; p+=1)
@@ -395,12 +397,12 @@ if (!nobody) {
 	if (!nocom) {
 		#pragma omp master
 		{
-			master_print("MK HM Waitall\n");
+			master_print("MK HM Waitall recv\n");
 			MPI_Status weylxchange_recv_statuses[6];
 			MPI_CHECK(MPI_Waitall(lengthof(weylexchange_request_recv), weylexchange_request_recv, weylxchange_recv_statuses));
 			master_print("length=%d weylexchange_request_recv=%d weylxchange_recv_statuses=%d\n", lengthof(weylexchange_request_recv), (int)weylexchange_request_recv, (int)weylxchange_recv_statuses);
-			bgq_weylfield_cmpcoordfield(weylxchange_recv[XUP], XUP, isOdd, false,3);
-			bgq_weylfield_cmpcoordfield(weylxchange_recv[XDOWN], XDOWN, isOdd, false,3);
+			//bgq_weylfield_cmpcoordfield(weylxchange_recv[XUP], XUP, isOdd, false,3);
+			//bgq_weylfield_cmpcoordfield(weylxchange_recv[XDOWN], XDOWN, isOdd, false,3);
 
 			//for (direction d = TUP; d <= YDOWN; d += 1) {
 			//	for (char *p = (char*)weylxchange_recv[d]; p < (char*)weylxchange_recv[d] + weylxchange_size[d/2]; p+=1)
@@ -409,14 +411,15 @@ if (!nobody) {
 			//	}
 			//}
 
+			master_print("MK HM Waitall send\n");
 			MPI_Status weylxchange_send_statuses[6];
 			MPI_CHECK(MPI_Waitall(lengthof(weylexchange_request_send), weylexchange_request_send, weylxchange_send_statuses));
-
+			//master_print("MK HM Waited\n");
 			#ifndef NDEBUG
 				for (int d = TUP; d <= YDOWN; d += 1) {
-					//fprintf(stderr, "MK(rank: %d) Waitall got: %d, expected: %d\n", g_proc_id, get_MPI_count(&weylxchange_recv_status[d]), weylxchange_size[d]);
-					//assert(get_MPI_count(&weylxchange_recv_statuses[d]) == weylxchange_size[d/2]);
-					//assert(get_MPI_count(&weylxchange_send_statuses[d]) == 0);
+					master_print("MK(rank: %d) Waitall direction %d got: %d, expected: %d\n", g_proc_id, d, get_MPI_count(&weylxchange_recv_statuses[d]), weylxchange_size[d/2]);
+					assert(get_MPI_count(&weylxchange_recv_statuses[d]) == weylxchange_size[d/2]);
+					assert(get_MPI_count(&weylxchange_send_statuses[d]) == 0);
 				}
 			#endif
 		}
