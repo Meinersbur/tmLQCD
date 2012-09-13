@@ -176,9 +176,19 @@ bool assert_weylfield_y(bgq_weylfield weylfield, bool isOdd, int t, int x, int y
 #define bgq_weylfield_y_resetcoord NAME2(bgq_weylfield_y_resetcoord,PRECISION)
 void bgq_weylfield_y_resetcoord(bgq_weylfield weylfield, int y, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max);
 
-#define bgq_weylfield_setcoordfield NAME2(bgq_weylfield_setcoordfield,PRECISION)
-static inline void bgq_weylfield_setcoordfield(bgq_weylfield weylfield, direction dir, bool isOdd, bool isSend) {
+#define bgq_expected NAME2(bgq_expected,PRECISION)
+static COMPLEX_PRECISION bgq_expected(direction dir, bool isOdd, int t, int x, int y, int z, int v, int c, bool isSend, int tag) {
+	COMPLEX_PRECISION result = t + (tag + 0.1*dir)*_Complex_I;
 
+	if (!isSend) {
+		result = conj(result);
+	}
+
+	return result;
+}
+
+#define bgq_weylfield_setcoordfield NAME2(bgq_weylfield_setcoordfield,PRECISION)
+static void bgq_weylfield_setcoordfield(bgq_weylfield weylfield, direction dir, bool isOdd, bool isSend, int tag) {
 	if (isSend) {
 		switch (dir) {
 		case XDOWN:
@@ -191,10 +201,10 @@ static inline void bgq_weylfield_setcoordfield(bgq_weylfield weylfield, directio
 							const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
 							const int t2 = t1 + 2;
 							bgq_weylsite *weylsite_send = BGQ_WEYLSITE_X(weylfield, !isOdd, tv, x + 2*(dir==XUP)-1, y, z, t1, t2, false, false);
-							for (int i = 0; i < 2; i+=1)
-								for (int l = 0; l < 3; l+=1) {
-									weylsite_send->s[i][l][0] = t1 + dir*_Complex_I;
-									weylsite_send->s[i][l][0] = t2 + dir*_Complex_I;
+							for (int v = 0; v < 2; v+=1)
+								for (int c = 0; c < 3; c+=1) {
+									weylsite_send->s[v][c][0] = bgq_expected(dir, isOdd, t1, x, y, z, v, c, isSend,tag);
+									weylsite_send->s[v][c][1] = bgq_expected(dir, isOdd, t2, x, y, z, v, c, isSend,tag);
 								}
 						}
 		} break;
@@ -213,10 +223,10 @@ static inline void bgq_weylfield_setcoordfield(bgq_weylfield weylfield, directio
 									const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
 									const int t2 = t1 + 2;
 									bgq_weylsite *weylsite_recv = BGQ_WEYLSITE_X(weylfield, !isOdd, tv, x + 2*(dir==XUP)-1, y, z, t1, t2, false, false);
-									for (int i = 0; i < 2; i+=1)
-										for (int l = 0; l < 3; l+=1) {
-											weylsite_recv->s[i][l][0] = t1 - dir*_Complex_I;
-											weylsite_recv->s[i][l][0] = t2 - dir*_Complex_I;
+									for (int v = 0; v < 2; v+=1)
+										for (int c = 0; c < 3; c+=1) {
+											weylsite_recv->s[v][c][0] = bgq_expected(dir, isOdd, t1, x, y, z, v, c, isSend,tag);
+											weylsite_recv->s[v][c][1] = bgq_expected(dir, isOdd, t2, x, y, z, v, c, isSend,tag);
 										}
 								}
 		} break;
@@ -226,6 +236,70 @@ static inline void bgq_weylfield_setcoordfield(bgq_weylfield weylfield, directio
 	}
 }
 
+#define bgq_weylfield_cmpcoordfield NAME2(bgq_weylfield_cmpcoordfield,PRECISION)
+static void bgq_weylfield_cmpcoordfield(bgq_weylfield weylfield, direction dir, bool isOdd, bool isSend, int tag) {
+	if (isSend) {
+		switch (dir) {
+		case XDOWN:
+		case XUP: {
+				for (int tv = 0; tv < PHYSICAL_LTV; tv+=1)
+					for (int y = 0; y < LOCAL_LY; y+=1)
+						for (int z = 0; z < LOCAL_LY; z+=1) {
+							int x = (dir==XUP) ? -1 : LOCAL_LX;
+							const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
+							const int t2 = t1 + 2;
+							bgq_weylsite *weylsite_send = BGQ_WEYLSITE_X(weylfield, !isOdd, tv, x + 2*(dir==XUP)-1, y, z, t1, t2, false, false);
+							for (int v = 0; v < 2; v+=1)
+								for (int c = 0; c < 3; c+=1) {
+									COMPLEX_PRECISION expect1 = bgq_expected(dir, isOdd, t1, x, y, z, v, c, isSend,tag);
+									COMPLEX_PRECISION real1 = weylsite_send->s[v][c][0];
+									if (real1 != expect1) {
+										master_print("Mismatch at (%d,%d,%d,%d,dir=%d,isSend=%d) expected=%f + %fi != real=%f + %fi\n", t1, x, y, z, dir, isSend, creal(expect1), cimag(expect1), creal(real1), cimag(real1));
+									}
+
+									COMPLEX_PRECISION expect2 = bgq_expected(dir, isOdd, t2, x, y, z, v, c, isSend,tag);
+									COMPLEX_PRECISION real2 = weylsite_send->s[v][c][1];
+									if (real2 != expect2) {
+										master_print("Mismatch at (%d,%d,%d,%d,dir=%d,isSend=%d) expected=%f + %fi != real=%f + %fi\n", t2, x, y, z, dir, isSend, creal(expect2), cimag(expect2), creal(real2), cimag(real2));
+									}
+								}
+						}
+		} break;
+		default:
+			break;
+		}
+	} else {
+		switch (dir) {
+		case XDOWN:
+		case XUP: {
+						for (int tv = 0; tv < PHYSICAL_LTV; tv+=1)
+							for (int y = 0; y < LOCAL_LY; y+=1)
+								for (int z = 0; z < LOCAL_LY; z+=1) {
+									int x = (dir==XUP) ?  LOCAL_LX-1 : 0;
+									const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
+									const int t2 = t1 + 2;
+									bgq_weylsite *weylsite_recv = BGQ_WEYLSITE_X(weylfield, !isOdd, tv, x + 2*(dir==XUP)-1, y, z, t1, t2, false, false);
+									for (int v = 0; v < 2; v+=1)
+										for (int c = 0; c < 3; c+=1) {
+											COMPLEX_PRECISION expect1 = bgq_expected(dir, isOdd, t1, x, y, z, v, c, isSend,tag);
+												COMPLEX_PRECISION real1 = weylsite_recv->s[v][c][0];
+												if (real1 != expect1) {
+													master_print("Mismatch at (%d,%d,%d,%d,dir=%d,isSend=%d) expected=%f + %fi != real=%f + %fi\n", t1, x, y, z, dir, isSend, creal(expect1), cimag(expect1), creal(real1), cimag(real1));
+												}
+
+												COMPLEX_PRECISION expect2 = bgq_expected(dir, isOdd, t2, x, y, z, v, c, isSend,tag);
+												COMPLEX_PRECISION real2 = weylsite_recv->s[v][c][1];
+												if (real2 != expect2) {
+													master_print("Mismatch at (%d,%d,%d,%d,dir=%d,isSend=%d) expected=%f + %fi != real=%f + %fi\n", t2, x, y, z, dir, isSend, creal(expect2), cimag(expect2), creal(real2), cimag(real2));
+												}
+										}
+								}
+		} break;
+		default:
+			break;
+		}
+	}
+}
 
 //#ifndef BGQ_FIELD_INC_C_
 //#include "bgq_precisionselect.inc.c"

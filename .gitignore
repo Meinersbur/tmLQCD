@@ -42,6 +42,7 @@ missing
 *.ompexp
 
 .directory
-
+/core.*
+/cmp_*
 
 
