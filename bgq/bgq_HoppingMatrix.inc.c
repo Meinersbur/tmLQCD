@@ -316,8 +316,8 @@ if (!noweylsend) {
 			//bgq_weylfield_setcoordfield(weylxchange_send[XDOWN], XDOWN, isOdd, true,3);
 			//bgq_weylfield_setcoordfield(weylxchange_recv[XUP], XUP, isOdd, false,4);
 			//bgq_weylfield_setcoordfield(weylxchange_recv[XDOWN], XDOWN, isOdd, false,4);
-			bgq_weylfield_foreach(weylxchange_send[XUP], XUP, true, isOdd, &bgq_setbgqval, BGQREF_XUP_SENDBUF);
 			bgq_weylfield_foreach(weylxchange_send[XDOWN], XDOWN, true, isOdd, &bgq_setbgqval, BGQREF_XDOWN_SENDBUF);
+			bgq_weylfield_foreach(weylxchange_send[XUP], XUP, true, isOdd, &bgq_setbgqval, BGQREF_XUP_SENDBUF);
 			MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_send), weylexchange_request_send));
 			//for (direction d = TUP; d <= YDOWN; d += 1) {
 			//	for (char *p = (char*)weylxchange_send[d]; p < (char*)weylxchange_send[d] + weylxchange_size[d/2]; p+=1)
@@ -400,9 +400,11 @@ if (!nobody) {
 			master_print("MK HM Waitall recv\n");
 			MPI_Status weylxchange_recv_statuses[6];
 			MPI_CHECK(MPI_Waitall(lengthof(weylexchange_request_recv), weylexchange_request_recv, weylxchange_recv_statuses));
-			master_print("length=%d weylexchange_request_recv=%d weylxchange_recv_statuses=%d\n", lengthof(weylexchange_request_recv), (int)weylexchange_request_recv, (int)weylxchange_recv_statuses);
+			master_print("length=%d weylexchange_request_recv=%d weylxchange_recv_statuses=%d\n", (int)lengthof(weylexchange_request_recv), (int)weylexchange_request_recv, (int)weylxchange_recv_statuses);
 			//bgq_weylfield_cmpcoordfield(weylxchange_recv[XUP], XUP, isOdd, false,3);
 			//bgq_weylfield_cmpcoordfield(weylxchange_recv[XDOWN], XDOWN, isOdd, false,3);
+			bgq_weylfield_foreach(weylxchange_recv[XUP], XUP, false, isOdd, &bgq_setbgqval, BGQREF_XUP_RECVBUF);
+			bgq_weylfield_foreach(weylxchange_recv[XDOWN], XDOWN, false, isOdd, &bgq_setbgqval, BGQREF_XDOWN_RECVBUF);
 
 			//for (direction d = TUP; d <= YDOWN; d += 1) {
 			//	for (char *p = (char*)weylxchange_recv[d]; p < (char*)weylxchange_recv[d] + weylxchange_size[d/2]; p+=1)
@@ -417,7 +419,7 @@ if (!nobody) {
 			//master_print("MK HM Waited\n");
 			#ifndef NDEBUG
 				for (int d = TUP; d <= YDOWN; d += 1) {
-					master_print("MK(rank: %d) Waitall direction %d got: %d, expected: %d sent: %d\n", g_proc_id, d, get_MPI_count(&weylxchange_recv_statuses[d]), weylxchange_size[d/2], get_MPI_count(&weylxchange_send_statuses[d]));
+					master_print("MK(rank: %d) Waitall direction %d got: %d, expected: %d sent: %d\n", g_proc_id, d, get_MPI_count(&weylxchange_recv_statuses[d]), (int)weylxchange_size[d/2], get_MPI_count(&weylxchange_send_statuses[d]));
 					assert(get_MPI_count(&weylxchange_recv_statuses[d]) == weylxchange_size[d/2]);
 					//assert(get_MPI_count(&weylxchange_send_statuses[d]) == 0);
 				}

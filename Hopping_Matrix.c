@@ -2596,7 +2596,16 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
     up+=1;
 #    endif
 
+    if ( x==LX-2 ) {
+    	// sp is x=LX-1
+    	_vector_i_sub(psi,(*sp).s0,(*sp).s3);
+    	bgq_setrefvalue(t, LX, y, z, BGQREF_XUP_SENDBUF, c2c(psi.c0), "weyl_xup_sendbuf");
+    }
+
     _vector_i_add(psi,(*sp).s0,(*sp).s3);
+    if ( x==LX-1 ) {
+        bgq_setrefvalue(t, x, y, z, BGQREF_XUP_RECVBUF, c2c(psi.c0), "weyl_xup_recvbuf");
+    }
 
     _su3_multiply(chi,(*up),psi);
     _complex_times_vector(psi,ka1,chi);
@@ -2624,12 +2633,15 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
     um=up+1;
 #    endif
 
+    if ( x==1 ) {
+    	// sm is x=0
+    	_vector_i_add(psi,(*sm).s0,(*sm).s3);
+    	bgq_setrefvalue(t, -1, y, z, BGQREF_XDOWN_SENDBUF, c2c(psi.c0), "weyl_xdown_sendbuf");
+    }
+
     _vector_i_sub(psi,(*sm).s0,(*sm).s3);
     if ( x==0 ) {
-    	bgq_setrefvalue(t, x-1, y, z, BGQREF_XDOWN_SENDBUF, c2c(psi.c0), "weyl_xdown_sendbuf");
-    }
-    if ( x==LX-1 ) {
-        bgq_setrefvalue(t, x+1, y, z, BGQREF_XUP_SENDBUF, c2c(psi.c0), "weyl_xup_sendbuf");
+    	bgq_setrefvalue(t, x, y, z, BGQREF_XDOWN_RECVBUF, c2c(psi.c0), "weyl_xdown_recvbuf");
     }
 
     _su3_inverse_multiply(chi,(*um),psi);
