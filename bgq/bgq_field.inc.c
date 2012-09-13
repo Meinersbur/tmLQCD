@@ -1103,13 +1103,13 @@ void bgq_hm_init() {
 				}
 		#endif
 
-		MPI_CHECK(MPI_Recv_init(weylxchange_recv[d], size / PRECISION_BYTES, MPI_PRECISION, weylexchange_destination[d], d^1, MPI_COMM_WORLD, &(weylexchange_request_recv[d])));
-		MPI_CHECK(MPI_Send_init(weylxchange_send[d], size / PRECISION_BYTES, MPI_PRECISION, weylexchange_destination[d], d, MPI_COMM_WORLD, &(weylexchange_request_send[d])));
+		MPI_CHECK(MPI_Recv_init(weylxchange_recv[d], size / PRECISION_BYTES, MPI_PRECISION, weylexchange_destination[d], d^1, g_cart_grid, &(weylexchange_request_recv[d])));
+		MPI_CHECK(MPI_Send_init(weylxchange_send[d], size / PRECISION_BYTES, MPI_PRECISION, weylexchange_destination[d], d, g_cart_grid, &(weylexchange_request_send[d])));
 	}
 
 
-	MPI_CHECK(MPI_Recv_init(weylxchange_recv[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_dn, 0, MPI_COMM_WORLD, &recvrequest));
-	MPI_CHECK(MPI_Send_init(weylxchange_send[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_up, 0, MPI_COMM_WORLD, &sendrequest));
+	MPI_CHECK(MPI_Recv_init(weylxchange_recv[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_dn, 0, g_cart_grid, &recvrequest));
+	MPI_CHECK(MPI_Send_init(weylxchange_send[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_up, 0, g_cart_grid, &sendrequest));
 
 
 #pragma omp parallel
