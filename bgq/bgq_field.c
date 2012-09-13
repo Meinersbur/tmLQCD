@@ -47,10 +47,42 @@ void bgq_initbgqref() {
 
 
 void bgq_setrefvalue(int t, int x, int y, int z, int idx, complexdouble val, char *desc) {
+	if (t < 0)
+		t = 0;
+	if (t >= LOCAL_LT)
+		t = LOCAL_LT-1;
+	if (x < 0)
+		x = 0;
+	if (x >= LOCAL_LX)
+		x = LOCAL_LX-1;
+	if (y < 0)
+		y = 0;
+	if (y >= LOCAL_LY)
+		y = LOCAL_LY-1;
+	if (z < 0)
+		z = 0;
+	if (z >= LOCAL_LZ)
+		z = LOCAL_LZ-1;
 	g_refvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z] = val;
 	g_idxdesc[idx] = desc;
 }
 void bgq_setbgqvalue(int t, int x, int y, int z, int idx, complexdouble val, char *desc) {
+	if (t < 0)
+		t = 0;
+	if (t >= LOCAL_LT)
+		t = LOCAL_LT-1;
+	if (x < 0)
+		x = 0;
+	if (x >= LOCAL_LX)
+		x = LOCAL_LX-1;
+	if (y < 0)
+		y = 0;
+	if (y >= LOCAL_LY)
+		y = LOCAL_LY-1;
+	if (z < 0)
+		z = 0;
+	if (z >= LOCAL_LZ)
+		z = LOCAL_LZ-1;
 	g_bgqvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z] = val;
 	g_idxdesc[idx] = desc;
 }

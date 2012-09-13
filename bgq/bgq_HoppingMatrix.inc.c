@@ -417,9 +417,9 @@ if (!nobody) {
 			//master_print("MK HM Waited\n");
 			#ifndef NDEBUG
 				for (int d = TUP; d <= YDOWN; d += 1) {
-					master_print("MK(rank: %d) Waitall direction %d got: %d, expected: %d\n", g_proc_id, d, get_MPI_count(&weylxchange_recv_statuses[d]), weylxchange_size[d/2]);
+					master_print("MK(rank: %d) Waitall direction %d got: %d, expected: %d sent: %d\n", g_proc_id, d, get_MPI_count(&weylxchange_recv_statuses[d]), weylxchange_size[d/2], get_MPI_count(&weylxchange_send_statuses[d]));
 					assert(get_MPI_count(&weylxchange_recv_statuses[d]) == weylxchange_size[d/2]);
-					assert(get_MPI_count(&weylxchange_send_statuses[d]) == 0);
+					//assert(get_MPI_count(&weylxchange_send_statuses[d]) == 0);
 				}
 			#endif
 		}
