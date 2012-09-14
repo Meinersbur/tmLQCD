@@ -98,6 +98,7 @@ void bgq_savebgqref() {
 
 		struct stat buf;
 		if (stat(filename, &buf) != -1) {
+			master_print("MK file %d already exists\n", filename);
 			i += 1;
 			continue;
 		}
@@ -117,8 +118,10 @@ void bgq_savebgqref() {
 		snprintf(reffilename, sizeof(reffilename)-1, "cmp_%d_idx%d_%s_ref.txt", i, idx, g_idxdesc[idx]);
 		char bgqfilename[100];
 		snprintf(bgqfilename, sizeof(bgqfilename)-1, "cmp_%d_idx%d_%s_bgq.txt", i, idx, g_idxdesc[idx]);
-		FILE *reffile =  fopen(reffilename, "w");
-		FILE *bgqfile =  fopen(bgqfilename, "w");
+		master_print("Cmp Going to write to %s and %s\n", reffilename, bgqfilename);
+
+		FILE *reffile = fopen(reffilename, "w");
+		FILE *bgqfile = fopen(bgqfilename, "w");
 
 		fprintf(reffile, "%s\n\n", g_idxdesc[idx]);
 		fprintf(bgqfile, "%s\n\n", g_idxdesc[idx]);

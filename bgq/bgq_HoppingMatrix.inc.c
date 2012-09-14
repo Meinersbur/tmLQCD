@@ -290,19 +290,19 @@ if (!nocom) {
 #endif
 
 
-#if BGQ_FIELD_COORDCHECK
-#pragma omp master
-{
-if (!noweylsend) {
-	bgq_weylfield_t_resetcoord(weylxchange_send[TDOWN], 0, !isOdd, 0, 0, 1, 1);
-	bgq_weylfield_t_resetcoord(weylxchange_send[TUP], LOCAL_LT-1, !isOdd, 0, 0, 1, 1);
-	bgq_weylfield_x_resetcoord(weylxchange_send[XDOWN], 0, !isOdd, 0, 0, 1, 1);
-	bgq_weylfield_x_resetcoord(weylxchange_send[XUP], LOCAL_LX-1, !isOdd, 0, 0, 1, 1);
-	bgq_weylfield_y_resetcoord(weylxchange_send[YDOWN], 0, !isOdd, 0, 0, 1, 1);
-	bgq_weylfield_y_resetcoord(weylxchange_send[YUP], LOCAL_LY-1, !isOdd, 0, 0, 1, 1);
-}
-}
-#endif
+	#if BGQ_FIELD_COORDCHECK
+		#pragma omp master
+		{
+			if (!noweylsend) {
+				bgq_weylfield_t_resetcoord(weylxchange_send[TDOWN], 0, !isOdd, 0, 0, 1, 1);
+				bgq_weylfield_t_resetcoord(weylxchange_send[TUP], LOCAL_LT-1, !isOdd, 0, 0, 1, 1);
+				bgq_weylfield_x_resetcoord(weylxchange_send[XDOWN], 0, !isOdd, 0, 0, 1, 1);
+				bgq_weylfield_x_resetcoord(weylxchange_send[XUP], LOCAL_LX-1, !isOdd, 0, 0, 1, 1);
+				bgq_weylfield_y_resetcoord(weylxchange_send[YDOWN], 0, !isOdd, 0, 0, 1, 1);
+				bgq_weylfield_y_resetcoord(weylxchange_send[YUP], LOCAL_LY-1, !isOdd, 0, 0, 1, 1);
+			}
+		}
+	#endif
 
 #ifdef MPI
 	if (!nocom && !nooverlap) {
@@ -414,7 +414,7 @@ if (!nobody) {
 			master_print("MK HM Waitall send\n");
 			MPI_Status weylxchange_send_statuses[6];
 			MPI_CHECK(MPI_Waitall(lengthof(weylexchange_request_send), weylexchange_request_send, weylxchange_send_statuses));
-			//master_print("MK HM Waited\n");
+			master_print("MK HM Waited\n");
 			#ifndef NDEBUG
 				for (int d = TUP; d <= YDOWN; d += 1) {
 					master_print("MK(rank: %d) Waitall direction %d got: %d, expected: %d sent: %d\n", g_proc_id, d, get_MPI_count(&weylxchange_recv_statuses[d]), weylxchange_size[d/2], get_MPI_count(&weylxchange_send_statuses[d]));
@@ -422,6 +422,7 @@ if (!nobody) {
 					//assert(get_MPI_count(&weylxchange_send_statuses[d]) == 0);
 				}
 			#endif
+			master_print("MK HM checked\n");
 		}
 	}
 #endif
@@ -431,9 +432,15 @@ if (!isOdd)
 L1P_PatternResume();
 #endif
 
+	if (g_proc_id == 0)
+		fprintf(stderr, "Here is OpenMP thread %d on node %d\n", omp_get_thread_num(), g_proc_id);
+
+master_print("MK HM before surface\n");
 if (!nosurface) {
 	#pragma omp for schedule(static)
-	for (int xyz = 0; xyz < SURFACE_ZLINES; xyz += 1) {
+	for (int xyz = 0; xyz < SURFACE_ZLINES; xyz+=1) {
+		master_print("MK HM xyz=%d\n", xyz);
+
 		WORKLOAD_DECL(xyz, SURFACE_ZLINES);
 		int tv;
 		int x;
@@ -499,6 +506,7 @@ if (!nosurface) {
 		#undef BGQ_HM_YDOWN_WEYLREAD
 	}
 }
+master_print("MK HM after surface\n");
 
 #if BGQ_PREFETCH_LIST
 	if (!isOdd) {
@@ -544,7 +552,7 @@ if (!nosurface) {
 	bgq_weylfield_y_resetcoord(weylxchange_recv[YDOWN], -1, !isOdd, 1,1,0,0);
 }
 #endif
-
+master_print("MK HM exit\n");
 }
 
 
