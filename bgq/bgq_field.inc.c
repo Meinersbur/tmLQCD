@@ -1091,7 +1091,7 @@ void bgq_hm_init() {
 	weylexchange_destination[YUP] = g_nb_y_up;
 	weylexchange_destination[YDOWN] = g_nb_y_dn;
 
-	master_print("g_proc_id=%d g_cart_id=%d\n", g_proc_id, g_cart_id);
+	//master_print("g_proc_id=%d g_cart_id=%d\n", g_proc_id, g_cart_id);
 	for (direction d = TUP; d <= YDOWN; d += 1) {
 		size_t size = weylxchange_size[d/2];
 		weylxchange_recv[d] = (bgq_weylfield)malloc_aligned(size, 128);
@@ -1108,8 +1108,8 @@ void bgq_hm_init() {
 	}
 
 
-	MPI_CHECK(MPI_Recv_init(weylxchange_recv[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_dn, 0, g_cart_grid, &recvrequest));
-	MPI_CHECK(MPI_Send_init(weylxchange_send[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_up, 0, g_cart_grid, &sendrequest));
+	//MPI_CHECK(MPI_Recv_init(weylxchange_recv[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_dn, 0, g_cart_grid, &recvrequest));
+	//MPI_CHECK(MPI_Send_init(weylxchange_send[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_up, 0, g_cart_grid, &sendrequest));
 
 
 #pragma omp parallel
@@ -1535,6 +1535,46 @@ bool assert_weylfield_y(bgq_weylfield weylfield, bool isOdd, int t, int x, int y
 }
 
 
+static void bgq_weylfield_t_foreach(bgq_weylfield weylfield, direction dir, bool isSend, bool isOdd, bgq_weylsite_callback callback, int tag) {
+	assert(weylfield);
+	assert( (dir==TUP) || (dir==TDOWN) );
+	assert(callback);
+
+	int t;
+	int tsrc;
+	switch (dir) {
+	case TUP:
+		t = isSend ? LOCAL_LT : LOCAL_LT-1;
+		tsrc = isSend ? LOCAL_LT-1 : LOCAL_LT;
+		break;
+	case TDOWN:
+		t = isSend ? -1 : 0;
+		tsrc = isSend ? 0 : -1;
+		break;
+	}
+
+	#pragma omp for schedule(static)
+	for (int tyz = 0; tyz < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ; tyz+=1) {
+		WORKLOAD_DECL(tyz,PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ);
+		const int xv = WORKLOAD_PARAM(PHYSICAL_LXV);
+		const int y = WORKLOAD_PARAM(PHYSICAL_LY);
+		const int z = WORKLOAD_PARAM(PHYSICAL_LZ);
+		WORKLOAD_CHECK
+
+		const int x1 = ((isOdd+t+y+z)&1)+xv*PHYSICAL_LP*PHYSICAL_LK;
+		const int x2 = x1 + 2;
+
+		bgq_weylsite *weylsite = BGQ_WEYLSITE_T(weylfield, !isOdd, t, xv, y, z, x1, x2, false, false);
+
+		for (int v = 0; v < 2; v+=1) {
+			for (int c = 0; c < 3; c+=1) {
+				(*callback)(weylfield, dir, isSend, isOdd, t,x1,y,z,v,c, &weylsite->s[v][c][0], tag);
+				(*callback)(weylfield, dir, isSend, isOdd, t,x2,y,z,v,c, &weylsite->s[v][c][1], tag);
+			}
+		}
+	}
+}
+
 static void bgq_weylfield_x_foreach(bgq_weylfield weylfield, direction dir, bool isSend, bool isOdd, bgq_weylsite_callback callback, int tag) {
 	assert(weylfield);
 	assert( (dir==XUP) || (dir==XDOWN) );
@@ -1575,11 +1615,59 @@ static void bgq_weylfield_x_foreach(bgq_weylfield weylfield, direction dir, bool
 	}
 }
 
+static void bgq_weylfield_y_foreach(bgq_weylfield weylfield, direction dir, bool isSend, bool isOdd, bgq_weylsite_callback callback, int tag) {
+	assert(weylfield);
+	assert( (dir==YUP) || (dir==YDOWN) );
+	assert(callback);
+
+	int y;
+	int ysrc;
+	switch (dir) {
+	case YUP:
+		y = isSend ? LOCAL_LY : LOCAL_LY-1;
+		ysrc = isSend ? LOCAL_LY-1 : LOCAL_LY;
+		break;
+	case YDOWN:
+		y = isSend ? -1 : 0;
+		ysrc = isSend ? 0 : -1;
+		break;
+	}
+
+	#pragma omp for schedule(static)
+	for (int txz = 0; txz < PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ; txz+=1) {
+		WORKLOAD_DECL(txz,PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ);
+		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
+		const int x = WORKLOAD_PARAM(PHYSICAL_LX);
+		const int z = WORKLOAD_PARAM(PHYSICAL_LZ);
+		WORKLOAD_CHECK
+
+		const int t1 = ((isOdd+x+y+z)&1)+tv*PHYSICAL_LP*PHYSICAL_LK;
+		const int t2 = t1 + 2;
+
+		bgq_weylsite *weylsite = BGQ_WEYLSITE_Y(weylfield, !isOdd, tv, x, ysrc, z, t1, t2, false, false);
+
+		for (int v = 0; v < 2; v+=1) {
+			for (int c = 0; c < 3; c+=1) {
+				(*callback)(weylfield, dir, isSend, isOdd, t1, x,y,z,v,c, &weylsite->s[v][c][0], tag);
+				(*callback)(weylfield, dir, isSend, isOdd, t2, x,y,z,v,c, &weylsite->s[v][c][1], tag);
+			}
+		}
+	}
+}
+
 void bgq_weylfield_foreach(bgq_weylfield weylfield, direction dir, bool isSend, bool isOdd, bgq_weylsite_callback callback, int tag) {
 	switch (dir) {
+	case TUP:
+	case TDOWN:
+		bgq_weylfield_t_foreach(weylfield,dir,isSend,isOdd,callback,tag);
+		break;
 	case XUP:
 	case XDOWN:
 		bgq_weylfield_x_foreach(weylfield,dir,isSend,isOdd,callback,tag);
+		break;
+	case YUP:
+	case YDOWN:
+		bgq_weylfield_y_foreach(weylfield,dir,isSend,isOdd,callback,tag);
 		break;
 	default:
 		assert(!"Not yet implemented");

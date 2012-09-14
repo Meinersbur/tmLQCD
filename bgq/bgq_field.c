@@ -98,7 +98,7 @@ void bgq_savebgqref() {
 
 		struct stat buf;
 		if (stat(filename, &buf) != -1) {
-			master_print("MK file %d already exists\n", filename);
+			master_print("MK file %s already exists\n", filename);
 			i += 1;
 			continue;
 		}

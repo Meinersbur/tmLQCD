@@ -12,11 +12,37 @@
 ##@ bg_shape = 1x1x1x1
 #@ bg_connectivity = TORUS
 #@ queue
+echo DEPART : `date`
 
-export OMP_NUM_THREADS=64
+INPUT_FILE=benchmark${LOADL_STEP_NAME}.input 
+cat > ${INPUT_FILE} <<+EOF
+T=32
+L=32
++EOF
+
+
+
+
+
+
+export OMP_NUM_THREADS=1
 export PAMID_RZV=2147483647
 export BG_COREDUMPDISABLED=0
 env
 
-runjob --ranks-per-node 1 --env-all : ./bgqbench -f benchmark.input
+echo ================================================================================
+runjob --ranks-per-node 1 --env-all -np 8 : ./bgqbench -f ${INPUT_FILE}
+
+
+echo ================================================================================
+export OMP_NUM_THREADS=64
+runjob --ranks-per-node 1 --env-all --np 8 : ./bgqbench -f ${INPUT_FILE} 
+echo ================================================================================
+runjob --ranks-per-node 1 --env-all --np 16 : ./bgqbench -f ${INPUT_FILE} 
+echo ================================================================================
+runjob --ranks-per-node 1 --env-all --np 32 : ./bgqbench -f ${INPUT_FILE} 
+echo ================================================================================
+runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE} 
+echo ================================================================================
+
 
