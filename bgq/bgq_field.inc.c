@@ -348,7 +348,7 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield const targetfiel
 }
 
 
-double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield, spinor * const reffield) {
+double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield, spinor * const reffield, bool silent) {
 	assert(bgqfield);
 	assert(reffield);
 
@@ -402,7 +402,8 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 
 					if (norm1_val > 0.01) {
 						if (first) {
-							master_print("Coordinate (%d,%d,%d,%d)(%d,%d): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t,x,y,z,v,c,creal(refvalue), cimag(refvalue),creal(bgqvalue),cimag(bgqvalue),norm1_val);
+							if (false)
+								master_print("Coordinate (%d,%d,%d,%d)(%d,%d): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t,x,y,z,v,c,creal(refvalue), cimag(refvalue),creal(bgqvalue),cimag(bgqvalue),norm1_val);
 							worker_count += 1;
 							//fprintf(stderr, "Coordinate (%d,%d,%d,%d)(%d,%d): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t,x,y,z,v,c,creal(refvalue), cimag(refvalue),creal(bgqvalue),cimag(bgqvalue),norm1_val);
 							//__asm__("int3");
@@ -453,7 +454,8 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 	double norminf = norm1_max;
 
 	if (count>0) {
-		master_print("%d sites of %d wrong\n", count, VOLUME);
+		if (!silent)
+			master_print("%d sites of %d wrong\n", count, VOLUME);
 	}
 
 	return norm1_max;

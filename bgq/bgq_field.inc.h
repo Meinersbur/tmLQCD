@@ -93,7 +93,7 @@ COMPLEX_PRECISION bgq_spinorfield_get(bgq_spinorfield spinorfield, bool isOdd, i
 void bgq_spinorfield_set(bgq_spinorfield spinorfield, bool isOdd, int t, int x, int y, int z, int v, int c, COMPLEX_PRECISION value);
 
 #define bgq_spinorfield_compare NAME2(bgq_spinorfield_compare,PRECISION)
-double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield, spinor * const reffield);
+double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield, spinor * const reffield, bool silent);
 
 
 ////////////////////////////////////////////////////////////////////////////////

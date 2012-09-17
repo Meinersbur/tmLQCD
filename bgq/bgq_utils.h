@@ -101,16 +101,19 @@ EXTERN_INLINE int get_MPI_count(MPI_Status *status) {
 	int xyz_torig;                     \
 	int xyz_total = (TOTAL);           \
 	int xyz_param;                     \
-	if ((xyz_counter < 0) || (xyz_counter > xyz_total)) {   \
-		node_print("Invalid counter %d\n", xyz_counter);  \
-	}  \
 	assert(xyz_counter >= 0);          \
 	assert(xyz_counter < xyz_total)
 
+#if 0
+if ((xyz_counter < 0) || (xyz_counter > xyz_total)) {   \
+	node_print("Invalid counter %d\n", xyz_counter);  \
+}  \
 
-//if (xyz_counter==0) { \
-//	fprintf(stderr, "xyz_counter=%d xyz_total=%d xyz_isntance=%d BODY_ZLINES=%d\n", xyz_counter, xyz_total, xyz_isntance, BODY_ZLINES); \
-//} \
+if (xyz_counter==0) { \
+	fprintf(stderr, "xyz_counter=%d xyz_total=%d xyz_isntance=%d BODY_ZLINES=%d\n", xyz_counter, xyz_total, xyz_isntance, BODY_ZLINES); \
+} \
+//
+#endif
 
 // true:  xyz = 0            .. TRUE_COUNT -> 0 .. TRUE_COUNT
 // false: xyz = TRUE_COUNT+1 .. xyz_total  -> 0 .. xyz_total-TRUE_COUNT
@@ -342,8 +345,10 @@ EXTERN_INLINE double bgq_wtime() {
 			fprintf(stderr, __VA_ARGS__)
 
 #define node_print(...)                          \
-	fprintf(stderr, "rank=%d thread=%d ", g_proc_id, omp_get_thread_num()); \
-	fprintf(stderr, __VA_ARGS__)
+	do {                                          \
+		fprintf(stderr, "rank=%d thread=%d ", g_proc_id, omp_get_thread_num()); \
+		fprintf(stderr, __VA_ARGS__);  \
+	} while (0)
 
 #define master_error(errcode, ...) \
 	do {                            \

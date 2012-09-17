@@ -236,6 +236,7 @@ void bgq_savebgqref();
 
 #ifndef BGQ_FIELD_C_H_
 #define bgq_setbgqvalue(...) ((void)0)
+#define bgq_setrefvalue(...) ((void)0)
 #endif
 
 
