@@ -692,7 +692,7 @@ void bgq_gaugefield_set(bgq_gaugefield gaugefield, bool isOdd, int t, int x, int
 	}
 
 	{
-	COMPLEX_PRECISION *valptr = BGQ_GAUGEVAL(gaugefield, isOdd, t,x,y,z, tv,k, d, i,l, false,true);
+	COMPLEX_PRECISION *valptr = BGQ_GAUGEVAL(gaugefield, isOdd, t, x, y, z, tv, k, d, i, l, false, true);
 	*valptr = value;
 	}
 
@@ -700,7 +700,7 @@ void bgq_gaugefield_set(bgq_gaugefield gaugefield, bool isOdd, int t, int x, int
 		// For z-direction...
 		if (z==LOCAL_LZ-1) {
 			// wraparound, also store as z=-1 coordinate
-			COMPLEX_PRECISION *wrapptr = BGQ_GAUGEVAL(gaugefield, isOdd, t,x,y,-1, tv,k, d, i,l, false,true);
+			COMPLEX_PRECISION *wrapptr = BGQ_GAUGEVAL(gaugefield, isOdd, t, x, y, -1, tv, k, d, i, l, false, true);
 			*wrapptr = value;
 		}
 	}
@@ -721,7 +721,7 @@ void bgq_gaugefield_set(bgq_gaugefield gaugefield, bool isOdd, int t, int x, int
 				assert( (tv_shift==tv && k_shift==1) || (tv_shift==tv+1 && k_shift==0) );
 			}
 
-			COMPLEX_PRECISION *shiftptr = BGQ_GAUGEVAL(gaugefield, isOdd, t,x,y,z, tv_shift,k_shift, TUP_SHIFT, i,l, false,true);
+			COMPLEX_PRECISION *shiftptr = BGQ_GAUGEVAL(gaugefield, isOdd, t, x, y, z, tv_shift, k_shift, TUP_SHIFT, i, l, false, true);
 			*shiftptr = value;
 		}
 }
@@ -1555,7 +1555,7 @@ static void bgq_weylfield_t_foreach(bgq_weylfield weylfield, direction dir, bool
 
 	#pragma omp for schedule(static)
 	for (int tyz = 0; tyz < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ; tyz+=1) {
-		WORKLOAD_DECL(tyz,PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ);
+		WORKLOAD_DECL(tyz,PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int xv = WORKLOAD_PARAM(PHYSICAL_LXV);
 		const int y = WORKLOAD_PARAM(PHYSICAL_LY);
 		const int z = WORKLOAD_PARAM(PHYSICAL_LZ);
@@ -1564,7 +1564,7 @@ static void bgq_weylfield_t_foreach(bgq_weylfield weylfield, direction dir, bool
 		const int x1 = ((isOdd+t+y+z)&1)+xv*PHYSICAL_LP*PHYSICAL_LK;
 		const int x2 = x1 + 2;
 
-		bgq_weylsite *weylsite = BGQ_WEYLSITE_T(weylfield, !isOdd, t, xv, y, z, x1, x2, false, false);
+		bgq_weylsite *weylsite = BGQ_WEYLSITE_T(weylfield, !isOdd, tsrc, xv, y, z, x1, x2, false, false);
 
 		for (int v = 0; v < 2; v+=1) {
 			for (int c = 0; c < 3; c+=1) {

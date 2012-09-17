@@ -178,12 +178,12 @@ if (!nocom) {
 		WORKLOAD_CHECK
 
 		const int x1 = ((isOdd+t+y+z)&1)+xv*PHYSICAL_LP*PHYSICAL_LK;
-		bgq_spinorsite *spinorsite1_tdown = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, PHYSICAL_LTV-1, x1, y, z, LOCAL_LT-3, t-1, true,false);
+		bgq_spinorsite *spinorsite1_tdown = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, PHYSICAL_LTV-1, x1, y, z, LOCAL_LT-3, t-1, true, false);
 		bgq_su3_spinor_decl(spinor1_tdown);
 		bgq_su3_spinor_load_right(spinor1_tdown, spinorsite1_tdown);
 
 		const int x2 = x1+2;
-		bgq_spinorsite *spinorsite2_tdown = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, PHYSICAL_LTV-1, x2, y, z, LOCAL_LT-3, t-1, true,false);
+		bgq_spinorsite *spinorsite2_tdown = BGQ_SPINORSITE_RIGHT(spinorfield, !isOdd, PHYSICAL_LTV-1, x2, y, z, LOCAL_LT-3, t-1, true, false);
 		bgq_su3_spinor_decl(spinor2_tdown);
 		bgq_su3_spinor_load_right(spinor2_tdown, spinorsite2_tdown);
 
@@ -310,6 +310,8 @@ if (!nocom) {
 		{
 			//master_print("MK HM Isend overlap\n");
 
+			bgq_weylfield_foreach(weylxchange_send[TDOWN], TDOWN, true, isOdd, &bgq_setbgqval, BGQREF_TDOWN_SENDBUF);
+			bgq_weylfield_foreach(weylxchange_send[TUP], TUP, true, isOdd, &bgq_setbgqval, BGQREF_TUP_SENDBUF);
 			bgq_weylfield_foreach(weylxchange_send[XDOWN], XDOWN, true, isOdd, &bgq_setbgqval, BGQREF_XDOWN_SENDBUF);
 			bgq_weylfield_foreach(weylxchange_send[XUP], XUP, true, isOdd, &bgq_setbgqval, BGQREF_XUP_SENDBUF);
 			MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_send), weylexchange_request_send));
@@ -366,8 +368,10 @@ if (!nobody) {
 		{
 			//master_print("MK HM Isend nooverlap\n");
 
-			//bgq_weylfield_foreach(weylxchange_send[XDOWN], XDOWN, true, isOdd, &bgq_setbgqval, BGQREF_XDOWN_SENDBUF);
-			//bgq_weylfield_foreach(weylxchange_send[XUP], XUP, true, isOdd, &bgq_setbgqval, BGQREF_XUP_SENDBUF);
+			bgq_weylfield_foreach(weylxchange_send[TDOWN], TDOWN, true, isOdd, &bgq_setbgqval, BGQREF_TDOWN_SENDBUF);
+			bgq_weylfield_foreach(weylxchange_send[TUP], TUP, true, isOdd, &bgq_setbgqval, BGQREF_TUP_SENDBUF);
+			bgq_weylfield_foreach(weylxchange_send[XDOWN], XDOWN, true, isOdd, &bgq_setbgqval, BGQREF_XDOWN_SENDBUF);
+			bgq_weylfield_foreach(weylxchange_send[XUP], XUP, true, isOdd, &bgq_setbgqval, BGQREF_XUP_SENDBUF);
 			MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_send), weylexchange_request_send));
 		}
 	}
@@ -379,6 +383,8 @@ if (!nobody) {
 			MPI_Status weylxchange_recv_statuses[6];
 			MPI_CHECK(MPI_Waitall(lengthof(weylexchange_request_recv), weylexchange_request_recv, weylxchange_recv_statuses));
 			//master_print("length=%d weylexchange_request_recv=%d weylxchange_recv_statuses=%d\n", (int)lengthof(weylexchange_request_recv), (int)weylexchange_request_recv, (int)weylxchange_recv_statuses);
+			bgq_weylfield_foreach(weylxchange_recv[TUP], TUP, false, isOdd, &bgq_setbgqval, BGQREF_TUP_RECVBUF);
+			bgq_weylfield_foreach(weylxchange_recv[TDOWN], TDOWN, false, isOdd, &bgq_setbgqval, BGQREF_TDOWN_RECVBUF);
 			bgq_weylfield_foreach(weylxchange_recv[XUP], XUP, false, isOdd, &bgq_setbgqval, BGQREF_XUP_RECVBUF);
 			bgq_weylfield_foreach(weylxchange_recv[XDOWN], XDOWN, false, isOdd, &bgq_setbgqval, BGQREF_XDOWN_RECVBUF);
 

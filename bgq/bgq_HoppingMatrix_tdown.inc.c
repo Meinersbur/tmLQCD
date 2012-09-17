@@ -1,6 +1,8 @@
 
 
 
+
+
 #ifndef BGQ_HM_TDOWN_PREFETCH
 #define BGQ_HM_TDOWN_PREFETCH 0
 #endif
@@ -19,7 +21,7 @@
 #include "bgq_loadorprefetch.inc.c"
 
 
-#ifndef BGQ_HM_NOFUNC
+#ifndef BGQ_HM_DIR_NOFUNC
 #include "bgq.h"
 #include "bgq_field.h"
 
@@ -82,21 +84,31 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		#endif
 		#if (BGQ_HM_TLINEINDENT==-1) || (BGQ_HM_TLINEINDENT==0)
 			assert( t1 == 0 );
+			// i.e. the leftmost value to read from weyl field
 
 			// Read the left component from the weyl receive region
 			const int xeo = x / PHYSICAL_LP;
 			const int xv = xeo / PHYSICAL_LK;
 			const int kx = mod(xeo, PHYSICAL_LK);
 
-			bgq_weylsite *weylsite_tdown_left = BGQ_WEYLSITE_T(weylxchange_recv[TDOWN], !isOdd, t1-1, xv, y, z, kx==0 ? x : x-2, kx==1 ? x : x+2, !BGQ_HM_TDOWN_PREFETCH, false);
+			bgq_weylsite *weylsite_tdown_left = BGQ_WEYLSITE_T(weylxchange_recv[TDOWN], !isOdd, t1-1, xv, y, z, (kx==0) ? x : x-2, (kx==1) ? x : x+2, !BGQ_HM_TDOWN_PREFETCH, false);
+			bgq_su3_weyl_decl(weyl_tdown_left);
+#if 1
 			#if !BGQ_HM_TDOWN_PREFETCH
 				weylsite_tdown_left = (bgq_weylsite*)((char*)weylsite_tdown_left + kx*sizeof(COMPLEX_PRECISION)); // Some trick: if we are supposed to read kx=1, shift the pointer to the right to match k=0, so we avoid some conditional
 			#endif
-			bgq_su3_weyl_decl(weyl_tdown_left);
 			bgq_su3_weyl_loadorprefetch_left(weyl_tdown_left, weylsite_tdown_left);
+#else
+			if (kx == 0) {
+				bgq_su3_weyl_loadorprefetch_left(weyl_tdown_left, weylsite_tdown_left);
+			} else {
+				bgq_su3_weyl_loadorprefetch_right(weyl_tdown_left, weylsite_tdown_left);
+			}
+#endif
+			bgq_setbgqvalue(t1, x, y, z, BGQREF_TDOWN_PREMEM, weylsite_tdown_left->s[1][2][0], "weyl_tdown_premem");
 
 			// Read the second component as normal
-			bgq_spinorsite *spinorsite_tdown_mid = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, tv, x, y, z, t2-1,t2+1, !BGQ_HM_TDOWN_PREFETCH, false);
+			bgq_spinorsite *spinorsite_tdown_mid = BGQ_SPINORSITE_LEFT(spinorfield, !isOdd, tv, x, y, z, t2-1, t2+1, !BGQ_HM_TDOWN_PREFETCH, false);
 			bgq_su3_spinor_decl(spinor_tdown_mid);
 			bgq_su3_spinor_loadorprefetch_left(spinor_tdown_mid, spinorsite_tdown_mid);
 
@@ -115,11 +127,11 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		#endif
 		#if (BGQ_HM_TLINEINDENT==-1) || (BGQ_HM_TLINEINDENT==1)
 			assert( t1 == 1 );
+
 			// Read spinor as normal
 			bgq_spinorsite *spinorsite_tdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1-1, t2-1, !BGQ_HM_TDOWN_PREFETCH,false);
 			bgq_su3_spinor_decl(spinor_tdown);
 			bgq_su3_spinor_loadorprefetch(spinor_tdown, spinorsite_tdown);
-
 
 			#if !BGQ_HM_TDOWN_PREFETCH
 				// Compute its halfspinor
@@ -136,6 +148,12 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 	#endif
 
 #endif
+
+
+	#if !BGQ_HM_TDOWN_PREFETCH
+		bgq_setbgqvalue(t1, x, y, z, BGQREF_TDOWN2, bgq_cmplxval1(weyl_tdown_v1_c2), "weyl_tdown_pre");
+		bgq_setbgqvalue(t2, x, y, z, BGQREF_TDOWN2, bgq_cmplxval2(weyl_tdown_v1_c2), "weyl_tdown_pre");
+	#endif
 
 
 	#if BGQ_HM_TDOWN_COMPUTE
@@ -158,9 +176,14 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 		bgq_su3_mdecl(gauge_tdown);
 		bgq_su3_matrix_loadorprefetch(gauge_tdown, gaugesite_tdown);
+		bgq_setbgqvalue(t1, x, y, z, BGQREF_TDOWN_GAUGE, bgq_cmplxval1(gauge_tdown_c02), "weyl_tdown_gauge");
+		bgq_setbgqvalue(t2, x, y, z, BGQREF_TDOWN_GAUGE, bgq_cmplxval2(gauge_tdown_c02), "weyl_tdown_gauge");
 
 		bgq_su3_mvinvmul(weyl_tdown_v0, gauge_tdown, weyl_tdown_v0);
 		bgq_su3_mvinvmul(weyl_tdown_v1, gauge_tdown, weyl_tdown_v1);
+
+		bgq_setbgqvalue(t1, x, y, z, BGQREF_TDOWN_POSTGAUGE, bgq_cmplxval1(weyl_tdown_v1_c0), "weyl_tdown_postgauge");
+		bgq_setbgqvalue(t2, x, y, z, BGQREF_TDOWN_POSTGAUGE, bgq_cmplxval2(weyl_tdown_v1_c0), "weyl_tdown_postgauge");
 
 		#if !BGQ_HM_NOKAMUL
 			bgq_su3_cvmul(weyl_tdown_v0, qka0, weyl_tdown_v0);
@@ -175,8 +198,8 @@ void bgq_HoppingMatrix_tdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		bgq_su3_vsub(result_v2, result_v2, weyl_tdown_v0);
 		bgq_su3_vsub(result_v3, result_v3, weyl_tdown_v1);
 
-		bgq_setbgqvalue(t1, x, y, z, BGQREF_TDOWN, bgq_cmplxval1(weyl_tdown_v0_c0), "weyl_tdown");
-		bgq_setbgqvalue(t2, x, y, z, BGQREF_TDOWN, bgq_cmplxval2(weyl_tdown_v0_c0), "weyl_tdown");
+		bgq_setbgqvalue(t1, x, y, z, BGQREF_TDOWN, bgq_cmplxval1(weyl_tdown_v1_c0), "weyl_tdown");
+		bgq_setbgqvalue(t2, x, y, z, BGQREF_TDOWN, bgq_cmplxval2(weyl_tdown_v1_c0), "weyl_tdown");
 	#endif
 
 

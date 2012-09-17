@@ -93,8 +93,8 @@ void bgq_HoppingMatrix_xup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 		bgq_su3_vpisub(result_v2, result_v2, weyl_xup_v1);
 		bgq_su3_vpisub(result_v3, result_v3, weyl_xup_v0);
 
-		bgq_setbgqvalue(t1, x, y, z, BGQREF_XUP, bgq_cmplxval1(weyl_xup_v0_c0), "weyl_xup");
-		bgq_setbgqvalue(t2, x, y, z, BGQREF_XUP, bgq_cmplxval2(weyl_xup_v0_c0), "weyl_xup");
+		bgq_setbgqvalue(t1, x, y, z, BGQREF_XUP, bgq_cmplxval1(weyl_xup_v1_c0), "weyl_xup");
+		bgq_setbgqvalue(t2, x, y, z, BGQREF_XUP, bgq_cmplxval2(weyl_xup_v1_c0), "weyl_xup");
 	#endif
 
 

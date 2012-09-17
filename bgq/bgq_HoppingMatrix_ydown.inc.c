@@ -90,8 +90,8 @@ void bgq_HoppingMatrix_ydown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		bgq_su3_vadd(result_v2, result_v2, weyl_ydown_v1);
 		bgq_su3_vsub(result_v3, result_v3, weyl_ydown_v0);
 
-		bgq_setbgqvalue(t1, x, y, z, BGQREF_YDOWN, bgq_cmplxval1(weyl_ydown_v0_c0), "weyl_ydown");
-		bgq_setbgqvalue(t2, x, y, z, BGQREF_YDOWN, bgq_cmplxval2(weyl_ydown_v0_c0), "weyl_ydown");
+		bgq_setbgqvalue(t1, x, y, z, BGQREF_YDOWN, bgq_cmplxval1(weyl_ydown_v1_c0), "weyl_ydown");
+		bgq_setbgqvalue(t2, x, y, z, BGQREF_YDOWN, bgq_cmplxval2(weyl_ydown_v1_c0), "weyl_ydown");
 #endif
 
 

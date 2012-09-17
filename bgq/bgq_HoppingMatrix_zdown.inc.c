@@ -79,8 +79,8 @@ void bgq_HoppingMatrix_zdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		bgq_su3_vpiadd(result_v2, result_v2, weyl_zdown_v0);
 		bgq_su3_vpisub(result_v3, result_v3, weyl_zdown_v1);
 
-		bgq_setbgqvalue(t1, x, y, z, BGQREF_ZDOWN, bgq_cmplxval1(weyl_zdown_v0_c0), "weyl_zdown");
-		bgq_setbgqvalue(t2, x, y, z, BGQREF_ZDOWN, bgq_cmplxval2(weyl_zdown_v0_c0), "weyl_zdown");
+		bgq_setbgqvalue(t1, x, y, z, BGQREF_ZDOWN, bgq_cmplxval1(weyl_zdown_v1_c0), "weyl_zdown");
+		bgq_setbgqvalue(t2, x, y, z, BGQREF_ZDOWN, bgq_cmplxval2(weyl_zdown_v1_c0), "weyl_zdown");
 #endif
 
 

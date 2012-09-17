@@ -187,7 +187,7 @@ void bgq_weylfield_foreach(bgq_weylfield weylfield, direction dir, bool isSend, 
 
 #define bgq_setbgqval NAME2(bgq_setbgqval,PRECISION)
 static void bgq_setbgqval(bgq_weylfield weylfield, direction dir, bool isSend, bool isOdd, int t, int x, int y, int z, int v, int c, COMPLEX_PRECISION *val, int tag) {
-	if ( (v==0) && (c==0) ) {
+	if ( (v==1) && (c==2) ) {
 		char buf[20];
 		snprintf(buf, sizeof(buf), "bgqval%d", tag);
 		bgq_setbgqvalue(t,x,y,z,tag,*val,buf);

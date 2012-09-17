@@ -88,21 +88,21 @@ typedef struct {
 	NAME2(dst,q3) = NAME2(dst,q1)
 
 #define bgq_ld2a_float(dst,offset,addr) \
-	assert( (((size_t)(addr)) + (offset)) % 8 == 0);                \
+	assert( (((size_t)(addr)) + (offset)) % 8 == 0);                         \
 	NAME2(dst,q0) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 0); \
 	NAME2(dst,q1) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 1); \
-	NAME2(dst,q2) = NAME2(dst,q0);                                         \
+	NAME2(dst,q2) = NAME2(dst,q0);                                           \
 	NAME2(dst,q3) = NAME2(dst,q1)
 
 #define bgq_sta_double(src,offset,addr) \
-	assert( (((size_t)(addr)) + (offset)) % 32 == 0);                \
+	assert( (((size_t)(addr)) + (offset)) % 32 == 0);                         \
 	BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 0) = NAME2(src,q0); \
 	BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 1) = NAME2(src,q1); \
 	BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 2) = NAME2(src,q2); \
 	BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 3) = NAME2(src,q3)
 
 #define bgq_sta_float(src,offset,addr) \
-	assert( (((size_t)(addr)) + (offset)) % 16 == 0);                \
+	assert( (((size_t)(addr)) + (offset)) % 16 == 0);                        \
 	BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 0) = NAME2(src,q0); \
 	BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 1) = NAME2(src,q1); \
 	BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 2) = NAME2(src,q2); \
@@ -231,10 +231,10 @@ typedef struct {
 	dst = vec_ld2a(offset, (float*)(addr))
 
 #define bgq_sta_double(src,offset,addr) \
-	vec_sta(src,offset, (double*)(addr))
+	vec_sta(src, offset, (double*)(addr))
 
 #define bgq_sta_float(src,offset,addr) \
-	vec_sta(src,offset, (float*)(addr))
+	vec_sta(src, offset, (float*)(addr))
 
 #define bgq_add(dst,lhs,rhs) \
 	dst = vec_add(lhs, rhs)
@@ -247,21 +247,6 @@ typedef struct {
 
 #define bgq_iadd(dst,lhs,rhs) \
 	bgq_xxnpmadd(dst,rhs,(vector4double)(1),lhs)
-
-#if 0
-	dst.re = - rhs.im * 1 +  lhs.re
-	dst.im =   rhs.re * 1 +  lhs.im
-
-#define bgq_iadd(dst,lhs,rhs)         \
-	{                                 \
-		bgq_vector4double_decl(tmp);  \
-		tmp_q0 = lhs##_q0 - rhs##_q1; \
-		tmp_q1 = lhs##_q1 + rhs##_q0; \
-		tmp_q2 = lhs##_q2 - rhs##_q3; \
-		tmp_q3 = lhs##_q3 + rhs##_q2; \
-		bgq_mov(dst,tmp);             \
-	}
-#endif
 
 #define bgq_isub(dst,lhs,rhs) \
 	bgq_xxcpnmadd(dst,rhs,(vector4double)(1),lhs)
@@ -510,8 +495,25 @@ typedef struct {
 	bgq_ld2a_float(NAME3(dest,v1,c1),  64, addr);        \
 	bgq_ld2a_float(NAME3(dest,v1,c2),  80, addr)
 
+#define bgq_su3_weyl_load_right NAME2(bgq_su3_weyl_load_right,PRECISION)
+#define bgq_su3_weyl_load_right_double(dest, addr) \
+	bgq_ld2a_double(NAME3(dest,v0,c0),   0+16, addr);        \
+	bgq_ld2a_double(NAME3(dest,v0,c1),  32+16, addr);        \
+	bgq_ld2a_double(NAME3(dest,v0,c2),  64+16, addr);        \
+	bgq_ld2a_double(NAME3(dest,v1,c0),  96+16, addr);        \
+	bgq_ld2a_double(NAME3(dest,v1,c1), 128+16, addr);        \
+	bgq_ld2a_double(NAME3(dest,v1,c2), 160+16, addr)
+
+#define bgq_su3_weyl_load_right_float(dest, addr) \
+	bgq_ld2a_float(NAME3(dest,v0,c0),   0+8, addr);        \
+	bgq_ld2a_float(NAME3(dest,v0,c1),  16+8, addr);        \
+	bgq_ld2a_float(NAME3(dest,v0,c2),  32+8, addr);        \
+	bgq_ld2a_float(NAME3(dest,v1,c0),  48+8, addr);        \
+	bgq_ld2a_float(NAME3(dest,v1,c1),  64+8, addr);        \
+	bgq_ld2a_float(NAME3(dest,v1,c2),  80+8, addr)
+
 #define bgq_su3_matrix_load NAME2(bgq_su3_matrix_load,PRECISION)
-#define bgq_su3_matrix_load_double(dest, addr)   \
+#define bgq_su3_matrix_load_double(dest, addr) \
 	bgq_lda_double(NAME2(dest,c00),   0, addr); \
 	bgq_lda_double(NAME2(dest,c01),  32, addr); \
 	bgq_lda_double(NAME2(dest,c02),  64, addr); \
@@ -522,7 +524,7 @@ typedef struct {
 	bgq_lda_double(NAME2(dest,c21), 224, addr); \
 	bgq_lda_double(NAME2(dest,c22), 256, addr)
 
-#define bgq_su3_matrix_load_float(dest, addr)   \
+#define bgq_su3_matrix_load_float(dest, addr) \
 	bgq_lda_float(NAME2(dest,c00),   0, addr); \
 	bgq_lda_float(NAME2(dest,c01),  16, addr); \
 	bgq_lda_float(NAME2(dest,c02),  32, addr); \
@@ -744,8 +746,8 @@ typedef struct {
 #define bgq_prefetch_backward(addr)
 #define bgq_flush(addr)
 
-#define bgq_l1_zero(addr) {}
-	//memset((addr),0,64)
+#define bgq_l1_zero(addr) \
+	memset((addr),0,128)
 
 #else
 
@@ -760,7 +762,7 @@ typedef struct {
 	#define bgq_prefetch_backward(addr) \
 		__prefetch_by_stream(3/*backward*/,(addr))
 	#define bgq_l1_zero(addr) \
-		__dcbz(addr)
+		__dcbz(addr) /* sets 128 bytes (L2 chache line size) to zero */
 	#define bgq_flush(addr) \
 		__dcbf(addr)
 #elif defined(__GNUC__)
@@ -829,27 +831,26 @@ typedef struct {
 #define bgq_su3_spinor_zeroload NAME2(bgq_su3_spinor_zeroload,PRECISION)
 #define bgq_su3_spinor_zeroload_double(addr) \
 	bgq_l1_zero((char*)(addr) +   0);    \
-	bgq_l1_zero((char*)(addr) +  64);    \
 	bgq_l1_zero((char*)(addr) + 128);    \
-	bgq_l1_zero((char*)(addr) + 192);    \
-	bgq_l1_zero((char*)(addr) + 256);    \
-	bgq_l1_zero((char*)(addr) + 320)
+	bgq_l1_zero((char*)(addr) + 256)
+	// 384
 
 #define bgq_su3_spinor_zeroload_float(addr) \
-	bgq_l1_zero((char*)(addr) +   0);    \
-	bgq_l1_zero((char*)(addr) +  64);    \
-	bgq_l1_zero((char*)(addr) + 128) /* WARNING: if dcbz clears more than 64 bytes cacheline, it will overwrite the neighbor spinor */
+	bgq_l1_zero((char*)(addr) + 0);          \
+	bgq_prefetchforwrite((char*)(addr) +  128)
+	// 192
 
 
 #define bgq_su3_weyl_zeroload NAME2(bgq_su3_weyl_zeroload,PRECISION)
 #define bgq_su3_weyl_zeroload_double(addr) \
-	bgq_l1_zero((char*)(addr) +   0);    \
-	bgq_l1_zero((char*)(addr) +  64);    \
-	bgq_l1_zero((char*)(addr) + 128)
+	bgq_l1_zero((char*)(addr) + 0);          \
+	bgq_prefetchforwrite((char*)(addr) +  128)
+	// 192
 
-#define bgq_su3_weyl_zeroload_float(addr) \
-	bgq_prefetchforwrite((char*)(addr) +  64); /* only write half of the cacheline */ \
-	bgq_l1_zero         ((char*)(addr) +   0)
+#define bgq_su3_weyl_zeroload_float(addr)    \
+	bgq_prefetchforwrite((char*)(addr) +  0); \
+	bgq_prefetchforwrite((char*)(addr) +  64)
+	// 96
 
 
 

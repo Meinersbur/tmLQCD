@@ -41,6 +41,9 @@
 #define bgq_su3_weyl_loadorprefetch_left(dst,addr) \
 	bgq_su3_weyl_prefetch(addr)
 
+#define bgq_su3_weyl_loadorprefetch_right(dst,addr) \
+	bgq_su3_weyl_prefetch(addr)
+
 #define bgq_su3_matrix_loadorprefetch(dst,addr) \
 	bgq_su3_matrix_prefetch(addr)
 
@@ -61,6 +64,9 @@
 
 #define bgq_su3_weyl_loadorprefetch_left(dst,addr) \
 	bgq_su3_weyl_load_left(dst,addr)
+
+#define bgq_su3_weyl_loadorprefetch_right(dst,addr) \
+	bgq_su3_weyl_load_right(dst,addr)
 
 #define bgq_su3_matrix_loadorprefetch(dst,addr) \
 	bgq_su3_matrix_load(dst,addr)

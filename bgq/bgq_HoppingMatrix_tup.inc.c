@@ -24,12 +24,14 @@
 #ifndef BGQ_HM_DIR_NOFUNC
 #include "bgq.h"
 #include "bgq_field.h"
-#include "bgq_field_double.h"
-void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int tv, int x, int y, int z, int t1, int t2) {
+
+void bgq_HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool isOdd, int tv, int x, int y, int z, int t1, int t2) {
 	bgq_su3_spinor_decl(result);
+	bgq_vector4double_decl(qka0);
 #else
 {
 #endif
+
 
 #if !BGQ_HM_CARRY
 
@@ -41,7 +43,7 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_tup);
 		#if (BGQ_HM_TLINEINDENT==-1)
-		if (((tv+x+y+z)&1) == isOdd) {
+		if ( ((x+y+z)&1) == isOdd ) {
 		#endif
 		#if (BGQ_HM_TLINEINDENT==-1) || (BGQ_HM_TLINEINDENT==0)
 			bgq_spinorsite *spinorsite_tup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1+1, t2+1, !BGQ_HM_TUP_PREFETCH,false);
@@ -59,33 +61,40 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 			bgq_su3_spinor_decl(spinor_tup_right);
 			bgq_su3_spinor_loadorprefetch_left(spinor_tup_right, spinorsite_tup_right);
 
-			bgq_su3_spinor_merge(spinor_tup, spinor_tup_mid, spinor_tup_right);
+			#if !BGQ_HM_TUP_PREFETCH
+				bgq_su3_spinor_merge(spinor_tup, spinor_tup_mid, spinor_tup_right);
+			#endif
 		#endif
 		#if (BGQ_HM_TLINEINDENT==-1)
 		}
 		#endif
 
-		// Compute its halfspinor
-		bgq_su3_vadd(weyl_tup_v0, spinor_tup_v0, spinor_tup_v2);
-		bgq_su3_vadd(weyl_tup_v1, spinor_tup_v1, spinor_tup_v3);
+		#if !BGQ_HM_TUP_PREFETCH
+			// Compute its halfspinor
+			bgq_su3_vadd(weyl_tup_v0, spinor_tup_v0, spinor_tup_v2);
+			bgq_su3_vadd(weyl_tup_v1, spinor_tup_v1, spinor_tup_v3);
+		#endif
 	#endif
 	#if (BGQ_HM_TUP_WEYLREAD==-1)
 	} else {
 	#endif
 	#if (BGQ_HM_TUP_WEYLREAD==-1) || (BGQ_HM_TUP_WEYLREAD==1)
 		#if (BGQ_HM_TLINEINDENT==-1)
-		if ( ((tv+x+y+z)&1) == isOdd ) {
+		if ( ((x+y+z)&1) == isOdd ) {
 		#endif
 		#if (BGQ_HM_TLINEINDENT==-1) || (BGQ_HM_TLINEINDENT==0)
 			assert(t2+2 == LOCAL_LT);
+
 			// Read as normal
-			bgq_spinorsite *spinorsite_tup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1+1, t2+1, !BGQ_HM_TUP_PREFETCH,false);
+			bgq_spinorsite *spinorsite_tup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1+1, t2+1, !BGQ_HM_TUP_PREFETCH, false);
 			bgq_su3_spinor_decl(spinor_tup);
 			bgq_su3_spinor_loadorprefetch(spinor_tup, spinorsite_tup);
 
-			// Compute its halfspinor
-			bgq_su3_vadd(weyl_tup_v0, spinor_tup_v0, spinor_tup_v2);
-			bgq_su3_vadd(weyl_tup_v1, spinor_tup_v1, spinor_tup_v3);
+			#if !BGQ_HM_TDOWN_PREFETCH
+				// Compute its halfspinor
+				bgq_su3_vadd(weyl_tup_v0, spinor_tup_v0, spinor_tup_v2);
+				bgq_su3_vadd(weyl_tup_v1, spinor_tup_v1, spinor_tup_v3);
+			#endif
 		#endif
 		#if (BGQ_HM_TLINEINDENT==-1)
 		} else {
@@ -99,23 +108,29 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 			bgq_su3_spinor_decl(spinor_tup_mid);
 			bgq_su3_spinor_loadorprefetch_right(spinor_tup_mid, spinorsite_tup_mid);
 
-			// Also compute its halfspinor, but we have only a right part, hence wasting a few flops
-			bgq_su3_weyl_decl(weyl_tup_mid);
-			bgq_su3_vadd(weyl_tup_mid_v0, spinor_tup_mid_v0, spinor_tup_mid_v2);
-			bgq_su3_vadd(weyl_tup_mid_v1, spinor_tup_mid_v1, spinor_tup_mid_v3);
+			#if !BGQ_HM_TUP_PREFETCH
+				// Also compute its halfspinor, but we have only a right part, hence wasting a few flops
+				bgq_su3_weyl_decl(weyl_tup_mid);
+				bgq_su3_vadd(weyl_tup_mid_v0, spinor_tup_mid_v0, spinor_tup_mid_v2);
+				bgq_su3_vadd(weyl_tup_mid_v1, spinor_tup_mid_v1, spinor_tup_mid_v3);
+			#endif
 
 			// Read the other halfspinor from what the neighbor node sent us
 			const int xeo = x / PHYSICAL_LP;
 			const int xv = xeo / PHYSICAL_LK;
 			const int kx = mod(xeo, PHYSICAL_LK);
 
-			bgq_weylsite *weylsite_tup_right = BGQ_WEYLSITE_T(weylxchange_recv[TUP], !isOdd, t2+1, xv, y, z, kx==0 ? x : x-2, kx==1 ? x : x+2, !BGQ_HM_TUP_PREFETCH, false);
-			weylsite_tup_right = (bgq_weylsite*) ((char*)weylsite_tup_right + kx*sizeof(COMPLEX_PRECISION)); // Some trick: if we are supposed to read k=1, shift the pointer to the right to match k=0, so we avoid some conditional
+			bgq_weylsite *weylsite_tup_right = BGQ_WEYLSITE_T(weylxchange_recv[TUP], !isOdd, t2+1, xv, y, z, (kx==0) ? x : x-2, (kx==1) ? x : x+2, !BGQ_HM_TUP_PREFETCH, false);
+			#if !BGQ_HM_TDOWN_PREFETCH
+				weylsite_tup_right = (bgq_weylsite*) ((char*)weylsite_tup_right + kx*sizeof(COMPLEX_PRECISION)); // Some trick: if we are supposed to read k=1, shift the pointer to the right to match k=0, so we avoid some conditional
+			#endif
 			bgq_su3_weyl_decl(weyl_tup_right);
 			bgq_su3_weyl_loadorprefetch_left(weyl_tup_right, weylsite_tup_right);
 
-			// Merge both weyls to the final result
-			bgq_su3_weyl_merge(weyl_tup, weyl_tup_mid, weyl_tup_right);
+			#if !BGQ_HM_TUP_PREFETCH
+				// Merge both weyls to the final result
+				bgq_su3_weyl_merge(weyl_tup, weyl_tup_mid, weyl_tup_right);
+			#endif
 		#endif
 		#if (BGQ_HM_TLINEINDENT==-1)
 		}
@@ -157,8 +172,8 @@ void HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_doubl
 			bgq_su3_vadd(result_v3, result_v3, weyl_tup_v1);
 		#endif
 
-		bgq_setbgqvalue(t1, x, y, z, BGQREF_TUP, bgq_cmplxval1(weyl_tup_v0_c0), "weyl_tup");
-		bgq_setbgqvalue(t2, x, y, z, BGQREF_TUP, bgq_cmplxval2(weyl_tup_v0_c0), "weyl_tup");
+		bgq_setbgqvalue(t1, x, y, z, BGQREF_TUP, bgq_cmplxval1(weyl_tup_v1_c0), "weyl_tup");
+		bgq_setbgqvalue(t2, x, y, z, BGQREF_TUP, bgq_cmplxval2(weyl_tup_v1_c0), "weyl_tup");
 	#endif
 
 

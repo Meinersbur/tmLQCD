@@ -37,8 +37,8 @@ void bgq_initbgqref() {
 		g_bgqvalue = malloc_aligned(datasize, 128);
 		g_refvalue = malloc_aligned(datasize, 128);
 	}
-	memset(g_bgqvalue, 0, datasize);
-	memset(g_refvalue, 0, datasize);
+	memset(g_bgqvalue, 0xFF, datasize);
+	memset(g_refvalue, 0xFF, datasize);
 
 	for (int idx = 0; idx <  lengthof(g_idxdesc); idx+=1) {
 		g_idxdesc[idx] = NULL;

@@ -257,7 +257,7 @@ EXTERN_INLINE int moddown(const int dividend, const int divisor) {
 #if BGQMOD==0
 	// Compilers can therefore optimize it to bit-operations specific to the target machine
 	// This is not possible with the %-operator on signed operands because it required the result to have the sign of the dividend (hence its the remainder, not a modulus)
-	unsigned int udividend = dividend + divisor;
+	unsigned int udividend = dividend + divisor; // In all our use cases, dividend is at lowest -1, so just add one divisor such that result stays the same but everything is positive
 	unsigned int udivisor = divisor;
 	return udividend % udivisor; // Use unsigned operation here to enable the optimizer to use bit-tricks (like dividend&1 if divisor==2)
 #elif BGQMOD==1

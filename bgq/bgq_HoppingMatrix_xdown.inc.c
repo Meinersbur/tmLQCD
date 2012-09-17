@@ -32,8 +32,8 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 
 	bgq_su3_weyl_decl(weyl_xdown);
-	#if BGQ_HM_XDOWN_WEYLREAD==-1
-		if (x==0) {
+	#if (BGQ_HM_XDOWN_WEYLREAD==-1)
+	if (x==0) {
 	#endif
 	#if (BGQ_HM_XDOWN_WEYLREAD==-1) || (BGQ_HM_XDOWN_WEYLREAD==1)
 		bgq_weylsite *weylsite_xdown = BGQ_WEYLSITE_X(weylxchange_recv[XDOWN], !isOdd, tv, x-1, y, z, t1, t2, !BGQ_HM_XDOWN_PREFETCH,false);
@@ -44,7 +44,7 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 			//bgq_setbgqvalue(t2, x, y, z, BGQREF_XDOWN_WEYLREAD, bgq_cmplxval2(weyl_xdown_v0_c0), "weyl_recv_xdown");
 		#endif
 	#endif
-	#if BGQ_HM_XDOWN_WEYLREAD==-1
+	#if (BGQ_HM_XDOWN_WEYLREAD==-1)
 	} else {
 	#endif
 	#if (BGQ_HM_XDOWN_WEYLREAD==-1) || (BGQ_HM_XDOWN_WEYLREAD==0)
@@ -95,8 +95,8 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 		bgq_su3_vpiadd(result_v2, result_v2, weyl_xdown_v1);
 		bgq_su3_vpiadd(result_v3, result_v3, weyl_xdown_v0);
 
-		bgq_setbgqvalue(t1, x, y, z, BGQREF_XDOWN, bgq_cmplxval1(weyl_xdown_v0_c0), "weyl_xdown");
-		bgq_setbgqvalue(t2, x, y, z, BGQREF_XDOWN, bgq_cmplxval2(weyl_xdown_v0_c0), "weyl_xdown");
+		bgq_setbgqvalue(t1, x, y, z, BGQREF_XDOWN, bgq_cmplxval1(weyl_xdown_v1_c0), "weyl_xdown");
+		bgq_setbgqvalue(t2, x, y, z, BGQREF_XDOWN, bgq_cmplxval2(weyl_xdown_v1_c0), "weyl_xdown");
 #endif
 
 
