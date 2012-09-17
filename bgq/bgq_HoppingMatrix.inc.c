@@ -27,8 +27,8 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 
 	//master_print("nocom=%d nooverlap=%d\n", nocom, nooverlap);
 
-
-
+	//assert(omp_in_parallel() && "Should be called while in #pragma omp parallel");
+	assert(omp_get_thread_num() == 0 && "Should be in a #pragma omp master");
 
 #if BGQ_FIELD_COORDCHECK
 	#pragma omp master
@@ -68,7 +68,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	bgq_vector4double_decl(qka3); // z
 	bgq_cconst(qka3, ka3.re, ka3.im);
 
-//#pragma omp parallel
+#pragma omp parallel
 {
 #if 0
 	#pragma omp master
@@ -109,6 +109,7 @@ if (!nocom) {
 	#endif
 	MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_recv), weylexchange_request_recv));
 	//MPI_CHECK(MPI_Barrier(g_cart_grid)); // To ensure that all ranks started the receive requests (necessary? how expensive is this?)
+	//master_print("MK HM endof Irecv\n");
 }
 #endif
 	}
@@ -310,11 +311,13 @@ if (!nocom) {
 		{
 			//master_print("MK HM Isend overlap\n");
 
-			bgq_weylfield_foreach(weylxchange_send[TDOWN], TDOWN, true, isOdd, &bgq_setbgqval, BGQREF_TDOWN_SENDBUF);
-			bgq_weylfield_foreach(weylxchange_send[TUP], TUP, true, isOdd, &bgq_setbgqval, BGQREF_TUP_SENDBUF);
-			bgq_weylfield_foreach(weylxchange_send[XDOWN], XDOWN, true, isOdd, &bgq_setbgqval, BGQREF_XDOWN_SENDBUF);
-			bgq_weylfield_foreach(weylxchange_send[XUP], XUP, true, isOdd, &bgq_setbgqval, BGQREF_XUP_SENDBUF);
+			//bgq_weylfield_foreach(weylxchange_send[TDOWN], TDOWN, true, isOdd, &bgq_setbgqval, BGQREF_TDOWN_SENDBUF);
+			//bgq_weylfield_foreach(weylxchange_send[TUP], TUP, true, isOdd, &bgq_setbgqval, BGQREF_TUP_SENDBUF);
+			//bgq_weylfield_foreach(weylxchange_send[XDOWN], XDOWN, true, isOdd, &bgq_setbgqval, BGQREF_XDOWN_SENDBUF);
+			//bgq_weylfield_foreach(weylxchange_send[XUP], XUP, true, isOdd, &bgq_setbgqval, BGQREF_XUP_SENDBUF);
 			MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_send), weylexchange_request_send));
+
+			//master_print("MK HM endof Isend overlap\n");
 		}
 	}
 #endif
@@ -368,11 +371,13 @@ if (!nobody) {
 		{
 			//master_print("MK HM Isend nooverlap\n");
 
-			bgq_weylfield_foreach(weylxchange_send[TDOWN], TDOWN, true, isOdd, &bgq_setbgqval, BGQREF_TDOWN_SENDBUF);
-			bgq_weylfield_foreach(weylxchange_send[TUP], TUP, true, isOdd, &bgq_setbgqval, BGQREF_TUP_SENDBUF);
-			bgq_weylfield_foreach(weylxchange_send[XDOWN], XDOWN, true, isOdd, &bgq_setbgqval, BGQREF_XDOWN_SENDBUF);
-			bgq_weylfield_foreach(weylxchange_send[XUP], XUP, true, isOdd, &bgq_setbgqval, BGQREF_XUP_SENDBUF);
+			//bgq_weylfield_foreach(weylxchange_send[TDOWN], TDOWN, true, isOdd, &bgq_setbgqval, BGQREF_TDOWN_SENDBUF);
+			//bgq_weylfield_foreach(weylxchange_send[TUP], TUP, true, isOdd, &bgq_setbgqval, BGQREF_TUP_SENDBUF);
+			//bgq_weylfield_foreach(weylxchange_send[XDOWN], XDOWN, true, isOdd, &bgq_setbgqval, BGQREF_XDOWN_SENDBUF);
+			//bgq_weylfield_foreach(weylxchange_send[XUP], XUP, true, isOdd, &bgq_setbgqval, BGQREF_XUP_SENDBUF);
 			MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_send), weylexchange_request_send));
+
+			//master_print("MK HM endof Isend nooverlap\n");
 		}
 	}
 
@@ -383,10 +388,10 @@ if (!nobody) {
 			MPI_Status weylxchange_recv_statuses[6];
 			MPI_CHECK(MPI_Waitall(lengthof(weylexchange_request_recv), weylexchange_request_recv, weylxchange_recv_statuses));
 			//master_print("length=%d weylexchange_request_recv=%d weylxchange_recv_statuses=%d\n", (int)lengthof(weylexchange_request_recv), (int)weylexchange_request_recv, (int)weylxchange_recv_statuses);
-			bgq_weylfield_foreach(weylxchange_recv[TUP], TUP, false, isOdd, &bgq_setbgqval, BGQREF_TUP_RECVBUF);
-			bgq_weylfield_foreach(weylxchange_recv[TDOWN], TDOWN, false, isOdd, &bgq_setbgqval, BGQREF_TDOWN_RECVBUF);
-			bgq_weylfield_foreach(weylxchange_recv[XUP], XUP, false, isOdd, &bgq_setbgqval, BGQREF_XUP_RECVBUF);
-			bgq_weylfield_foreach(weylxchange_recv[XDOWN], XDOWN, false, isOdd, &bgq_setbgqval, BGQREF_XDOWN_RECVBUF);
+			//bgq_weylfield_foreach(weylxchange_recv[TUP], TUP, false, isOdd, &bgq_setbgqval, BGQREF_TUP_RECVBUF);
+			//bgq_weylfield_foreach(weylxchange_recv[TDOWN], TDOWN, false, isOdd, &bgq_setbgqval, BGQREF_TDOWN_RECVBUF);
+			//bgq_weylfield_foreach(weylxchange_recv[XUP], XUP, false, isOdd, &bgq_setbgqval, BGQREF_XUP_RECVBUF);
+			//bgq_weylfield_foreach(weylxchange_recv[XDOWN], XDOWN, false, isOdd, &bgq_setbgqval, BGQREF_XDOWN_RECVBUF);
 
 			//master_print("MK HM Waitall send\n");
 			MPI_Status weylxchange_send_statuses[6];
@@ -399,7 +404,7 @@ if (!nobody) {
 					//assert(get_MPI_count(&weylxchange_send_statuses[d]) == 0);
 				}
 			#endif
-			//master_print("MK HM checked\n");
+			//master_print("MK HM endof Waitall\n");
 		}
 	}
 #endif

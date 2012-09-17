@@ -234,6 +234,9 @@ void bgq_setrefvalue(int t, int x, int y, int z, int idx, complexdouble val, cha
 void bgq_setbgqvalue(int t, int x, int y, int z, int idx, complexdouble val, char *desc);
 void bgq_savebgqref();
 
+#ifndef BGQ_FIELD_C_H_
+#define bgq_setbgqvalue(...) ((void)0)
+#endif
 
 
 
