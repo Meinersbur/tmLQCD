@@ -32,15 +32,15 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 #endif
 
 
-#if (BGQ_HM_ZUP_RIGHTWRAPAROUND==0)
+	#if (BGQ_HM_ZUP_RIGHTWRAPAROUND==0)
 		assert(z!=PHYSICAL_LZ-1);
 		const int z_right = z+1;
-#elif (BGQ_HM_ZUP_RIGHTWRAPAROUND==1)
+	#elif (BGQ_HM_ZUP_RIGHTWRAPAROUND==1)
 		assert(z==PHYSICAL_LZ-1);
 		const int z_right = 0;
-#else
+	#else
 		const int z_right = mod(z+1, PHYSICAL_LZ);
-#endif
+	#endif
 
 
 	#if !BGQ_HM_CARRY
@@ -48,7 +48,6 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 		bgq_su3_spinor_decl(spinor_zup);
 		bgq_spinorsite *spinorsite_zup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z_right, t1,t2, !BGQ_HM_ZUP_PREFETCH,false);
 		bgq_su3_spinor_loadorprefetch(spinor_zup, spinorsite_zup);
-
 
 		#if !BGQ_HM_ZUP_PREFETCH
 			// Compute its halfspinor
@@ -59,7 +58,7 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 	#endif
 
 
-#if BGQ_HM_ZUP_COMPUTE
+	#if BGQ_HM_ZUP_COMPUTE
 		bgq_gaugesite *gaugesite_zup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, ZUP, t1,t2, !BGQ_HM_ZUP_PREFETCH,false);
 		bgq_su3_mdecl(gauge_zup);
 		bgq_su3_matrix_loadorprefetch(gauge_zup, gaugesite_zup);
@@ -67,14 +66,14 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 		bgq_su3_mvmul(weyl_zup_v0, gauge_zup, weyl_zup_v0);
 		bgq_su3_mvmul(weyl_zup_v1, gauge_zup, weyl_zup_v1);
 
-#if !BGQ_HM_NOKAMUL
-		bgq_su3_cvmul(weyl_zup_v0, qka3, weyl_zup_v0);
-		bgq_su3_cvmul(weyl_zup_v1, qka3, weyl_zup_v1);
-#endif
-#endif
+		#if !BGQ_HM_NOKAMUL
+			bgq_su3_cvmul(weyl_zup_v0, qka3, weyl_zup_v0);
+			bgq_su3_cvmul(weyl_zup_v1, qka3, weyl_zup_v1);
+		#endif
+	#endif
 
 
-#if BGQ_HM_ZUP_ACCUMULATE
+	#if BGQ_HM_ZUP_ACCUMULATE
 		bgq_su3_vadd(result_v0, result_v0, weyl_zup_v0);
 		bgq_su3_vadd(result_v1, result_v1, weyl_zup_v1);
 		bgq_su3_vpisub(result_v2, result_v2, weyl_zup_v0);
@@ -82,7 +81,7 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 
 		bgq_setbgqvalue(t1, x, y, z, BGQREF_ZUP, bgq_cmplxval1(weyl_zup_v0_c0), "weyl_zup");
 		bgq_setbgqvalue(t2, x, y, z, BGQREF_ZUP, bgq_cmplxval2(weyl_zup_v0_c0), "weyl_zup");
-#endif
+	#endif
 
 
 }
@@ -93,3 +92,8 @@ void bgq_HoppingMatrix_zup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 #undef BGQ_HM_ZUP_PREFETCH
 #undef BGQ_HM_ZUP_COMPUTE
 #undef BGQ_HM_ZUP_ACCUMULATE
+
+
+
+
+

@@ -31,24 +31,27 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 
 
 #if BGQ_FIELD_COORDCHECK
-	bgq_spinorfield_resetcoord(targetfield, isOdd, -1, -1, -1, -1);
-	bgq_spinorfield_resetcoord(spinorfield, !isOdd, -1, -1, -1, -1);
-	bgq_gaugefield_resetcoord(gaugefield, -1,-1,-1,-1);
+	#pragma omp master
+	{
+		bgq_spinorfield_resetcoord(targetfield, isOdd, -1, -1, -1, -1);
+		bgq_spinorfield_resetcoord(spinorfield, !isOdd, -1, -1, -1, -1);
+		bgq_gaugefield_resetcoord(gaugefield, -1,-1,-1,-1);
 
-	bgq_weylfield_t_resetcoord(weylxchange_send[TUP], LOCAL_LT-1, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_t_resetcoord(weylxchange_send[TDOWN], 0, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_t_resetcoord(weylxchange_recv[TUP], LOCAL_LT, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_t_resetcoord(weylxchange_recv[TDOWN], -1, !isOdd, -1, -1, -1, -1);
+		bgq_weylfield_t_resetcoord(weylxchange_send[TUP], LOCAL_LT-1, !isOdd, -1, -1, -1, -1);
+		bgq_weylfield_t_resetcoord(weylxchange_send[TDOWN], 0, !isOdd, -1, -1, -1, -1);
+		bgq_weylfield_t_resetcoord(weylxchange_recv[TUP], LOCAL_LT, !isOdd, -1, -1, -1, -1);
+		bgq_weylfield_t_resetcoord(weylxchange_recv[TDOWN], -1, !isOdd, -1, -1, -1, -1);
 
-	bgq_weylfield_x_resetcoord(weylxchange_send[XUP], LOCAL_LX-1, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_x_resetcoord(weylxchange_send[XDOWN], 0, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_x_resetcoord(weylxchange_recv[XUP], LOCAL_LX, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_x_resetcoord(weylxchange_recv[XDOWN], -1, !isOdd, -1, -1, -1, -1);
+		bgq_weylfield_x_resetcoord(weylxchange_send[XUP], LOCAL_LX-1, !isOdd, -1, -1, -1, -1);
+		bgq_weylfield_x_resetcoord(weylxchange_send[XDOWN], 0, !isOdd, -1, -1, -1, -1);
+		bgq_weylfield_x_resetcoord(weylxchange_recv[XUP], LOCAL_LX, !isOdd, -1, -1, -1, -1);
+		bgq_weylfield_x_resetcoord(weylxchange_recv[XDOWN], -1, !isOdd, -1, -1, -1, -1);
 
-	bgq_weylfield_y_resetcoord(weylxchange_send[YUP], LOCAL_LY-1, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_y_resetcoord(weylxchange_send[YDOWN], 0, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_y_resetcoord(weylxchange_recv[YUP], LOCAL_LY, !isOdd, -1, -1, -1, -1);
-	bgq_weylfield_y_resetcoord(weylxchange_recv[YDOWN], -1, !isOdd, -1, -1, -1, -1);
+		bgq_weylfield_y_resetcoord(weylxchange_send[YUP], LOCAL_LY-1, !isOdd, -1, -1, -1, -1);
+		bgq_weylfield_y_resetcoord(weylxchange_send[YDOWN], 0, !isOdd, -1, -1, -1, -1);
+		bgq_weylfield_y_resetcoord(weylxchange_recv[YUP], LOCAL_LY, !isOdd, -1, -1, -1, -1);
+		bgq_weylfield_y_resetcoord(weylxchange_recv[YDOWN], -1, !isOdd, -1, -1, -1, -1);
+	}
 #endif
 
 
@@ -65,10 +68,10 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	bgq_vector4double_decl(qka3); // z
 	bgq_cconst(qka3, ka3.re, ka3.im);
 
-#pragma omp parallel
+//#pragma omp parallel
 {
 #if 0
-#pragma omp master
+	#pragma omp master
 	{
 		for (int i = 0; i < 10; i+=1) {
 			*((double*)weylxchange_recv[0]) = -1;
@@ -406,10 +409,10 @@ L1P_PatternResume();
 //master_print("MK HM before surface\n");
 if (!nosurface) {
 	#pragma omp for schedule(static)
-	for (int xyz = 0; xyz < SURFACE_ZLINES; xyz+=1) {
+	for (int ixyz = 0; ixyz < SURFACE_ZLINES; ixyz+=1) {
 		//master_print("MK HM xyz=%d\n", xyz);
 
-		WORKLOAD_DECL(xyz, SURFACE_ZLINES);
+		WORKLOAD_DECL(ixyz, SURFACE_ZLINES);
 		int tv;
 		int x;
 		int y;

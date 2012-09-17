@@ -449,9 +449,15 @@ typedef struct {
 
 
 static void check_correctness_double() {
+	master_print("MK Checking double precision correctness...\n");
 	int k = 0;
 	int k_max = 1;
 	bgq_hmflags hmflags = 0;
+
+#pragma omp parallel
+	{
+#pragma omp master
+		{
 
 	bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
 	double compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k]);
@@ -473,20 +479,30 @@ static void check_correctness_double() {
 	assert(compare_odd < 0.001);
 
 	master_print("Numerical instability between double precision implementations: even %e, odd %e\n", compare_even, compare_odd);
+		}
+	}
 }
 
 
 static void check_correctness_float() {
+	master_print("MK Checking float precision correctness...\n");
 	int k = 0;
 	int k_max = 1;
 	bgq_hmflags hmflags = 0;
+
+#pragma omp parallel
+	{
+#pragma omp master
+		{
 
 	bgq_transfer_spinorfield_float(true, g_spinorfields_float[k], g_spinor_field[k]);
 	double compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k]);
 	assert(compare_even_before == 0 /* should be bitwise identical */);
 
+	bgq_initbgqref();
 	bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
 	Hopping_Matrix(0, g_spinor_field[k + k_max], g_spinor_field[k]);
+	bgq_savebgqref();
 	double compare_even = bgq_spinorfield_compare_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k + k_max]);
 	assert(compare_even < 0.001);
 
@@ -495,7 +511,10 @@ static void check_correctness_float() {
 	double compare_odd = bgq_spinorfield_compare_float(true, g_spinorfields_float[k + 2*k_max], g_spinor_field[k + 2*k_max]);
 	assert(compare_odd < 0.001);
 
+
 	master_print("Numerical instability between float precision implementations: even %g, odd %g\n", compare_even, compare_odd);
+		}
+	}
 }
 
 
@@ -516,6 +535,11 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 	hmflags |= nosurface*hm_nosurface;
 	//hmflags |= hm_prefetchexplicit;
 	hmflags |= kamul*hm_nokamul;
+
+#pragma omp parallel
+	{
+#pragma omp master
+		{
 
 	for (int j = 0; j < j_max; j += 1) {
 		////////////////////////////////////////////////////////////////////////////////
@@ -543,6 +567,9 @@ benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool n
 		} else {
 			localsumtime += runtime;
 			localsumsqtime += sqr(runtime);
+		}
+	}
+
 		}
 	}
 

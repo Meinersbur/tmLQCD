@@ -14,10 +14,10 @@
 #@ queue
 echo DEPART : `date`
 
-INPUT_FILE=benchmark${LOADL_STEP_NAME}.input 
+INPUT_FILE=benchmark.input.${LOADL_STEP_ID} 
 cat > ${INPUT_FILE} <<+EOF
 T=32
-L=32
+L=16
 +EOF
 
 
@@ -31,7 +31,7 @@ export BG_COREDUMPDISABLED=0
 env
 
 echo ================================================================================
-runjob --ranks-per-node 1 --env-all -np 8 : ./bgqbench -f ${INPUT_FILE}
+runjob --ranks-per-node 1 --env-all --np 8 : ./bgqbench -f ${INPUT_FILE}
 
 
 echo ================================================================================

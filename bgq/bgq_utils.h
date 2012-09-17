@@ -101,6 +101,9 @@ EXTERN_INLINE int get_MPI_count(MPI_Status *status) {
 	int xyz_torig;                     \
 	int xyz_total = (TOTAL);           \
 	int xyz_param;                     \
+	if ((xyz_counter < 0) || (xyz_counter > xyz_total)) {   \
+		node_print("Invalid counter %d\n", xyz_counter);  \
+	}  \
 	assert(xyz_counter >= 0);          \
 	assert(xyz_counter < xyz_total)
 
@@ -337,6 +340,10 @@ EXTERN_INLINE double bgq_wtime() {
 	if (g_proc_id == 0)                 \
 		if (omp_get_thread_num() == 0)  \
 			fprintf(stderr, __VA_ARGS__)
+
+#define node_print(...)                          \
+	fprintf(stderr, "rank=%d thread=%d ", g_proc_id, omp_get_thread_num()); \
+	fprintf(stderr, __VA_ARGS__)
 
 #define master_error(errcode, ...) \
 	do {                            \

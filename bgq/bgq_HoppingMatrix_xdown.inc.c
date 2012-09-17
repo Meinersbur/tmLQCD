@@ -31,11 +31,11 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 #endif
 
 
-		bgq_su3_weyl_decl(weyl_xdown);
-#if BGQ_HM_XDOWN_WEYLREAD==-1
+	bgq_su3_weyl_decl(weyl_xdown);
+	#if BGQ_HM_XDOWN_WEYLREAD==-1
 		if (x==0) {
-#endif
-#if (BGQ_HM_XDOWN_WEYLREAD==-1) || (BGQ_HM_XDOWN_WEYLREAD==1)
+	#endif
+	#if (BGQ_HM_XDOWN_WEYLREAD==-1) || (BGQ_HM_XDOWN_WEYLREAD==1)
 		bgq_weylsite *weylsite_xdown = BGQ_WEYLSITE_X(weylxchange_recv[XDOWN], !isOdd, tv, x-1, y, z, t1, t2, !BGQ_HM_XDOWN_PREFETCH,false);
 		bgq_su3_weyl_loadorprefetch(weyl_xdown, weylsite_xdown);
 
@@ -43,11 +43,11 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 			//bgq_setbgqvalue(t1, x, y, z, BGQREF_XDOWN_WEYLREAD, bgq_cmplxval1(weyl_xdown_v0_c0), "weyl_recv_xdown");
 			//bgq_setbgqvalue(t2, x, y, z, BGQREF_XDOWN_WEYLREAD, bgq_cmplxval2(weyl_xdown_v0_c0), "weyl_recv_xdown");
 		#endif
-#endif
-#if BGQ_HM_XDOWN_WEYLREAD==-1
-		} else {
-#endif
-#if (BGQ_HM_XDOWN_WEYLREAD==-1) || (BGQ_HM_XDOWN_WEYLREAD==0)
+	#endif
+	#if BGQ_HM_XDOWN_WEYLREAD==-1
+	} else {
+	#endif
+	#if (BGQ_HM_XDOWN_WEYLREAD==-1) || (BGQ_HM_XDOWN_WEYLREAD==0)
 		// Load the input spinor
 		bgq_su3_spinor_decl(spinor_xdown);
 		bgq_spinorsite *spinorsite_xdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x-1, y, z, t1, t2, !BGQ_HM_XDOWN_PREFETCH,false);
@@ -58,10 +58,10 @@ void bgq_HoppingMatrix_xdown(bgq_spinorfield_double targetfield, bgq_spinorfield
 			bgq_su3_vpisub(weyl_xdown_v0, spinor_xdown_v0, spinor_xdown_v3);
 			bgq_su3_vpisub(weyl_xdown_v1, spinor_xdown_v1, spinor_xdown_v2);
 		#endif
-#endif
-#if BGQ_HM_XDOWN_WEYLREAD==-1
-		}
-#endif
+	#endif
+	#if BGQ_HM_XDOWN_WEYLREAD==-1
+	}
+	#endif
 
 
 #if BGQ_HM_XDOWN_COMPUTE

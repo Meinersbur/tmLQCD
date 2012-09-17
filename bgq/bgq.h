@@ -246,7 +246,22 @@ typedef struct {
 	dst = vec_xxnpmadd(a,b,c)
 
 #define bgq_iadd(dst,lhs,rhs) \
-	bgq_xxnpmadd(dst,(vector4double)(1),rhs,lhs)
+	bgq_xxnpmadd(dst,rhs,(vector4double)(1),lhs)
+
+#if 0
+	dst.re = - rhs.im * 1 +  lhs.re
+	dst.im =   rhs.re * 1 +  lhs.im
+
+#define bgq_iadd(dst,lhs,rhs)         \
+	{                                 \
+		bgq_vector4double_decl(tmp);  \
+		tmp_q0 = lhs##_q0 - rhs##_q1; \
+		tmp_q1 = lhs##_q1 + rhs##_q0; \
+		tmp_q2 = lhs##_q2 - rhs##_q3; \
+		tmp_q3 = lhs##_q3 + rhs##_q2; \
+		bgq_mov(dst,tmp);             \
+	}
+#endif
 
 #define bgq_isub(dst,lhs,rhs) \
 	bgq_xxcpnmadd(dst,rhs,(vector4double)(1),lhs)
