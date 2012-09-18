@@ -2493,9 +2493,31 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
 #endif
 
   /* for parallelization */
-#    if (defined MPI && !(defined _NO_COMM))
+#ifdef MPI
+#ifdef _NO_COMM
+  {
+	  spinor * s = k;
+	  int field_point = 24;
+	  //T
+	  memset((void*)(l+T*LX*LY*LZ/2), 0, LX*LY*LZ*12*sizeof(double));
+	  memset((void*)(l+(T+1)*LX*LY*LZ/2), 0, LX*LY*LZ*12*sizeof(double));
+
+	  //X
+	  memset((void*)(l+(T+2)*LX*LY*LZ/2), 0, T*LY*LZ/2*field_point*sizeof(double));
+	  memset((void*)(l+((T+2)*LX*LY*LZ + T*LY*LZ)/2), 0, T*LY*LZ/2*field_point*sizeof(double));
+
+	  //Y
+	 memset((void*)(l+((T+2)*LX*LY*LZ + 2*T*LY*LZ)/2), 0, T*LX*LZ/2*field_point*sizeof(double));
+	 memset((void*)(l+((T+2)*LX*LY*LZ + 2*T*LY*LZ + T*LX*LZ)/2), 0, T*LX*LZ/2*field_point*sizeof(double));
+
+	 //Z
+	 memset((void*)(l+(VOLUME/2 + LX*LY*LZ + T*LY*LZ +T*LX*LZ)), 0, T*LX*LY/2*field_point*sizeof(double));
+	 memset((void*)(l+(VOLUME + 2*LX*LY*LZ + 2*T*LY*LZ + 2*T*LX*LZ + T*LX*LY)/2), 0, T*LX*LY/2*field_point*sizeof(double));
+  }
+#else
   xchange_field(k, ieo);
-#    endif
+#endif
+#endif
 
   if(k == l){
     printf("Error in H_psi (simple.c):\n");
