@@ -747,7 +747,7 @@ typedef struct {
 #define bgq_flush(addr)
 
 #define bgq_l1_zero(addr) \
-	memset((addr),0,128)
+	/*memset((addr),0,128)*/
 
 #else
 
