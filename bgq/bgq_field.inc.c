@@ -402,7 +402,7 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 
 					if (norm1_val > 0.01) {
 						if (first) {
-							if (false)
+							if (!silent)
 								master_print("Coordinate (%d,%d,%d,%d)(%d,%d): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t,x,y,z,v,c,creal(refvalue), cimag(refvalue),creal(bgqvalue),cimag(bgqvalue),norm1_val);
 							worker_count += 1;
 							//fprintf(stderr, "Coordinate (%d,%d,%d,%d)(%d,%d): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t,x,y,z,v,c,creal(refvalue), cimag(refvalue),creal(bgqvalue),cimag(bgqvalue),norm1_val);

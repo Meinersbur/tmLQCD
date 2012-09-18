@@ -155,7 +155,7 @@ double gatime, getime;
 
 
 static void exec_bench();
-static void check_correctness_double();
+static void check_correctness_double(bool nocom);
 static void check_correctness_float();
 
 int main(int argc, char *argv[])
@@ -401,9 +401,8 @@ int main(int argc, char *argv[])
 	}
 
 
-
-	check_correctness_double();
 	check_correctness_float();
+	check_correctness_double(false);
 	assert(even_odd_flag);
 	exec_bench();
 
@@ -449,12 +448,20 @@ typedef struct {
 	double error;
 } benchstat;
 
+static void Hopping_Matrix_switch(const int ieo, spinor * const l, spinor * const k, bool nocom) {
+	if (nocom) {
+		Hopping_Matrix_nocom(ieo,l, k);
+	} else {
+		Hopping_Matrix(ieo, l, k);
+	}
+}
 
-static void check_correctness_double() {
+
+static void check_correctness_double(bool nocom) {
 	master_print("MK Checking double precision correctness...\n");
 	int k = 0;
 	int k_max = 1;
-	bgq_hmflags hmflags = 0;
+	bgq_hmflags hmflags = hm_nocom*nocom;
 
 //#pragma omp parallel
 	{
@@ -468,7 +475,7 @@ static void check_correctness_double() {
 	bgq_initbgqref();
 	bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
 	//master_print("MK HM_orig start\n");
-	Hopping_Matrix(0, g_spinor_field[k + k_max], g_spinor_field[k]);
+	Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], nocom);
 	//master_print("MK HM_orig end\n");
 	//bgq_savebgqref();
 	//__asm__("int3");
@@ -476,7 +483,7 @@ static void check_correctness_double() {
 	assert(compare_even < 0.001);
 
 	bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
-	Hopping_Matrix(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max]);
+	Hopping_Matrix_switch(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max], nocom);
 	double compare_odd = bgq_spinorfield_compare_double(true, g_spinorfields_double[k + 2*k_max], g_spinor_field[k + 2*k_max], false);
 	assert(compare_odd < 0.001);
 
@@ -501,7 +508,7 @@ static void check_correctness_float() {
 	double compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k], false);
 	assert(compare_even_before == 0 /* should be bitwise identical */);
 
-	bgq_initbgqref();
+	//bgq_initbgqref();
 	bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
 	Hopping_Matrix(0, g_spinor_field[k + k_max], g_spinor_field[k]);
 	//bgq_savebgqref();
@@ -519,13 +526,7 @@ static void check_correctness_float() {
 	}
 }
 
-static void Hopping_Matrix_switch(const int ieo, spinor * const l, spinor * const k, bool nocom) {
-	if (nocom) {
-		Hopping_Matrix_nocom(ieo,l, k);
-	} else {
-		Hopping_Matrix(0, l, k);
-	}
-}
+
 
 static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
 	int k = 0;
@@ -536,11 +537,11 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
 		double compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], true);
 
 		bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
-		Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], hmflags & hm_nocom);
+		Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], hmflags);
 		double compare_even = bgq_spinorfield_compare_double(false, g_spinorfields_double[k + k_max], g_spinor_field[k + k_max], true);
 
 		bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
-		Hopping_Matrix_switch(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max], hmflags & hm_nocom);
+		Hopping_Matrix_switch(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max], hmflags);
 		double compare_odd = bgq_spinorfield_compare_double(true, g_spinorfields_double[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
 
 		return max(max(compare_even_before, compare_even), compare_odd);
@@ -549,11 +550,11 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
 		double compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k], true);
 
 		bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
-		Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], hmflags & hm_nocom);
+		Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], hmflags);
 		double compare_even = bgq_spinorfield_compare_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k + k_max], true);
 
 		bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
-		Hopping_Matrix_switch(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max], hmflags & hm_nocom);
+		Hopping_Matrix_switch(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max], hmflags);
 		double compare_odd = bgq_spinorfield_compare_float(true, g_spinorfields_float[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
 
 		return max(max(compare_even_before, compare_even), compare_odd);

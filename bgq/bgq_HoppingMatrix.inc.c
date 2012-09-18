@@ -103,13 +103,19 @@ if (!nocom) {
 	//master_print("MK HM Irecv\n");
 	#ifndef NDEBUG
 		for (direction d = TUP; d <= YDOWN; d += 1) {
-			memset(weylxchange_recv[d], 0xFF, weylxchange_size[d/2]);
-			memset(weylxchange_send[d], 0xFE, weylxchange_size[d/2]);
+			memset(weylxchange_recv[d], 0xFE, weylxchange_size[d/2]);
+			memset(weylxchange_send[d], 0xFF, weylxchange_size[d/2]);
 		}
 	#endif
+
+	//#endif
 	MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_recv), weylexchange_request_recv));
 	//MPI_CHECK(MPI_Barrier(g_cart_grid)); // To ensure that all ranks started the receive requests (necessary? how expensive is this?)
 	//master_print("MK HM endof Irecv\n");
+} else {
+	for (direction d = TUP; d <= YDOWN; d += 1) {
+		memset(weylxchange_recv[d], 0, weylxchange_size[d/2]);
+	}
 }
 #endif
 	}

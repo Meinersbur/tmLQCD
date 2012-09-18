@@ -2496,23 +2496,23 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
 #ifdef MPI
 #ifdef _NO_COMM
   {
-	  spinor * s = k;
-	  int field_point = 24;
-	  //T
-	  memset((void*)(l+T*LX*LY*LZ/2), 0, LX*LY*LZ*12*sizeof(double));
-	  memset((void*)(l+(T+1)*LX*LY*LZ/2), 0, LX*LY*LZ*12*sizeof(double));
+		spinor * l = k;
+		const int field_point = 24;
+		//T
+		memset((void*)(k+T*LX*LY*LZ/2), 0, LX*LY*LZ*12*sizeof(double));
+		memset((void*)(k+(T+1)*LX*LY*LZ/2), 0, LX*LY*LZ*12*sizeof(double));
 
-	  //X
-	  memset((void*)(l+(T+2)*LX*LY*LZ/2), 0, T*LY*LZ/2*field_point*sizeof(double));
-	  memset((void*)(l+((T+2)*LX*LY*LZ + T*LY*LZ)/2), 0, T*LY*LZ/2*field_point*sizeof(double));
+		//X
+		memset((void*)(k+(T+2)*LX*LY*LZ/2), 0, (T*LY*LZ/2)*field_point*sizeof(double));
+		memset((void*)(k+((T+2)*LX*LY*LZ + T*LY*LZ)/2), 0, (T*LY*LZ/2)*field_point*sizeof(double));
 
-	  //Y
-	 memset((void*)(l+((T+2)*LX*LY*LZ + 2*T*LY*LZ)/2), 0, T*LX*LZ/2*field_point*sizeof(double));
-	 memset((void*)(l+((T+2)*LX*LY*LZ + 2*T*LY*LZ + T*LX*LZ)/2), 0, T*LX*LZ/2*field_point*sizeof(double));
+		//Y
+		memset((void*)(k+((T+2)*LX*LY*LZ + 2*T*LY*LZ)/2), 0, (T*LX*LZ/2)*field_point*sizeof(double));
+		memset((void*)(k+((T+2)*LX*LY*LZ + 2*T*LY*LZ + T*LX*LZ)/2), 0, (T*LX*LZ/2)*field_point*sizeof(double));
 
-	 //Z
-	 memset((void*)(l+(VOLUME/2 + LX*LY*LZ + T*LY*LZ +T*LX*LZ)), 0, T*LX*LY/2*field_point*sizeof(double));
-	 memset((void*)(l+(VOLUME + 2*LX*LY*LZ + 2*T*LY*LZ + 2*T*LX*LZ + T*LX*LY)/2), 0, T*LX*LY/2*field_point*sizeof(double));
+		//Z
+		memset((void*)(k+(VOLUME/2 + LX*LY*LZ + T*LY*LZ +T*LX*LZ)), 0, T*LX*LY*12*sizeof(double));
+		memset((void*)(k+(VOLUME + 2*LX*LY*LZ + 2*T*LY*LZ + 2*T*LX*LZ + T*LX*LY)/2), 0, T*LX*LY*12*sizeof(double));
   }
 #else
   xchange_field(k, ieo);
