@@ -46,13 +46,15 @@
 
 typedef struct {
 	COMPLEX_PRECISION s[4][3][PHYSICAL_LK]; /* 4*3*2*sizeof(COMPLEX_PRECISION) = 384;192 bytes (6;3 L1 cache lines) */
+	//COMPLEX_PRECISION padding[4][1][PHYSICAL_LK];
 } bgq_spinorsite;
 
 typedef bgq_spinorsite (*bgq_spinorfield);
 
 
 typedef struct {
-	COMPLEX_PRECISION c[3][3][PHYSICAL_LK]; /* 3*3*2*sizeof(COMPLEX_PRECISION) = 288;144 bytes (4.5;2.25 L1 chache lines) */
+	COMPLEX_PRECISION c[3][3][PHYSICAL_LK]; /* 3*3*2*sizeof(COMPLEX_PRECISION) = 288;144 bytes (4.5;2.25 L1 cache lines) */
+	//COMPLEX_PRECISION padding[6];
 } bgq_gaugesite;
 typedef struct {
 	bgq_gaugesite *(eodir[PHYSICAL_LP][PHYSICAL_LD]);
@@ -62,7 +64,7 @@ typedef bgq_gaugeeodir (*bgq_gaugefield);
 
 typedef struct {
 	COMPLEX_PRECISION s[2][3][PHYSICAL_LK]; /* 2*3*2*sizeof(COMPLEX_PRECISION) = 192;96 bytes (3;1.5 L1 cache lines) */
-	COMPLEX_PRECISION dummy[64]; /* 4*16=64 byte To fill complete L2 chache line */
+	//COMPLEX_PRECISION padding[2][1][PHYSICAL_LK]; /* 4*16=64 byte To fill complete L2 cache line */
 } bgq_weylsite;
 typedef bgq_weylsite (*bgq_weylfield);
 

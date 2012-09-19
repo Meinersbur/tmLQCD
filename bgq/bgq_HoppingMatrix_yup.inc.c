@@ -83,6 +83,7 @@ void bgq_HoppingMatrix_yup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 		bgq_weylsite *weylsite_yup = BGQ_WEYLSITE_Y(weylxchange_send[YDOWN/*!!!*/], !isOdd, tv, x, y+1, z, t1,t2, false,true);
 		bgq_su3_weyl_zeroload(weylsite_yup);
 		bgq_su3_weyl_store(weylsite_yup, weyl_yup);
+		bgq_su3_weyl_flush(weylsite_yup);
 	#endif
 
 

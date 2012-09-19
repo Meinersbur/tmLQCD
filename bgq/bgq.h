@@ -854,6 +854,32 @@ typedef struct {
 
 
 
+#define bgq_su3_spinor_flush NAME2(bgq_su3_spinor_flush,PRECISION)
+#define bgq_su3_spinor_flush_double(addr) \
+	bgq_flush((char*)(addr) +   0);    \
+	bgq_flush((char*)(addr) +  64);    \
+	bgq_flush((char*)(addr) + 128);    \
+	bgq_flush((char*)(addr) + 192);    \
+	bgq_flush((char*)(addr) + 256);    \
+	bgq_flush((char*)(addr) + 320)
+	// 384 bytes
+#define bgq_su3_spinor_flush_float(addr) \
+	bgq_flush((char*)(addr) +   0);    \
+	bgq_flush((char*)(addr) +  64);    \
+	bgq_flush((char*)(addr) + 128)
+	// 192 bytes
+
+#define bgq_su3_weyl_flush NAME2(bgq_su3_weyl_flush,PRECISION)
+#define bgq_su3_weyl_flush_double(addr) \
+	bgq_flush((char*)(addr) +   0);    \
+	bgq_flush((char*)(addr) +  64);    \
+	bgq_flush((char*)(addr) + 128)
+	// 192 bytes
+
+#define bgq_su3_weyl_flush_float(addr)    \
+	bgq_flush((char*)(addr) +   0);    \
+	bgq_flush((char*)(addr) +  64)
+	// 96 bytes
 
 #endif /* BGQ_H_ */
 

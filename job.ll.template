@@ -16,8 +16,8 @@ echo DEPART : `date`
 
 INPUT_FILE=benchmark.input.${LOADL_STEP_ID} 
 cat > ${INPUT_FILE} <<+EOF
-T=32
-L=16
+T=48
+L=32
 +EOF
 
 
@@ -30,17 +30,13 @@ export PAMID_RZV=2147483647
 export BG_COREDUMPDISABLED=0
 env
 
-echo ================================================================================
-runjob --ranks-per-node 1 --env-all --np 8 : ./bgqbench -f ${INPUT_FILE}
+#echo ================================================================================
+#runjob --ranks-per-node 1 --env-all --np 8 : ./bgqbench -f ${INPUT_FILE}
 
 
-echo ================================================================================
+#echo ================================================================================
 export OMP_NUM_THREADS=64
-runjob --ranks-per-node 1 --env-all --np 8 : ./bgqbench -f ${INPUT_FILE} 
-echo ================================================================================
-runjob --ranks-per-node 1 --env-all --np 16 : ./bgqbench -f ${INPUT_FILE} 
-echo ================================================================================
-runjob --ranks-per-node 1 --env-all --np 32 : ./bgqbench -f ${INPUT_FILE} 
+#runjob --ranks-per-node 1 --env-all --np 8 : ./bgqbench -f ${INPUT_FILE} 
 echo ================================================================================
 runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE} 
 echo ================================================================================

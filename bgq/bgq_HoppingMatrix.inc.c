@@ -68,7 +68,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	bgq_vector4double_decl(qka3); // z
 	bgq_cconst(qka3, ka3.re, ka3.im);
 
-#pragma omp parallel
+//#pragma omp parallel
 {
 #if 0
 	#pragma omp master
@@ -96,6 +96,8 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	}
 #endif
 
+#pragma omp parallel
+	{
 #pragma omp master
 	{
 #ifdef MPI
@@ -114,11 +116,12 @@ if (!nocom) {
 	//master_print("MK HM endof Irecv\n");
 } else {
 	for (direction d = TUP; d <= YDOWN; d += 1) {
+		// To make it deterministic
 		memset(weylxchange_recv[d], 0, weylxchange_size[d/2]);
 	}
 }
 #endif
-	}
+	}}
 
 #if BGQ_PREFETCH_LIST
 		if (!isOdd) {
@@ -137,9 +140,12 @@ if (!nocom) {
 		}
 #endif
 
+
+#pragma omp parallel
+		{
 		if (!noweylsend) {
 // TDOWN
-#pragma omp for schedule(static) nowait
+#pragma omp  for schedule(static)
 	for (int xyz = 0; xyz < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ; xyz+=1) {
 		WORKLOAD_DECL(xyz, PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int t = -1;
@@ -170,12 +176,13 @@ if (!nocom) {
 		bgq_weylsite *weylsite_tup = BGQ_WEYLSITE_T(weylxchange_send[TDOWN/*!!!*/], !isOdd, t+1, xv, y, z, x1, x2, false, true);
 		bgq_su3_weyl_zeroload(weylsite_tup);
 		bgq_su3_weyl_store(weylsite_tup, weyl_tup);
+		bgq_su3_weyl_flush(weylsite_tup);
 		int a = 0;
 	}
 
 
 	// TUP
-#pragma omp for schedule(static) nowait
+#pragma omp  for schedule(static)
 	for (int xyz = 0; xyz < PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ; xyz+=1) {
 		WORKLOAD_DECL(xyz, PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int t = LOCAL_LT;
@@ -206,12 +213,13 @@ if (!nocom) {
 		bgq_weylsite *weylsite_tdown = BGQ_WEYLSITE_T(weylxchange_send[TUP/*!!!*/], !isOdd, t-1, xv, y, z, x1, x2, false, true);
 		bgq_su3_weyl_zeroload(weylsite_tdown);
 		bgq_su3_weyl_store(weylsite_tdown, weyl_tdown);
+		bgq_su3_weyl_flush(weylsite_tdown);
 		int a = 0;
 	}
 
 
 	// XDOWN
-#pragma omp for schedule(static) nowait
+#pragma omp  for schedule(static)
 	for (int tyz = 0; tyz < PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ; tyz += 1) {
 		WORKLOAD_DECL(tyz,PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
@@ -231,7 +239,7 @@ if (!nocom) {
 
 
 	// XUP
-#pragma omp for schedule(static) nowait
+#pragma omp  for schedule(static)
 	for (int tyz = 0; tyz < PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ; tyz += 1) {
 		WORKLOAD_DECL(tyz,PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ);
 		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
@@ -251,7 +259,7 @@ if (!nocom) {
 
 
 	// YDOWN
-#pragma omp for schedule(static) nowait
+#pragma omp  for schedule(static)
 	for (int txz = 0; txz < PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ; txz += 1) {
 		WORKLOAD_DECL(txz,PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ);
 		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
@@ -271,7 +279,7 @@ if (!nocom) {
 
 
 	// YUP
-#pragma omp for schedule(static)
+#pragma omp  for schedule(static)
 	for (int txz = 0; txz < PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ; txz += 1) {
 		WORKLOAD_DECL(txz,PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ);
 		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
@@ -297,6 +305,7 @@ if (!nocom) {
 #endif
 
 
+
 	#if BGQ_FIELD_COORDCHECK
 		#pragma omp master
 		{
@@ -311,6 +320,11 @@ if (!nocom) {
 		}
 	#endif
 
+		opaque_func_call();
+		for (direction d = TUP; d <= YDOWN; d += 1)
+			for (char *p = (char*)weylxchange_send[d]; p < ((char*)weylxchange_send[d]+weylxchange_size[d/2]); p+=64)
+				bgq_prefetch(p);
+
 #ifdef MPI
 	if (!nocom && !nooverlap) {
 		#pragma omp master
@@ -321,6 +335,7 @@ if (!nocom) {
 			//bgq_weylfield_foreach(weylxchange_send[TUP], TUP, true, isOdd, &bgq_setbgqval, BGQREF_TUP_SENDBUF);
 			//bgq_weylfield_foreach(weylxchange_send[XDOWN], XDOWN, true, isOdd, &bgq_setbgqval, BGQREF_XDOWN_SENDBUF);
 			//bgq_weylfield_foreach(weylxchange_send[XUP], XUP, true, isOdd, &bgq_setbgqval, BGQREF_XUP_SENDBUF);
+
 			MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_send), weylexchange_request_send));
 
 			//master_print("MK HM endof Isend overlap\n");
@@ -332,6 +347,7 @@ if (!nocom) {
 	if (!isOdd)
 		L1P_PatternResume();
 #endif
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Body kernel
@@ -366,10 +382,15 @@ if (!nobody) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+
 #if BGQ_PREFETCH_LIST
 	if (!isOdd)
 	L1P_PatternPause();
 #endif
+
+	opaque_func_call();
+		for (char *p = (char*)targetfield; p < ((char*)targetfield+VOLUME_SITES*sizeof(bgq_spinorsite)); p+=64)
+			bgq_prefetch(p);
 
 #ifdef MPI
 	if (!nocom && nooverlap) {
@@ -381,6 +402,7 @@ if (!nobody) {
 			//bgq_weylfield_foreach(weylxchange_send[TUP], TUP, true, isOdd, &bgq_setbgqval, BGQREF_TUP_SENDBUF);
 			//bgq_weylfield_foreach(weylxchange_send[XDOWN], XDOWN, true, isOdd, &bgq_setbgqval, BGQREF_XDOWN_SENDBUF);
 			//bgq_weylfield_foreach(weylxchange_send[XUP], XUP, true, isOdd, &bgq_setbgqval, BGQREF_XUP_SENDBUF);
+
 			MPI_CHECK(MPI_Startall(lengthof(weylexchange_request_send), weylexchange_request_send));
 
 			//master_print("MK HM endof Isend nooverlap\n");
@@ -419,13 +441,13 @@ if (!nobody) {
 if (!isOdd)
 L1P_PatternResume();
 #endif
-
+}
 	//if (g_proc_id == 0)
 	//	fprintf(stderr, "Here is OpenMP thread %d on node %d\n", omp_get_thread_num(), g_proc_id);
 
 //master_print("MK HM before surface\n");
 if (!nosurface) {
-	#pragma omp for schedule(static)
+	#pragma omp parallel for schedule(static)
 	for (int ixyz = 0; ixyz < SURFACE_ZLINES; ixyz+=1) {
 		//master_print("MK HM xyz=%d\n", xyz);
 
