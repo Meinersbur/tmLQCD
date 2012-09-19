@@ -191,7 +191,9 @@ void HoppingMatrix_site(bgq_spinorfield_double targetfield, bgq_spinorfield_doub
 	bgq_spinorsite *targetsite = BGQ_SPINORSITE(targetfield, isOdd, tv, x, y, z, t1,t2, false,true);
 	bgq_su3_spinor_zeroload(targetsite);
 	bgq_su3_spinor_store(targetsite, result);
+	bgq_su3_spinor_flush(targetsite);
 	int dummy = 0;
+
 
 }
 

@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
 
 	//MPI_Init(&argc, &argv);
 	int provided_threadlevel;
-	MPI_CHECK(MPI_Init_thread(&argc, &argv, MPI_THREAD_SERIALIZED, &provided_threadlevel));
+	MPI_CHECK(MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_threadlevel));
 
 	/* GG */
 	MPI_CHECK(MPI_Comm_rank(MPI_COMM_WORLD, &g_proc_id));
@@ -401,13 +401,11 @@ int main(int argc, char *argv[])
 	}
 
 
-
-	check_correctness_double(false);
 	check_correctness_double(true);
+	check_correctness_double(false);
 	check_correctness_float();
 	assert(even_odd_flag);
 	exec_bench();
-
 
 
 	/* GG */
@@ -465,9 +463,9 @@ static void check_correctness_double(bool nocom) {
 	int k_max = 1;
 	bgq_hmflags hmflags = hm_nocom*nocom | hm_nooverlap;
 
-//#pragma omp parallel
+#pragma omp parallel
 	{
-//#pragma omp master
+#pragma omp master
 		{
 
 	bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
@@ -501,9 +499,9 @@ static void check_correctness_float() {
 	int k_max = 1;
 	bgq_hmflags hmflags = 0;
 
-//#pragma omp parallel
+#pragma omp parallel
 	{
-//#pragma omp master
+#pragma omp master
 		{
 
 	bgq_transfer_spinorfield_float(true, g_spinorfields_float[k], g_spinor_field[k]);
@@ -533,6 +531,7 @@ static void check_correctness_float() {
 static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
 	int k = 0;
 	int k_max = 1;
+	hmflags = hmflags & ~hm_nokamul;
 	double result;
 
 	if (!sloppyprec) {
@@ -594,9 +593,9 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 	//hmflags |= hm_prefetchexplicit;
 	hmflags |= kamul*hm_nokamul;
 
-//#pragma omp parallel
+#pragma omp parallel
 	{
-//#pragma omp master
+#pragma omp master
 		{
 
 	err = runcheck(sloppyprec, hmflags);

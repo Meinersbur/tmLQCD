@@ -373,6 +373,7 @@ EXTERN_INLINE double min(double const lhs, double const rhs) {
 	return lhs;
 }
 
+void opaque_func_call();
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD
