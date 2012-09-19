@@ -459,30 +459,37 @@ static void Hopping_Matrix_switch(const int ieo, spinor * const l, spinor * cons
 
 static void check_correctness_double(bool nocom) {
 	master_print("MK Checking double precision%s correctness...\n", nocom ? " (no communication)" : "");
-	int k = 0;
-	int k_max = 1;
-	bgq_hmflags hmflags = hm_nocom*nocom | hm_nooverlap;
 
 #pragma omp parallel
 	{
+		int k = 0;
+			int k_max = 1;
+			bgq_hmflags hmflags = hm_nocom*nocom | hm_nooverlap;
+		double compare_even_before;
+		double compare_even;
+
 #pragma omp master
 		{
-
 	bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
-	double compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
+	compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
 	assert(compare_even_before == 0 /* should be bitwise identical */);
 
 	bgq_initbgqref();
+		}
 	bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
+#pragma omp master
+		{
 	//master_print("MK HM_orig start\n");
 	Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], nocom);
 	//master_print("MK HM_orig end\n");
 	//bgq_savebgqref();
 	//__asm__("int3");
-	double compare_even = bgq_spinorfield_compare_double(false, g_spinorfields_double[k + k_max], g_spinor_field[k + k_max], false);
+	compare_even = bgq_spinorfield_compare_double(false, g_spinorfields_double[k + k_max], g_spinor_field[k + k_max], false);
 	assert(compare_even < 0.001);
-
+		}
 	bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
+#pragma omp master
+		{
 	Hopping_Matrix_switch(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max], nocom);
 	double compare_odd = bgq_spinorfield_compare_double(true, g_spinorfields_double[k + 2*k_max], g_spinor_field[k + 2*k_max], false);
 	assert(compare_odd < 0.001);
@@ -495,31 +502,38 @@ static void check_correctness_double(bool nocom) {
 
 static void check_correctness_float() {
 	master_print("MK Checking float precision correctness...\n");
-	int k = 0;
-	int k_max = 1;
-	bgq_hmflags hmflags = 0;
+
 
 #pragma omp parallel
 	{
+		int k = 0;
+		int k_max = 1;
+		bgq_hmflags hmflags = 0;
+		double compare_even_before;
+				double compare_even;
+
 #pragma omp master
 		{
-
 	bgq_transfer_spinorfield_float(true, g_spinorfields_float[k], g_spinor_field[k]);
-	double compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k], false);
+	 compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k], false);
 	assert(compare_even_before == 0 /* should be bitwise identical */);
 
 	//bgq_initbgqref();
+		}
 	bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
+#pragma omp master
+		{
 	Hopping_Matrix(0, g_spinor_field[k + k_max], g_spinor_field[k]);
 	//bgq_savebgqref();
-	double compare_even = bgq_spinorfield_compare_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k + k_max], false);
+	 compare_even = bgq_spinorfield_compare_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k + k_max], false);
 	assert(compare_even < 0.001);
-
+		}
 	bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
+#pragma omp master
+		{
 	Hopping_Matrix(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max]);
 	double compare_odd = bgq_spinorfield_compare_float(true, g_spinorfields_float[k + 2*k_max], g_spinor_field[k + 2*k_max], false);
 	assert(compare_odd < 0.001);
-
 
 	master_print("Numerical instability between float precision implementations: even %g, odd %g\n", compare_even, compare_odd);
 		}
@@ -533,39 +547,55 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
 	int k_max = 1;
 	hmflags = hmflags & ~hm_nokamul;
 	double result;
+	double compare_even_before;
+	double compare_even;
 
 	if (!sloppyprec) {
+#pragma omp master
+		{
 		memset(g_spinorfields_double[k + k_max], 0, sizeof(bgq_spinorsite_double) * VOLUME_SITES);
 		memset(g_spinorfields_double[k + 2*k_max], 0, sizeof(bgq_spinorsite_double) * VOLUME_SITES);
 
 		bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
 		double compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
-
+		}
 		bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
+#pragma omp master
+		{
 		Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], hmflags & hm_nocom);
 		double compare_even = bgq_spinorfield_compare_double(false, g_spinorfields_double[k + k_max], g_spinor_field[k + k_max], true);
-
+		}
 		bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
+#pragma omp master
+		{
 		Hopping_Matrix_switch(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max], hmflags & hm_nocom);
 		double compare_odd = bgq_spinorfield_compare_double(true, g_spinorfields_double[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
 
 		result = max(max(compare_even_before, compare_even), compare_odd);
+		}
 	} else {
+#pragma omp master
+		{
 		memset(g_spinorfields_float[k + k_max], 0, sizeof(bgq_spinorsite_float) * VOLUME_SITES);
 		memset(g_spinorfields_float[k + 2*k_max], 0, sizeof(bgq_spinorsite_float) * VOLUME_SITES);
 
 		bgq_transfer_spinorfield_float(true, g_spinorfields_float[k], g_spinor_field[k]);
 		double compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k], true);
-
+		}
 		bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
+#pragma omp master
+		{
 		Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], hmflags & hm_nocom);
 		double compare_even = bgq_spinorfield_compare_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k + k_max], true);
-
+		}
 		bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
+#pragma omp master
+		{
 		Hopping_Matrix_switch(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max], hmflags & hm_nocom);
 		double compare_odd = bgq_spinorfield_compare_float(true, g_spinorfields_float[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
 
 		result = max(max(compare_even_before, compare_even), compare_odd);
+		}
 	}
 
 	if (result > 0.001) {
@@ -595,10 +625,8 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 
 #pragma omp parallel
 	{
-#pragma omp master
-		{
 
-	err = runcheck(sloppyprec, hmflags);
+	double errtmp = runcheck(sloppyprec, hmflags);
 
 	for (int j = 0; j < j_max; j += 1) {
 		////////////////////////////////////////////////////////////////////////////////
@@ -607,16 +635,24 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 			for (int k = 0; k < 1; k += 1) {
 				bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
 				bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
+#pragma omp master
+		{
 				iterations += 1;
+		}
 			}
 		} else {
 			for (int k = 0; k < 1; k += 1) {
 				bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
 				bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
+#pragma omp master
+		{
 				iterations += 1;
+		}
 			}
 		}
 		////////////////////////////////////////////////////////////////////////////////
+#pragma omp master
+		{
 		double end_time = MPI_Wtime();
 		double runtime = end_time - start_time;
 
@@ -627,9 +663,10 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 			localsumtime += runtime;
 			localsumsqtime += sqr(runtime);
 		}
+		err = errtmp;
+	}
 	}
 
-		}
 	}
 
 	assert(iterations == j_max-1);

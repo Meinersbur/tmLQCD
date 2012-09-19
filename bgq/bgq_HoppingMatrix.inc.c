@@ -25,7 +25,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	//master_print("nocom=%d nooverlap=%d\n", nocom, nooverlap);
 
 	//assert(omp_in_parallel() && "Should be called while in #pragma omp parallel");
-	assert(omp_get_thread_num() == 0 && "Should be in a #pragma omp master");
+	//assert(omp_get_thread_num() == 0 && "Should be in a #pragma omp master");
 
 #if BGQ_FIELD_COORDCHECK
 #pragma omp master
@@ -146,7 +146,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 //		{
 			if (!noweylsend) {
 // TDOWN
-#pragma omp for schedule(static)
+#pragma omp for schedule(static) nowait
 				for (int xyz = 0; xyz < PHYSICAL_LXV * PHYSICAL_LY * PHYSICAL_LZ; xyz += 1) {
 					WORKLOAD_DECL(xyz, PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
 					const int t = -1;
@@ -182,7 +182,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 				}
 
 				// TUP
-#pragma omp for schedule(static)
+#pragma omp for schedule(static) nowait
 				for (int xyz = 0; xyz < PHYSICAL_LXV * PHYSICAL_LY * PHYSICAL_LZ; xyz += 1) {
 					WORKLOAD_DECL(xyz, PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
 					const int t = LOCAL_LT;
@@ -218,7 +218,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 				}
 
 				// XDOWN
-#pragma omp for schedule(static)
+#pragma omp for schedule(static) nowait
 				for (int tyz = 0; tyz < PHYSICAL_LTV * PHYSICAL_LY * PHYSICAL_LZ; tyz += 1) {
 					WORKLOAD_DECL(tyz, PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ);
 					const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
@@ -237,7 +237,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 				}
 
 				// XUP
-#pragma omp for schedule(static)
+#pragma omp for schedule(static) nowait
 				for (int tyz = 0; tyz < PHYSICAL_LTV * PHYSICAL_LY * PHYSICAL_LZ; tyz += 1) {
 					WORKLOAD_DECL(tyz, PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ);
 					const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
@@ -256,7 +256,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 				}
 
 				// YDOWN
-#pragma omp for schedule(static)
+#pragma omp for schedule(static) nowait
 				for (int txz = 0; txz < PHYSICAL_LTV * PHYSICAL_LX * PHYSICAL_LZ; txz += 1) {
 					WORKLOAD_DECL(txz, PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ);
 					const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
