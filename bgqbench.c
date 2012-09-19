@@ -463,46 +463,46 @@ static void check_correctness_double(bool nocom) {
 #pragma omp parallel
 	{
 		int k = 0;
-			int k_max = 1;
-			bgq_hmflags hmflags = hm_nocom*nocom | hm_nooverlap;
+		int k_max = 1;
+		bgq_hmflags hmflags = hm_nocom * nocom | hm_nooverlap;
 		double compare_even_before;
 		double compare_even;
 
 #pragma omp master
 		{
-	bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
-	compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
-	assert(compare_even_before == 0 /* should be bitwise identical */);
+			bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
+			compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
+			assert(compare_even_before == 0 /* should be bitwise identical */);
 
-	bgq_initbgqref();
+			//bgq_initbgqref();
 		}
-	bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
+#pragma omp barrier
+		bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
 #pragma omp master
 		{
-	//master_print("MK HM_orig start\n");
-	Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], nocom);
-	//master_print("MK HM_orig end\n");
-	//bgq_savebgqref();
-	//__asm__("int3");
-	compare_even = bgq_spinorfield_compare_double(false, g_spinorfields_double[k + k_max], g_spinor_field[k + k_max], false);
-	assert(compare_even < 0.001);
+			//master_print("MK HM_orig start\n");
+			Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], nocom);
+			//master_print("MK HM_orig end\n");
+			//bgq_savebgqref();
+			//__asm__("int3");
+			compare_even = bgq_spinorfield_compare_double(false, g_spinorfields_double[k + k_max], g_spinor_field[k + k_max], false);
+			assert(compare_even < 0.001);
 		}
-	bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
+//#pragma omp barrier
+		bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
 #pragma omp master
 		{
-	Hopping_Matrix_switch(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max], nocom);
-	double compare_odd = bgq_spinorfield_compare_double(true, g_spinorfields_double[k + 2*k_max], g_spinor_field[k + 2*k_max], false);
-	assert(compare_odd < 0.001);
+			Hopping_Matrix_switch(1, g_spinor_field[k + 2 * k_max], g_spinor_field[k + k_max], nocom);
+			double compare_odd = bgq_spinorfield_compare_double(true, g_spinorfields_double[k + 2 * k_max], g_spinor_field[k + 2 * k_max], false);
+			assert(compare_odd < 0.001);
 
-	master_print("Numerical instability between double precision implementations: even %e, odd %e\n", compare_even, compare_odd);
+			master_print("Numerical instability between double precision implementations: even %e, odd %e\n", compare_even, compare_odd);
 		}
 	}
 }
 
-
 static void check_correctness_float() {
 	master_print("MK Checking float precision correctness...\n");
-
 
 #pragma omp parallel
 	{
@@ -510,32 +510,34 @@ static void check_correctness_float() {
 		int k_max = 1;
 		bgq_hmflags hmflags = 0;
 		double compare_even_before;
-				double compare_even;
+		double compare_even;
 
 #pragma omp master
 		{
-	bgq_transfer_spinorfield_float(true, g_spinorfields_float[k], g_spinor_field[k]);
-	 compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k], false);
-	assert(compare_even_before == 0 /* should be bitwise identical */);
+			bgq_transfer_spinorfield_float(true, g_spinorfields_float[k], g_spinor_field[k]);
+			compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k], false);
+			assert(compare_even_before == 0 /* should be bitwise identical */);
 
-	//bgq_initbgqref();
+			//bgq_initbgqref();
 		}
-	bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
+#pragma omp barrier
+		bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
 #pragma omp master
 		{
-	Hopping_Matrix(0, g_spinor_field[k + k_max], g_spinor_field[k]);
-	//bgq_savebgqref();
-	 compare_even = bgq_spinorfield_compare_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k + k_max], false);
-	assert(compare_even < 0.001);
+			Hopping_Matrix(0, g_spinor_field[k + k_max], g_spinor_field[k]);
+			//bgq_savebgqref();
+			compare_even = bgq_spinorfield_compare_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k + k_max], false);
+			assert(compare_even < 0.001);
 		}
-	bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
+//#pragma omp barrier
+		bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
 #pragma omp master
 		{
-	Hopping_Matrix(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max]);
-	double compare_odd = bgq_spinorfield_compare_float(true, g_spinorfields_float[k + 2*k_max], g_spinor_field[k + 2*k_max], false);
-	assert(compare_odd < 0.001);
+			Hopping_Matrix(1, g_spinor_field[k + 2 * k_max], g_spinor_field[k + k_max]);
+			double compare_odd = bgq_spinorfield_compare_float(true, g_spinorfields_float[k + 2 * k_max], g_spinor_field[k + 2 * k_max], false);
+			assert(compare_odd < 0.001);
 
-	master_print("Numerical instability between float precision implementations: even %g, odd %g\n", compare_even, compare_odd);
+			master_print("Numerical instability between float precision implementations: even %g, odd %g\n", compare_even, compare_odd);
 		}
 	}
 }

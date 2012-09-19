@@ -24,7 +24,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 
 	//master_print("nocom=%d nooverlap=%d\n", nocom, nooverlap);
 
-	//assert(omp_in_parallel() && "Should be called while in #pragma omp parallel");
+	assert(omp_in_parallel() && "Should be called while in #pragma omp parallel");
 	//assert(omp_get_thread_num() == 0 && "Should be in a #pragma omp master");
 
 #if BGQ_FIELD_COORDCHECK
@@ -444,7 +444,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 
 
 
-#pragma omp for schedule(static)
+#pragma omp for schedule(static) nowait
 				for (int ixyz = 0; ixyz < SURFACE_ZLINES; ixyz += 1) {
 					//master_print("MK HM xyz=%d\n", xyz);
 
@@ -559,6 +559,8 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	}
 #endif
 //master_print("MK HM exit\n");
+	// Just to be sure that if something follows this, it also holds up-to-data
+#pragma omp barrier
 }
 
 #ifdef BGQ_HM_NOFUNC
