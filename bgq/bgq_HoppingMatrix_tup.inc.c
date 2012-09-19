@@ -90,7 +90,7 @@ void bgq_HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 			bgq_su3_spinor_decl(spinor_tup);
 			bgq_su3_spinor_loadorprefetch(spinor_tup, spinorsite_tup);
 
-			#if !BGQ_HM_TDOWN_PREFETCH
+			#if !BGQ_HM_TUP_PREFETCH
 				// Compute its halfspinor
 				bgq_su3_vadd(weyl_tup_v0, spinor_tup_v0, spinor_tup_v2);
 				bgq_su3_vadd(weyl_tup_v1, spinor_tup_v1, spinor_tup_v3);
@@ -121,7 +121,7 @@ void bgq_HoppingMatrix_tup(bgq_spinorfield_double targetfield, bgq_spinorfield_d
 			const int kx = mod(xeo, PHYSICAL_LK);
 
 			bgq_weylsite *weylsite_tup_right = BGQ_WEYLSITE_T(weylxchange_recv[TUP], !isOdd, t2+1, xv, y, z, (kx==0) ? x : x-2, (kx==1) ? x : x+2, !BGQ_HM_TUP_PREFETCH, false);
-			#if !BGQ_HM_TDOWN_PREFETCH
+			#if !BGQ_HM_TUP_PREFETCH
 				weylsite_tup_right = (bgq_weylsite*) ((char*)weylsite_tup_right + kx*sizeof(COMPLEX_PRECISION)); // Some trick: if we are supposed to read k=1, shift the pointer to the right to match k=0, so we avoid some conditional
 			#endif
 			bgq_su3_weyl_decl(weyl_tup_right);
