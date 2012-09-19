@@ -408,7 +408,6 @@ int main(int argc, char *argv[])
 	exec_bench();
 
 
-
 	/* GG */
 #if 0
 #ifdef HAVE_LIBLEMON
@@ -464,9 +463,9 @@ static void check_correctness_double(bool nocom) {
 	int k_max = 1;
 	bgq_hmflags hmflags = hm_nocom*nocom | hm_nooverlap;
 
-//#pragma omp parallel
+#pragma omp parallel
 	{
-//#pragma omp master
+#pragma omp master
 		{
 
 	bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
@@ -500,9 +499,9 @@ static void check_correctness_float() {
 	int k_max = 1;
 	bgq_hmflags hmflags = 0;
 
-//#pragma omp parallel
+#pragma omp parallel
 	{
-//#pragma omp master
+#pragma omp master
 		{
 
 	bgq_transfer_spinorfield_float(true, g_spinorfields_float[k], g_spinor_field[k]);
@@ -594,9 +593,9 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 	//hmflags |= hm_prefetchexplicit;
 	hmflags |= kamul*hm_nokamul;
 
-//#pragma omp parallel
+#pragma omp parallel
 	{
-//#pragma omp master
+#pragma omp master
 		{
 
 	err = runcheck(sloppyprec, hmflags);
