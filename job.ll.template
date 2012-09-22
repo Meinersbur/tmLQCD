@@ -14,31 +14,30 @@
 #@ queue
 echo DEPART : `date`
 
-INPUT_FILE=benchmark.input.${LOADL_STEP_ID} 
-cat > ${INPUT_FILE} <<+EOF
+INPUT_FILE_SMALL=benchmark.input_small.${LOADL_STEP_ID} 
+cat > ${INPUT_FILE_SMALL} <<+EOF
 T=48
 L=32
 +EOF
 
+INPUT_FILE_BIG=benchmark.input_big.${LOADL_STEP_ID}
+cat > ${INPUT_FILE_BIG} <<+EOF
+T=128
+L=64
++EOF
 
 
 
-
-
-export OMP_NUM_THREADS=1
+export OMP_NUM_THREADS=64
 export PAMID_RZV=2147483647
 export BG_COREDUMPDISABLED=0
 env
 
-#echo ================================================================================
-#runjob --ranks-per-node 1 --env-all --np 8 : ./bgqbench -f ${INPUT_FILE}
 
 
-#echo ================================================================================
-export OMP_NUM_THREADS=64
-#runjob --ranks-per-node 1 --env-all --np 8 : ./bgqbench -f ${INPUT_FILE} 
 echo ================================================================================
-runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE} 
+runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_SMALL} 
 echo ================================================================================
-
+runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_BIG} 
+echo ================================================================================
 

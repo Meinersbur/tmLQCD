@@ -6,11 +6,12 @@
  */
 
 #define BGQ_FIELD_DOUBLE_C_
-
-#include "bgq_field_double.h"
+#define BGQ_FIELD_C_H_
 
 
 #define BGQ_PRECISION 64
 #include "bgq_precisionselect.inc.c"
 
 #include "bgq_field.inc.c"
+
+//#include "bgq_field_double.h"

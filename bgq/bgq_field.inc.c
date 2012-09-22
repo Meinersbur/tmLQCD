@@ -10,7 +10,7 @@
 #include "bgq_field_double.h"
 #endif
 
-
+#include "bgq_field.inc.h"
 #include "bgq.h"
 #include "../geometry_eo.h"
 #include "../global.h"
@@ -202,6 +202,9 @@ void bgq_spinorfield_resetcoord(bgq_spinorfield spinorfield, bool isOdd, int exp
 #endif
 
 
+int bgq_num_spinorfields;
+
+
 void bgq_init_spinorfields(int count) {
 	// preconditions
 	if (!even_odd_flag)
@@ -245,10 +248,12 @@ void bgq_init_spinorfields(int count) {
 
 	master_print("INFO: Body-to-volume site ratio: %f (the higher the better)\n", (double)BODY_SITES / (double)VOLUME_SITES);
 
+	int nThreads = omp_get_max_threads();
 	#pragma omp parallel
 	{
 		#pragma omp master
 		{
+			assert(nThreads == omp_get_num_threads());
 			master_print("INFO: OMP_NUM_THREADS=%d\n", omp_get_num_threads());
 		}
 	}
@@ -266,6 +271,11 @@ void bgq_init_spinorfields(int count) {
 		g_spinorfields_data_coords = malloc_aligned(datasize, 128);
 	#endif
 
+#if BGQ_PREFETCH_LIST
+	bgq_listprefetch_handle = malloc(count * count * sizeof(*bgq_listprefetch_handle));
+	memset(bgq_listprefetch_handle, 0, count * count * sizeof(*bgq_listprefetch_handle));
+#endif
+	bgq_num_spinorfields = count;
 	g_spinorfields = malloc(count * sizeof(*g_spinorfields));
 	#if BGQ_FIELD_COORDCHECK
 		g_spinorfield_isOdd = malloc(count * sizeof(*g_spinorfield_isOdd));
@@ -276,6 +286,7 @@ void bgq_init_spinorfields(int count) {
 			g_spinorfield_isOdd[i] = -1; // Unknown yet
 		#endif
 	}
+
 }
 
 
@@ -292,6 +303,7 @@ void bgq_free_spinofields() {
 	free(g_spinorfields_data_coords);
 	g_spinorfields_data_coords = NULL;
 #endif
+	//TODO: free(bgq_listprefetch_handle), L1P_DeallocatePattern(bgq_listprefetch_handle[...])
 }
 
 
@@ -461,6 +473,15 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 	return norm1_max;
 }
 
+int bgq_spinorfield_find_index(bgq_spinorfield spinorfield) {
+	const int fieldsize = sizeof(bgq_spinorsite) * VOLUME_SITES; // alignment???
+	long long offset = (char*)spinorfield - (char*)g_spinorfields_data;
+	assert(offset >= 0);
+	assert(mod(offset, fieldsize) == 0);
+	int index = offset / fieldsize;
+	assert(index < g_num_spinorfields);
+	return index;
+}
 
 bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, bool isRead, bool isWrite) {
 	if (!isRead && !isWrite && (z == LOCAL_LZ) ) {
@@ -1114,13 +1135,8 @@ void bgq_hm_init() {
 	//MPI_CHECK(MPI_Send_init(weylxchange_send[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_up, 0, g_cart_grid, &sendrequest));
 
 
-#pragma omp parallel
-	{
-		//L1P_PatternConfigure(BODY_SITES * 1024 /*???*/);
-	}
-	l1p_first = true;
 
-#if BGQ_PREFETCH_LIST
+#if 0
 	L1P_CHECK(L1P_SetStreamPolicy(L1P_stream_disable));
 
 	L1P_StreamPolicy_t pol;

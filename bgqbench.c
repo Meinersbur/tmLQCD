@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
 
 	//MPI_Init(&argc, &argv);
 	int provided_threadlevel;
-	MPI_CHECK(MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_threadlevel));
+	MPI_CHECK(MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided_threadlevel));
 
 	/* GG */
 	MPI_CHECK(MPI_Comm_rank(MPI_COMM_WORLD, &g_proc_id));
@@ -401,9 +401,9 @@ int main(int argc, char *argv[])
 	}
 
 
-	check_correctness_double(true);
-	check_correctness_double(false);
-	check_correctness_float();
+	//check_correctness_double(true);
+	//check_correctness_double(false);
+	//check_correctness_float();
 	assert(even_odd_flag);
 	exec_bench();
 
@@ -606,6 +606,10 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
 	return result;
 }
 
+#ifdef XLC
+#include <l1p/sprefetch.h>
+#endif
+
 static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bool nocom, bool nooverlap, bool noweylsend, bool nobody, bool nosurface, bool kamul) {
 	int iterations = 0;
 
@@ -627,11 +631,22 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 
 #pragma omp parallel
 	{
+		//L1P_CHECK(L1P_SetStreamPolicy(L1P_stream_disable));
+
+		//L1P_StreamPolicy_t pol;
+		//L1P_CHECK(L1P_GetStreamPolicy(&pol));
+		//if (pol != L1P_stream_disable)
+		//	master_print("MK StreamPolicy not accepted\n");
 
 	double errtmp = runcheck(sloppyprec, hmflags);
 
 	for (int j = 0; j < j_max; j += 1) {
 		////////////////////////////////////////////////////////////////////////////////
+#pragma omp master
+		{
+		if (j == 1)
+			mypapi_start();
+		}
 		double start_time = MPI_Wtime();
 		if (sloppyprec) {
 			for (int k = 0; k < 1; k += 1) {
@@ -668,8 +683,9 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 		err = errtmp;
 	}
 	}
-
 	}
+
+	mypapi_stop();
 
 	assert(iterations == j_max-1);
 	double localavgtime = localsumtime / iterations;
@@ -740,6 +756,7 @@ static struct {
 	bool nobody;
 	bool nosurface;
 } coms[] = { { false, false, false, false, false }, { false, true, false, false, false }, { true, -1, false, false, false }, { true, -1, true, false, true }, { true, -1, false, true, false } };
+//} coms[] = { { true, -1, false, false, false }, { true, -1, false, false, false }, { true, -1, false, false, false }, { true, -1, true, false, true }, { true, -1, false, true, false } };
 static char* com_desc[] = { "Com async", "Com sync", "Com off", "bodyonly", "surfaceonly" };
 
 
@@ -751,9 +768,7 @@ static void print_repeat(const char * const str, const int count) {
 	}
 }
 
-#define KILO 1000.0
-#define MEGA (1000.0 * 1000.0)
-#define GIGA (1000.0 * 1000.0 * 1000.0)
+
 #define CELLWIDTH 15
 #define SCELLWIDTH TOSTRING(CELLWIDTH)
 

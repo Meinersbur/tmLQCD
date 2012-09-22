@@ -373,6 +373,28 @@ EXTERN_INLINE double min(double const lhs, double const rhs) {
 	return lhs;
 }
 
+// from stackoverflow
+EXTERN_INLINE int ilog(unsigned int _v) {
+	int ret;
+	int m;
+	ret=!!_v;
+	m=!!(_v&0xFFFF0000)<<4;
+	_v>>=m;
+	ret|=m;
+	m=!!(_v&0xFF00)<<3;
+	_v>>=m;
+	ret|=m;
+	m=!!(_v&0xF0)<<2;
+	_v>>=m;
+	ret|=m;
+	m=!!(_v&0xC)<<1;
+	_v>>=m;
+	ret|=m;
+	ret+=!!(_v&0x2);
+	return ret;
+}
+
+
 void opaque_func_call();
 
 #undef EXTERN_INLINE
