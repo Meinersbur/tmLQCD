@@ -51,8 +51,8 @@ CFLAGS="${CFLAGS} -DBGQ_PREFETCH_LIST=0"
 CFLAGS="${CFLAGS} -DBGQ_FIELD_COORDCHECK=0"
 CFLAGS="${CFLAGS} -DMPI=1"
 #CFLAGS="${CFLAGS} -DXLC=1"
-CFLAGS="${CFLAGS} -DBGQ_HM_CARRY=0"
-CFLAGS="${CFLAGS} -DBGQ_REPLACE=0"
+CFLAGS="${CFLAGS} -DBGQ_HM_CARRY=1"
+CFLAGS="${CFLAGS} -DBGQ_REPLACE=1"
 
 
 #LDFLAGS="-lgomp -lblas"
@@ -97,3 +97,4 @@ eval ./configure ${CONFIGURE}
 echo
 echo Making tmLQCD
 make -j4 bgqbench benchmark invert hmc_tm
+

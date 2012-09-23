@@ -299,7 +299,7 @@ int main(int argc, char *argv[])
 		printf("# the code was compiled for non-blocking MPI calls (spinor and gauge)\n");
 #  endif
 #endif
-		printHopVerMsg();
+		//printHopVerMsg();
 		printf("\n");
 		fflush(stdout);
 	}

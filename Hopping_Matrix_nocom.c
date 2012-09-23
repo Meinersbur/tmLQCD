@@ -48,7 +48,12 @@
 #include "boundary.h"
 #include "Hopping_Matrix.h"
 
+#if BGQ_REPLACE
+#define Hopping_Matrix ref_Hopping_Matrix_nocom
+#else
 #define Hopping_Matrix Hopping_Matrix_nocom
+#endif
+
 #define _NO_COMM 1
 #ifdef _KOJAK_INST
 #undef _KOJAK_INST

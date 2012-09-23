@@ -1,194 +1,38 @@
-T=2
-L=16
+# $Id$
+# example input file for invert
+# requires a 4^4 gauge configuration conf.0000
 
-NrXProcs = 4
-NrYProcs = 2
-NrZProcs = 1
+L=48
+T=24
 
-Measurements = 2
-#startCondition = continue
-startCondition = hot
-
-##?? RGIC1 = -0.331
-##BG beta = 2.1
-##2KappaMu = 0.00035962501
-##?? mu2 = 0.01
-##?? mu3 = 0.1 
-##PhmcMubar  = 0.03752568
-##PhmcEpsbar = 0.043310889
-##2KappaMubar  = 0.037526088
-##2KappaEpsbar = 0.043311360
-
-##kappa = 0.160856
-##2KappaMu = 0.001286
-
-#
-# Remember: the values of <mu>, <PhmcMubar> and <PhmcEpsbar>
-# have to be multiplied by 2*kappa  !!!
-#
-##kappa = 0.1563587
-
-## Olivier + Gregorio suggestion
-Kappa = 0.156364
-2KappaMu = 0.00035963719
-2KappaMubar  = 0.03752736
-2KappaEpsbar = 0.043312828
-
-##?? Nskip = 2
-##?? BoundaryCond = 1.
+DebugLevel = 5
+InitialStoreCounter = 0
+Measurements = 1
+2kappamu = 0.05
+kappa = 0.177
 BCAngleT = 1.
-#BCGstabMaxIter = 1000
-BCGstabMaxIter = 0
-CGMaxIter = 15000
-GaugeConfigInputFile = conf.t192c96.0000
-NSave = 1
-ThetaT = 1.
-
+GaugeConfigInputFile = /home/meinersbur/gauge/48x24_petrov_conf
+InitialStoreCounter = 800
 UseEvenOdd = yes
-####UseEvenOdd = no
 
-##BI Integrator = 2MN
-#Integrator = SextonWeingarten
+SourceType = Volume
+ReadSource = no
+NoSamples = 12
 
-##GG tau = 1.0
+BeginOperator TMWILSON
+  2kappaMu = 0.05
+  kappa = 0.177
+  UseEvenOdd = yes
+  Solver = CG
+  SolverPrecision = 1.e-14
+  MaxSolverIterations = 1000
+  AddDownPropagator = yes
+EndOperator
 
-##?? IntegrationStepsGauge = 1
-##?? IntegrationStepsMu = 14
-##?? IntegrationStepsMu2 = 2
-##?? IntegrationStepsMu3 = 2
-##?? TimeScaleHeavyDoublet = 1
-##?? 
-##?? CSGHistMu = 0
-##?? CSGHistMu2 = 0
-##?? CSGHistMu3 = 0
-
-UseRelativePrecision = yes
-##BD AcceptancePrecision = 1.e-22
-##?? ForcePrecisionMu = 1.e-14
-##?? ForcePrecisionMu2 = 1.e-14
-##?? ForcePrecisionMu3 = 1.e-12
-#level of output
-DebugLevel = 2
-#parameters of the symplectic integrator.
-##?? 2MNLambdaMu = 0.21
-##?? 2MNLambdaMu2 = 0.2
-##?? 2MNLambdaMu3 = 0.2
-##?? 2MNLambdaGauge = 0.19
-GaugeConfigReadPrecision = 64
-
-SplittedPropagator = yes
-#515# PropagatorPrecision = 64
-PropagatorType = DiracFermion_Source_Sink_Pairs
-
-ReversibilityCheck = yes
-ReversibilityCheckIntervall = 20
-
-InitialStoreCounter = readin
-
-##BP PhmcNoFlavours=2+1+1
-##BP PhmcPrecisionPtilde=1.0e-8
-##BP PhmcDegreeOfP=150
-##BP PhmcStildeMax=2.4
-##BP PhmcStildeMin=0.000048
-##BP PhmcRecEVInterval=1
-##BP PhmcComputeOnlyEVs=no
-
-#515# PerformOnlineMeasurements = yes
-#515# OnlineMeasurementsFreq = 1
-
-##notYET BeginMeasurement CORRELATORS
-##notYET   Frequency = 1
-##notYET EndMeasurement
-
-##NOBeginMeasurement ONLINE
-##NO  Frequency = 1
-##NOEndMeasurement
-
-BeginMonomial GAUGE
-  Type = Iwasaki
-  beta = 2.10
-  Timescale = 0
-EndMonomial
- 
-BeginMonomial DET
-  Timescale = 1
-# 2KappaMu = 0.0003596211
-  2KappaMu = 0.04
-##  kappa = 0.1563587
-  Kappa = 0.156364
-  AcceptancePrecision = 1.e-20
-  ForcePrecision = 1.e-12
-  Name = det
-  solver = CG
-##  solver = bicgstab
-  CSGHistory = 0
-  CSGHistory2 = 0
-EndMonomial
-
-BeginMonomial DETRATIO
-  Timescale = 2
-##  kappa = 0.1563587
-##  kappa2 = 0.1563587
-  Kappa = 0.156364
-  Kappa2 = 0.156364
-  2KappaMu = 0.004
-  2KappaMu2 = 0.04
-  AcceptancePrecision = 1.e-20
-  ForcePrecision = 1.e-14
-  solver = CG
-##  solver = bicgstab
-  CSGHistory = 0
-  CSGHistory2 = 0
-  Name = detratio1
-  MaxSolverIterations = 15000
-EndMonomial
-
-BeginMonomial DETRATIO
-  Timescale = 3
-##  kappa = 0.1563587
-##  kappa2 = 0.1563587
-  Kappa = 0.156364
-  Kappa2 = 0.156364
-##  2KappaMu = 0.00035962501
-  2KappaMu = 0.00035963719
-  2KappaMu2 = 0.004
-  AcceptancePrecision = 1.e-22
-  ForcePrecision = 1.e-14
-  solver = CG
-##  solver = bicgstab
-  CSGHistory = 0
-  CSGHistory2 = 0
-  Name = detratio2
-  MaxSolverIterations = 25000
-EndMonomial
-
-BeginMonomial NDPOLY
-  Timescale = 2
-##phb  StildeMin = 0.000048
-##phb  StildeMax = 2.4
-  StildeMin = 0.0002
-  StildeMax = 10.0
-  PrecisionPtilde = 1.e-08
-  DegreeOfMDPolynomial = 150
-  PrecisionHfinal = 1.e-12
-  ComputeEVFreq = 0
-##GG  ComputeOnlyEVs = yes
-	ComputeOnlyEVs=no
-EndMonomial
-
-BeginIntegrator
-  Type0 = 2MN
-  Type1 = 2MN
-  Type2 = 2MN
-  Type3 = 2MN
-  IntegrationSteps0 = 1
-  IntegrationSteps1 = 2
-  IntegrationSteps2 = 3
-  IntegrationSteps3 = 14
-  tau = 1.0
-  Lambda0 = 0.20
-  Lambda1 = 0.20
-  Lambda2 = 0.20
-  Lambda3 = 0.20
-  NumberOfTimescales = 4
-EndIntegrator
+BeginOperator DBTMWILSON
+  2KappaMubar = 0.139
+  2KappaEpsbar = 0.15
+  kappa = 0.177
+  Solver = CG
+  SolverPrecision = 1.e-12
+EndOperator

@@ -24,5 +24,8 @@
 #include "su3.h"
 
 void Hopping_Matrix_nocom(const int ieo, spinor * const l, spinor * const k);
+#if BGQ_REPLACE
+void ref_Hopping_Matrix_nocom(const int ieo, spinor * const l, spinor * const k);
+#endif
 
 #endif
