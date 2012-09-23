@@ -98,6 +98,8 @@ void bgq_spinorfield_set(bgq_spinorfield spinorfield, bool isOdd, int t, int x, 
 #define bgq_spinorfield_compare NAME2(bgq_spinorfield_compare,PRECISION)
 double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield, spinor * const reffield, bool silent);
 
+#define bgq_spinorfield_isOdd NAME2(bgq_spinorfield_isOdd,PRECISION)
+bool bgq_spinorfield_isOdd(bgq_spinorfield spinorfield);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Gaugefield
@@ -187,7 +189,7 @@ typedef void (*bgq_weylsite_callback)(bgq_weylfield weylfield, direction dir, bo
 #define bgq_weylfield_foreach NAME2(bgq_weylfield_foreach,PRECISION)
 void bgq_weylfield_foreach(bgq_weylfield weylfield, direction dir, bool isSend, bool isOdd, bgq_weylsite_callback callback, int tag);
 
-
+#if 0
 #define bgq_setbgqval NAME2(bgq_setbgqval,PRECISION)
 static void bgq_setbgqval(bgq_weylfield weylfield, direction dir, bool isSend, bool isOdd, int t, int x, int y, int z, int v, int c, COMPLEX_PRECISION *val, int tag) {
 	if ( (v==1) && (c==2) ) {
@@ -196,9 +198,10 @@ static void bgq_setbgqval(bgq_weylfield weylfield, direction dir, bool isSend, b
 		bgq_setbgqvalue(t,x,y,z,tag,*val,buf);
 	}
 }
+#endif
 
 
-
+#if 0
 #define bgq_expected NAME2(bgq_expected,PRECISION)
 static COMPLEX_PRECISION bgq_expected(direction dir, bool isOdd, int t, int x, int y, int z, int v, int c, bool isSend, int tag) {
 	COMPLEX_PRECISION result = t + (tag + 0.1*dir)*_Complex_I;
@@ -209,7 +212,10 @@ static COMPLEX_PRECISION bgq_expected(direction dir, bool isOdd, int t, int x, i
 
 	return result;
 }
+#endif
 
+
+#if 0
 #define bgq_weylfield_setcoordfield NAME2(bgq_weylfield_setcoordfield,PRECISION)
 static void bgq_weylfield_setcoordfield(bgq_weylfield weylfield, direction dir, bool isOdd, bool isSend, int tag) {
 	if (isSend) {
@@ -323,6 +329,7 @@ static void bgq_weylfield_cmpcoordfield(bgq_weylfield weylfield, direction dir, 
 		}
 	}
 }
+#endif
 
 //#ifndef BGQ_FIELD_INC_C_
 //#include "bgq_precisionselect.inc.c"

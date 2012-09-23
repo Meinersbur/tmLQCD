@@ -36,8 +36,9 @@ static int g_num_spinorfields = -1;
 
 #if BGQ_FIELD_COORDCHECK
 static bgq_spinorsite *g_spinorfields_data_coords = NULL;
-static int *g_spinorfield_isOdd = NULL;
 #endif
+static int *g_spinorfield_isOdd = NULL;
+
 
 
 bgq_spinorfield bgq_translate_spinorfield(spinor * const field) {
@@ -267,14 +268,14 @@ void bgq_init_spinorfields(int count) {
 	#endif
 
 	g_spinorfields = malloc(count * sizeof(*g_spinorfields));
-	#if BGQ_FIELD_COORDCHECK
+	//#if BGQ_FIELD_COORDCHECK
 		g_spinorfield_isOdd = malloc(count * sizeof(*g_spinorfield_isOdd));
-	#endif
+	//#endif
 	for (int i = 0; i < count; i += 1) {
 		g_spinorfields[i] = g_spinorfields_data + i * VOLUME_SITES;
-		#if BGQ_FIELD_COORDCHECK
+		//#if BGQ_FIELD_COORDCHECK
 			g_spinorfield_isOdd[i] = -1; // Unknown yet
-		#endif
+		//#endif
 	}
 }
 
@@ -286,9 +287,9 @@ void bgq_free_spinofields() {
 	g_spinorfields_data = NULL;
 	g_num_spinorfields = 0;
 
-#if BGQ_FIELD_COORDCHECK
 	free(g_spinorfield_isOdd);
 	g_spinorfield_isOdd = NULL;
+#if BGQ_FIELD_COORDCHECK
 	free(g_spinorfields_data_coords);
 	g_spinorfields_data_coords = NULL;
 #endif
@@ -419,7 +420,7 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 			}
 		}
 
-#if BGQ && XLC
+#if BGQ && defined(XLC)
 #pragma omp tm_atomic
 #else
 #pragma omp critical
@@ -462,6 +463,18 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 }
 
 
+bool bgq_spinorfield_isOdd(bgq_spinorfield spinorfield) {
+	const size_t fieldsize = sizeof(bgq_spinorsite) * VOLUME_SITES; // alignment???
+	const size_t offset = (char*)spinorfield - (char*)g_spinorfields_data;
+	size_t index = offset / fieldsize;
+	assert(index < g_num_spinorfields);
+
+	int isOdd = g_spinorfield_isOdd[index];
+	assert(isOdd != -1);
+	return isOdd;
+}
+
+
 bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, bool isRead, bool isWrite) {
 	if (!isRead && !isWrite && (z == LOCAL_LZ) ) {
 		// Allow for prefetching
@@ -478,8 +491,8 @@ bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, in
 	assert(0 <= k && k < PHYSICAL_LK);
 
 	// Get the index of the used spinorfield
-	const int fieldsize = sizeof(bgq_spinorsite) * VOLUME_SITES; // alignment???
-	long long offset = (char*)spinorfield - (char*)g_spinorfields_data;
+	const size_t fieldsize = sizeof(bgq_spinorsite) * VOLUME_SITES; // alignment???
+	const size_t offset = (char*)spinorfield - (char*)g_spinorfields_data;
 	assert(offset >= 0);
 	assert(mod(offset, fieldsize) == 0);
 	int index = offset / fieldsize;
@@ -1527,6 +1540,7 @@ bool assert_weylval_y(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, 
 	return true;
 }
 
+
 bool assert_weylfield_y(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, int z, int tv, int k, bool isRead, bool isWrite) {
 	for (int v = 0; v < 2; v += 1) {
 		for (int c = 0; c < 3; c += 1) {
@@ -1676,6 +1690,7 @@ void bgq_weylfield_foreach(bgq_weylfield weylfield, direction dir, bool isSend, 
 		break;
 	}
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
