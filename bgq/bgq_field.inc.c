@@ -515,6 +515,8 @@ bool bgq_spinorfield_isOdd(bgq_spinorfield spinorfield) {
 }
 
 void bgq_spinorfield_setOdd(bgq_spinorfield spinorfield, bool isOdd, bool overwrite) {
+	assert(spinorfield);
+
 	const size_t fieldsize = sizeof(bgq_spinorsite) * VOLUME_SITES; // alignment???
 	assert(spinorfield >= g_spinorfields_data);
 	const size_t offset = (char*)spinorfield - (char*)g_spinorfields_data;

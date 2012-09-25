@@ -48,6 +48,7 @@ void assign_add_mul_r(spinor * const P, spinor * const Q, const double c, const 
 	assert(N==VOLUME/2);
 
 	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_Q);
+	assert(isOdd == bgq_spinorfield_isOdd_double(spinorfield_P));
 	bgq_assign_add_mul_r_double(spinorfield_P, spinorfield_Q, isOdd, c);
 }
 

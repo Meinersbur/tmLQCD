@@ -23,47 +23,47 @@
 
 void bgq_mul_r(bgq_spinorfield targetfield, double c, bgq_spinorfield spinorfield, bool isOdd) {
 	assert(!omp_in_parallel());
-	assert(targetfield != spinorfield);
+	//assert(targetfield != spinorfield);
 	bgq_spinorfield_setOdd(targetfield, isOdd, true);
 	bgq_spinorfield_setOdd(spinorfield, isOdd, false);
 
 	bgq_vector4double_decl(qc);
 	bgq_cconst(qc, c, c);
 
-	#pragma omp parallel for schedule(static) firstprivate(bgq_vars(qc))
-		for (int txy = 0; txy < VOLUME_ZLINES; txy += 1) {
-			WORKLOAD_DECL(txy, VOLUME_ZLINES);
-			const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
-			const int x = WORKLOAD_PARAM(PHYSICAL_LX);
-			const int y = WORKLOAD_PARAM(PHYSICAL_LY);
-			WORKLOAD_CHECK
+#pragma omp parallel for schedule(static) firstprivate(bgq_vars(qc))
+	for (int txy = 0; txy < VOLUME_ZLINES; txy += 1) {
+		WORKLOAD_DECL(txy, VOLUME_ZLINES);
+		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
+		const int x = WORKLOAD_PARAM(PHYSICAL_LX);
+		const int y = WORKLOAD_PARAM(PHYSICAL_LY);
+		WORKLOAD_CHECK
 
-			for (int z = 0; z < PHYSICAL_LZ; z += 1) {
-				const int t1 = ((isOdd + x + y + z) & 1) + tv * PHYSICAL_LP * PHYSICAL_LK;
-				const int t2 = t1 + 2;
+		for (int z = 0; z < PHYSICAL_LZ; z += 1) {
+			const int t1 = ((isOdd + x + y + z) & 1) + tv * PHYSICAL_LP * PHYSICAL_LK;
+			const int t2 = t1 + 2;
 
-				bgq_spinorsite *spinorsite = BGQ_SPINORSITE(spinorfield, isOdd, tv, x, y, z, t1, t2, true, false);
-				bgq_su3_spinor_decl(spinor);
-				bgq_su3_spinor_load(spinor, spinorsite);
+			bgq_spinorsite *spinorsite = BGQ_SPINORSITE(spinorfield, isOdd, tv, x, y, z, t1, t2, true, false);
+			bgq_su3_spinor_decl(spinor);
+			bgq_su3_spinor_load(spinor, spinorsite);
 
-				bgq_su3_spinor_decl(result);
-				bgq_mul(result_v0_c0, qc, spinor_v0_c0);
-				bgq_mul(result_v0_c1, qc, spinor_v0_c1);
-				bgq_mul(result_v0_c2, qc, spinor_v0_c2);
-				bgq_mul(result_v1_c0, qc, spinor_v1_c0);
-				bgq_mul(result_v1_c1, qc, spinor_v1_c1);
-				bgq_mul(result_v1_c2, qc, spinor_v1_c2);
-				bgq_mul(result_v2_c0, qc, spinor_v2_c0);
-				bgq_mul(result_v2_c1, qc, spinor_v2_c1);
-				bgq_mul(result_v2_c2, qc, spinor_v2_c2);
-				bgq_mul(result_v3_c0, qc, spinor_v3_c0);
-				bgq_mul(result_v3_c1, qc, spinor_v3_c1);
-				bgq_mul(result_v3_c2, qc, spinor_v3_c2);
+			bgq_su3_spinor_decl(result);
+			bgq_mul(result_v0_c0, qc, spinor_v0_c0);
+			bgq_mul(result_v0_c1, qc, spinor_v0_c1);
+			bgq_mul(result_v0_c2, qc, spinor_v0_c2);
+			bgq_mul(result_v1_c0, qc, spinor_v1_c0);
+			bgq_mul(result_v1_c1, qc, spinor_v1_c1);
+			bgq_mul(result_v1_c2, qc, spinor_v1_c2);
+			bgq_mul(result_v2_c0, qc, spinor_v2_c0);
+			bgq_mul(result_v2_c1, qc, spinor_v2_c1);
+			bgq_mul(result_v2_c2, qc, spinor_v2_c2);
+			bgq_mul(result_v3_c0, qc, spinor_v3_c0);
+			bgq_mul(result_v3_c1, qc, spinor_v3_c1);
+			bgq_mul(result_v3_c2, qc, spinor_v3_c2);
 
-				bgq_spinorsite *targetsite = BGQ_SPINORSITE(targetfield, isOdd, tv, x, y, z, t1, t2, true, false);
-				bgq_su3_spinor_store(targetsite, result);
-			}
+			bgq_spinorsite *targetsite = BGQ_SPINORSITE(targetfield, isOdd, tv, x, y, z, t1, t2, true, false);
+			bgq_su3_spinor_store(targetsite, result);
 		}
+	}
 }
 
 

@@ -51,6 +51,9 @@
 #include <io/spinor.h>
 #include <io/utils.h>
 #include "operator.h"
+#if BGQ_REPLACE
+#include "bgq/bgq_field_double.h"
+#endif
 
 void dummy_D(spinor * const, spinor * const);
 void dummy_DbD(spinor * const s, spinor * const r, spinor * const p, spinor * const q);
@@ -416,8 +419,20 @@ void op_write_prop(const int op_id, const int index_start, const int append_) {
   free(propagatorFormat);
 
   if(optr->no_flavours == 2) {
+#if BGQ_REPLACE
+	  bgq_spinorfield_double spinorfield_prop2 = bgq_translate_spinorfield_double(operator_list[op_id].prop2);
+	  bgq_spinorfield_transfer_back_double(bgq_spinorfield_isOdd_double(spinorfield_prop2), operator_list[op_id].prop2, spinorfield_prop2);
+	  bgq_spinorfield_double spinorfield_prop3 = bgq_translate_spinorfield_double(operator_list[op_id].prop3);
+	  bgq_spinorfield_transfer_back_double(bgq_spinorfield_isOdd_double(spinorfield_prop3), operator_list[op_id].prop3, spinorfield_prop3);
+#endif
     write_spinor(writer, &operator_list[op_id].prop2, &operator_list[op_id].prop3, 1, optr->prop_precision);
   }
+#if BGQ_REPLACE
+	  bgq_spinorfield_double spinorfield_prop1 = bgq_translate_spinorfield_double(operator_list[op_id].prop1);
+	  bgq_spinorfield_transfer_back_double(bgq_spinorfield_isOdd_double(spinorfield_prop1), operator_list[op_id].prop1, spinorfield_prop1);
+	  bgq_spinorfield_double spinorfield_prop0 = bgq_translate_spinorfield_double(operator_list[op_id].prop0);
+	  bgq_spinorfield_transfer_back_double(bgq_spinorfield_isOdd_double(spinorfield_prop0), operator_list[op_id].prop0, spinorfield_prop0);
+#endif
   write_spinor(writer, &operator_list[op_id].prop0, &operator_list[op_id].prop1, 1, optr->prop_precision);
 
 #ifdef MPI
