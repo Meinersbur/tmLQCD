@@ -28,6 +28,26 @@
 #include "su3.h"
 #include "scalar_prod.h"
 
+#if BGQ_REPLACE
+#include "bgq/bgq_operators_double.h"
+
+complex scalar_prod(spinor * const S, spinor * const R, const int N, const int parallel) {
+	bgq_spinorfield_double spinorfield_S = bgq_translate_spinorfield_double(S);
+	bgq_spinorfield_double spinorfield_R = bgq_translate_spinorfield_double(R);
+	assert(N==VOLUME/2);
+
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_S);
+	assert(isOdd == bgq_spinorfield_isOdd_double(spinorfield_R));
+	complexdouble result = bgq_scalar_prod_double(spinorfield_S, spinorfield_R, isOdd, parallel);
+
+	complex r;
+	r.re = creal(result);
+	r.im = cimag(result);
+	return r;
+}
+
+#else
+
 /*  <S,R>=S^* times R */
 complex scalar_prod(spinor * const S, spinor * const R, const int N, const int parallel){
   int ix;
@@ -127,3 +147,4 @@ complex scalar_prod(spinor * const S, spinor * const R, const int N, const int p
 #endif
   return(c);
 }
+#endif

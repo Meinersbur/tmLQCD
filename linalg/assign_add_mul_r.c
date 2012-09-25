@@ -39,8 +39,19 @@
 #include "su3.h"
 #include "assign_add_mul_r.h"
 
+#if BGQ_REPLACE
+#include "bgq/bgq_operators_double.h"
 
-#if defined SSE2
+void assign_add_mul_r(spinor * const P, spinor * const Q, const double c, const int N) {
+	bgq_spinorfield_double spinorfield_P = bgq_translate_spinorfield_double(P);
+	bgq_spinorfield_double spinorfield_Q = bgq_translate_spinorfield_double(Q);
+	assert(N==VOLUME/2);
+
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_Q);
+	bgq_assign_add_mul_r_double(spinorfield_P, spinorfield_Q, isOdd, c);
+}
+
+#elif defined SSE2
 
 /*   (*P) = (*P) + c(*Q)        c is a complex constant   */
 

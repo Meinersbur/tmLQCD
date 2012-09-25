@@ -22,6 +22,8 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	{
 #endif
 
+	bgq_spinorfield_setOdd(targetfield, isOdd, true);
+	bgq_spinorfield_setOdd(spinorfield, !isOdd, false);
 	//master_print("nocom=%d nooverlap=%d\n", nocom, nooverlap);
 
 	//assert(omp_in_parallel() && "Should be called while in #pragma omp parallel");
@@ -54,19 +56,17 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	uint64_t fetch_depth;
 	uint64_t generate_depth;
 
+#if !BGQ_HM_NOKAMUL
 	// Load constants
-	bgq_vector4double_decl(qka0);
-	// t
+	bgq_vector4double_decl(qka0); // t
 	bgq_cconst(qka0, ka0.re, ka0.im);
-	bgq_vector4double_decl(qka1);
-	// x
+	bgq_vector4double_decl(qka1); // x
 	bgq_cconst(qka1, ka1.re, ka1.im);
-	bgq_vector4double_decl(qka2);
-	// y
+	bgq_vector4double_decl(qka2); // y
 	bgq_cconst(qka2, ka2.re, ka2.im);
-	bgq_vector4double_decl(qka3);
-	// z
+	bgq_vector4double_decl(qka3); // z
 	bgq_cconst(qka3, ka3.re, ka3.im);
+#endif
 
 
 //#pragma omp parallel

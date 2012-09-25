@@ -39,9 +39,21 @@
 #include "su3.h"
 #include "diff.h"
 
+#if BGQ_REPLACE
+#include "bgq/bgq_operators_double.h"
 
+void diff(spinor * const Q,spinor * const R,spinor * const S, const int N) {
+	bgq_spinorfield_double spinorfield_Q = bgq_translate_spinorfield_double(Q);
+	bgq_spinorfield_double spinorfield_R = bgq_translate_spinorfield_double(R);
+	bgq_spinorfield_double spinorfield_S = bgq_translate_spinorfield_double(S);
+	assert(N == VOLUME/2);
 
-#if ((!defined _STD_C99_COMPLEX_CHECKED) && (!defined apenext) && (!defined BGL))
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_R);
+	assert(isOdd == bgq_spinorfield_isOdd_double(spinorfield_S));
+	bgq_diff_double(spinorfield_Q, spinorfield_R, spinorfield_S, isOdd);
+}
+
+#elif ((!defined _STD_C99_COMPLEX_CHECKED) && (!defined apenext) && (!defined BGL))
 
 void diff(spinor * const Q,spinor * const R,spinor * const S, const int N)
 {

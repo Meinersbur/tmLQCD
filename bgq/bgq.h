@@ -165,6 +165,16 @@ typedef struct {
 		bgq_mov(dst,tmp);             \
 	}
 
+#define bgq_mul(dst,lhs,rhs)                                          \
+	{                                                                  \
+		bgq_vector4double_decl(MAKENAME4(mul,dst,lhs,rhs));            \
+		MAKENAME5(mul,dst,lhs,rhs,q0) = NAME2(lhs,q0) * NAME2(rhs,q0); \
+		MAKENAME5(mul,dst,lhs,rhs,q1) = NAME2(lhs,q1) * NAME2(rhs,q1); \
+		MAKENAME5(mul,dst,lhs,rhs,q2) = NAME2(lhs,q2) * NAME2(rhs,q2); \
+		MAKENAME5(mul,dst,lhs,rhs,q3) = NAME2(lhs,q3) * NAME2(rhs,q3); \
+		bgq_mov(dst,MAKENAME4(mul,dst,lhs,rhs));                       \
+	}
+
 #define bgq_merge2(dst,a23_to01,b01_to23) \
 	{                                       \
 		bgq_vector4double_decl(MAKENAME4(merge2,dst,a23_to01,b01_to23));      \
@@ -278,6 +288,9 @@ typedef struct {
 
 #define bgq_sub(dst,lhs,rhs) \
 	(dst) = vec_sub(lhs, rhs)
+
+#define bgq_mul(dst,lhs,rhs) \
+	(dst) = vec_mul(lhs,rhs)
 
 #define bgq_xxnpmadd(dst,a,b,c) \
 	(dst) = vec_xxnpmadd(a,b,c)

@@ -305,8 +305,7 @@ typedef struct {
 } spinor_array64;
 
 
-
-void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield const targetfield, spinor * const sourcefield) {
+void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield targetfield, spinor * const sourcefield) {
 	assert(sourcefield);
 	assert(targetfield);
 
@@ -348,6 +347,43 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield const targetfiel
 #endif
 
 	bgq_spinorfield_setOdd(targetfield, isOdd, true);
+}
+
+
+void bgq_spinorfield_transfer_back(const bool isOdd, spinor * const targetfield, bgq_spinorfield const sourcefield) {
+	assert(sourcefield);
+	assert(targetfield);
+	bgq_spinorfield_setOdd(sourcefield, isOdd, false);
+
+#pragma omp parallel for schedule(static)
+	for (int txyz = 0; txyz < VOLUME; txyz+=1) {
+		WORKLOAD_DECL(txyz, VOLUME);
+		const int t = WORKLOAD_CHUNK(LOCAL_LT);
+		const int x = WORKLOAD_CHUNK(LOCAL_LX);
+		const int y = WORKLOAD_CHUNK(LOCAL_LY);
+		const int z = WORKLOAD_CHUNK(LOCAL_LZ);
+		WORKLOAD_CHECK
+
+		if (((t+x+y+z)&1)!=isOdd)
+			continue;
+
+		const int ix = g_ipt[t][x][y][z]; /* lexic coordinate */
+		assert(ix == Index(t,x,y,z));
+
+		int iy = g_lexic2eo[ix]; /* even/odd coordinate (even and odd sites in two different fields of size VOLUME/2, first even field followed by odd) */
+		assert(0 <= iy && iy < (VOLUME+RAND));
+		int icx = g_lexic2eosub[ix]; /*  even/odd coordinate relative to field base */
+		assert(0 <= icx && icx < VOLUME/2);
+		assert(icx == iy - (isOdd ? (VOLUME+RAND)/2 : 0));
+
+		spinor_array64 *sp = (spinor_array64*)&targetfield[icx];
+		for (int v = 0; v < 4; v+=1) {
+			for (int c = 0; c < 3; c+=1) {
+				COMPLEX_PRECISION val = bgq_spinorfield_get(sourcefield,isOdd,t,x,y,z,v,c);
+				sp->v[v].c[c] = val;
+			}
+		}
+	}
 }
 
 

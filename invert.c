@@ -528,9 +528,9 @@ if ( j!= 0) {
 
 #ifdef BGQ
   	assert(even_odd_flag);
-	bgq_init_gaugefield_allprec();
-	bgq_init_spinorfields_allprec(NO_OF_SPINORFIELDS);
-	bgq_hm_init_allprec();
+	bgq_init_gaugefield_double();
+	bgq_init_spinorfields_double(NO_OF_SPINORFIELDS);
+	bgq_hm_init_double();
 #endif
 
 

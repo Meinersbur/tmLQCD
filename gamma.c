@@ -77,8 +77,7 @@ void gamma5(spinor * const l, spinor * const k, const int V){
 	bgq_spinorfield_double spinorfield_k = bgq_translate_spinorfield_double(k);
 	assert(V==VOLUME/2);
 
-	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_l);
-	assert(isOdd == bgq_spinorfield_isOdd_double(spinorfield_k));
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_k);
 	bgq_gamma5_double(spinorfield_l, spinorfield_k, isOdd);
 	return;
 #endif
