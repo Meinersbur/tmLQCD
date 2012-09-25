@@ -45,6 +45,10 @@
 #endif
 #include "tm_operators.h"
 
+#if BGQ_REPLACE
+#include "bgq/bgq_operators_double.h"
+#endif
+
 #if (defined SSE2 || defined SSE3 || defined BGL)
 const int predist=2;
 #endif
@@ -513,6 +517,16 @@ void mul_one_pm_imu_inv(spinor * const l, const double _sign){
 }
 
 void assign_mul_one_pm_imu_inv(spinor * const l, spinor * const k, const double _sign){
+#if BGQ_REPLACE
+	bgq_spinorfield_double spinorfield_l = bgq_translate_spinorfield_double(l);
+	bgq_spinorfield_double spinorfield_k = bgq_translate_spinorfield_double(k);
+
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_l);
+	assert(isOdd == bgq_spinorfield_isOdd_double(spinorfield_k));
+	bgq_assign_mul_one_pm_imu_inv_double(spinorfield_l, spinorfield_k, isOdd, _sign);
+	return;
+#endif
+
   complex z,w;
   int ix;
   double sign=-1.; 

@@ -152,6 +152,12 @@ void bgq_savebgqref() {
 }
 
 
+void bgq_transfer_spinorfield_allprec(const bool isOdd, int targetindex, spinor * const sourcefield) {
+	bgq_transfer_spinorfield_double(isOdd, g_spinorfields_double[targetindex], sourcefield);
+	bgq_transfer_spinorfield_float(isOdd, g_spinorfields_float[targetindex], sourcefield);
+}
+
+
 void bgq_init_gaugefield_allprec() {
 	bgq_init_gaugefield_double();
 	bgq_init_gaugefield_float();

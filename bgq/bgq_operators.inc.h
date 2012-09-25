@@ -7,6 +7,15 @@
 
 #include "bgq_field.inc.h"
 
+#define bgq_gamma5 NAME2(bgq_gamma5,PRECISION)
+void bgq_gamma5(bgq_spinorfield targetfield, bgq_spinorfield spinorfield, bool isOdd);
+
+#define bgq_assign_mul_add_r NAME2(bgq_assign_mul_add_r,PRECISION)
+void bgq_assign_mul_add_r(bgq_spinorfield targerfield, double c, bgq_spinorfield spinorfield, bool isOdd);
+
+#define bgq_assign_mul_one_pm_imu_inv NAME2(bgq_assign_mul_one_pm_imu_inv,PRECISION)
+void bgq_assign_mul_one_pm_imu_inv(bgq_spinorfield targetfield, bgq_spinorfield spinorfield, bool isOdd, double sign);
+
 #define bgq_mul_one_pm_imu_sub_mul_gamma5 NAME2(bgq_mul_one_pm_imu_sub_mul_gamma5,PRECISION)
 void bgq_mul_one_pm_imu_sub_mul_gamma5(bgq_spinorfield l, bgq_spinorfield k, bgq_spinorfield j, bool isOdd, double sign);
 

@@ -54,6 +54,9 @@ void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield_double targetfield, bg
 	} else {
 		bgq_HoppingMatrix_kamul_double(isOdd, targetfield, spinorfield, gaugefield, opts);
 	}
+
+	bgq_spinorfield_setOdd_double(targetfield, isOdd, true);
+	bgq_spinorfield_setOdd_double(spinorfield, isOdd, false);
 }
 
 void bgq_HoppingMatrix_float(bool isOdd, bgq_spinorfield_float targetfield, bgq_spinorfield_float spinorfield, bgq_gaugefield_float gaugefield, bgq_hmflags opts) {
@@ -64,5 +67,8 @@ void bgq_HoppingMatrix_float(bool isOdd, bgq_spinorfield_float targetfield, bgq_
 	} else {
 		bgq_HoppingMatrix_kamul_float(isOdd, targetfield, spinorfield, gaugefield, opts);
 	}
+
+	bgq_spinorfield_setOdd_float(targetfield, isOdd, true);
+	bgq_spinorfield_setOdd_float(spinorfield, isOdd, false);
 }
 

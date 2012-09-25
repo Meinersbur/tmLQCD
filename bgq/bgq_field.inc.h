@@ -101,6 +101,9 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 #define bgq_spinorfield_isOdd NAME2(bgq_spinorfield_isOdd,PRECISION)
 bool bgq_spinorfield_isOdd(bgq_spinorfield spinorfield);
 
+#define bgq_spinorfield_setOdd NAME2(bgq_spinorfield_setOdd,PRECISION)
+void bgq_spinorfield_setOdd(bgq_spinorfield spinorfield, bool isOdd, bool overwrite);
+
 ////////////////////////////////////////////////////////////////////////////////
 // Gaugefield
 

@@ -119,6 +119,7 @@ typedef _Complex float complexfloat;
 	(assert(assert_spinorfield_coord(spinorfield,isOdd,t,x,y,z,tv,k,v,c,isRead,isWrite)), \
 	 &(BGQ_SPINORSITE_ACCESS(spinorfield,isOdd,tv,x,y,z)->s[v][c][k]))
 
+void bgq_transfer_spinorfield_allprec(const bool isOdd, int targetindex, spinor * const sourcefield);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Gaugefield

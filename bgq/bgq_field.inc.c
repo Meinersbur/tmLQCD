@@ -346,6 +346,8 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield const targetfiel
 #if BGQ_FIELD_COORDCHECK
 	bgq_spinorfield_resetcoord(targetfield, isOdd, 0, 0, 1, 1);
 #endif
+
+	bgq_spinorfield_setOdd(targetfield, isOdd, true);
 }
 
 
@@ -450,9 +452,9 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 	norm1_max = recv_max[0];
 	norm2_max = recv_max[1];
 
-	double avg1 = norm1_sum / (VOLUME * 4 * 3);
-	double avg2 = sqrt(norm2_sum) / (VOLUME * 4 * 3);
-	double norminf = norm1_max;
+	//double avg1 = norm1_sum / (VOLUME * 4 * 3);
+	//double avg2 = sqrt(norm2_sum) / (VOLUME * 4 * 3);
+	//double norminf = norm1_max;
 
 	if (count>0) {
 		if (!silent)
@@ -465,7 +467,9 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 
 bool bgq_spinorfield_isOdd(bgq_spinorfield spinorfield) {
 	const size_t fieldsize = sizeof(bgq_spinorsite) * VOLUME_SITES; // alignment???
+	assert(spinorfield >= g_spinorfields_data);
 	const size_t offset = (char*)spinorfield - (char*)g_spinorfields_data;
+	assert(offset % fieldsize == 0);
 	size_t index = offset / fieldsize;
 	assert(index < g_num_spinorfields);
 
@@ -474,6 +478,27 @@ bool bgq_spinorfield_isOdd(bgq_spinorfield spinorfield) {
 	return isOdd;
 }
 
+void bgq_spinorfield_setOdd(bgq_spinorfield spinorfield, bool isOdd, bool overwrite) {
+	const size_t fieldsize = sizeof(bgq_spinorsite) * VOLUME_SITES; // alignment???
+	assert(spinorfield >= g_spinorfields_data);
+	const size_t offset = (char*)spinorfield - (char*)g_spinorfields_data;
+	assert(offset % fieldsize == 0);
+	size_t index = offset / fieldsize;
+	assert(index < g_num_spinorfields);
+
+	if (!overwrite) {
+		int oldIsOdd = g_spinorfield_isOdd[index];
+		if (oldIsOdd == -1) {
+			assert(!"If setting oddness, it should already have been set");
+		} else if (oldIsOdd == isOdd) {
+			// Ok
+		} else {
+			assert(!"Oddness not matching\n");
+			return;
+		}
+	}
+	g_spinorfield_isOdd[index] = isOdd;
+}
 
 bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, bool isRead, bool isWrite) {
 	if (!isRead && !isWrite && (z == LOCAL_LZ) ) {
@@ -1030,7 +1055,7 @@ bool assert_gaugeval(bgq_gaugefield gaugefield, bool isOdd, int t, int x, int y,
 	// Get the address
 	bgq_gaugesite *eofield = gaugefield->eodir[isOdd][dir/2];
 	bgq_gaugesite *site = &eofield[idx];
-	COMPLEX_PRECISION *address = &site->c[i][l][k];
+	//COMPLEX_PRECISION *address = &site->c[i][l][k];
 	assert(mod((size_t)&site->c[i][l][0],PRECISION_VECTOR_ALIGNMENT)==0);
 
 
@@ -1245,7 +1270,7 @@ void bgq_weylfield_t_resetcoord(bgq_weylfield weylfield, int t, bool isOdd, int 
 
 		for (int v = 0; v < 2; v += 1) {
 			for (int c = 0; c < 3; c += 1) {
-				COMPLEX_PRECISION *value = BGQ_WEYLVAL_T(weylfield,isOdd,t,x,y,z,xv,k,v,c,false,false);
+				/*COMPLEX_PRECISION *value = */BGQ_WEYLVAL_T(weylfield,isOdd,t,x,y,z,xv,k,v,c,false,false);
 
 #if BGQ_FIELD_COORDCHECK
 				bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, value);
@@ -1358,7 +1383,7 @@ void bgq_weylfield_x_resetcoord(bgq_weylfield weylfield, int x, bool isOdd, int 
 
 		for (int v = 0; v < 2; v += 1) {
 			for (int c = 0; c < 3; c += 1) {
-				COMPLEX_PRECISION *value = BGQ_WEYLVAL_X(weylfield,isOdd,t,x,y,z,tv,k,v,c,false,false);
+				/*COMPLEX_PRECISION *value = */BGQ_WEYLVAL_X(weylfield,isOdd,t,x,y,z,tv,k,v,c,false,false);
 #if BGQ_FIELD_COORDCHECK
 				bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, value);
 
@@ -1466,7 +1491,7 @@ void bgq_weylfield_y_resetcoord(bgq_weylfield weylfield, int y, bool isOdd, int 
 
 		for (int v = 0; v < 2; v += 1) {
 			for (int c = 0; c < 3; c += 1) {
-				COMPLEX_PRECISION *value = BGQ_WEYLVAL_Y(weylfield,isOdd,t,x,y,z,tv,k,v,c,false,false);
+				/*COMPLEX_PRECISION *value = */BGQ_WEYLVAL_Y(weylfield,isOdd,t,x,y,z,tv,k,v,c,false,false);
 #if BGQ_FIELD_COORDCHECK
 				bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, value);
 
@@ -1567,6 +1592,9 @@ static void bgq_weylfield_t_foreach(bgq_weylfield weylfield, direction dir, bool
 		t = isSend ? -1 : 0;
 		tsrc = isSend ? 0 : -1;
 		break;
+	default:
+		assert(!"Wrong function for direction");
+		return;
 	}
 
 	#pragma omp for schedule(static)
@@ -1607,6 +1635,9 @@ static void bgq_weylfield_x_foreach(bgq_weylfield weylfield, direction dir, bool
 		x = isSend ? -1 : 0;
 		xsrc = isSend ? 0 : -1;
 		break;
+	default:
+		assert(!"Wrong function for direction");
+		return;
 	}
 
 	#pragma omp for schedule(static)
@@ -1647,6 +1678,9 @@ static void bgq_weylfield_y_foreach(bgq_weylfield weylfield, direction dir, bool
 		y = isSend ? -1 : 0;
 		ysrc = isSend ? 0 : -1;
 		break;
+	default:
+		assert(!"Wrong function for direction");
+		return;
 	}
 
 	#pragma omp for schedule(static)

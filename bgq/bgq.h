@@ -117,6 +117,12 @@ typedef struct {
 	BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 2) = NAME2(src,q2); \
 	BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 3) = NAME2(src,q3)
 
+#define bgq_neg(dst,arg)            \
+	NAME2(dst,q0) = - NAME2(arg,q0); \
+	NAME2(dst,q1) = - NAME2(arg,q1); \
+	NAME2(dst,q2) = - NAME2(arg,q2); \
+	NAME2(dst,q3) = - NAME2(arg,q3)
+
 #define bgq_add(dst,lhs,rhs)        \
 	dst##_q0 = lhs##_q0 + rhs##_q0; \
 	dst##_q1 = lhs##_q1 + rhs##_q1; \
@@ -263,6 +269,9 @@ typedef struct {
 
 #define bgq_sta_float(src,offset,addr) \
 	vec_sta(src, offset, (float*)(addr))
+
+#define bgq_neg(dst,arg) \
+	(dst) = vec_neg(arg);
 
 #define bgq_add(dst,lhs,rhs) \
 	(dst) = vec_add(lhs, rhs)

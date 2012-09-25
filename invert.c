@@ -96,6 +96,10 @@ extern FILE *fmemopen (void *__s, size_t __len, __const char *__modes) __THROW;
 #include <io/gauge.h>
 #include <io/spinor.h>
 #include <io/utils.h>
+#include <assert.h>
+#ifdef BGQ
+#include "bgq/bgq_field_double.h"
+#endif
 
 void usage()
 {
@@ -266,7 +270,7 @@ int main(int argc, char *argv[])
 #endif
   
 
-#if (defined SSE || defined SSE2 || SSE3)
+#if (defined SSE || defined SSE2 || defined SSE3)
   signal(SIGILL, &catch_ill_inst);
 #endif
 
@@ -521,16 +525,25 @@ if ( j!= 0) {
 #  endif
 #endif
 
+
+#ifdef BGQ
+  	assert(even_odd_flag);
+	bgq_init_gaugefield_allprec();
+	bgq_init_spinorfields_allprec(NO_OF_SPINORFIELDS);
+	bgq_hm_init_allprec();
+#endif
+
+
   for (j = 0; j < Nmeas; j++) {
     sprintf(conf_filename, "%s.%.4d", gauge_input_filename, nstore);
     if (g_cart_id == 0) {
       printf("Reading gauge field from file %s\n", conf_filename);
       fflush(stdout);
     }
-    if( (j = read_gauge_field(conf_filename)) !=0) {
-      fprintf(stderr, "error %d while reading gauge field from %s\n Aborting...\n", j, conf_filename);
-      exit(-2);
-    }
+    //if( (j = read_gauge_field(conf_filename)) !=0) {
+    //  fprintf(stderr, "error %d while reading gauge field from %s\n Aborting...\n", j, conf_filename);
+    //  exit(-2);
+    //}
 
 
     if (g_cart_id == 0) {
@@ -540,6 +553,10 @@ if ( j!= 0) {
 #ifdef MPI
     xchange_gauge();
 #endif
+#if BGQ
+    bgq_update_backward_gauge();
+#endif
+
 
     /*compute the energy of the gauge field*/
     plaquette_energy = measure_gauge_action();
@@ -643,6 +660,13 @@ if ( j!= 0) {
 	  prepare_source(nstore, isample, ix, op_id, 
 			 read_source_flag,
 			 source_location);
+
+#ifdef BGQ
+	  for (int i = 0; i < 7; i += 1) {
+		  bgq_transfer_spinorfield_double(i&1, g_spinorfields_double[i], g_spinor_field[i]);
+	  }
+#endif
+
 	  operator_list[op_id].inverter(op_id, index_start);
 	}
       }
