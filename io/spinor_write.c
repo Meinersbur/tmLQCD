@@ -19,6 +19,9 @@
 
 
 #include "spinor.ih"
+#if BGQ_REPLACE
+#include "bgq/bgq_field_double.h"
+#endif
 
 int write_spinor(WRITER * writer, spinor ** const s, spinor ** const r, const int flavours, const int prec)
 {
@@ -31,6 +34,9 @@ int write_spinor(WRITER * writer, spinor ** const s, spinor ** const r, const in
   for (i = 0; i < flavours; ++i)
   {
     write_header(writer, 1, 1, "scidac-binary-data", bytes);
+#if BGQ_REPLACE
+    bgq_spinorfield_transfer_back_double()
+#endif
     write_binary_spinor_data(s[i], r[i], writer, &checksum, prec);
     write_checksum(writer, &checksum, NULL);
   }

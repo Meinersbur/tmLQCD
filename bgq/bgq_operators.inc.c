@@ -21,6 +21,50 @@
 #include <omp.h>
 
 
+void bgq_spinorfield_mul_weyl_complex(bgq_spinorfield targetfield, bgq_spinorfield spinorfield, bool isOdd, complexdouble z, complexdouble w) {
+	assert(!omp_in_parallel());
+	bgq_spinorfield_setOdd(targetfield, isOdd, true);
+	bgq_spinorfield_setOdd(spinorfield, isOdd, false);
+
+	bgq_vector4double_decl(qz);
+	bgq_cconst(qz, creal(z), cimag(z));
+
+	bgq_vector4double_decl(qw);
+	bgq_cconst(qw, creal(w), cimag(w));
+
+#pragma omp parallel for schedule(static) firstprivate(bgq_vars(qz), bgq_vars(qw))
+	for (int txy = 0; txy < VOLUME_ZLINES; txy += 1) {
+		WORKLOAD_DECL(txy, VOLUME_ZLINES);
+		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
+		const int x = WORKLOAD_PARAM(PHYSICAL_LX);
+		const int y = WORKLOAD_PARAM(PHYSICAL_LY);
+		WORKLOAD_CHECK
+
+		for (int z = 0; z < PHYSICAL_LZ; z += 1) {
+			const int t1 = ((isOdd + x + y + z) & 1) + tv * PHYSICAL_LP * PHYSICAL_LK;
+			const int t2 = t1 + 2;
+
+			bgq_spinorsite *spinorsite = BGQ_SPINORSITE(spinorfield, isOdd, tv, x, y, z, t1, t2, true, false);
+			bgq_su3_spinor_decl(spinor);
+			bgq_su3_spinor_load(spinor, spinorsite);
+
+			bgq_su3_spinor_decl(result);
+			bgq_su3_cvmul(result_v0, qz, spinor_v0);
+			bgq_su3_cvmul(result_v1, qz, spinor_v1);
+			bgq_su3_cvmul(result_v2, qw, spinor_v2);
+			bgq_su3_cvmul(result_v3, qw, spinor_v3);
+
+			bgq_spinorsite *targetsite = BGQ_SPINORSITE(targetfield, isOdd, tv, x, y, z, t1, t2, true, false);
+			bgq_su3_spinor_store(targetsite, result);
+		}
+	}
+}
+
+
+
+
+
+
 void bgq_mul_r(bgq_spinorfield targetfield, double c, bgq_spinorfield spinorfield, bool isOdd) {
 	assert(!omp_in_parallel());
 	//assert(targetfield != spinorfield);
@@ -184,6 +228,53 @@ void bgq_assign(bgq_spinorfield targetfield, bgq_spinorfield spinorfield, bool i
 }
 
 
+void bgq_plus(bgq_spinorfield targetfield, bgq_spinorfield lhsfield, bgq_spinorfield rhsfield, bool isOdd) {
+	assert(!omp_in_parallel());
+	bgq_spinorfield_setOdd(targetfield, isOdd, true);
+	bgq_spinorfield_setOdd(lhsfield, isOdd, false);
+	bgq_spinorfield_setOdd(rhsfield, isOdd, false);
+
+#pragma omp parallel for schedule(static)
+	for (int txy = 0; txy < VOLUME_ZLINES; txy += 1) {
+		WORKLOAD_DECL(txy, VOLUME_ZLINES);
+		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
+		const int x = WORKLOAD_PARAM(PHYSICAL_LX);
+		const int y = WORKLOAD_PARAM(PHYSICAL_LY);
+		WORKLOAD_CHECK
+
+		for (int z = 0; z < PHYSICAL_LZ; z += 1) {
+			const int t1 = ((isOdd + x + y + z) & 1) + tv * PHYSICAL_LP * PHYSICAL_LK;
+			const int t2 = t1 + 2;
+
+			bgq_spinorsite *lhssite = BGQ_SPINORSITE(lhsfield, isOdd, tv, x, y, z, t1, t2, true, false);
+			bgq_su3_spinor_decl(lhs);
+			bgq_su3_spinor_load(lhs, lhssite);
+
+			bgq_spinorsite *rhssite = BGQ_SPINORSITE(lhsfield, isOdd, tv, x, y, z, t1, t2, true, false);
+			bgq_su3_spinor_decl(rhs);
+			bgq_su3_spinor_load(rhs, rhssite);
+
+			bgq_su3_spinor_decl(result);
+			bgq_add(result_v0_c0, lhs_v0_c0, rhs_v0_c0);
+			bgq_add(result_v0_c1, lhs_v0_c1, rhs_v0_c1);
+			bgq_add(result_v0_c2, lhs_v0_c2, rhs_v0_c2);
+			bgq_add(result_v1_c0, lhs_v1_c0, rhs_v1_c0);
+			bgq_add(result_v1_c1, lhs_v1_c1, rhs_v1_c1);
+			bgq_add(result_v1_c2, lhs_v1_c2, rhs_v1_c2);
+			bgq_add(result_v2_c0, lhs_v2_c0, rhs_v2_c0);
+			bgq_add(result_v2_c1, lhs_v2_c1, rhs_v2_c1);
+			bgq_add(result_v2_c2, lhs_v2_c2, rhs_v2_c2);
+			bgq_add(result_v3_c0, lhs_v3_c0, rhs_v3_c0);
+			bgq_add(result_v3_c1, lhs_v3_c1, rhs_v3_c1);
+			bgq_add(result_v3_c2, lhs_v3_c2, rhs_v3_c2);
+
+			bgq_spinorsite *targetsite = BGQ_SPINORSITE(targetfield, isOdd, tv, x, y, z, t1, t2, true, false);
+			bgq_su3_spinor_store(targetsite, result);
+		}
+	}
+}
+
+
 void bgq_diff(bgq_spinorfield targetfield, bgq_spinorfield lhsfield, bgq_spinorfield rhsfield, bool isOdd) {
 	assert(!omp_in_parallel());
 	bgq_spinorfield_setOdd(targetfield, isOdd, true);
@@ -234,7 +325,7 @@ void bgq_diff(bgq_spinorfield targetfield, bgq_spinorfield lhsfield, bgq_spinorf
 void bgq_gamma5(bgq_spinorfield targetfield, bgq_spinorfield spinorfield, bool isOdd) {
 	assert(!omp_in_parallel());
 	bgq_spinorfield_setOdd(targetfield, isOdd, true);
-
+	bgq_spinorfield_setOdd(spinorfield, isOdd, false);
 #pragma omp parallel for schedule(static)
 	for (int txy = 0; txy < VOLUME_ZLINES; txy += 1) {
 		WORKLOAD_DECL(txy, VOLUME_ZLINES);

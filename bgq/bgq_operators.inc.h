@@ -7,6 +7,11 @@
 
 #include "bgq_field.inc.h"
 
+// targetfield[].v[0,1] = z * spinorfield[].v[0,1]
+// targetfield[].v[2,3] = w * spinorfield[].v[2,3]
+#define bgq_spinorfield_mul_weyl_complex NAME2(bgq_spinorfield_mul_weyl_complex,PRECISION)
+void bgq_spinorfield_mul_weyl_complex(bgq_spinorfield targetfield, bgq_spinorfield spinorfield, bool isOdd, complexdouble z, complexdouble w);
+
 #define bgq_mul_r NAME2(bgq_mul_r,PRECISION)
 void bgq_mul_r(bgq_spinorfield targetfield, double c, bgq_spinorfield spinorfield, bool isOdd);
 
@@ -18,6 +23,9 @@ void bgq_assign_add_mul_r(bgq_spinorfield targetfield, bgq_spinorfield spinorfie
 
 #define bgq_assign NAME2(bgq_assign,PRECISION)
 void bgq_assign(bgq_spinorfield targetfield, bgq_spinorfield spinorfield, bool isOdd);
+
+#define bgq_plus NAME2(bgq_add,PRECISION);
+void bgq_plus(bgq_spinorfield targetfield, bgq_spinorfield lhsfield, bgq_spinorfield rhsfield, bool isOdd);
 
 #define bgq_diff NAME2(bgq_diff,PRECISION)
 void bgq_diff(bgq_spinorfield targetfield, bgq_spinorfield lhsfield, bgq_spinorfield rhsfield, bool isOdd);

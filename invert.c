@@ -529,7 +529,7 @@ if ( j!= 0) {
 #ifdef BGQ
   	assert(even_odd_flag);
 	bgq_init_gaugefield_double();
-	bgq_init_spinorfields_double(NO_OF_SPINORFIELDS);
+	bgq_init_spinorfields_double(NO_OF_SPINORFIELDS, g_running_phmc ? 20 : 0);
 	bgq_hm_init_double();
 #endif
 

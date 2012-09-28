@@ -671,7 +671,7 @@ void assign_mul_one_pm_imu(spinor * const l, spinor * const k, const double _sig
 	bgq_spinorfield_double spinorfield_l = bgq_translate_spinorfield_double(l);
 	bgq_spinorfield_double spinorfield_k = bgq_translate_spinorfield_double(k);
 
-	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_l);
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_k);
 	bgq_assign_mul_one_pm_imu_double(spinorfield_l, spinorfield_k, isOdd, _sign);
 	return;
 #endif

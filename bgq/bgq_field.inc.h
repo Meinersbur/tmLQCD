@@ -35,13 +35,6 @@
 #define g_spinorfields_data NAME2(g_spinorfields_data,PRECISION)
 #define g_spinorfields_data_coords NAME2(g_spinorfields_data_coords,PRECISION)
 
-// Function names
-#define bgq_init_spinorfields NAME2(bgq_init_spinorfields,PRECISION)
-#define bgq_free_spinofields NAME2(bgq_free_spinofields,PRECISION)
-#define bgq_translate_spinorfield NAME2(bgq_translate_spinorfield,PRECISION)
-#define bgq_transfer_spinorfield NAME2(bgq_transfer_spinorfield,PRECISION)
-#define bgq_spinorfield_resetcoord NAME2(bgq_spinorfield_resetcoord,PRECISION)
-
 
 
 typedef struct {
@@ -77,12 +70,16 @@ typedef bgq_weylsite (*bgq_weylfield);
 
 extern bgq_spinorfield *g_spinorfields;
 
-
-void bgq_init_spinorfields(int count);
+#define bgq_init_spinorfields NAME2(bgq_init_spinorfields,PRECISION)
+void bgq_init_spinorfields(int count, int chi_count);
+#define bgq_free_spinofields NAME2(bgq_free_spinofields,PRECISION)
 void bgq_free_spinofields();
 
+#define bgq_translate_spinorfield NAME2(bgq_translate_spinorfield,PRECISION)
 bgq_spinorfield bgq_translate_spinorfield(spinor * const field);
+#define bgq_transfer_spinorfield NAME2(bgq_transfer_spinorfield,PRECISION)
 void bgq_transfer_spinorfield(bool isOdd, bgq_spinorfield targetfield, spinor *sourcefield);
+#define bgq_spinorfield_resetcoord NAME2(bgq_spinorfield_resetcoord,PRECISION)
 void bgq_spinorfield_resetcoord(bgq_spinorfield spinorfield, bool isOdd, int expected_reads_min, int expected_reads_max, int expected_writes_min, int expected_writes_max);
 
 #define bgq_spinorfield_transfer_back NAME2(bgq_spinorfield_transfer_back,PRECISION)

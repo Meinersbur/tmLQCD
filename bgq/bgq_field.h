@@ -195,7 +195,7 @@ void bgq_transfer_spinorfield_allprec(const bool isOdd, int targetindex, spinor 
 
 void bgq_init_gaugefield_allprec();
 void bgq_free_gaugefield_allprec();
-void bgq_init_spinorfields_allprec(int count);
+void bgq_init_spinorfields_allprec(int count, int chi_count);
 void bgq_free_spinorfields_allprec();
 void bgq_hm_init_allprec();
 void bgq_hm_free_allprec();

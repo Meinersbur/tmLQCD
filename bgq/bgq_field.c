@@ -170,12 +170,12 @@ void bgq_free_gaugefield_allprec() {
 }
 
 
-void bgq_init_spinorfields_allprec(int count) {
+void bgq_init_spinorfields_allprec(int count, int chi_count) {
 	g_spinor_body_zline_order = malloc_aligned(sizeof(bgq_spinor_coord) * BODY_ZLINES, 128);
 	g_spinor_surface_zline_order = malloc_aligned(sizeof(bgq_spinor_coord) * SURFACE_ZLINES, 128);
 
-	bgq_init_spinorfields_double(count);
-	bgq_init_spinorfields_float(count);
+	bgq_init_spinorfields_double(count, chi_count);
+	bgq_init_spinorfields_float(count, chi_count);
 }
 
 

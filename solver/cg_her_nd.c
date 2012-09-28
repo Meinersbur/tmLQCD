@@ -143,7 +143,6 @@ int cg_her_nd(spinor * const P_up,spinor * P_dn, spinor * const Q_up, spinor * c
     if(g_debug_level > 0 && g_proc_id == g_stdio_proc) {
       printf("cg_her_nd : i = %d  esqr  %e = %e + %e \n",iteration,err, err1, err2); fflush( stdout);
     }
-
     if(((err <= eps_sq) && (rel_prec == 0)) || ((err <= eps_sq*squarenorm) && (rel_prec == 1))) {
       if((subtract_ev == 1)){
 	/* assign_add_invert_subtracted_part(g_chi_spinor_field[DUM_SOLVER], Q, 10, N); */
@@ -167,6 +166,9 @@ int cg_her_nd(spinor * const P_up,spinor * P_dn, spinor * const Q_up, spinor * c
     assign_mul_add_r(g_chi_up_spinor_field[DUM_SOLVER+2], beta_cg, g_chi_up_spinor_field[DUM_SOLVER+1], N);
     assign_mul_add_r(g_chi_dn_spinor_field[DUM_SOLVER+2], beta_cg, g_chi_dn_spinor_field[DUM_SOLVER+1], N);
     normsq=err;
+
+    if (isnan(err))
+    	break;
   }
   if((subtract_ev == 1)) {
     /* assign_add_invert_subtracted_part(g_chi_spinor_field[DUM_SOLVER], Q, 10, N);

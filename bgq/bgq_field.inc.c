@@ -33,6 +33,11 @@
 static bgq_spinorsite *g_spinorfields_data = NULL;
 bgq_spinorfield *g_spinorfields = NULL;
 static int g_num_spinorfields = -1;
+static int g_num_chi_spinorfields = -1;
+static int g_chi_up_spinorfield_first = -1;
+static int g_chi_dn_spinorfield_first = -1;
+static int g_num_total_spinorfields = -1;
+
 
 #if BGQ_FIELD_COORDCHECK
 static bgq_spinorsite *g_spinorfields_data_coords = NULL;
@@ -42,22 +47,40 @@ static int *g_spinorfield_isOdd = NULL;
 
 
 bgq_spinorfield bgq_translate_spinorfield(spinor * const field) {
-	const int V = even_odd_flag ? VOLUMEPLUSRAND / 2 : VOLUMEPLUSRAND;
-	const int fieldsize  = V * sizeof(*field);
+	int index = -1;
+	size_t chi_fieldsize = (char*)g_chi_up_spinor_field[1] - (char*)g_chi_up_spinor_field[0];
 
-	// This computes the original index address of the passed field; be aware that its correctness depends on the implementation of init_spinorfield
-	long long offset = (char*)field - (char*)g_spinor_field[0];
-	assert(offset >= 0);
-	assert(offset % fieldsize == 0);
-	int result = offset  / fieldsize;
-	assert(g_spinorfields[result] >= g_spinorfields_data);
-	return g_spinorfields[result];
+	if ((char*)g_chi_up_spinor_field[0] <= (char*)field && (char*)field < ((char*)g_chi_up_spinor_field[g_num_chi_spinorfields-1] + chi_fieldsize)) {
+		// This is a spinor from g_chi_up_spinor_field
+		size_t offset = (char*)field - (char*)g_chi_up_spinor_field[0];
+		assert(offset >= 0);
+		assert(offset % chi_fieldsize == 0);
+		index = g_chi_up_spinorfield_first + offset  / chi_fieldsize;
+		assert(index >= g_chi_up_spinorfield_first);
+	} else if ((char*)g_chi_dn_spinor_field[0] <= (char*)field && (char*)field < ((char*)g_chi_dn_spinor_field[g_num_chi_spinorfields-1] + chi_fieldsize)) {
+		// This is a spinor from g_chi_dn_spinor_field
+		size_t offset = (char*)field - (char*)g_chi_dn_spinor_field[0];
+		assert(offset >= 0);
+		assert(offset % chi_fieldsize == 0);
+		index = g_chi_dn_spinorfield_first + offset  / chi_fieldsize;
+		assert(index >= g_chi_dn_spinorfield_first);
+	} else {
+		int V = even_odd_flag ? VOLUMEPLUSRAND / 2 : VOLUMEPLUSRAND;
+		size_t fieldsize  = V * sizeof(*field);
+
+		// This computes the original index address of the passed field; be aware that its correctness depends on the implementation of init_spinorfield
+		size_t offset = (char*)field - (char*)g_spinor_field[0];
+		assert(offset >= 0);
+		assert(offset % fieldsize == 0);
+		index = offset  / fieldsize;
+	}
+
+	assert(index >= 0);
+	assert(index < g_num_total_spinorfields);
+	bgq_spinorfield result = g_spinorfields[index];
+	assert(result >= g_spinorfields_data);
+	return result;
 }
-
-
-
-
-
 
 
 static COMPLEX_PRECISION *bgq_spinorfield_ref(bgq_spinorfield spinorfield, bool isOdd, int t, int x, int y, int z, int v, int c, bool isRead, bool isWrite) {
@@ -203,7 +226,7 @@ void bgq_spinorfield_resetcoord(bgq_spinorfield spinorfield, bool isOdd, int exp
 #endif
 
 
-void bgq_init_spinorfields(int count) {
+void bgq_init_spinorfields(int count, int chi_count) {
 	// preconditions
 	if (!even_odd_flag)
 		master_error(1, "ERROR: even_odd_flag must be set\n");
@@ -250,7 +273,7 @@ void bgq_init_spinorfields(int count) {
 	{
 		#pragma omp master
 		{
-			master_print("INFO: OMP_NUM_THREADS=%d\n", omp_get_num_threads());
+			master_print("INFO: OMP_NUM_THREADS=%d, max=%d\n", omp_get_num_threads(), omp_get_max_threads());
 		}
 	}
 
@@ -260,18 +283,24 @@ void bgq_init_spinorfields(int count) {
 		master_print("WARNING: z-lines to threads imbalance\n");
 	}
 
+
 	g_num_spinorfields = count;
-	int datasize = count * sizeof(*g_spinorfields_data) * VOLUME_SITES;
+	g_num_chi_spinorfields = chi_count;
+	g_num_total_spinorfields = count + 2*chi_count;
+	g_chi_up_spinorfield_first = count;
+	g_chi_dn_spinorfield_first = count + chi_count;
+
+	int datasize = g_num_total_spinorfields * sizeof(*g_spinorfields_data) * VOLUME_SITES;
 	g_spinorfields_data = malloc_aligned(datasize, 128);
 	#if BGQ_FIELD_COORDCHECK
 		g_spinorfields_data_coords = malloc_aligned(datasize, 128);
 	#endif
 
-	g_spinorfields = malloc(count * sizeof(*g_spinorfields));
+	g_spinorfields = malloc(g_num_total_spinorfields * sizeof(*g_spinorfields));
 	//#if BGQ_FIELD_COORDCHECK
-		g_spinorfield_isOdd = malloc(count * sizeof(*g_spinorfield_isOdd));
+		g_spinorfield_isOdd = malloc(g_num_total_spinorfields * sizeof(*g_spinorfield_isOdd));
 	//#endif
-	for (int i = 0; i < count; i += 1) {
+	for (int i = 0; i < g_num_total_spinorfields; i += 1) {
 		g_spinorfields[i] = g_spinorfields_data + i * VOLUME_SITES;
 		//#if BGQ_FIELD_COORDCHECK
 			g_spinorfield_isOdd[i] = -1; // Unknown yet
@@ -285,7 +314,9 @@ void bgq_free_spinofields() {
 	g_spinorfields = NULL;
 	free(g_spinorfields_data);
 	g_spinorfields_data = NULL;
+	g_num_total_spinorfields = 0;
 	g_num_spinorfields = 0;
+	g_num_chi_spinorfields = 0;
 
 	free(g_spinorfield_isOdd);
 	g_spinorfield_isOdd = NULL;
@@ -507,7 +538,7 @@ bool bgq_spinorfield_isOdd(bgq_spinorfield spinorfield) {
 	const size_t offset = (char*)spinorfield - (char*)g_spinorfields_data;
 	assert(offset % fieldsize == 0);
 	size_t index = offset / fieldsize;
-	assert(index < g_num_spinorfields);
+	assert(index < g_num_total_spinorfields);
 
 	int isOdd = g_spinorfield_isOdd[index];
 	assert(isOdd != -1);
@@ -522,7 +553,7 @@ void bgq_spinorfield_setOdd(bgq_spinorfield spinorfield, bool isOdd, bool overwr
 	const size_t offset = (char*)spinorfield - (char*)g_spinorfields_data;
 	assert(offset % fieldsize == 0);
 	size_t index = offset / fieldsize;
-	assert(index < g_num_spinorfields);
+	assert(index < g_num_total_spinorfields);
 
 	if (!overwrite) {
 		int oldIsOdd = g_spinorfield_isOdd[index];
@@ -559,7 +590,7 @@ bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, in
 	assert(offset >= 0);
 	assert(mod(offset, fieldsize) == 0);
 	int index = offset / fieldsize;
-	assert(index < g_num_spinorfields);
+	assert(index < g_num_total_spinorfields);
 
 	// Check that the coordinate is really an odd/even coordinate
 	assert(((t+x+y+z)&1) == isOdd);
