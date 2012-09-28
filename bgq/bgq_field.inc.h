@@ -5,8 +5,13 @@
  *      Author: meinersbur
  */
 
+
 #include "bgq_field.h"
 #include <omp.h>
+
+#if BGQ_PREFETCH_LIST
+#include <l1p/pprefetch.h>
+#endif
 
 #ifndef BGQ_PRECISION
 #warning Specify a precision before including this file
@@ -74,6 +79,12 @@ extern bgq_spinorfield *g_spinorfields;
 void bgq_init_spinorfields(int count, int chi_count);
 #define bgq_free_spinofields NAME2(bgq_free_spinofields,PRECISION)
 void bgq_free_spinofields();
+
+//#define bgq_num_spinorfields NAME2(bgq_num_spinorfields,PRECISION)
+//extern int bgq_num_spinorfields;
+
+#define bgq_spinorfield_find_index NAME2(bgq_spinorfield_find_index,PRECISION)
+int bgq_spinorfield_find_index(bgq_spinorfield spinorfield);
 
 #define bgq_translate_spinorfield NAME2(bgq_translate_spinorfield,PRECISION)
 bgq_spinorfield bgq_translate_spinorfield(spinor * const field);
@@ -334,7 +345,18 @@ static void bgq_weylfield_cmpcoordfield(bgq_weylfield weylfield, direction dir, 
 }
 #endif
 
+#if BGQ_PREFETCH_LIST
+#define bgq_listprefetch_handle NAME2(bgq_listprefetch_handle,PRECISION)
+#ifndef BGQ_FIELD_INC_C_
+extern
+#endif
+L1P_Pattern_t *(*bgq_listprefetch_handle)[2/*even/odd*/][2/*kamul/nokamul*/][64/*For each thread*/][2/*nobody*/][2/*nosurface*/][6/*total threads*/]
+#ifdef BGQ_FIELD_INC_C_
+= NULL
+#endif
+;
+#endif
+
 //#ifndef BGQ_FIELD_INC_C_
 //#include "bgq_precisionselect.inc.c"
 //#endif
-

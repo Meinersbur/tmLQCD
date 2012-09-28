@@ -403,11 +403,10 @@ void op_write_prop(const int op_id, const int index_start, const int append_) {
 	  bgq_spinorfield_double spinorfield_prop3 = bgq_translate_spinorfield_double(operator_list[op_id].prop3);
 	  bgq_spinorfield_transfer_back_double(bgq_spinorfield_isOdd_double(spinorfield_prop3), operator_list[op_id].prop3, spinorfield_prop3);
   }
-#if BGQ_REPLACE
-	  bgq_spinorfield_double spinorfield_prop1 = bgq_translate_spinorfield_double(operator_list[op_id].prop1);
-	  bgq_spinorfield_transfer_back_double(bgq_spinorfield_isOdd_double(spinorfield_prop1), operator_list[op_id].prop1, spinorfield_prop1);
-	  bgq_spinorfield_double spinorfield_prop0 = bgq_translate_spinorfield_double(operator_list[op_id].prop0);
-	  bgq_spinorfield_transfer_back_double(bgq_spinorfield_isOdd_double(spinorfield_prop0), operator_list[op_id].prop0, spinorfield_prop0);
+  bgq_spinorfield_double spinorfield_prop1 = bgq_translate_spinorfield_double(operator_list[op_id].prop1);
+  bgq_spinorfield_transfer_back_double(bgq_spinorfield_isOdd_double(spinorfield_prop1), operator_list[op_id].prop1, spinorfield_prop1);
+  bgq_spinorfield_double spinorfield_prop0 = bgq_translate_spinorfield_double(operator_list[op_id].prop0);
+  bgq_spinorfield_transfer_back_double(bgq_spinorfield_isOdd_double(spinorfield_prop0), operator_list[op_id].prop0, spinorfield_prop0);
 #endif
 
   /* write the source depending on format */

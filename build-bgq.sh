@@ -69,6 +69,7 @@ CFLAGS="${CFLAGS} -qprefetch=aggressive"
 CFLAGS="${CFLAGS} -qarch=qp"
 CFLAGS="${CFLAGS} -qtune=qp"
 CFLAGS="${CFLAGS} -qmaxmem=-1"
+CFLAGS="${CFLAGS} -qtm" # Enable transactional memory
 #CFLAGS="${CFLAGS} -qsimd=noauto"
 CFLAGS="${CFLAGS} -qsmp=noauto"
 #CFLAGS="${CFLAGS} -qstrict=all"
@@ -84,10 +85,10 @@ CFLAGS="${CFLAGS} -qstrict=none"
 CFLAGS="${CFLAGS} -DBGQ_QPX=1"
 CFLAGS="${CFLAGS} -DBGQ_PREFETCH_EXPLICIT=0"
 CFLAGS="${CFLAGS} -DBGQ_PREFETCH_STREAM=0"
-CFLAGS="${CFLAGS} -DBGQ_PREFETCH_LIST=0"
+CFLAGS="${CFLAGS} -DBGQ_PREFETCH_LIST=1"
 CFLAGS="${CFLAGS} -DBGQ_FIELD_COORDCHECK=0"
 CFLAGS="${CFLAGS} -DMPI=1"
-CFLAGS="${CFLAGS} -DBGQ_HM_CARRY=0"
+CFLAGS="${CFLAGS} -DBGQ_HM_CARRY=1"
 CFLAGS="${CFLAGS} -DBGQ_REPLACE=0"
 #CFLAGS="${CFLAGS} -qsmp=noauto"
 
@@ -114,6 +115,11 @@ LDFLAGS="${LDFLAGS} -L/bgsys/drivers/ppcfloor/spi/lib"
 #LDFLAGS="${LDFLAGS} -L/usr/local/bg_soft/lapack/3.3.0/lib"
 #LDFLAGS="${LDFLAGS} -L/bgsys/local/lib/"
 
+
+CFLAGS="${CFLAGS} -DPAPI=1"
+CFLAGS="${CFLAGS} -I$HOME/usr/include"
+LDFLAGS="${LDFLAGS} -L$HOME/usr/lib -lpapi"
+
 #--with-alignment=32 --without-bgldram --with-limedir=/work/pra067/pra06700/juqueen/programs/lime_c --enable-mpi --enable-qpx --with-mpidimension=4 --enable-omp --enable-gaugecopy
 # --disable-halfspinor --enable-largefile 
 #--with-lapack="-L/bgsys/local/lib/ -L/usr/local/bg_soft/lapack/3.3.0/lib -lesslbg -llapack -lesslbg -lxlf90_r -L/opt/ibmcmp/xlf/bg/14.1/lib64 -lxl -lxlopt -lxlf90_r -lxlfmath -L/opt/ibmcmp/xlsmp/bg/3.1/bglib64 -lxlsmp -lpthread" 
@@ -135,7 +141,7 @@ CONFIGURE="${CONFIGURE} --enable-gaugecopy"
 CONFIGURE="${CONFIGURE} --disable-halfspinor"
 CONFIGURE="${CONFIGURE} --enable-largefile"
 CONFIGURE="${CONFIGURE} --with-lapack="\"'${LAPACK}'\"
-CONFIGURE="${CONFIGURE} CC=/bgsys/drivers/ppcfloor/comm/xl/bin/mpixlc_r"
+CONFIGURE="${CONFIGURE} CC=/bgsys/drivers/ppcfloor/comm/xl.ndebug/bin/mpixlc_r"
 CONFIGURE="${CONFIGURE} CFLAGS="\"'${CFLAGS}'\"
 CONFIGURE="${CONFIGURE} F77=bgf77"
 CONFIGURE="${CONFIGURE} LDFLAGS="\"'${LDFLAGS}'\"
@@ -143,6 +149,8 @@ CONFIGURE="${CONFIGURE} FC=bgxlf_r"
 
 CONFIGURE="${CONFIGURE} --enable-optimize=no"
 #CONFIGURE="${CONFIGURE} --with-lemondir=${ROOTPATH}/lemon"
+
+
 
 
 

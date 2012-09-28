@@ -24,7 +24,7 @@ void bgq_assign_add_mul_r(bgq_spinorfield targetfield, bgq_spinorfield spinorfie
 #define bgq_assign NAME2(bgq_assign,PRECISION)
 void bgq_assign(bgq_spinorfield targetfield, bgq_spinorfield spinorfield, bool isOdd);
 
-#define bgq_plus NAME2(bgq_add,PRECISION);
+#define bgq_plus NAME2(bgq_plus,PRECISION)
 void bgq_plus(bgq_spinorfield targetfield, bgq_spinorfield lhsfield, bgq_spinorfield rhsfield, bool isOdd);
 
 #define bgq_diff NAME2(bgq_diff,PRECISION)

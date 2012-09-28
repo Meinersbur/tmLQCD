@@ -16,6 +16,7 @@
 #define BGQ_HM_SITE_NOFUNC 1
 #define BGQ_HM_DIR_NOFUNC 1
 
+
 // isOdd refers to the oddness of targetfield; spinorfield will have the opposite oddness
 void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool nocom, bool nooverlapcom, bool nokamul, bool withprefetchlist, bool withprefetchstream, bool withprefetchexplicit, bool coordcheck) {
 #else
@@ -26,8 +27,10 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	bgq_spinorfield_setOdd(spinorfield, !isOdd, false);
 	//master_print("nocom=%d nooverlap=%d\n", nocom, nooverlap);
 
-	//assert(omp_in_parallel() && "Should be called while in #pragma omp parallel");
+	assert(omp_in_parallel() && "Should be called while in #pragma omp parallel");
 	//assert(omp_get_thread_num() == 0 && "Should be in a #pragma omp master");
+
+
 
 #if BGQ_FIELD_COORDCHECK
 #pragma omp master
@@ -126,20 +129,37 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 			//}
 
 #if BGQ_PREFETCH_LIST
-			if (!isOdd) {
-				if (l1p_first) {
-					master_print("MK Enabling List prefetcher...\n");
-					L1P_CHECK(L1P_PatternConfigure(VOLUME_SITES * 128 /*???*/));
-					//L1P_PatternSetEnable(true); /* priv */
-					master_print("MK Enabled List prefetcher\n");
+			int targetindex = bgq_spinorfield_find_index(targetfield);
+			int spinorindex = bgq_spinorfield_find_index(spinorfield);
+			int totThreads = omp_get_num_threads();
+			const int bitsp[] = {};
+			L1P_Pattern_t **patternhandle = &bgq_listprefetch_handle[targetindex + spinorindex][isOdd][nokamul][Kernel_ProcessorID()][nobody][nosurface][ilog(totThreads)];
+			bool l1p_first = false;
+			if (!*patternhandle) {
+				const uint64_t prefsize = 10000/*how to choose this?*/;
+				int retval = L1P_GetPattern(patternhandle);
+				if (retval == L1P_NOTCONFIGURED) {
+					L1P_CHECK(L1P_PatternConfigure(prefsize));
+					L1P_CHECK(L1P_GetPattern(patternhandle));
+				} else {
+					L1P_CHECK(retval);
+					L1P_CHECK(L1P_AllocatePattern(prefsize,patternhandle));
 				}
-				L1P_CHECK(L1P_PatternStart(false));
-
-				//int enabled = 0;
-				//L1P_CHECK(L1P_PatternGetEnable(&enabled)); /* priv */
-				//if (!enabled)
-				//	master_print("WARNING: List prefetcher not enabled\n");
+				l1p_first = true;
 			}
+			assert(*patternhandle);
+
+			// Don't have acces to L1P_CFG_PF_USR (segfault)
+			//L1P_CHECK(L1P_PatternSetEnable(1));
+
+			L1P_CHECK(L1P_SetPattern(*patternhandle));
+			L1P_CHECK(L1P_PatternStart(l1p_first));
+
+			// Don't have acces to L1P_CFG_PF_USR (segfault)
+			//int pattern_enable = 0;
+			//L1P_CHECK(L1P_PatternGetEnable(&pattern_enable));
+			//if (!pattern_enable)
+			//	printf("error: List prefetcher not enabled\n");
 #endif
 
 //#pragma omp parallel
@@ -295,8 +315,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 			}
 
 #if BGQ_PREFETCH_LIST
-			if (!isOdd)
-			L1P_PatternPause();
+	L1P_PatternPause();
 #endif
 
 #if BGQ_FIELD_COORDCHECK
@@ -312,11 +331,6 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 				}
 			}
 #endif
-
-			//opaque_func_call();
-			//for (direction d = TUP; d <= YDOWN; d += 1)
-			//	for (char *p = (char*) weylxchange_send[d]; p < ((char*) weylxchange_send[d] + weylxchange_size[d / 2]); p += 64)
-			//		bgq_prefetch(p);
 
 #ifdef MPI
 			if (!nocom && !nooverlap) {
@@ -337,8 +351,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 #endif
 
 #if BGQ_PREFETCH_LIST
-			if (!isOdd)
-			L1P_PatternResume();
+	L1P_PatternResume();
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -375,8 +388,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 ////////////////////////////////////////////////////////////////////////////////
 
 #if BGQ_PREFETCH_LIST
-			if (!isOdd)
-			L1P_PatternPause();
+	L1P_PatternPause();
 #endif
 
 			//opaque_func_call();
@@ -432,8 +444,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 			#pragma omp barrier
 
 #if BGQ_PREFETCH_LIST
-			if (!isOdd)
-			L1P_PatternResume();
+	L1P_PatternResume();
 #endif
 
 			//if (g_proc_id == 0)
@@ -441,10 +452,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 
 //master_print("MK HM before surface\n");
 			if (!nosurface) {
-
-
-
-#pragma omp for schedule(static)
+#pragma omp for schedule(static) nowait
 				for (int ixyz = 0; ixyz < SURFACE_ZLINES; ixyz += 1) {
 					//master_print("MK HM xyz=%d\n", xyz);
 
@@ -517,22 +525,16 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 //master_print("MK HM after surface\n");
 
 #if BGQ_PREFETCH_LIST
-		if (!isOdd) {
-			if (omp_get_thread_num() == 0)
-			L1P_PatternGetCurrentDepth(&fetch_depth, &generate_depth);
-			L1P_PatternStop();
-		}
-#endif
-	} /* #pragma omp parallel */
+	L1P_PatternGetCurrentDepth(&fetch_depth, &generate_depth);
+	L1P_PatternStop();
 
-#if BGQ_PREFETCH_LIST
-	if (!isOdd) {
-		l1p_first = false;
-		L1P_Status_t st;
-		L1P_PatternStatus(&st);
-		master_print("L1P_LIST: maxed=%d abandoned=%d finished=%d endoflist=%d fetch_depth=%d generate_depth=%d \n", st.s.maximum, st.s.abandoned, st.s.finished, st.s.endoflist, (int)fetch_depth, (int)generate_depth);
-	}
+	L1P_Status_t st;
+	L1P_PatternStatus(&st);
+	master_print("L1P_LIST: maxed=%d abandoned=%d finished=%d endoflist=%d fetch_depth=%d generate_depth=%d \n", st.s.maximum, st.s.abandoned, st.s.finished, st.s.endoflist, (int)fetch_depth, (int)generate_depth);
 #endif
+	}
+
+
 
 #if BGQ_FIELD_COORDCHECK
 	if (!nobody && !nosurface && !noweylsend) {
@@ -559,6 +561,8 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	}
 #endif
 //master_print("MK HM exit\n");
+	// Just to be sure that if something follows this, it also holds up-to-data
+#pragma omp barrier
 }
 
 #ifdef BGQ_HM_NOFUNC

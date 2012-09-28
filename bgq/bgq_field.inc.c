@@ -10,7 +10,7 @@
 #include "bgq_field_double.h"
 #endif
 
-
+#include "bgq_field.inc.h"
 #include "bgq.h"
 #include "../geometry_eo.h"
 #include "../global.h"
@@ -269,11 +269,13 @@ void bgq_init_spinorfields(int count, int chi_count) {
 
 	master_print("INFO: Body-to-volume site ratio: %f (the higher the better)\n", (double)BODY_SITES / (double)VOLUME_SITES);
 
+	int nThreads = omp_get_max_threads();
 	#pragma omp parallel
 	{
 		#pragma omp master
 		{
-			master_print("INFO: OMP_NUM_THREADS=%d, max=%d\n", omp_get_num_threads(), omp_get_max_threads());
+			assert(nThreads == omp_get_num_threads());
+			master_print("INFO: OMP_NUM_THREADS=%d\n", omp_get_num_threads());
 		}
 	}
 
@@ -306,6 +308,11 @@ void bgq_init_spinorfields(int count, int chi_count) {
 			g_spinorfield_isOdd[i] = -1; // Unknown yet
 		//#endif
 	}
+
+#if BGQ_PREFETCH_LIST
+	bgq_listprefetch_handle = malloc(g_num_total_spinorfields * g_num_total_spinorfields * sizeof(*bgq_listprefetch_handle));
+	memset(bgq_listprefetch_handle, 0, g_num_total_spinorfields * g_num_total_spinorfields * sizeof(*bgq_listprefetch_handle));
+#endif
 }
 
 
@@ -324,6 +331,7 @@ void bgq_free_spinofields() {
 	free(g_spinorfields_data_coords);
 	g_spinorfields_data_coords = NULL;
 #endif
+	//TODO: free(bgq_listprefetch_handle), L1P_DeallocatePattern(bgq_listprefetch_handle[...])
 }
 
 
@@ -531,6 +539,15 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 	return norm1_max;
 }
 
+int bgq_spinorfield_find_index(bgq_spinorfield spinorfield) {
+	const int fieldsize = sizeof(bgq_spinorsite) * VOLUME_SITES; // alignment???
+	long long offset = (char*)spinorfield - (char*)g_spinorfields_data;
+	assert(offset >= 0);
+	assert(mod(offset, fieldsize) == 0);
+	int index = offset / fieldsize;
+	assert(index < g_num_spinorfields);
+	return index;
+}
 
 bool bgq_spinorfield_isOdd(bgq_spinorfield spinorfield) {
 	const size_t fieldsize = sizeof(bgq_spinorsite) * VOLUME_SITES; // alignment???
@@ -1221,13 +1238,8 @@ void bgq_hm_init() {
 	//MPI_CHECK(MPI_Send_init(weylxchange_send[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_up, 0, g_cart_grid, &sendrequest));
 
 
-#pragma omp parallel
-	{
-		//L1P_PatternConfigure(BODY_SITES * 1024 /*???*/);
-	}
-	l1p_first = true;
 
-#if BGQ_PREFETCH_LIST
+#if 0
 	L1P_CHECK(L1P_SetStreamPolicy(L1P_stream_disable));
 
 	L1P_StreamPolicy_t pol;

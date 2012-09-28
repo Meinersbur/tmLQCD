@@ -27,7 +27,7 @@
 void bgq_HoppingMatrix_nokamul_float(bool isOdd, bgq_spinorfield targetfield, bgq_spinorfield spinorfield, bgq_gaugefield gaugefield, bgq_hmflags opts) {
 	const bool nocom = opts & hm_nocom;
 	const bool nooverlap = opts & hm_nooverlap;
-	const bool nokamul = opts & hm_nokamul;
+	const bool nokamul = true;
 	const bool prefetchlist = opts & hm_prefetchlist;
 	const bool prefetchstream = opts & hm_prefetchstream;
 	const bool prefetchexplicit = opts & hm_prefetchexplicit;

@@ -382,7 +382,7 @@ int main(int argc, char *argv[])
 
 #ifdef BGQ
   bgq_init_gaugefield_double();
-  bgq_init_spinorfields_double(2 * k_max + 1);
+  bgq_init_spinorfields_double(2 * k_max + 1, 0);
   bgq_hm_init_double();
 
   update_backward_gauge();
