@@ -20,6 +20,8 @@
 #include <omp.h>
 #include <stddef.h>
 
+#include <l1p/sprefetch.h>
+#include <l1p/pprefetch.h>
 
 #ifndef BGQ_FIELD_COORDCHECK
 #define BGQ_FIELD_COORDCHECK 0
@@ -1136,13 +1138,16 @@ void bgq_hm_init() {
 
 
 
-#if 0
+#if 1
+#pragma omp parallel
+	{
 	L1P_CHECK(L1P_SetStreamPolicy(L1P_stream_disable));
 
 	L1P_StreamPolicy_t pol;
 	L1P_CHECK(L1P_GetStreamPolicy(&pol));
 	if (pol != L1P_stream_disable)
 		master_print("MK StreamPolicy not accepted\n");
+	}
 #endif
 }
 

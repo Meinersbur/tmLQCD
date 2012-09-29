@@ -20,9 +20,9 @@
 #include <mpi.h>
 
 
-void FPUArith(void); //This method does various calculations which should saturate many of the counters
+//void FPUArith(void); //This method does various calculations which should saturate many of the counters
 void List_PAPI_Events(const int pEventSet, int* pEvents, int* xNumEvents);
-void Print_Native_Counters();
+//void Print_Native_Counters();
 //void Print_Native_Counters_via_Buffer(const BGP_UPC_Read_Counters_Struct_t* pBuffer);
 //void Print_Native_Counters_for_PAPI_Counters(const int pEventSet);
 //void Print_Native_Counters_for_PAPI_Counters_From_List(const int* pEvents, const int pNumEvents);
@@ -131,6 +131,13 @@ void mypapi_init() {
 	// NW = network unit
 	// CNK = Interrupt controller
 
+	PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_LSU_COMMIT_LD_MISSES));
+	PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_INST_XU_LD));
+	PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_LSU_COMMIT_CACHEABLE_LDS));
+
+	PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_IU_IL1_MISS));
+
+
 	PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_L1P_LIST_MISMATCH)); // core address does not match a list address
 	PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_L1P_LIST_STARTED)); // List prefetch process was started
 	PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_L1P_LIST_OVF_MEM)); // Written pattern exceeded allocated buffer
@@ -165,9 +172,9 @@ void mypapi_init() {
 	//PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_IU_RAW_DEP_HIT_CYC));
 	//PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_IU_WAW_DEP_HIT_CYC));
 
-	PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_LSU_COMMIT_CACHEABLE_LDS));
+
 	//PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_LSU_COMMIT_CACHE_INHIB_LD_MISSES));
-	PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_LSU_COMMIT_LD_MISSES));
+	//PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_LSU_COMMIT_LD_MISSES));
 
 	//PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_LSU_COMMIT_STS)); // Store instructions / Number of completed store commands.
 	//PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_LSU_COMMIT_ST_MISSES));
@@ -188,6 +195,9 @@ void mypapi_init() {
 
 	PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_INST_QFPU_FPGRP2));
 	//PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_INST_QFPU_FPGRP2_INSTR));
+
+	PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_L2_FETCH_LINE));
+	PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_L2_STORE_LINE));
 }
 
 static long long getMyPapiNativeValue(const int eventNum) {
@@ -310,6 +320,8 @@ void mypapi_stop() {
 		//long long nInstrCommit2 = getMyPapiNativeValue(PEVT_XU_PPC_COMMIT);
 		printf("PAPI CPI: %f\n", (double)papiCyc/(double)nInstrCommit1);
 		//printf("PAPI CPI: %f\n", (double)papiCyc/(double)nInstrCommit2);
+		long long nInstrFetchMiss = getMyPapiNativeValue(PEVT_IU_IL1_MISS);
+		printf("PAPI Instruction load miss: %f\n", (double)nInstrFetchMiss/(double)nInstrCommit1);
 
 		//long long nResStalls = getMyPapiValue(PAPI_RES_STL);
 		//printf("PAPI resource stalls: %f%%\n", 100.0*(double)nResStalls/(double)papiCyc);
@@ -318,8 +330,8 @@ void mypapi_stop() {
 		//printf("PAPI stalled for any AXU/FXU dependency (excludes IS2 stall): %f%%\n", 100.0*(double)nFpuStalls/(double)papiCyc);
 
 		long long nL1IStalls = getMyPapiNativeValue(PEVT_IU_IL1_MISS_CYC);
-		printf("PAPI L1I stalls: %f%%\n", 100.0*(double)nL1IStalls/(double)papiCyc);
-
+		printf("PAPI L1I stalls: %f%%\n", 100.0*(double)nL1IStalls/(double)nInstrFetchMiss);
+		printf("PAPI Instruction Miss latency: %f cycles\n", (double)nL1IStalls/(double)papiCyc);
 
 		long long nDcbtMisses = getMyPapiNativeValue(PEVT_LSU_COMMIT_DCBT_MISSES);
 		long long nDcbtHits = getMyPapiNativeValue(PEVT_LSU_COMMIT_DCBT_HITS);
@@ -338,8 +350,6 @@ void mypapi_stop() {
 		//long long nStoreMisses = getMyPapiNativeValue(PEVT_LSU_COMMIT_ST_MISSES);
 		//printf("PAPI LSU %% store hits: %f%%\n", 100.0*(double)(nStores-nStoreMisses)/(double)(nStores));
 
-		long long nLoadL1Misses = getMyPapiNativeValue(PEVT_LSU_COMMIT_LD_MISSES);
-		printf("PAPI LSU %% L1 load hits: %f%%\n", 100.0*(double)(nLoads-nLoadL1Misses)/(double)(nLoads));
 
 		long long nFUDepStalls = getMyPapiNativeValue(PEVT_IU_IS1_STALL_CYC);
 		long long nFUStalls = getMyPapiNativeValue(PEVT_IU_IS2_STALL_CYC);
@@ -372,6 +382,16 @@ void mypapi_stop() {
 		long long nL2Hits = getMyPapiNativeValue(PEVT_L2_HITS); // per node
 		long long nL2Misses = getMyPapiNativeValue(PEVT_L2_MISSES); // per node
 		printf("PAPI L2 Hit rate: %f%%\n", 100.0*(double)(nL2Hits)/(double)(nL2Hits+nL2Misses));
+
+		long long nL2LinesFetched = getMyPapiNativeValue(PEVT_L2_FETCH_LINE);
+		long long nL2LinesStores = getMyPapiNativeValue(PEVT_L2_STORE_LINE);
+		printf("PAPI Main memory read bandwidth: %f mbyte/s\n", 128.0 * nL2LinesFetched / (1.0 * sec * 1024 * 1024));
+		printf("PAPI Main memory write bandwidth: %f mbyte/s\n", 128.0 * nL2LinesStores / (1.0 * sec * 1024 * 1024));
+
+		long long nLoadL1Misses = getMyPapiNativeValue(PEVT_LSU_COMMIT_LD_MISSES);
+		long long nLoadInstrs = getMyPapiNativeValue(PEVT_INST_XU_LD);
+		printf("PAPI LSU L1 Hit ratio v1: %f%%\n", 100.0 * (nLoads - nLoadL1Misses) / (double)nLoads);
+		printf("PAPI LSU L1 Hit ratio v2: %f%%\n", 100.0 * (nLoadInstrs - nLoadL1Misses) / (double)nLoadInstrs);
 	}
 }
 
@@ -381,12 +401,12 @@ void mypapi_stop() {
 
 /* Print_Counters */
 void Print_Counters(const int pEventSet) {
-	printf("\n***** Start Print Counter Values *****\n");
+	//printf("\n***** Start Print Counter Values *****\n");
 	// Print_Native_Counters_via_Buffer((BGP_UPC_Read_Counters_Struct_t*)Native_Buffer);
 	//Print_Native_Counters();
 	//Print_Native_Counters_for_PAPI_Counters(pEventSet);
 	Print_PAPI_Counters(pEventSet, PAPI_Counters);
-	printf("\n***** End Print Counter Values *****\n");
+	//printf("\n***** End Print Counter Values *****\n");
 	return;
 }
 
@@ -453,7 +473,7 @@ void Print_Native_Counters_for_PAPI_Counters_From_List(const int* pEvents, const
 void Print_PAPI_Counters(const int pEventSet, const long long* pCounters) {
 	int i;
 	char xName[256];
-	printf("\n***** Start Print of PAPI Counter Values *****\n");
+	printf("***** Start Print of PAPI Counter Values *****\n");
 	//printf("Print_PAPI_Counters: PAPI_Counters*=%p, pCounters*=%p\n",PAPI_Counters, pCounters);
 
 	int pNumEvents = PAPI_num_events(pEventSet);

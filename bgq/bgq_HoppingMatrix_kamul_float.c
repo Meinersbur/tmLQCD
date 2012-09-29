@@ -34,6 +34,7 @@ void bgq_HoppingMatrix_kamul_float(bool isOdd, bgq_spinorfield targetfield, bgq_
 	const bool noweylsend = opts & hm_noweylsend;
 	const bool nobody = opts & hm_nobody;
 	const bool nosurface = opts & hm_nosurface;
+	const bool nol1plist = opts & hm_nol1plist;
 	assert(!nokamul);
 
 	#define BGQ_HM_NOFUNC 1

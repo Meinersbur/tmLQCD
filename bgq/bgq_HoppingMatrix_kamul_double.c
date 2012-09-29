@@ -28,6 +28,7 @@ void bgq_HoppingMatrix_kamul_double(bool isOdd, bgq_spinorfield targetfield, bgq
 	const bool noweylsend = opts & hm_noweylsend;
 	const bool nobody = opts & hm_nobody;
 	const bool nosurface = opts & hm_nosurface;
+	const bool nol1plist = opts & hm_nol1plist;
 
 	#define BGQ_HM_NOFUNC 1
 	#define BGQ_HM_ZLINE_NOFUNC 1

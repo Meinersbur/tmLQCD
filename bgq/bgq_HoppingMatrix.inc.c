@@ -15,7 +15,7 @@
 #define BGQ_HM_ZLINE_NOFUNC 1
 #define BGQ_HM_SITE_NOFUNC 1
 #define BGQ_HM_DIR_NOFUNC 1
-
+//#define DD1_L1P_Workaround 1
 
 // isOdd refers to the oddness of targetfield; spinorfield will have the opposite oddness
 void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool nocom, bool nooverlapcom, bool nokamul, bool withprefetchlist, bool withprefetchstream, bool withprefetchexplicit, bool coordcheck) {
@@ -129,6 +129,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 			//}
 
 #if BGQ_PREFETCH_LIST
+		if (!nol1plist) {
 			int targetindex = bgq_spinorfield_find_index(targetfield);
 			int spinorindex = bgq_spinorfield_find_index(spinorfield);
 			int totThreads = omp_get_num_threads();
@@ -136,7 +137,8 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 			L1P_Pattern_t **patternhandle = &bgq_listprefetch_handle[targetindex + spinorindex][isOdd][nokamul][Kernel_ProcessorID()][nobody][nosurface][ilog(totThreads)];
 			bool l1p_first = false;
 			if (!*patternhandle) {
-				const uint64_t prefsize = 10000/*how to choose this?*/;
+				//const uint64_t prefsize = 10000/*how to choose this?*/;
+				const uint64_t prefsize = 12 * VOLUME / totThreads;
 				int retval = L1P_GetPattern(patternhandle);
 				if (retval == L1P_NOTCONFIGURED) {
 					L1P_CHECK(L1P_PatternConfigure(prefsize));
@@ -153,20 +155,21 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 			//L1P_CHECK(L1P_PatternSetEnable(1));
 
 			L1P_CHECK(L1P_SetPattern(*patternhandle));
-			L1P_CHECK(L1P_PatternStart(l1p_first));
+			L1P_CHECK(L1P_PatternStart(true));
 
 			// Don't have acces to L1P_CFG_PF_USR (segfault)
 			//int pattern_enable = 0;
 			//L1P_CHECK(L1P_PatternGetEnable(&pattern_enable));
 			//if (!pattern_enable)
 			//	printf("error: List prefetcher not enabled\n");
+		}
 #endif
 
 //#pragma omp parallel
 //		{
 			if (!noweylsend) {
 // TDOWN
-#pragma omp for schedule(static) nowait
+#pragma omp for schedule(static)
 				for (int xyz = 0; xyz < PHYSICAL_LXV * PHYSICAL_LY * PHYSICAL_LZ; xyz += 1) {
 					WORKLOAD_DECL(xyz, PHYSICAL_LXV*PHYSICAL_LY*PHYSICAL_LZ);
 					const int t = -1;
@@ -200,6 +203,17 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 					bgq_su3_weyl_flush(weylsite_tup);
 					int a = 0;
 				}
+
+#if 0
+				if (!nol1plist) {
+					L1P_PatternGetCurrentDepth(&fetch_depth, &generate_depth);
+					L1P_PatternStop();
+
+					L1P_Status_t st;
+					L1P_PatternStatus(&st);
+					master_print("L1P_LIST: maxed=%d abandoned=%d finished=%d endoflist=%d fetch_depth=%d generate_depth=%d \n", st.s.maximum, st.s.abandoned, st.s.finished, st.s.endoflist, (int)fetch_depth, (int)generate_depth);
+				}
+#endif
 
 				// TUP
 #pragma omp for schedule(static) nowait
@@ -315,7 +329,9 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 			}
 
 #if BGQ_PREFETCH_LIST
+			if (!nol1plist) {
 	L1P_PatternPause();
+			}
 #endif
 
 #if BGQ_FIELD_COORDCHECK
@@ -351,7 +367,9 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 #endif
 
 #if BGQ_PREFETCH_LIST
+			if (!nol1plist) {
 	L1P_PatternResume();
+			}
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -388,7 +406,9 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 ////////////////////////////////////////////////////////////////////////////////
 
 #if BGQ_PREFETCH_LIST
+			if (!nol1plist) {
 	L1P_PatternPause();
+			}
 #endif
 
 			//opaque_func_call();
@@ -444,7 +464,9 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 			#pragma omp barrier
 
 #if BGQ_PREFETCH_LIST
+			if (!nol1plist) {
 	L1P_PatternResume();
+			}
 #endif
 
 			//if (g_proc_id == 0)
@@ -525,12 +547,14 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 //master_print("MK HM after surface\n");
 
 #if BGQ_PREFETCH_LIST
-	L1P_PatternGetCurrentDepth(&fetch_depth, &generate_depth);
-	L1P_PatternStop();
+		if (!nol1plist) {
+			L1P_PatternGetCurrentDepth(&fetch_depth, &generate_depth);
+			L1P_PatternStop();
 
-	L1P_Status_t st;
-	L1P_PatternStatus(&st);
-	master_print("L1P_LIST: maxed=%d abandoned=%d finished=%d endoflist=%d fetch_depth=%d generate_depth=%d \n", st.s.maximum, st.s.abandoned, st.s.finished, st.s.endoflist, (int)fetch_depth, (int)generate_depth);
+			L1P_Status_t st;
+			L1P_PatternStatus(&st);
+			master_print("L1P_LIST: maxed=%d abandoned=%d finished=%d endoflist=%d fetch_depth=%d generate_depth=%d \n", st.s.maximum, st.s.abandoned, st.s.finished, st.s.endoflist, (int)fetch_depth, (int)generate_depth);
+		}
 #endif
 	}
 
@@ -561,6 +585,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 	}
 #endif
 //master_print("MK HM exit\n");
+
 	// Just to be sure that if something follows this, it also holds up-to-data
 #pragma omp barrier
 }

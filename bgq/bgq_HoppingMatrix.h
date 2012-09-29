@@ -21,7 +21,8 @@ typedef enum {
 
 	hm_noweylsend = 1 << 6,
 	hm_nobody = 1 << 7,
-	hm_nosurface = 1 << 8
+	hm_nosurface = 1 << 8,
+	hm_nol1plist = 1 << 9
 } bgq_hmflags;
 
 #define bgq_HoppingMatrix NAME2(bgq_HoppingMatrix,PRECISION)

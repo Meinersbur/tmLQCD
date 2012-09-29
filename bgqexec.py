@@ -91,7 +91,7 @@ def main():
             
         # Copy everything to that new dir
         print "Copying job files to " + newjobdir + "..."
-        shutil.copytree(jobdir, newjobdir, symlinks=True)
+        shutil.copytree(jobdir, newjobdir, symlinks=True, ignore=shutil.ignore_patterns('papi'))
         
         # start the script in the new directory
         jobscript = os.path.join(newjobdir, os.path.relpath(jobscript, jobdir))
