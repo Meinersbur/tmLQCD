@@ -540,10 +540,10 @@ if ( j!= 0) {
       printf("Reading gauge field from file %s\n", conf_filename);
       fflush(stdout);
     }
-    if( (j = read_gauge_field(conf_filename)) !=0) {
-      fprintf(stderr, "error %d while reading gauge field from %s\n Aborting...\n", j, conf_filename);
-      exit(-2);
-    }
+    //if( (j = read_gauge_field(conf_filename)) !=0) {
+   //   fprintf(stderr, "error %d while reading gauge field from %s\n Aborting...\n", j, conf_filename);
+    //  exit(-2);
+   // }
 
 
     if (g_cart_id == 0) {

@@ -39,7 +39,8 @@ int xEventSet=PAPI_NULL;
 long long xCyc;
 long long xNsec;
 double xNow;
-double xWtime;
+static double xWtime;
+static double xOmpTime;
 
 extern int g_proc_id;
 
@@ -232,6 +233,7 @@ void mypapi_start() {
 	xNsec = PAPI_get_real_nsec();
 	xNow = now2();
 	xWtime = MPI_Wtime();
+	xOmpTime =  omp_get_wtime();
 	PAPI_ERROR(PAPI_start(xEventSet));
 }
 
@@ -255,6 +257,7 @@ void mypapi_stop() {
 		long long nsec = PAPI_get_real_nsec() - xNsec;
 		double dnow = now2() - xNow;
 		double dwtime = MPI_Wtime() - xWtime;
+		double domptime = omp_get_wtime() - xOmpTime;
 		double sec = (double)nsec * NANO;
 
 		Print_Counters(xEventSet);
@@ -262,7 +265,7 @@ void mypapi_stop() {
 		long long papiCyc = getMyPapiValue(PAPI_TOT_CYC);
 		long long bgpmCyc = getMyPapiNativeValue(PEVT_CYCLES);
 		printf("Cycles: %llu (PAPI_get_real_cyc), %llu (PAPI_TOT_CYC), %llu (PEVT_CYCLES)\n", papiCyc, cyc, bgpmCyc);
-		printf("Time: %.5f secs (PAPI_get_real_nsec), %.5f  secs (gettimeofday), %.5f secs (PAPI_TOT_CYC), %.5f secs (PAPI_get_real_cyc), %.5f secs (MPI_WTime)\n", ((double)nsec)/(1000.0 * 1000.0 * 1000.0), dnow, ((double)papiCyc) / (1600.0 * 1000.0 * 1000.0), ((double)cyc)/(1600.0 * 1000.0 * 1000.0), dwtime);
+		printf("Time: %.5f secs (PAPI_get_real_nsec), %.5f  secs (gettimeofday), %.5f secs (PAPI_TOT_CYC), %.5f secs (PAPI_get_real_cyc), %.5f secs (MPI_WTime), %.5f secs (omp_get_wtime)\n", ((double)nsec)/(1000.0 * 1000.0 * 1000.0), dnow, ((double)papiCyc) / (1600.0 * 1000.0 * 1000.0), ((double)cyc)/(1600.0 * 1000.0 * 1000.0), dwtime, domptime);
 		double duration = ((double)nsec)/(1000.0 * 1000.0 * 1000.0);
 
 		int nThreads = omp_get_max_threads();

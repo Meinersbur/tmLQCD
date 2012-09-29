@@ -460,7 +460,7 @@ static void Hopping_Matrix_switch(const int ieo, spinor * const l, spinor * cons
 static void check_correctness_double(bool nocom) {
 	master_print("MK Checking double precision%s correctness...\n", nocom ? " (no communication)" : "");
 
-#pragma omp parallel
+//#pragma omp parallel
 	{
 		int k = 0;
 		int k_max = 1;
@@ -504,7 +504,7 @@ static void check_correctness_double(bool nocom) {
 static void check_correctness_float() {
 	master_print("MK Checking float precision correctness...\n");
 
-#pragma omp parallel
+//#pragma omp parallel
 	{
 		int k = 0;
 		int k_max = 1;
@@ -627,7 +627,7 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 	//hmflags |= hm_prefetchexplicit;
 	hmflags |= kamul*hm_nokamul;
 
-#pragma omp parallel
+//#pragma omp parallel
 	{
 		//L1P_CHECK(L1P_SetStreamPolicy(L1P_stream_disable));
 

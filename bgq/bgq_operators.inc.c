@@ -620,7 +620,7 @@ complexdouble bgq_scalar_prod(bgq_spinorfield spinorfield1, bgq_spinorfield spin
 		}
 
 #ifdef XLC
-#pragma tm_atomic
+#pragma tm_atomic /* safe_mode */
 #else
 #pragma omp critical
 #endif
@@ -633,7 +633,7 @@ complexdouble bgq_scalar_prod(bgq_spinorfield spinorfield1, bgq_spinorfield spin
 	complexdouble result = 0;
 	complexdouble node_result = bgq_cmplxval1(shared_sum) + bgq_cmplxval2(shared_sum);
 	if (parallel) {
-		MPI_Allreduce(&node_result, &result, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD );
+		MPI_Allreduce(&node_result, &result, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
 	} else {
 		result = node_result;
 	}
@@ -692,7 +692,7 @@ double bgq_scalar_prod_r(bgq_spinorfield spinorfield1, bgq_spinorfield spinorfie
 		}
 
 #ifdef XLC
-#pragma tm_atomic
+#pragma tm_atomic /* safe_mode */
 #else
 #pragma omp critical
 #endif
@@ -705,7 +705,7 @@ double bgq_scalar_prod_r(bgq_spinorfield spinorfield1, bgq_spinorfield spinorfie
 	double result = 0;
 	double node_result = bgq_elem0(shared_sum) + bgq_elem1(shared_sum) + bgq_elem2(shared_sum) + bgq_elem3(shared_sum);
 	if (parallel) {
-		MPI_Allreduce(&node_result, &result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+		MPI_Allreduce(&node_result, &result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 	} else {
 		result = node_result;
 	}
@@ -759,7 +759,7 @@ double bgq_square_norm(bgq_spinorfield spinorfield, bool isOdd, bool parallel) {
 		}
 
 #ifdef XLC
-#pragma tm_atomic
+#pragma tm_atomic /* safe_mode */
 #else
 #pragma omp critical
 #endif
@@ -772,7 +772,7 @@ double bgq_square_norm(bgq_spinorfield spinorfield, bool isOdd, bool parallel) {
 	double result = 0;
 	double node_result = bgq_elem0(shared_sum) + bgq_elem1(shared_sum) + bgq_elem2(shared_sum) + bgq_elem3(shared_sum);
 	if (parallel) {
-		MPI_Allreduce(&node_result, &result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+		MPI_Allreduce(&node_result, &result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 	} else {
 		result = node_result;
 	}

@@ -48,31 +48,36 @@ static int *g_spinorfield_isOdd = NULL;
 
 bgq_spinorfield bgq_translate_spinorfield(spinor * const field) {
 	int index = -1;
-	size_t chi_fieldsize = (char*)g_chi_up_spinor_field[1] - (char*)g_chi_up_spinor_field[0];
 
-	if ((char*)g_chi_up_spinor_field[0] <= (char*)field && (char*)field < ((char*)g_chi_up_spinor_field[g_num_chi_spinorfields-1] + chi_fieldsize)) {
-		// This is a spinor from g_chi_up_spinor_field
-		size_t offset = (char*)field - (char*)g_chi_up_spinor_field[0];
-		assert(offset >= 0);
-		assert(offset % chi_fieldsize == 0);
-		index = g_chi_up_spinorfield_first + offset  / chi_fieldsize;
-		assert(index >= g_chi_up_spinorfield_first);
-	} else if ((char*)g_chi_dn_spinor_field[0] <= (char*)field && (char*)field < ((char*)g_chi_dn_spinor_field[g_num_chi_spinorfields-1] + chi_fieldsize)) {
-		// This is a spinor from g_chi_dn_spinor_field
-		size_t offset = (char*)field - (char*)g_chi_dn_spinor_field[0];
-		assert(offset >= 0);
-		assert(offset % chi_fieldsize == 0);
-		index = g_chi_dn_spinorfield_first + offset  / chi_fieldsize;
-		assert(index >= g_chi_dn_spinorfield_first);
-	} else {
+	if (g_chi_up_spinor_field) {
+		size_t chi_fieldsize = (char*) g_chi_up_spinor_field[1] - (char*) g_chi_up_spinor_field[0];
+		assert(chi_fieldsize > 0);
+		if ((char*) g_chi_up_spinor_field[0] <= (char*) field && (char*) field < ((char*) g_chi_up_spinor_field[g_num_chi_spinorfields - 1] + chi_fieldsize)) {
+			// This is a spinor from g_chi_up_spinor_field
+			size_t offset = (char*) field - (char*) g_chi_up_spinor_field[0];
+			assert(offset >= 0);
+			assert(offset % chi_fieldsize == 0);
+			index = g_chi_up_spinorfield_first + offset / chi_fieldsize;
+			assert(index >= g_chi_up_spinorfield_first);
+		} else if ((char*) g_chi_dn_spinor_field[0] <= (char*) field && (char*) field < ((char*) g_chi_dn_spinor_field[g_num_chi_spinorfields - 1] + chi_fieldsize)) {
+			// This is a spinor from g_chi_dn_spinor_field
+			size_t offset = (char*) field - (char*) g_chi_dn_spinor_field[0];
+			assert(offset >= 0);
+			assert(offset % chi_fieldsize == 0);
+			index = g_chi_dn_spinorfield_first + offset / chi_fieldsize;
+			assert(index >= g_chi_dn_spinorfield_first);
+		}
+	}
+
+	if (index == -1) {
 		int V = even_odd_flag ? VOLUMEPLUSRAND / 2 : VOLUMEPLUSRAND;
-		size_t fieldsize  = V * sizeof(*field);
+		size_t fieldsize = V * sizeof(*field);
 
 		// This computes the original index address of the passed field; be aware that its correctness depends on the implementation of init_spinorfield
-		size_t offset = (char*)field - (char*)g_spinor_field[0];
+		size_t offset = (char*) field - (char*) g_spinor_field[0];
 		assert(offset >= 0);
 		assert(offset % fieldsize == 0);
-		index = offset  / fieldsize;
+		index = offset / fieldsize;
 	}
 
 	assert(index >= 0);
@@ -1195,7 +1200,7 @@ static bgq_weylcoord *weylxchange_recv_debug[PHYSICAL_LP][6];
 static bgq_weylcoord *weylxchange_send_debug[PHYSICAL_LP][6];
 #endif
 
-static bool l1p_first = true;
+//static bool l1p_first = true;
 
 
 
