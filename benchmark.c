@@ -41,7 +41,7 @@
 extern FILE *fmemopen(void *__s, size_t __len, __const char *__modes) __THROW;
 
 // MK
-#include "mypapi.h"
+//#include "mypapi.h"
 
 #include <math.h>
 #include <time.h>
@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
 		verbose = 0;
 
 	tmlqcd_mpi_init(argc, argv);
-	mypapi_init();
+	//mypapi_init();
 
 	if (g_proc_id == 0) {
 #ifdef SSE
@@ -412,8 +412,9 @@ int main(int argc, char *argv[])
 #ifdef MPI
 			MPI_Barrier(MPI_COMM_WORLD);
 #endif
-			if (sdt > 17)
-				mypapi_start();
+			if (sdt > 17) {
+				//mypapi_start();
+			}
 #if 1
 			t1 = bgl_wtime();
 #else
@@ -437,7 +438,7 @@ int main(int argc, char *argv[])
 			dt = (t2 - t1) / ((double) (CLOCKS_PER_SEC));
 #endif
 			if (sdt > 17) {
-				mypapi_stop();
+				//mypapi_stop();
 			}
 #ifdef MPI
 			MPI_Allreduce(&dt, &sdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -472,7 +473,7 @@ int main(int argc, char *argv[])
 			fflush(stdout);
 		}
 
-		mypapi_start();
+		//mypapi_start();
 #ifdef MPI
 		/* isolated computation */
 #if 1
@@ -497,7 +498,7 @@ int main(int argc, char *argv[])
 		t2 = (double) clock();
 		dt2 = (t2 - t1) / ((double) (CLOCKS_PER_SEC));
 #endif
-		mypapi_stop();
+		//mypapi_stop();
 
 		/* compute the bandwidth */
 		double dt2_single = dt2;

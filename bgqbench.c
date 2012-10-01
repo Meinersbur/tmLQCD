@@ -92,6 +92,8 @@ extern FILE *fmemopen(void *__s, size_t __len, __const char *__modes) __THROW;
 #include <l1p/pprefetch.h>
 //#endif
 
+#define COUNTOF(arr) (sizeof(arr) / sizeof((arr)[0]))
+
 /* GG */
 
 void usage()
@@ -169,7 +171,7 @@ L1P_Pattern_t *(g_patternhandle[64]);
 static void listprefetch_test(bool l1plist) {
 	bgq_spinorfield_double spinorfield = g_spinorfields_double[0];
 
-	mypapi_start();
+	//mypapi_start();
 
 //#pragma omp parallel
 	{
@@ -223,7 +225,7 @@ static void listprefetch_test(bool l1plist) {
 	}
 #endif
 
-	mypapi_stop();
+	//mypapi_stop();
 	}
 }
 
@@ -531,6 +533,8 @@ typedef struct {
 	double flops;
 
 	double error;
+
+	mypapi_counters counters;
 } benchstat;
 
 
@@ -730,6 +734,11 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 #pragma omp parallel
 	{
 		L1P_CHECK(L1P_SetStreamPolicy(pol));
+
+	}
+
+#pragma omp parallel
+	{
 		L1P_StreamPolicy_t getpol = 0;
 		L1P_CHECK(L1P_GetStreamPolicy(&getpol));
 		if (getpol != pol)
@@ -742,66 +751,58 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 		//L1P_GetStreamTotalDepth
 	}
 
-	int iterations = 0;
+
+
+	// Error checking
+	double errtmp = runcheck(sloppyprec, opts);
+
+
+	int iterations = 1 + max(j_max, MYPAPI_SETS);
 	double localsumtime = 0;
 	double localsumsqtime = 0;
 	double err = 0;
-//#pragma omp parallel
-	{
-	double errtmp = runcheck(sloppyprec, opts);
+	mypapi_counters counters;
 
-	for (int j = 0; j < j_max; j += 1) {
-		////////////////////////////////////////////////////////////////////////////////
-#pragma omp master
-		{
-		if (j == 1)
-			mypapi_start();
-		}
+	for (int j = 0; j < iterations; j += 1) {
+		bool isWarmup = (j == 0);
+		bool isLast = (j == iterations-1);
+		bool isPapi = !isWarmup && (j >= iterations - MYPAPI_SETS);
+		bool isJMax = !isWarmup && (j >= iterations - j_max);
+
+		if (isPapi)
+			mypapi_start(j - (iterations - MYPAPI_SETS));
 		double start_time = MPI_Wtime();
 		if (sloppyprec) {
 			for (int k = 0; k < 1; k += 1) {
 				bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, opts);
-				//bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
-#pragma omp master
-		{
+				bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, opts);
 				iterations += 1;
-		}
 			}
 		} else {
 			for (int k = 0; k < 1; k += 1) {
 				bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, opts);
-				//bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
-#pragma omp master
-		{
+				bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, opts);
 				iterations += 1;
-		}
 			}
 		}
-		////////////////////////////////////////////////////////////////////////////////
-#pragma omp master
-		{
 		double end_time = MPI_Wtime();
-		double runtime = end_time - start_time;
+		mypapi_counters curcounters;
+		if (isPapi) {
+			curcounters = mypapi_stop();
+			counters = mypapi_merge_counters(&curcounters, &curcounters);
+		}
 
-		if (j == 0) {
-			// Just a warmup
-			iterations = 0;
-		} else {
+		double runtime = end_time - start_time;
+		if (isJMax) {
 			localsumtime += runtime;
 			localsumsqtime += sqr(runtime);
 		}
-		err = errtmp;
-	}
-	}
-
-	mypapi_stop();
 	}
 
 
-	assert(iterations == j_max-1);
-	double localavgtime = localsumtime / iterations;
+	double localavgtime = localsumtime / j_max;
 	double localavgsqtime = sqr(localavgtime);
-	double localrmstime = sqrt((localsumsqtime / iterations) - localavgsqtime);
+	double localrmstime = sqrt((localsumsqtime / j_max) - localavgsqtime);
 
 	double localtime[] = { localavgtime, localavgsqtime, localrmstime };
 	double sumreduce[3] = { -1, -1, -1 };
@@ -845,10 +846,11 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 	result.lups = lups;
 	result.flops = flops / avgtime;
 	result.error = err;
+	result.counters = counters;
 	return result;
 }
 
-#define COUNTOF(arr) (sizeof(arr) / sizeof((arr)[0]))
+
 
 static bool kamuls[] = { false, true };
 static char *kamuls_desc[] = { "dslash", "kamul" };
@@ -912,6 +914,54 @@ static void print_repeat(const char * const str, const int count) {
 #define SCELLWIDTH TOSTRING(CELLWIDTH)
 
 
+static void print_stats(benchstat stats[COUNTOF(flags)]) {
+	int threads = omp_get_num_threads();
+	printf("%10s|", "");
+
+	for (mypapi_interpretations j = 0; j < __pi_COUNT; j+=1) {
+		char *desc = NULL;
+
+		for (int i3 = 0; i3 < COUNTOF(flags); i3 += 1) {
+			char str[80];
+			str[0] = '\0';
+
+			double nCachableLoads = stats[i3].counters.native[PEVT_LSU_COMMIT_CACHEABLE_LDS];
+			double nL1Misses = stats[i3].counters.native[PEVT_LSU_COMMIT_LD_MISSES];
+			double nL1Hits = nCachableLoads - nL1Misses;
+			assert(nL1Hits >= 0);
+			double nL1PMisses = stats[i3].counters.native[PEVT_L1P_BAS_MISS];
+			double nL1PHits = nL1Misses - nL1PMisses;
+			assert(nL1PHits >= 0);
+			double nL2Misses = stats[i3].counters.native[PEVT_L2_MISSES];
+			double nL2Hits = stats[i3].counters.native[PEVT_L2_HITS];
+			double nMainHits = nL2Misses;
+
+			switch (j) {
+			case pi_hitinl1:
+				desc = "Loads that hit in L1";
+				snprintf(str, sizeof(str), "%f %%" ,  100 * nL1Hits / nCachableLoads);
+				break;
+			case pi_hitinl1p:
+				desc = "Loads that hit in L1P";
+				snprintf(str, sizeof(str), "%f %%" ,  100 * nL1PHits / nCachableLoads);
+				break;
+			case pi_hitinl2:
+				desc = "Loads that hit in L2";
+				snprintf(str, sizeof(str), "%f %%" ,  100 * nL2Hits / nCachableLoads);
+				break;
+			case pi_hitinmain:
+				desc = "Loads that hit in DDR";
+				snprintf(str, sizeof(str), "%f %%" ,  100 * nMainHits / nCachableLoads);
+				break;
+			}
+
+			printf("%"SCELLWIDTH"s|", str);
+		}
+
+		printf(" %s\n", desc);
+	}
+}
+
 static void exec_bench() {
 	print_repeat("\n", 2);
 
@@ -935,11 +985,13 @@ static void exec_bench() {
 
 				if (g_proc_id == 0) printf("%10s|", omp_threads_desc[i2]);
 
+				benchstat stats[COUNTOF(flags)];
 				for (int i3 = 0; i3 < COUNTOF(flags); i3 += 1) {
 					bgq_hmflags hmflags = flags[i3];
 					hmflags = hmflags | (!kamul * hm_nokamul);
 
 					benchstat result = runbench(1, 3, sloppiness, threads, hmflags);
+					stats[i3] = result;
 
 					char str[80] = {0};
 					snprintf(str, sizeof(str), "%.0f mflops/s%s" , result.flops / MEGA, (result.error > 0.001) ? "X" : "");
@@ -947,6 +999,11 @@ static void exec_bench() {
 					if (g_proc_id == 0) fflush(stdout);
 				}
 				if (g_proc_id == 0) printf("\n");
+
+				if (g_proc_id == 0) {
+					print_stats(stats);
+				}
+
 				print_repeat("-", 10 + 1 + (CELLWIDTH + 1)*COUNTOF(flags));
 				if (g_proc_id == 0) printf("\n");
 			}

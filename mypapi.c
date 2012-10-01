@@ -18,6 +18,8 @@
 //#include <fpapi.h>
 #include <upci/events.h>
 #include <mpi.h>
+#include <assert.h>
+#include <kernel/location.h>
 
 
 //void FPUArith(void); //This method does various calculations which should saturate many of the counters
@@ -31,6 +33,8 @@ void Print_PAPI_Counters(const int pEventSet, const long long* pCounters);
 void Print_Counters(const int pEventSet);
 void Print_PAPI_Events(const int pEventSet);
 long long getMyPapiValue(const int eventNum);
+
+#define lengthof(X) (sizeof(X)/sizeof((X)[0]))
 
 int PAPI_Events[256];
 long long PAPI_Counters[256];
@@ -51,60 +55,90 @@ static double now2(){
    return f_t;
 }
 
-#define PAPI_ERROR(cmd) if ((RC = (cmd))!=PAPI_OK) { fprintf(stderr, "MK_PAPI call failed with code %d at line %d: %s\n", RC, __LINE__, TOSTRING(cmd));  }
+#define PAPI_ERROR(cmd)                                                                                      \
+	do {                                                                                                       \
+		int RC = (cmd);                                                                                       \
+		if (RC != PAPI_OK) {                                                                                   \
+			 fprintf(stderr, "MK_PAPI call failed with code %d at line %d: %s\n", RC, __LINE__, TOSTRING(cmd)); \
+		}                                                                                                        \
+	} while (0)
 
-#if 0
-static void printNativeEvents() {
-	int retval, EventSet = PAPI_NULL;
-	unsigned int native = 0x0;
-	PAPI_event_info_t info;
 
-	/* Initialize the library */
-	//retval = PAPI_library_init(PAPI_VER_CURRENT);
-	//if (retval != PAPI_VER_CURRENT) {
-	//	printf("PAPI library init error!\n");
-	////	exit(1);
-	}
-
-	/* Create an EventSet */
-	int retval = PAPI_create_eventset(&EventSet);
-	if (retval != PAPI_OK) handle_error(retval);
-
-	/* Find the first available native event */
-	native = PAPI_NATIVE_MASK | 0;
-	retval = PAPI_enum_event(&native, PAPI_ENUM_FIRST);
-	if (retval != PAPI_OK) handle_error(retval);
-
-	/* Add it to the eventset */
-	retval = PAPI_add_event(EventSet, native);
-	if (retval != PAPI_OK) handle_error(retval);
-
-	/* Exit successfully */
-	printf("Success!\n");
-}
-#endif
 
 static int PAPI_add_native_event(int EventSet, int EventCode) {
 	// For some strange reason (i.e. unknown to me), the numbers from events.h are off by one
 	return PAPI_add_event(EventSet, PAPI_NATIVE_MASK | (EventCode-1));
 }
 
+
+mypapi_counters mypapi_merge_counters(mypapi_counters *counters1, mypapi_counters *counters2) {
+	if (!counters1->init && !counters2->init) {
+		mypapi_counters emptyresult = {0};
+		return emptyresult;
+	}
+
+	if (!counters2->init) {
+		return *counters1;
+	}
+
+	if (!counters1->init) {
+		return *counters2;
+	}
+
+	mypapi_counters result;
+	if (counters1->threadid == counters2->threadid)
+		result.threadid = counters1->threadid;
+	else
+		result.threadid = -1;
+
+	if (counters1->coreid == counters2->coreid)
+		result.coreid = counters1->coreid;
+	else
+		result.coreid = -1;
+
+	if (counters1->smtid == counters2->smtid)
+		result.smtid = counters1->smtid;
+	else
+		result.smtid = -1;
+
+		for (int i = 0; i < lengthof(counters1->preset); i += 1) {
+			result.preset[i] = counters1->preset[i] + counters2->preset[i];
+		}
+		for (int i = 0; i < lengthof(counters1->native); i += 1) {
+			result.native[i] = counters1->native[i] + counters2->native[i];
+		}
+
+	return result;
+}
+
+
+int mypapi_eventsets[MYPAPI_SETS];
+
+static unsigned long int mypapi_getthreadid() {
+	return Kernel_ProcessorID();
+}
+
 void mypapi_init() {
+	assert(omp_get_thread_num() == 0);
 	if (g_proc_id == 0)
 		fprintf(stderr, "MK_Init mypapi\n");
 
-	int i;
-	int RC;
 	int retval = PAPI_library_init(PAPI_VER_CURRENT);
 	if (retval != PAPI_VER_CURRENT) {
 		fprintf(stderr, "Unexpected PAPI version\n");
 		exit(1);
 	}
 
+	PAPI_ERROR(PAPI_thread_init(mypapi_getthreadid));
+
 	if (g_proc_id != 0)
 		return;
 
-	for (i = 0; i < 255; i++)
+	for (int i = 0; i < lengthof(mypapi_eventsets); i+=1) {
+		mypapi_eventsets[i] = PAPI_NULL;
+	}
+
+	for (int i = 0; i < 255; i++)
 		PAPI_Counters[i]=0;
 
  		const PAPI_hw_info_t *hwinfo = PAPI_get_hardware_info();
@@ -115,6 +149,10 @@ void mypapi_init() {
 	//BGP_UPC_Initialize_Counter_Config(BGP_UPC_MODE_DEFAULT, BGP_UPC_CFG_EDGE_DEFAULT);
 	int counter = PAPI_num_counters();
 	printf("Available hardware counters: %d\n", counter);
+	return;
+
+
+
 	//PAPI_start_counters(*events, array_length)
 	PAPI_ERROR(PAPI_create_eventset(&xEventSet));
 
@@ -201,9 +239,11 @@ void mypapi_init() {
 	PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_L2_STORE_LINE));
 }
 
+
 static long long getMyPapiNativeValue(const int eventNum) {
 	return getMyPapiValue(PAPI_NATIVE_MASK | (eventNum-1));
 }
+
 
 static long long getMyPapiValue(const int eventNum) {
 	int i;
@@ -228,52 +268,132 @@ static long long getMyPapiValue(const int eventNum) {
 	return -1;
 }
 
-void mypapi_start() {
-	int RC;
-	if (g_proc_id != 0)
-		return;
-	if (omp_get_thread_num() != 0)
-		return;
 
-	for (int i = 0; i < 255; i++)
-		PAPI_Counters[i]=0;
-	PAPI_ERROR(PAPI_reset(xEventSet));
-	//fprintf(stderr, "MK_MyPAPI start\n");
+void mypapi_start(int i) {
+	assert(omp_get_thread_num() == 0);
+	int eventset = mypapi_eventsets[i];
+
+	if (eventset == PAPI_NULL) {
+		PAPI_ERROR(PAPI_create_eventset(&mypapi_eventsets[i]));
+		eventset = mypapi_eventsets[i];
+		assert(eventset != PAPI_NULL);
+
+		switch (i) {
+		case 0:
+			PAPI_ERROR(PAPI_add_native_event(eventset, PEVT_CYCLES));
+			PAPI_ERROR(PAPI_add_native_event(eventset, PEVT_INST_ALL)); // All Instruction Completions
+
+			PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_LSU_COMMIT_LD_MISSES));
+			PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_LSU_COMMIT_CACHEABLE_LDS));
+			PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_L1P_BAS_MISS)); // Misses in L1p by prefetchable loads
+
+			PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_L2_HITS)); // (node) hits in L2, both load and store. Network Polling store operations from core 17 on BG/Q pollute in this count during normal use.
+			PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_L2_MISSES)); // (node) core address advances faster than prefetch lines can be established dropping prefetches
+			PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_L2_FETCH_LINE)); // L2 lines loaded from memory
+			PAPI_ERROR(PAPI_add_native_event(xEventSet, PEVT_L2_STORE_LINE)); // L2 lines stored to memory
+			break;
+		default:
+			break;
+		}
+	}
+
+	xEventSet = eventset;
+
 	xCyc = PAPI_get_real_cyc();
 	xNsec = PAPI_get_real_nsec();
 	xNow = now2();
 	xWtime = MPI_Wtime();
 	xOmpTime =  omp_get_wtime();
-	PAPI_ERROR(PAPI_start(xEventSet));
+
+#pragma omp parallel
+	{
+		//PAPI_ERROR(PAPI_reset(eventset));
+		PAPI_ERROR(PAPI_start(eventset));
+	}
 }
 
 
-void mypapi_stop() {
+mypapi_counters mypapi_readcounters(int pEventSet, long long *counters) {
+	mypapi_counters result = {0};
+	int events[256];
+
+	result.init = true;
+	result.threadid = Kernel_ProcessorID();
+	result.coreid = Kernel_ProcessorCoreID(); /* 0..15 */
+	result.smtid = Kernel_ProcessorThreadID(); /* 0..3 */
+
+	int pNumEvents = PAPI_num_events(pEventSet);
+	PAPI_ERROR(PAPI_list_events(pEventSet, events, &pNumEvents));
+
+	for (int i = 0; i < pNumEvents; i++) {
+		int event = events[i];
+		if (event & PAPI_NATIVE_MASK) {
+			event = event & PAPI_NATIVE_AND_MASK + 1;
+			long long value = counters[i];
+
+			switch (event) {
+			case PEVT_CYCLES:
+				if (result.smtid != 0)
+					value = 0;
+				break;
+			case PEVT_L2_HITS:
+			case PEVT_L2_MISSES:
+			case PEVT_L2_FETCH_LINE:
+			case PEVT_L2_STORE_LINE:
+				// Per node counters, store just one event
+				if (result.threadid != 0)
+					value = 0;
+				break;
+			}
+
+			result.native[event] = value;
+		} else {
+			assert(event & PAPI_PRESET_MASK);
+			event = event & PAPI_PRESET_AND_MASK;
+
+			result.preset[event] = counters[i];
+		}
+	}
+
+	return result;
+}
+
+
+mypapi_counters mypapi_stop() {
+	mypapi_counters result = {0};
 	if (g_proc_id != 0)
-		return;
+		return result;
 	if (omp_get_thread_num() != 0)
-		return;
+		return result;
 
-	int i;
-	for (i = 0; i < 255; i++)
-		PAPI_Counters[i]=0;
+	long long counters[256];
+	result.init = 0;
 
-	int RC;
-	RC = PAPI_stop(xEventSet, PAPI_Counters);
-	RC = PAPI_read(xEventSet, PAPI_Counters);
+#pragma omp parallel
+{
+	long long local_counters[256];
+	PAPI_ERROR(PAPI_stop(xEventSet, local_counters));
 
-	if (g_proc_id == 0) {
-		long long cyc = PAPI_get_real_cyc() - xCyc;
-		long long nsec = PAPI_get_real_nsec() - xNsec;
-		double dnow = now2() - xNow;
-		double dwtime = MPI_Wtime() - xWtime;
-		double domptime = omp_get_wtime() - xOmpTime;
-		double sec = (double)nsec * NANO;
+	mypapi_counters local_result = mypapi_readcounters(xEventSet, counters);
+	result = mypapi_merge_counters(&result, &local_result);
+}
 
-		Print_Counters(xEventSet);
+	long long cyc = PAPI_get_real_cyc() - xCyc;
+	long long nsec = PAPI_get_real_nsec() - xNsec;
+	double dnow = now2() - xNow;
+	double dwtime = MPI_Wtime() - xWtime;
+	double domptime = omp_get_wtime() - xOmpTime;
+	double sec = (double)nsec * NANO;
 
-		long long papiCyc = getMyPapiValue(PAPI_TOT_CYC);
-		long long bgpmCyc = getMyPapiNativeValue(PEVT_CYCLES);
+	result.secs = dwtime;
+	return result;
+
+	long long papiCyc = getMyPapiValue(PAPI_TOT_CYC);
+	long long bgpmCyc = getMyPapiNativeValue(PEVT_CYCLES);
+
+		//Print_Counters(xEventSet);
+
+
 		printf("Cycles: %llu (PAPI_get_real_cyc), %llu (PAPI_TOT_CYC), %llu (PEVT_CYCLES)\n", papiCyc, cyc, bgpmCyc);
 		printf("Time: %.5f secs (PAPI_get_real_nsec), %.5f  secs (gettimeofday), %.5f secs (PAPI_TOT_CYC), %.5f secs (PAPI_get_real_cyc), %.5f secs (MPI_WTime), %.5f secs (omp_get_wtime)\n", ((double)nsec)/(1000.0 * 1000.0 * 1000.0), dnow, ((double)papiCyc) / (1600.0 * 1000.0 * 1000.0), ((double)cyc)/(1600.0 * 1000.0 * 1000.0), dwtime, domptime);
 		double duration = ((double)nsec)/(1000.0 * 1000.0 * 1000.0);
@@ -395,7 +515,6 @@ void mypapi_stop() {
 		long long nLoadInstrs = getMyPapiNativeValue(PEVT_INST_XU_LD);
 		printf("PAPI LSU L1 Hit ratio v1: %f%%\n", 100.0 * (nLoads - nLoadL1Misses) / (double)nLoads);
 		printf("PAPI LSU L1 Hit ratio v2: %f%%\n", 100.0 * (nLoadInstrs - nLoadL1Misses) / (double)nLoadInstrs);
-	}
 }
 
 
@@ -413,64 +532,6 @@ void Print_Counters(const int pEventSet) {
 	return;
 }
 
-/* Print_Native_Counters */
-//void Print_Native_Counters() {
-//	printf("\n***** Start Print of Native Counter Values *****\n");
-//	BGP_UPC_Print_Counter_Values(BGP_UPC_READ_EXCLUSIVE);
-//	printf("***** End Print of Native Counter Values *****\n");
-//	return;
-//}
-
-/* Print_Native_Counters_for_PAPI_Counters */
-#if 0
-void Print_Native_Counters_for_PAPI_Counters(const int pEventSet) {
-	printf("\n***** Start Print of Native Counter Values for PAPI Counters*****\n");
-	int xNumEvents = PAPI_num_events(pEventSet);
-	if (xNumEvents) {
-		List_PAPI_Events(pEventSet, PAPI_Events, &xNumEvents);
-		Print_Native_Counters_for_PAPI_Counters_From_List(PAPI_Events, xNumEvents);
-	} else {
-		printf("No events are present in the event set.\n");
-	}
-	printf("***** End Print of Native Counter Values for PAPI Counters *****\n");
-	return;
-}
-
-/* Print_Native_Counters_for_PAPI_Counters_From_List */
-void Print_Native_Counters_for_PAPI_Counters_From_List(const int* pEvents, const int pNumEvents) {
-	int i, j, xRC;
-	char xName[256];
-	BGP_UPC_Event_Id_t xNativeEventId;
-	PAPI_event_info_t xEventInfo;
-	//BGP_UPC_Print_Counter_Values(); // DLH
-	for (i=0; i<pNumEvents; i++) {
-		xRC = PAPI_event_code_to_name(PAPI_Events[i], xName);
-		if (!xRC) {
-			xRC = PAPI_get_event_info(PAPI_Events[i], &xEventInfo);
-			if (xRC) {
-				printf("FAILURE: PAPI_get_event_info failed for %s, xRC=%d\n", xName,xRC);
-				exit(1);
-			}
-			printf("\n*** PAPI Counter Location %3.3d: 0x%8.8x %s\n", i,PAPI_Events[i], xName);
-			if (PAPI_Events[i] & 0x80000000) {
-				// Preset event
-				for (j=0; j<xEventInfo.count; j++) {
-					xNativeEventId = (BGP_UPC_Event_Id_t)(xEventInfo.code[j]&0xBFFFFFFF);
-					//printf("Preset: j=%d, xEventInfo.code[j]=0x%8.8x,xNativeEventId=0x%8.8x\n", j, xEventInfo.code[j], xNativeEventId);
-					BGP_UPC_Print_Counter_Value(xNativeEventId, BGP_UPC_READ_EXCLUSIVE);
-				}
-			} else {
-				// Native event
-				xNativeEventId = (BGP_UPC_Event_Id_t)(PAPI_Events[i]&0xBFFFFFFF);
-				//printf("Native: i=%d, PAPI_Events[i]=0x%8.8x,xNativeEventId=0x%8.8x\n", i, PAPI_Events[i], xNativeEventId);
-				BGP_UPC_Print_Counter_Value(xNativeEventId, BGP_UPC_READ_EXCLUSIVE);
-			}
-		} else {
-			printf("\n*** PAPI Counter Location %3.3d: Not mapped\n", i);
-		}
-	}
-}
-#endif
 
 /* Print_PAPI_Counters */
 void Print_PAPI_Counters(const int pEventSet, const long long* pCounters) {
@@ -498,8 +559,6 @@ void Print_PAPI_Counters(const int pEventSet, const long long* pCounters) {
 }
 
 
-
-
 /* Print_PAPI_Counters_From_List */
 void Print_PAPI_Counters_From_List(const int* pEventList, const int pNumEvents, const long long* pCounters) {
 	int i;
@@ -523,6 +582,7 @@ void Print_PAPI_Counters_From_List(const int* pEventList, const int pNumEvents, 
 	return;
 }
 
+
 /* Print_PAPI_Events */
 void Print_PAPI_Events(const int pEventSet) {
 	int i;
@@ -539,6 +599,7 @@ void Print_PAPI_Events(const int pEventSet) {
 	return;
 }
 
+
 /* List_PAPI_Events */
 void List_PAPI_Events(const int pEventSet, int* pEvents, int* pNumEvents) {
 	int xRC = PAPI_list_events(pEventSet, pEvents, pNumEvents);
@@ -552,8 +613,8 @@ void List_PAPI_Events(const int pEventSet, int* pEvents, int* pNumEvents) {
 #else
 
 void mypapi_init(){}
-void mypapi_start(){}
-void mypapi_stop(){}
+void mypapi_start(int i){}
+mypapi_counters mypapi_stop(){}
 
 #endif
 
