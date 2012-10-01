@@ -37,6 +37,9 @@
 #include "su3.h"
 #include "su3spinor.h"
 #include "gamma.h"
+#if BGQ_REPLACE
+#include "bgq/bgq_operators_double.h"
+#endif
 
 /* (*Q) = gammaXY*(*P) */
 
@@ -69,6 +72,16 @@ void gamma3( const int Q,  const int P, const int V){
   }
 }
 void gamma5(spinor * const l, spinor * const k, const int V){
+#if BGQ_REPLACE
+	bgq_spinorfield_double spinorfield_l = bgq_translate_spinorfield_double(l);
+	bgq_spinorfield_double spinorfield_k = bgq_translate_spinorfield_double(k);
+	assert(V==VOLUME/2);
+
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_k);
+	bgq_gamma5_double(spinorfield_l, spinorfield_k, isOdd);
+	return;
+#endif
+
   int ix;
   spinor *r,*s;
   for (ix = 0; ix < V; ix++){

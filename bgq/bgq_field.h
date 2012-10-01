@@ -71,7 +71,7 @@
 
 #define SURFACE_ZLINES (SURFACE_FACE_ZLINES+SURFACE_EDGE_ZLINES+SURFACE_VERTICE_ZLINES)
 #define BODY_ZLINES ((PHYSICAL_LTV-2)*(PHYSICAL_LX-2)*(PHYSICAL_LY-2))
-
+#define VOLUME_ZLINES (PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LY)
 
 #define GAUGE_VOLUME ((LOCAL_LT+1)*(LOCAL_LX+1)*(LOCAL_LY+1)*(LOCAL_LZ)) /* LOCAL volume */
 #define GAUGE_EOVOLUME ((PHYSICAL_LTV+1)*(PHYSICAL_LX+1)*(PHYSICAL_LY+1)*(PHYSICAL_LZ+1/*for wraparound*/)) /* This is not tight/hole-free; we could also define an accessor function per direction*/
@@ -119,6 +119,7 @@ typedef _Complex float complexfloat;
 	(assert(assert_spinorfield_coord(spinorfield,isOdd,t,x,y,z,tv,k,v,c,isRead,isWrite)), \
 	 &(BGQ_SPINORSITE_ACCESS(spinorfield,isOdd,tv,x,y,z)->s[v][c][k]))
 
+void bgq_transfer_spinorfield_allprec(const bool isOdd, int targetindex, spinor * const sourcefield);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Gaugefield
@@ -194,7 +195,7 @@ typedef _Complex float complexfloat;
 
 void bgq_init_gaugefield_allprec();
 void bgq_free_gaugefield_allprec();
-void bgq_init_spinorfields_allprec(int count);
+void bgq_init_spinorfields_allprec(int count, int chi_count);
 void bgq_free_spinorfields_allprec();
 void bgq_hm_init_allprec();
 void bgq_hm_free_allprec();

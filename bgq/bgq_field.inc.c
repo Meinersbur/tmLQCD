@@ -35,30 +35,59 @@
 static bgq_spinorsite *g_spinorfields_data = NULL;
 bgq_spinorfield *g_spinorfields = NULL;
 static int g_num_spinorfields = -1;
+static int g_num_chi_spinorfields = -1;
+static int g_chi_up_spinorfield_first = -1;
+static int g_chi_dn_spinorfield_first = -1;
+static int g_num_total_spinorfields = -1;
+
 
 #if BGQ_FIELD_COORDCHECK
 static bgq_spinorsite *g_spinorfields_data_coords = NULL;
-static int *g_spinorfield_isOdd = NULL;
 #endif
+static int *g_spinorfield_isOdd = NULL;
+
 
 
 bgq_spinorfield bgq_translate_spinorfield(spinor * const field) {
-	const int V = even_odd_flag ? VOLUMEPLUSRAND / 2 : VOLUMEPLUSRAND;
-	const int fieldsize  = V * sizeof(*field);
+	int index = -1;
 
-	// This computes the original index address of the passed field; be aware that its correctness depends on the implementation of init_spinorfield
-	long long offset = (char*)field - (char*)g_spinor_field[0];
-	assert(offset >= 0);
-	assert(offset % fieldsize == 0);
-	int result = offset  / fieldsize;
-	assert(g_spinorfields[result] >= g_spinorfields_data);
-	return g_spinorfields[result];
+	if (g_chi_up_spinor_field) {
+		size_t chi_fieldsize = (char*) g_chi_up_spinor_field[1] - (char*) g_chi_up_spinor_field[0];
+		assert(chi_fieldsize > 0);
+		if ((char*) g_chi_up_spinor_field[0] <= (char*) field && (char*) field < ((char*) g_chi_up_spinor_field[g_num_chi_spinorfields - 1] + chi_fieldsize)) {
+			// This is a spinor from g_chi_up_spinor_field
+			size_t offset = (char*) field - (char*) g_chi_up_spinor_field[0];
+			assert(offset >= 0);
+			assert(offset % chi_fieldsize == 0);
+			index = g_chi_up_spinorfield_first + offset / chi_fieldsize;
+			assert(index >= g_chi_up_spinorfield_first);
+		} else if ((char*) g_chi_dn_spinor_field[0] <= (char*) field && (char*) field < ((char*) g_chi_dn_spinor_field[g_num_chi_spinorfields - 1] + chi_fieldsize)) {
+			// This is a spinor from g_chi_dn_spinor_field
+			size_t offset = (char*) field - (char*) g_chi_dn_spinor_field[0];
+			assert(offset >= 0);
+			assert(offset % chi_fieldsize == 0);
+			index = g_chi_dn_spinorfield_first + offset / chi_fieldsize;
+			assert(index >= g_chi_dn_spinorfield_first);
+		}
+	}
+
+	if (index == -1) {
+		int V = even_odd_flag ? VOLUMEPLUSRAND / 2 : VOLUMEPLUSRAND;
+		size_t fieldsize = V * sizeof(*field);
+
+		// This computes the original index address of the passed field; be aware that its correctness depends on the implementation of init_spinorfield
+		size_t offset = (char*) field - (char*) g_spinor_field[0];
+		assert(offset >= 0);
+		assert(offset % fieldsize == 0);
+		index = offset / fieldsize;
+	}
+
+	assert(index >= 0);
+	assert(index < g_num_total_spinorfields);
+	bgq_spinorfield result = g_spinorfields[index];
+	assert(result >= g_spinorfields_data);
+	return result;
 }
-
-
-
-
-
 
 
 static COMPLEX_PRECISION *bgq_spinorfield_ref(bgq_spinorfield spinorfield, bool isOdd, int t, int x, int y, int z, int v, int c, bool isRead, bool isWrite) {
@@ -204,10 +233,7 @@ void bgq_spinorfield_resetcoord(bgq_spinorfield spinorfield, bool isOdd, int exp
 #endif
 
 
-int bgq_num_spinorfields;
-
-
-void bgq_init_spinorfields(int count) {
+void bgq_init_spinorfields(int count, int chi_count) {
 	// preconditions
 	if (!even_odd_flag)
 		master_error(1, "ERROR: even_odd_flag must be set\n");
@@ -266,29 +292,34 @@ void bgq_init_spinorfields(int count) {
 		master_print("WARNING: z-lines to threads imbalance\n");
 	}
 
+
 	g_num_spinorfields = count;
-	int datasize = count * sizeof(*g_spinorfields_data) * VOLUME_SITES;
+	g_num_chi_spinorfields = chi_count;
+	g_num_total_spinorfields = count + 2*chi_count;
+	g_chi_up_spinorfield_first = count;
+	g_chi_dn_spinorfield_first = count + chi_count;
+
+	int datasize = g_num_total_spinorfields * sizeof(*g_spinorfields_data) * VOLUME_SITES;
 	g_spinorfields_data = malloc_aligned(datasize, 128);
 	#if BGQ_FIELD_COORDCHECK
 		g_spinorfields_data_coords = malloc_aligned(datasize, 128);
 	#endif
 
-#if BGQ_PREFETCH_LIST
-	bgq_listprefetch_handle = malloc(count * count * sizeof(*bgq_listprefetch_handle));
-	memset(bgq_listprefetch_handle, 0, count * count * sizeof(*bgq_listprefetch_handle));
-#endif
-	bgq_num_spinorfields = count;
-	g_spinorfields = malloc(count * sizeof(*g_spinorfields));
-	#if BGQ_FIELD_COORDCHECK
-		g_spinorfield_isOdd = malloc(count * sizeof(*g_spinorfield_isOdd));
-	#endif
-	for (int i = 0; i < count; i += 1) {
+	g_spinorfields = malloc(g_num_total_spinorfields * sizeof(*g_spinorfields));
+	//#if BGQ_FIELD_COORDCHECK
+		g_spinorfield_isOdd = malloc(g_num_total_spinorfields * sizeof(*g_spinorfield_isOdd));
+	//#endif
+	for (int i = 0; i < g_num_total_spinorfields; i += 1) {
 		g_spinorfields[i] = g_spinorfields_data + i * VOLUME_SITES;
-		#if BGQ_FIELD_COORDCHECK
+		//#if BGQ_FIELD_COORDCHECK
 			g_spinorfield_isOdd[i] = -1; // Unknown yet
-		#endif
+		//#endif
 	}
 
+#if BGQ_PREFETCH_LIST
+	bgq_listprefetch_handle = malloc(g_num_total_spinorfields * g_num_total_spinorfields * sizeof(*bgq_listprefetch_handle));
+	memset(bgq_listprefetch_handle, 0, g_num_total_spinorfields * g_num_total_spinorfields * sizeof(*bgq_listprefetch_handle));
+#endif
 }
 
 
@@ -297,11 +328,13 @@ void bgq_free_spinofields() {
 	g_spinorfields = NULL;
 	free(g_spinorfields_data);
 	g_spinorfields_data = NULL;
+	g_num_total_spinorfields = 0;
 	g_num_spinorfields = 0;
+	g_num_chi_spinorfields = 0;
 
-#if BGQ_FIELD_COORDCHECK
 	free(g_spinorfield_isOdd);
 	g_spinorfield_isOdd = NULL;
+#if BGQ_FIELD_COORDCHECK
 	free(g_spinorfields_data_coords);
 	g_spinorfields_data_coords = NULL;
 #endif
@@ -318,8 +351,7 @@ typedef struct {
 } spinor_array64;
 
 
-
-void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield const targetfield, spinor * const sourcefield) {
+void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield targetfield, spinor * const sourcefield) {
 	assert(sourcefield);
 	assert(targetfield);
 
@@ -359,6 +391,45 @@ void bgq_transfer_spinorfield(const bool isOdd, bgq_spinorfield const targetfiel
 #if BGQ_FIELD_COORDCHECK
 	bgq_spinorfield_resetcoord(targetfield, isOdd, 0, 0, 1, 1);
 #endif
+
+	bgq_spinorfield_setOdd(targetfield, isOdd, true);
+}
+
+
+void bgq_spinorfield_transfer_back(const bool isOdd, spinor * const targetfield, bgq_spinorfield const sourcefield) {
+	assert(sourcefield);
+	assert(targetfield);
+	bgq_spinorfield_setOdd(sourcefield, isOdd, false);
+
+#pragma omp parallel for schedule(static)
+	for (int txyz = 0; txyz < VOLUME; txyz+=1) {
+		WORKLOAD_DECL(txyz, VOLUME);
+		const int t = WORKLOAD_CHUNK(LOCAL_LT);
+		const int x = WORKLOAD_CHUNK(LOCAL_LX);
+		const int y = WORKLOAD_CHUNK(LOCAL_LY);
+		const int z = WORKLOAD_CHUNK(LOCAL_LZ);
+		WORKLOAD_CHECK
+
+		if (((t+x+y+z)&1)!=isOdd)
+			continue;
+
+		const int ix = g_ipt[t][x][y][z]; /* lexic coordinate */
+		assert(ix == Index(t,x,y,z));
+
+		int iy = g_lexic2eo[ix]; /* even/odd coordinate (even and odd sites in two different fields of size VOLUME/2, first even field followed by odd) */
+		assert(0 <= iy && iy < (VOLUME+RAND));
+		int icx = g_lexic2eosub[ix]; /*  even/odd coordinate relative to field base */
+		assert(0 <= icx && icx < VOLUME/2);
+		assert(icx == iy - (isOdd ? (VOLUME+RAND)/2 : 0));
+
+		spinor_array64 *sp = (spinor_array64*)&targetfield[icx];
+		for (int v = 0; v < 4; v+=1) {
+			for (int c = 0; c < 3; c+=1) {
+				COMPLEX_PRECISION val = bgq_spinorfield_get(sourcefield,isOdd,t,x,y,z,v,c);
+				sp->v[v].c[c] = val;
+			}
+		}
+	}
 }
 
 
@@ -433,7 +504,7 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 			}
 		}
 
-#if BGQ && XLC
+#if BGQ && defined(XLC)
 #pragma omp tm_atomic
 #else
 #pragma omp critical
@@ -463,9 +534,9 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 	norm1_max = recv_max[0];
 	norm2_max = recv_max[1];
 
-	double avg1 = norm1_sum / (VOLUME * 4 * 3);
-	double avg2 = sqrt(norm2_sum) / (VOLUME * 4 * 3);
-	double norminf = norm1_max;
+	//double avg1 = norm1_sum / (VOLUME * 4 * 3);
+	//double avg2 = sqrt(norm2_sum) / (VOLUME * 4 * 3);
+	//double norminf = norm1_max;
 
 	if (count>0) {
 		if (!silent)
@@ -485,6 +556,43 @@ int bgq_spinorfield_find_index(bgq_spinorfield spinorfield) {
 	return index;
 }
 
+bool bgq_spinorfield_isOdd(bgq_spinorfield spinorfield) {
+	const size_t fieldsize = sizeof(bgq_spinorsite) * VOLUME_SITES; // alignment???
+	assert(spinorfield >= g_spinorfields_data);
+	const size_t offset = (char*)spinorfield - (char*)g_spinorfields_data;
+	assert(offset % fieldsize == 0);
+	size_t index = offset / fieldsize;
+	assert(index < g_num_total_spinorfields);
+
+	int isOdd = g_spinorfield_isOdd[index];
+	assert(isOdd != -1);
+	return isOdd;
+}
+
+void bgq_spinorfield_setOdd(bgq_spinorfield spinorfield, bool isOdd, bool overwrite) {
+	assert(spinorfield);
+
+	const size_t fieldsize = sizeof(bgq_spinorsite) * VOLUME_SITES; // alignment???
+	assert(spinorfield >= g_spinorfields_data);
+	const size_t offset = (char*)spinorfield - (char*)g_spinorfields_data;
+	assert(offset % fieldsize == 0);
+	size_t index = offset / fieldsize;
+	assert(index < g_num_total_spinorfields);
+
+	if (!overwrite) {
+		int oldIsOdd = g_spinorfield_isOdd[index];
+		if (oldIsOdd == -1) {
+			assert(!"If setting oddness, it should already have been set");
+		} else if (oldIsOdd == isOdd) {
+			// Ok
+		} else {
+			assert(!"Oddness not matching\n");
+			return;
+		}
+	}
+	g_spinorfield_isOdd[index] = isOdd;
+}
+
 bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, bool isRead, bool isWrite) {
 	if (!isRead && !isWrite && (z == LOCAL_LZ) ) {
 		// Allow for prefetching
@@ -501,12 +609,12 @@ bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, in
 	assert(0 <= k && k < PHYSICAL_LK);
 
 	// Get the index of the used spinorfield
-	const int fieldsize = sizeof(bgq_spinorsite) * VOLUME_SITES; // alignment???
-	long long offset = (char*)spinorfield - (char*)g_spinorfields_data;
+	const size_t fieldsize = sizeof(bgq_spinorsite) * VOLUME_SITES; // alignment???
+	const size_t offset = (char*)spinorfield - (char*)g_spinorfields_data;
 	assert(offset >= 0);
 	assert(mod(offset, fieldsize) == 0);
 	int index = offset / fieldsize;
-	assert(index < g_num_spinorfields);
+	assert(index < g_num_total_spinorfields);
 
 	// Check that the coordinate is really an odd/even coordinate
 	assert(((t+x+y+z)&1) == isOdd);
@@ -1040,7 +1148,7 @@ bool assert_gaugeval(bgq_gaugefield gaugefield, bool isOdd, int t, int x, int y,
 	// Get the address
 	bgq_gaugesite *eofield = gaugefield->eodir[isOdd][dir/2];
 	bgq_gaugesite *site = &eofield[idx];
-	COMPLEX_PRECISION *address = &site->c[i][l][k];
+	//COMPLEX_PRECISION *address = &site->c[i][l][k];
 	assert(mod((size_t)&site->c[i][l][0],PRECISION_VECTOR_ALIGNMENT)==0);
 
 
@@ -1094,7 +1202,7 @@ static bgq_weylcoord *weylxchange_recv_debug[PHYSICAL_LP][6];
 static bgq_weylcoord *weylxchange_send_debug[PHYSICAL_LP][6];
 #endif
 
-static bool l1p_first = true;
+//static bool l1p_first = true;
 
 
 
@@ -1253,7 +1361,7 @@ void bgq_weylfield_t_resetcoord(bgq_weylfield weylfield, int t, bool isOdd, int 
 
 		for (int v = 0; v < 2; v += 1) {
 			for (int c = 0; c < 3; c += 1) {
-				COMPLEX_PRECISION *value = BGQ_WEYLVAL_T(weylfield,isOdd,t,x,y,z,xv,k,v,c,false,false);
+				/*COMPLEX_PRECISION *value = */BGQ_WEYLVAL_T(weylfield,isOdd,t,x,y,z,xv,k,v,c,false,false);
 
 #if BGQ_FIELD_COORDCHECK
 				bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, value);
@@ -1366,7 +1474,7 @@ void bgq_weylfield_x_resetcoord(bgq_weylfield weylfield, int x, bool isOdd, int 
 
 		for (int v = 0; v < 2; v += 1) {
 			for (int c = 0; c < 3; c += 1) {
-				COMPLEX_PRECISION *value = BGQ_WEYLVAL_X(weylfield,isOdd,t,x,y,z,tv,k,v,c,false,false);
+				/*COMPLEX_PRECISION *value = */BGQ_WEYLVAL_X(weylfield,isOdd,t,x,y,z,tv,k,v,c,false,false);
 #if BGQ_FIELD_COORDCHECK
 				bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, value);
 
@@ -1474,7 +1582,7 @@ void bgq_weylfield_y_resetcoord(bgq_weylfield weylfield, int y, bool isOdd, int 
 
 		for (int v = 0; v < 2; v += 1) {
 			for (int c = 0; c < 3; c += 1) {
-				COMPLEX_PRECISION *value = BGQ_WEYLVAL_Y(weylfield,isOdd,t,x,y,z,tv,k,v,c,false,false);
+				/*COMPLEX_PRECISION *value = */BGQ_WEYLVAL_Y(weylfield,isOdd,t,x,y,z,tv,k,v,c,false,false);
 #if BGQ_FIELD_COORDCHECK
 				bgq_weylcoord *coord = bgq_weylfield_coordref(isOdd, value);
 
@@ -1548,6 +1656,7 @@ bool assert_weylval_y(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, 
 	return true;
 }
 
+
 bool assert_weylfield_y(bgq_weylfield weylfield, bool isOdd, int t, int x, int y, int z, int tv, int k, bool isRead, bool isWrite) {
 	for (int v = 0; v < 2; v += 1) {
 		for (int c = 0; c < 3; c += 1) {
@@ -1574,6 +1683,9 @@ static void bgq_weylfield_t_foreach(bgq_weylfield weylfield, direction dir, bool
 		t = isSend ? -1 : 0;
 		tsrc = isSend ? 0 : -1;
 		break;
+	default:
+		assert(!"Wrong function for direction");
+		return;
 	}
 
 	#pragma omp for schedule(static)
@@ -1614,6 +1726,9 @@ static void bgq_weylfield_x_foreach(bgq_weylfield weylfield, direction dir, bool
 		x = isSend ? -1 : 0;
 		xsrc = isSend ? 0 : -1;
 		break;
+	default:
+		assert(!"Wrong function for direction");
+		return;
 	}
 
 	#pragma omp for schedule(static)
@@ -1654,6 +1769,9 @@ static void bgq_weylfield_y_foreach(bgq_weylfield weylfield, direction dir, bool
 		y = isSend ? -1 : 0;
 		ysrc = isSend ? 0 : -1;
 		break;
+	default:
+		assert(!"Wrong function for direction");
+		return;
 	}
 
 	#pragma omp for schedule(static)
@@ -1697,6 +1815,7 @@ void bgq_weylfield_foreach(bgq_weylfield weylfield, direction dir, bool isSend, 
 		break;
 	}
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 

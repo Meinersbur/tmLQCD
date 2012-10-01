@@ -46,7 +46,19 @@
 #include "sse.h"
 #include "square_norm.h"
 
-#if ((!defined _STD_C99_COMPLEX_CHECKED) && (!defined apenext) && (!defined BGL))
+
+#if BGQ_REPLACE
+#include "bgq/bgq_operators_double.h"
+
+double square_norm(spinor * const P, const int N, const int parallel) {
+	bgq_spinorfield_double spinorfield = bgq_translate_spinorfield_double(P);
+	assert(N==VOLUME/2);
+
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield);
+	return bgq_square_norm_double(spinorfield, isOdd, parallel);
+}
+
+#elif ((!defined _STD_C99_COMPLEX_CHECKED) && (!defined apenext) && (!defined BGL))
 
 double square_norm(spinor * const P, const int N, const int parallel) {
   int ix;

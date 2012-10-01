@@ -47,7 +47,20 @@
 
 /*  R input, S input */
 
-#if ((!defined _STD_C99_COMPLEX_CHECKED) && (!defined apenext))
+#if BGQ_REPLACE
+#include "bgq/bgq_operators_double.h"
+
+double scalar_prod_r(spinor * const S,spinor * const R, const int N, const int parallel){
+	bgq_spinorfield_double spinorfield_S = bgq_translate_spinorfield_double(S);
+	bgq_spinorfield_double spinorfield_R = bgq_translate_spinorfield_double(R);
+	assert(N==VOLUME/2);
+
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_S);
+	assert(isOdd == bgq_spinorfield_isOdd_double(spinorfield_R));
+	return bgq_scalar_prod_r_double(spinorfield_S, spinorfield_R, isOdd, parallel);
+}
+
+#elif ((!defined _STD_C99_COMPLEX_CHECKED) && (!defined apenext))
 
 double scalar_prod_r(spinor * const S,spinor * const R, const int N, const int parallel){
   int ix;

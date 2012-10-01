@@ -33,7 +33,7 @@ typedef struct {
 	_Complex float q[2];
 } v2cf;
 
-#if XLC
+#ifdef XLC
 	#define BGQ_VECTOR4DOUBLE_SUBSCRIPT(addr,idx) ( (*((vector4double*)(addr)))[(idx)] ) /* allows subscript like an array */
 #else
 	typedef v4d vector4double;
@@ -45,11 +45,20 @@ typedef struct {
 
 
 #if !BGQ_QPX
-#define bgq_cmplxval1(name) \
-	(NAME2(name,q0) + NAME2(name,q1) * _Complex_I)
+#define bgq_elem0(arg) \
+	NAME2(arg,q0)
 
-#define bgq_cmplxval2(name) \
-	(NAME2(name,q2) + NAME2(name,q3) * _Complex_I)
+#define bgq_elem1(arg) \
+	NAME2(arg,q1)
+
+#define bgq_elem2(arg) \
+	NAME2(arg,q2)
+
+#define bgq_elem3(arg) \
+	NAME2(arg,q3)
+
+#define bgq_vars(name) \
+	NAME2(name,q0),NAME2(name,q1),NAME2(name,q2),NAME2(name,q3)
 
 #define bgq_vector4double_decl(name) \
 	double NAME2(name,q0); \
@@ -108,6 +117,12 @@ typedef struct {
 	BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 2) = NAME2(src,q2); \
 	BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 3) = NAME2(src,q3)
 
+#define bgq_neg(dst,arg)            \
+	NAME2(dst,q0) = - NAME2(arg,q0); \
+	NAME2(dst,q1) = - NAME2(arg,q1); \
+	NAME2(dst,q2) = - NAME2(arg,q2); \
+	NAME2(dst,q3) = - NAME2(arg,q3)
+
 #define bgq_add(dst,lhs,rhs)        \
 	dst##_q0 = lhs##_q0 + rhs##_q0; \
 	dst##_q1 = lhs##_q1 + rhs##_q1; \
@@ -150,6 +165,16 @@ typedef struct {
 		bgq_mov(dst,tmp);             \
 	}
 
+#define bgq_mul(dst,lhs,rhs)                                          \
+	{                                                                  \
+		bgq_vector4double_decl(MAKENAME4(mul,dst,lhs,rhs));            \
+		MAKENAME5(mul,dst,lhs,rhs,q0) = NAME2(lhs,q0) * NAME2(rhs,q0); \
+		MAKENAME5(mul,dst,lhs,rhs,q1) = NAME2(lhs,q1) * NAME2(rhs,q1); \
+		MAKENAME5(mul,dst,lhs,rhs,q2) = NAME2(lhs,q2) * NAME2(rhs,q2); \
+		MAKENAME5(mul,dst,lhs,rhs,q3) = NAME2(lhs,q3) * NAME2(rhs,q3); \
+		bgq_mov(dst,MAKENAME4(mul,dst,lhs,rhs));                       \
+	}
+
 #define bgq_merge2(dst,a23_to01,b01_to23) \
 	{                                       \
 		bgq_vector4double_decl(MAKENAME4(merge2,dst,a23_to01,b01_to23));      \
@@ -172,12 +197,22 @@ typedef struct {
 
 #define bgq_xmadd(dst,a,b,c)                      \
 	{                                             \
-		bgq_vector4double_decl(MAKENAME5(xmul,dst,a,b,c));                            \
-		MAKENAME6(xmul,dst,a,b,c,q0) = CONCAT(a,_q0) * CONCAT(b,_q0) + CONCAT(c,_q0); \
-		MAKENAME6(xmul,dst,a,b,c,q1) = CONCAT(a,_q0) * CONCAT(b,_q1) + CONCAT(c,_q1); \
-		MAKENAME6(xmul,dst,a,b,c,q2) = CONCAT(a,_q2) * CONCAT(b,_q2) + CONCAT(c,_q2); \
-		MAKENAME6(xmul,dst,a,b,c,q3) = CONCAT(a,_q2) * CONCAT(b,_q3) + CONCAT(c,_q3); \
-		bgq_mov(dst,MAKENAME5(xmul,dst,a,b,c));                                       \
+		bgq_vector4double_decl(MAKENAME5(xmadd,dst,a,b,c));                            \
+		MAKENAME6(xmadd,dst,a,b,c,q0) = CONCAT(a,_q0) * CONCAT(b,_q0) + CONCAT(c,_q0); \
+		MAKENAME6(xmadd,dst,a,b,c,q1) = CONCAT(a,_q0) * CONCAT(b,_q1) + CONCAT(c,_q1); \
+		MAKENAME6(xmadd,dst,a,b,c,q2) = CONCAT(a,_q2) * CONCAT(b,_q2) + CONCAT(c,_q2); \
+		MAKENAME6(xmadd,dst,a,b,c,q3) = CONCAT(a,_q2) * CONCAT(b,_q3) + CONCAT(c,_q3); \
+		bgq_mov(dst,MAKENAME5(xmadd,dst,a,b,c));                                       \
+	}
+
+#define bgq_madd(dst,a,b,c)                                                    \
+	{                                                                           \
+		bgq_vector4double_decl(MAKENAME5(madd,dst,a,b,c));                      \
+		MAKENAME6(madd,dst,a,b,c,q0) = NAME2(a,q0) * NAME2(b,q0) + NAME2(c,q0); \
+		MAKENAME6(madd,dst,a,b,c,q1) = NAME2(a,q1) * NAME2(b,q1) + NAME2(c,q1); \
+		MAKENAME6(madd,dst,a,b,c,q2) = NAME2(a,q2) * NAME2(b,q2) + NAME2(c,q2); \
+		MAKENAME6(madd,dst,a,b,c,q3) = NAME2(a,q3) * NAME2(b,q3) + NAME2(c,q3); \
+		bgq_mov(dst,MAKENAME5(madd,dst,a,b,c));                                 \
 	}
 
 #define bgq_mov(dst,src) \
@@ -209,26 +244,35 @@ typedef struct {
 	NAME2(dst,q3) = 0
 
 #else
-#define bgq_cmplxval1(name) \
-	((name)[0] + (name)[1] * _Complex_I)
+#define bgq_elem0(arg) \
+	(arg)[0]
 
-#define bgq_cmplxval2(name) \
-	((name)[2] + (name)[3] * _Complex_I)
+#define bgq_elem1(arg) \
+	(arg)[1]
+
+#define bgq_elem2(arg) \
+	(arg)[2]
+
+#define bgq_elem3(arg) \
+	(arg)[3]
+
+#define bgq_vars(name) \
+	name
 
 #define bgq_vector4double_decl(name) \
 	vector4double name
 
 #define bgq_lda_double(dst,offset,addr) \
-	dst = vec_lda(offset,(double*)(addr))
+	(dst) = vec_lda(offset,(double*)(addr))
 
 #define bgq_lda_float(dst,offset,addr) \
-	dst = vec_lda(offset,(float*)(addr))
+	(dst) = vec_lda(offset,(float*)(addr))
 
 #define bgq_ld2a_double(dst,offset,addr) \
-	dst = vec_ld2a(offset, (double*)(addr))
+	(dst) = vec_ld2a(offset, (double*)(addr))
 
 #define bgq_ld2a_float(dst,offset,addr) \
-	dst = vec_ld2a(offset, (float*)(addr))
+	(dst) = vec_ld2a(offset, (float*)(addr))
 
 #define bgq_sta_double(src,offset,addr) \
 	vec_sta(src, offset, (double*)(addr))
@@ -236,14 +280,20 @@ typedef struct {
 #define bgq_sta_float(src,offset,addr) \
 	vec_sta(src, offset, (float*)(addr))
 
+#define bgq_neg(dst,arg) \
+	(dst) = vec_neg(arg);
+
 #define bgq_add(dst,lhs,rhs) \
-	dst = vec_add(lhs, rhs)
+	(dst) = vec_add(lhs, rhs)
 
 #define bgq_sub(dst,lhs,rhs) \
-	dst = vec_sub(lhs, rhs)
+	(dst) = vec_sub(lhs, rhs)
+
+#define bgq_mul(dst,lhs,rhs) \
+	(dst) = vec_mul(lhs,rhs)
 
 #define bgq_xxnpmadd(dst,a,b,c) \
-	dst = vec_xxnpmadd(a,b,c)
+	(dst) = vec_xxnpmadd(a,b,c)
 
 #define bgq_iadd(dst,lhs,rhs) \
 	bgq_xxnpmadd(dst,rhs,(vector4double)(1),lhs)
@@ -252,25 +302,28 @@ typedef struct {
 	bgq_xxcpnmadd(dst,rhs,(vector4double)(1),lhs)
 
 #define bgq_merge2(dst, a23_to01, b01_to23) \
-	dst = vec_perm(a23_to01, b01_to23, vec_gpci(02345))
+	(dst) = vec_perm(a23_to01, b01_to23, vec_gpci(02345))
 
 #define bgq_xmul(dst,lhs,rhs) \
-	dst = vec_xmul(lhs,rhs)
+	(dst) = vec_xmul(lhs,rhs)
 
 #define bgq_xmadd(dst,a,b,c) \
-	dst = vec_xmadd(a,b,c)
+	(dst) = vec_xmadd(a,b,c)
+
+#define bgq_madd(dst,a,b,c) \
+	(dst) = vec_madd(a,b,c)
 
 #define bgq_mov(dst,src) \
-	dst = src
+	(dst) = (src)
 
 #define bgq_xxcpnmadd(dst,a,b,c) \
-	dst = vec_xxcpnmadd(a,b,c)
+	(dst) = vec_xxcpnmadd(a,b,c)
 
 #define bgq_cconst(dst,re,im) \
-	dst = (vector4double){re,im,re,im}
+	(dst) = (vector4double){re,im,re,im}
 
 #define bgq_zero(dst) \
-	dst = (vector4double)(0)
+	(dst) = (vector4double)(0)
 //	dst = (vector4double){0,0,0,0}
 //	dst = vec_logical(dst, dst, 0);
 
@@ -306,6 +359,7 @@ typedef struct {
 // im =   -a.re * b.im + c.im
 
 // vec_xxcpnmadd(b, a, c)
+#define bgq_rxxcpnmadd(dst, a, b, c) bgq_xxcpnmadd(dst, b, a, c)
 // re =    a.im * b.im + c.re
 // im =   -a.im * b.re + c.im
 
@@ -318,6 +372,12 @@ typedef struct {
 // im =    a.im * b.re + c.im
 
 
+
+#define bgq_cmplxval1(name) \
+	(bgq_elem0(name) + (bgq_elem1(name) * _Complex_I))
+
+#define bgq_cmplxval2(name) \
+	(bgq_elem2(name) + (bgq_elem3(name) * _Complex_I))
 
 
 #define cvec_mul(a,b) vec_xxnpmadd(b,a,vec_xmul(a,b))
@@ -691,7 +751,7 @@ typedef struct {
 	bgq_isub(dst##_c1, v1##_c1, v2##_c1); \
 	bgq_isub(dst##_c2, v1##_c2, v2##_c2)
 
-#define bgq_su3_cvmul(dst,c,v)     \
+#define bgq_su3_cvmul(dst,c,v)              \
 	bgq_cmul(NAME2(dst,c0), c, NAME2(v,c0)); \
 	bgq_cmul(NAME2(dst,c1), c, NAME2(v,c1)); \
 	bgq_cmul(NAME2(dst,c2), c, NAME2(v,c2))

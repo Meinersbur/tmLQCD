@@ -96,6 +96,12 @@
 
 #define HopVerMsg printf("Hopping_Matrix unknown edition");
 
+#if BGQ_REPLACE
+#ifndef Hopping_Matrix
+#define Hopping_Matrix ref_Hopping_Matrix
+#endif
+#endif
+
 static inline _Complex double c2c(complex arg) {
 	return arg.re + arg.im * _Complex_I;
 }

@@ -45,4 +45,7 @@ missing
 /core.*
 /cmp_*
 
+output.para
+source.*.hinverted
+source.*.inverted
 

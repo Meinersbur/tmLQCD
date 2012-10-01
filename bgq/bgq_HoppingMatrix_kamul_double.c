@@ -1,3 +1,9 @@
+/*
+ * bgq_HoppingMatrix_double.c
+ *
+ *  Created on: Aug 16, 2012
+ *      Author: meinersbur
+ */
 
 #if HAVE_CONFIG_H
 #include "config.h"
@@ -21,14 +27,52 @@
 void bgq_HoppingMatrix_kamul_double(bool isOdd, bgq_spinorfield targetfield, bgq_spinorfield spinorfield, bgq_gaugefield gaugefield, bgq_hmflags opts) {
 	const bool nocom = opts & hm_nocom;
 	const bool nooverlap = opts & hm_nooverlap;
-	const bool nokamul = false;
-	const bool prefetchlist = opts & hm_prefetchlist;
-	const bool prefetchstream = opts & hm_prefetchstream;
-	const bool prefetchexplicit = opts & hm_prefetchexplicit;
+	bool nokamul = opts & hm_nokamul;
+	const bool noprefetchlist = opts & hm_noprefetchlist;
+	const bool noprefetchstream = opts & hm_noprefetchstream;
+	bool noprefetchexplicit = opts & hm_noprefetchexplicit;
 	const bool noweylsend = opts & hm_noweylsend;
 	const bool nobody = opts & hm_nobody;
 	const bool nosurface = opts & hm_nosurface;
-	const bool nol1plist = opts & hm_nol1plist;
+	assert(!nokamul);
+	nokamul = false;
+	assert(!noprefetchexplicit);
+	noprefetchexplicit = true;
+
+	#define BGQ_HM_NOFUNC 1
+	#define BGQ_HM_ZLINE_NOFUNC 1
+	#define BGQ_HM_SITE_NOFUNC 1
+	#define BGQ_HM_DIR_NOFUNC 1
+	#include "bgq_HoppingMatrix.inc.c"
+}
+
+
+#undef bgq_prefetch
+#undef bgq_prefetchforwrite
+#undef bgq_prefetch_forward
+#undef bgq_prefetch_backward
+#undef bgq_flush
+
+#define bgq_prefetch(addr)
+#define bgq_prefetchforwrite(addr)
+#define bgq_prefetch_forward(addr)
+#define bgq_prefetch_backward(addr)
+#define bgq_flush(addr)
+
+void bgq_HoppingMatrix_kamul_double_nodcbt(bool isOdd, bgq_spinorfield targetfield, bgq_spinorfield spinorfield, bgq_gaugefield gaugefield, bgq_hmflags opts) {
+	const bool nocom = opts & hm_nocom;
+	const bool nooverlap = opts & hm_nooverlap;
+	bool nokamul = opts & hm_nokamul;
+	const bool noprefetchlist = opts & hm_noprefetchlist;
+	const bool noprefetchstream = opts & hm_noprefetchstream;
+	bool noprefetchexplicit = opts & hm_noprefetchexplicit;
+	const bool noweylsend = opts & hm_noweylsend;
+	const bool nobody = opts & hm_nobody;
+	const bool nosurface = opts & hm_nosurface;
+	assert(!nokamul);
+	nokamul = false;
+	assert(noprefetchexplicit);
+	noprefetchexplicit = true;
 
 	#define BGQ_HM_NOFUNC 1
 	#define BGQ_HM_ZLINE_NOFUNC 1
@@ -38,6 +82,9 @@ void bgq_HoppingMatrix_kamul_double(bool isOdd, bgq_spinorfield targetfield, bgq
 }
 
 #endif
+
+
+
 
 #if 0
 #ifdef HAVE_CONFIG_H

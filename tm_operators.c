@@ -45,6 +45,10 @@
 #endif
 #include "tm_operators.h"
 
+#if BGQ_REPLACE
+#include "bgq/bgq_operators_double.h"
+#endif
+
 #if (defined SSE2 || defined SSE3 || defined BGL)
 const int predist=2;
 #endif
@@ -444,6 +448,16 @@ void H_eo_tm_inv_psi(spinor * const l, spinor * const k,
  **********************************************/
 
 void mul_one_pm_imu_inv(spinor * const l, const double _sign){
+#if BGQ_REPLACE
+	double sign = _sign >= 0 ? -1 : 1;
+
+	bgq_spinorfield_double spinorfield = bgq_translate_spinorfield_double(l);
+
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield);
+	bgq_spinorfield_mul_weyl_complex(spinorfield, spinorfield, isOdd, nrm + sign*nrm*g_mu*_Complex_I, nrm - sign*nrm*g_mu*_Complex_I);
+	return;
+#endif
+
   complex z,w;
   int ix;
   double sign=-1.; 
@@ -513,6 +527,19 @@ void mul_one_pm_imu_inv(spinor * const l, const double _sign){
 }
 
 void assign_mul_one_pm_imu_inv(spinor * const l, spinor * const k, const double _sign){
+#if BGQ_REPLACE
+	double sign = _sign >= 0 ? -1 : 0;
+	double nrm = 1./(1.+g_mu*g_mu);
+
+	bgq_spinorfield_double spinorfield_l = bgq_translate_spinorfield_double(l);
+	bgq_spinorfield_double spinorfield_k = bgq_translate_spinorfield_double(k);
+
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_l);
+	assert(isOdd == bgq_spinorfield_isOdd_double(spinorfield_k));
+	bgq_spinorfield_mul_weyl_complex(spinorfield_l, spinorfield_k, isOdd, nrm + sign*nrm*g_mu*_Complex_I, nrm - sign*nrm*g_mu*_Complex_I);
+	return;
+#endif
+
   complex z,w;
   int ix;
   double sign=-1.; 
@@ -645,6 +672,17 @@ void mul_one_pm_imu(spinor * const l, const double _sign){
 }
 
 void assign_mul_one_pm_imu(spinor * const l, spinor * const k, const double _sign){
+#if BGQ_REPLACE
+	double sign = _sign >= 0 ? 1 : -1;
+
+	bgq_spinorfield_double spinorfield_l = bgq_translate_spinorfield_double(l);
+	bgq_spinorfield_double spinorfield_k = bgq_translate_spinorfield_double(k);
+
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_k);
+	bgq_spinorfield_mul_weyl_complex_double(spinorfield_l, spinorfield_k, isOdd, 1 + sign*g_mu*_Complex_I, 1 - sign*g_mu*_Complex_I);
+	return;
+#endif
+
   complex z,w;
   int ix;
   double sign = 1.; 
@@ -711,7 +749,7 @@ void assign_mul_one_pm_imu(spinor * const l, spinor * const k, const double _sig
 
 void mul_one_sub_mul_gamma5(spinor * const l, spinor * const k, 
 				   spinor * const j){
-  complex ione;
+  //complex ione;
   int ix;
   spinor *r, *s, *t;
 #if (defined BGL3 && defined XLC)
@@ -719,8 +757,8 @@ void mul_one_sub_mul_gamma5(spinor * const l, spinor * const k,
   double _Complex reg10, reg11, reg12, reg13, reg14, reg15;
 #endif
 
-  ione.re = 0.;
-  ione.im = -1.;
+  //ione.re = 0.;
+  //ione.im = -1.;
 #if (defined BGL3 && defined XLC)
   __alignx(16,l);
   __alignx(16,k);
@@ -784,6 +822,17 @@ void mul_one_sub_mul_gamma5(spinor * const l, spinor * const k,
 
 void mul_one_pm_imu_sub_mul_gamma5(spinor * const l, spinor * const k, 
 				   spinor * const j, const double _sign){
+#if BGQ_REPLACE
+	bgq_spinorfield_double spinorfield_l = bgq_translate_spinorfield_double(l);
+	bgq_spinorfield_double spinorfield_k = bgq_translate_spinorfield_double(k);
+	bgq_spinorfield_double spinorfield_j = bgq_translate_spinorfield_double(j);
+
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_k);
+	assert(isOdd == bgq_spinorfield_isOdd_double(spinorfield_j));
+	bgq_mul_one_pm_imu_sub_mul_gamma5_double(spinorfield_l, spinorfield_k, spinorfield_j,  isOdd, _sign);
+	return;
+#endif
+
   complex z,w;
   int ix;
   double sign=1.;

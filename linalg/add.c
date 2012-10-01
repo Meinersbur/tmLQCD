@@ -32,6 +32,21 @@
 #include "su3.h"
 #include "add.h"
 
+#if BGQ_REPLACE
+#include "bgq/bgq_operators_double.h"
+
+void add(spinor * const Q,spinor * const R,spinor * const S, const int N) {
+	bgq_spinorfield_double spinorfield_Q = bgq_translate_spinorfield_double(Q);
+	bgq_spinorfield_double spinorfield_R = bgq_translate_spinorfield_double(R);
+	bgq_spinorfield_double spinorfield_S = bgq_translate_spinorfield_double(S);
+	assert(N == VOLUME/2);
+
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_R);
+	assert(isOdd == bgq_spinorfield_isOdd_double(spinorfield_S));
+	bgq_plus_double(spinorfield_Q, spinorfield_R, spinorfield_S, isOdd);
+}
+
+#else
 
 /* Q output, R input, S input */
 void add(spinor * const Q,spinor * const R,spinor * const S, const int N){
@@ -73,3 +88,4 @@ void add(spinor * const Q,spinor * const R,spinor * const S, const int N){
   }
 }
 
+#endif

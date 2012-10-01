@@ -46,7 +46,19 @@
 
 /* S input, R output */
 
-#if ((!defined _STD_C99_COMPLEX_CHECKED) && (!defined apenext))
+#if BGQ_REPLACE
+#include "bgq/bgq_operators_double.h"
+
+void assign(spinor * const R, spinor * const S, const int N) {
+	bgq_spinorfield_double spinorfield_R = bgq_translate_spinorfield_double(R);
+	bgq_spinorfield_double spinorfield_S = bgq_translate_spinorfield_double(S);
+	assert(N==VOLUME/2);
+
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_S);
+	bgq_assign_double(spinorfield_R, spinorfield_S, isOdd);
+}
+
+#elif ((!defined _STD_C99_COMPLEX_CHECKED) && (!defined apenext))
 
 void assign(spinor * const R, spinor * const S, const int N){
   int ix;

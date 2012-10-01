@@ -35,6 +35,20 @@
 #include "su3.h"
 #include "mul_r.h"
 
+#if BGQ_REPLACE
+#include "bgq/bgq_operators_double.h"
+
+void mul_r(spinor * const R, const double c, spinor * const S, const int N) {
+	bgq_spinorfield_double spinorfield_R = bgq_translate_spinorfield_double(R);
+	bgq_spinorfield_double spinorfield_S = bgq_translate_spinorfield_double(S);
+	assert(N == VOLUME/2);
+
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_S);
+	bgq_mul_r_double(spinorfield_R, c, spinorfield_S, isOdd);
+}
+
+#else
+
 void mul_r(spinor * const R, const double c, spinor * const S, const int N){
   int ix;
   spinor *r,*s;
@@ -72,3 +86,5 @@ void mul_r(spinor * const R, const double c, spinor * const S, const int N){
     (*r).s3.c2.im=c*(*s).s3.c2.im;
   }
 }
+
+#endif

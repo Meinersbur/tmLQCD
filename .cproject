@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<?fileVersion 4.0.0?>
-
-<cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
+<?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
 	<storageModule moduleId="org.eclipse.cdt.core.settings">
 		<cconfiguration id="cdt.managedbuild.config.gnu.exe.debug.1072574571">
 			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.config.gnu.exe.debug.1072574571" moduleId="org.eclipse.cdt.core.settings" name="Debug">
@@ -53,6 +51,7 @@
 									<listOptionValue builtIn="false" value="HAVE_CONFIG_H=1"/>
 									<listOptionValue builtIn="false" value="BGQ_HM_CARRY=1"/>
 									<listOptionValue builtIn="false" value="PAPI=1"/>
+									<listOptionValue builtIn="false" value="BGQ_REPLACE=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1186333786" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
@@ -133,6 +132,7 @@
 									<listOptionValue builtIn="false" value="PACKAGE_BUGREPORT=tmlqcd_debug@meinersbur.de"/>
 									<listOptionValue builtIn="false" value="BGQ_PREFETCH_STREAM=1"/>
 									<listOptionValue builtIn="false" value="HAVE_CONFIG_H=1"/>
+									<listOptionValue builtIn="false" value="BGQ_REPLACE=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1151568539" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>

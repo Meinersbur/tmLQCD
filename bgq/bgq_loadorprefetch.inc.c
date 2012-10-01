@@ -10,6 +10,7 @@
 #undef bgq_su3_spinor_loadorprefetch_right
 #undef bgq_su3_weyl_loadorprefetch
 #undef bgq_su3_weyl_loadorprefetch_left
+#undef bgq_su3_weyl_loadorprefetch_right
 #undef bgq_su3_matrix_loadorprefetch
 
 
@@ -49,6 +50,7 @@
 
 
 #elif BGQ_LOADORPREFETCH_LOAD
+
 
 #define bgq_su3_spinor_loadorprefetch(dst,addr) \
 	bgq_su3_spinor_load(dst,addr);

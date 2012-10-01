@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
 		printf("# the code was compiled for non-blocking MPI calls (spinor and gauge)\n");
 #  endif
 #endif
-		printHopVerMsg();
+		//printHopVerMsg();
 		printf("\n");
 		fflush(stdout);
 	}
@@ -451,7 +451,7 @@ int main(int argc, char *argv[])
 
 #ifdef BGQ
 	bgq_init_gaugefield_allprec();
-	bgq_init_spinorfields_allprec(2 * k_max + 1);
+	bgq_init_spinorfields_allprec(2 * k_max + 1, 0);
 	bgq_hm_init_allprec();
 
 	bgq_update_backward_gauge();
@@ -460,6 +460,13 @@ int main(int argc, char *argv[])
 #ifdef _GAUGE_COPY
 	update_backward_gauge();
 #endif
+
+#pragma omp parallel
+	{
+		if (g_proc_id == 0) {
+			printf("MK Here is omp_id %d, cpu_id %d running on SMT-Thread %d of Core %d\n", omp_get_thread_num(), Kernel_ProcessorID(), Kernel_ProcessorThreadID(), Kernel_ProcessorCoreID());
+		}
+	}
 
 
 	for (int k = 0; k < k_max; k+=1) {
@@ -541,7 +548,7 @@ static void Hopping_Matrix_switch(const int ieo, spinor * const l, spinor * cons
 static void check_correctness_double(bool nocom) {
 	master_print("MK Checking double precision%s correctness...\n", nocom ? " (no communication)" : "");
 
-#pragma omp parallel
+//#pragma omp parallel
 	{
 		int k = 0;
 		int k_max = 1;
@@ -585,7 +592,7 @@ static void check_correctness_double(bool nocom) {
 static void check_correctness_float() {
 	master_print("MK Checking float precision correctness...\n");
 
-#pragma omp parallel
+//#pragma omp parallel
 	{
 		int k = 0;
 		int k_max = 1;
@@ -632,6 +639,7 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
 	double result;
 	double compare_even_before;
 	double compare_even;
+	double compare_odd;
 
 	if (!sloppyprec) {
 #pragma omp master
@@ -640,19 +648,19 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
 		memset(g_spinorfields_double[k + 2*k_max], 0, sizeof(bgq_spinorsite_double) * VOLUME_SITES);
 
 		bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
-		double compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
+		compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
 		}
 		bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
 #pragma omp master
 		{
 		Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], hmflags & hm_nocom);
-		double compare_even = bgq_spinorfield_compare_double(false, g_spinorfields_double[k + k_max], g_spinor_field[k + k_max], true);
+		compare_even = bgq_spinorfield_compare_double(false, g_spinorfields_double[k + k_max], g_spinor_field[k + k_max], true);
 		}
 		bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
 #pragma omp master
 		{
 		Hopping_Matrix_switch(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max], hmflags & hm_nocom);
-		double compare_odd = bgq_spinorfield_compare_double(true, g_spinorfields_double[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
+		compare_odd = bgq_spinorfield_compare_double(true, g_spinorfields_double[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
 
 		result = max(max(compare_even_before, compare_even), compare_odd);
 		}
@@ -663,27 +671,24 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
 		memset(g_spinorfields_float[k + 2*k_max], 0, sizeof(bgq_spinorsite_float) * VOLUME_SITES);
 
 		bgq_transfer_spinorfield_float(true, g_spinorfields_float[k], g_spinor_field[k]);
-		double compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k], true);
+		compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k], true);
 		}
 		bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
 #pragma omp master
 		{
 		Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], hmflags & hm_nocom);
-		double compare_even = bgq_spinorfield_compare_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k + k_max], true);
+		compare_even = bgq_spinorfield_compare_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k + k_max], true);
 		}
 		bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
 #pragma omp master
 		{
 		Hopping_Matrix_switch(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max], hmflags & hm_nocom);
-		double compare_odd = bgq_spinorfield_compare_float(true, g_spinorfields_float[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
+		compare_odd = bgq_spinorfield_compare_float(true, g_spinorfields_float[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
 
 		result = max(max(compare_even_before, compare_even), compare_odd);
 		}
 	}
 
-	if (result > 0.001) {
-		int a = 0;
-	}
 	return result;
 }
 
@@ -691,37 +696,59 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
 #include <l1p/sprefetch.h>
 #endif
 
-static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bgq_hmflags hmflags) {
-	int iterations = 0;
+static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bgq_hmflags opts) {
+	const bool nocom = opts & hm_nocom;
+	const bool nooverlap = opts & hm_nooverlap;
+	const bool nokamul = opts & hm_nokamul;
+	const bool noprefetchlist = opts & hm_noprefetchlist;
+	const bool noprefetchstream = opts & hm_noprefetchstream;
+	const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
+	const bool noweylsend = opts & hm_noweylsend;
+	const bool nobody = opts & hm_nobody;
+	const bool nosurface = opts & hm_nosurface;
+	bgq_hmflags implicitprefetch = opts & (hm_prefetchimplicitdisable | hm_prefetchimplicitoptimistic | hm_prefetchimplicitconfirmed);
 
+	// Setup options
+	L1P_StreamPolicy_t pol;
+
+	switch (implicitprefetch) {
+	case hm_prefetchimplicitdisable:
+		pol = L1P_stream_disable;
+		break;
+	case hm_prefetchimplicitoptimistic:
+		pol = L1P_stream_optimistic;
+		break;
+	case hm_prefetchimplicitconfirmed:
+		pol = noprefetchexplicit ? L1P_stream_confirmed : L1P_confirmed_or_dcbt;
+		break;
+	default:
+		pol = 0;
+		break;
+	}
+
+	omp_set_num_threads(ompthreads);
+#pragma omp parallel
+	{
+		L1P_CHECK(L1P_SetStreamPolicy(pol));
+		L1P_StreamPolicy_t getpol = 0;
+		L1P_CHECK(L1P_GetStreamPolicy(&getpol));
+		if (getpol != pol)
+			fprintf(stderr, "MK StreamPolicy not accepted\n");
+
+		//L1P_CHECK(L1P_SetStreamDepth());
+		//L1P_CHECK(L1P_SetStreamTotalDepth());
+
+		//L1P_GetStreamDepth
+		//L1P_GetStreamTotalDepth
+	}
+
+	int iterations = 0;
 	double localsumtime = 0;
 	double localsumsqtime = 0;
 	double err = 0;
-
-	const bool nocom = hmflags & hm_nocom;
-	const bool nooverlap = hmflags & hm_nooverlap;
-	const bool nokamul = hmflags & hm_nokamul;
-	const bool kamul = !nokamul;
-	const bool prefetchlist = hmflags & hm_prefetchlist;
-	const bool prefetchstream = hmflags & hm_prefetchstream;
-	const bool prefetchexplicit = hmflags & hm_prefetchexplicit;
-	const bool noweylsend = hmflags & hm_noweylsend;
-	const bool nobody = hmflags & hm_nobody;
-	const bool nosurface = hmflags & hm_nosurface;
-	const bool nol1plist = hmflags & hm_nol1plist;
-
-	omp_set_num_threads(ompthreads);
-
-#pragma omp parallel
+//#pragma omp parallel
 	{
-		//L1P_CHECK(L1P_SetStreamPolicy(L1P_stream_disable));
-
-		//L1P_StreamPolicy_t pol;
-		//L1P_CHECK(L1P_GetStreamPolicy(&pol));
-		//if (pol != L1P_stream_disable)
-		//	master_print("MK StreamPolicy not accepted\n");
-
-	double errtmp = runcheck(sloppyprec, hmflags);
+	double errtmp = runcheck(sloppyprec, opts);
 
 	for (int j = 0; j < j_max; j += 1) {
 		////////////////////////////////////////////////////////////////////////////////
@@ -733,7 +760,7 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 		double start_time = MPI_Wtime();
 		if (sloppyprec) {
 			for (int k = 0; k < 1; k += 1) {
-				bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
+				bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, opts);
 				//bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
 #pragma omp master
 		{
@@ -742,7 +769,7 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 			}
 		} else {
 			for (int k = 0; k < 1; k += 1) {
-				bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
+				bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, opts);
 				//bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
 #pragma omp master
 		{
@@ -793,11 +820,10 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 	assert(lups == lups_body + lups_surface);
 	assert(lups == VOLUME);
 
-	int flops_per_lup = 1320;
 	int flops_per_lup_body = 0;
 	if (!nobody) {
 		flops_per_lup_body += 1320;
-		if (kamul)
+		if (!nokamul)
 			flops_per_lup_body += 8 * 2 * 3 * 6;
 	}
 
@@ -806,7 +832,7 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 		flops_per_lup_surface += 6 * 2 * 2;
 	if (!nosurface) {
 		flops_per_lup_surface += 1320 - (6*2*2);
-		if (kamul)
+		if (!nokamul)
 			flops_per_lup_surface += 8 * 2 * 3 * 6;
 	}
 	double flops = ((double)flops_per_lup_body * (double)lups_body) + ((double)flops_per_lup_surface * (double)lups_surface);
@@ -846,8 +872,31 @@ static struct {
 static char* com_desc[] = { "Com off" };
 #endif
 
-static bgq_hmflags flags[] = { hm_nol1plist, 0 };
-static char* flags_desc[] = { "noprefetch" , "list prefetch" };
+static bgq_hmflags flags[] = {
+		0,
+		hm_nooverlap,
+		hm_nocom,
+		hm_nocom | hm_nosurface | hm_noweylsend,
+		hm_nocom | hm_nobody,
+		hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
+		hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitconfirmed,
+		hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitoptimistic,
+		hm_nocom | hm_noprefetchlist                       | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
+		hm_nocom | hm_noprefetchlist | hm_noprefetchstream                         | hm_prefetchimplicitdisable,
+		hm_nocom                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable };
+static char* flags_desc[] = {
+		"Com async",
+		"Com sync",
+		"Com off",
+		"bodyonly",
+		"surfaceonly",
+		"pf disable",
+		"pf confirmed",
+		"pf optimistic",
+		"pf stream",
+		"pf explicit",
+		"pf list"
+		};
 
 
 static void print_repeat(const char * const str, const int count) {
@@ -909,3 +958,5 @@ static void exec_bench() {
 
 	if (g_proc_id == 0) printf("Benchmark done\n");
 }
+
+

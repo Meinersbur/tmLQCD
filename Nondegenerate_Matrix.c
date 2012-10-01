@@ -39,6 +39,9 @@
 #include "linsolve.h"
 #include "linalg_eo.h"
 #include "Nondegenerate_Matrix.h"
+#if BGQ_REPLACE
+#include "bgq/bgq_operators_double.h"
+#endif
 
 
 void mul_one_minus_imubar(spinor * const l, spinor * const k);
@@ -665,7 +668,19 @@ void mul_one_pm_itau2(spinor * const p, spinor * const q,
 }
 
 
-void mul_one_minus_imubar(spinor * const l, spinor * const k){
+void mul_one_minus_imubar(spinor * const l, spinor * const k) {
+#if BGQ_REPLACE
+	{
+	bgq_spinorfield_double spinorfield_l = bgq_translate_spinorfield_double(l);
+	bgq_spinorfield_double spinorfield_k = bgq_translate_spinorfield_double(k);
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_k);
+
+	complexdouble z = 1 - g_mubar * _Complex_I;
+	complexdouble w = 1 - cimag(z) * _Complex_I;
+	bgq_spinorfield_mul_weyl_complex_double(spinorfield_l, spinorfield_k, isOdd, z, w);
+	return;
+	}
+#endif
   complex z,w;
   int ix;
   spinor *r, *s;
@@ -694,6 +709,18 @@ void mul_one_minus_imubar(spinor * const l, spinor * const k){
 
 
 void mul_one_plus_imubar(spinor * const l, spinor * const k){
+#if BGQ_REPLACE
+	{
+	bgq_spinorfield_double spinorfield_l = bgq_translate_spinorfield_double(l);
+	bgq_spinorfield_double spinorfield_k = bgq_translate_spinorfield_double(k);
+	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_k);
+
+	complexdouble z = 1 + g_mubar * _Complex_I;
+	complexdouble w = 1 - cimag(z) * _Complex_I;
+	bgq_spinorfield_mul_weyl_complex_double(spinorfield_l, spinorfield_k, isOdd, z, w);
+	return;
+	}
+#endif
   complex z,w;
   int ix;
   spinor *r, *s;
