@@ -593,6 +593,7 @@ void bgq_spinorfield_setOdd(bgq_spinorfield spinorfield, bool isOdd, bool overwr
 	g_spinorfield_isOdd[index] = isOdd;
 }
 
+
 bool assert_spinorfield_coord(bgq_spinorfield spinorfield, bool isOdd, int t, int x, int y, int z, int tv, int k, int v, int c, bool isRead, bool isWrite) {
 	if (!isRead && !isWrite && (z == LOCAL_LZ) ) {
 		// Allow for prefetching

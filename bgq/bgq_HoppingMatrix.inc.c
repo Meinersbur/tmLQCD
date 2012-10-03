@@ -332,8 +332,8 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 				const int x = WORKLOAD_PARAM(PHYSICAL_LX-2) + 1;
 				const int y = WORKLOAD_PARAM(PHYSICAL_LY-2) + 1;
 				WORKLOAD_CHECK
-				int t1 = tv * PHYSICAL_LP * PHYSICAL_LK + ((x + y + isOdd) & 1);
-				int t2 = t1 + 2;
+				int t1 = tv*PHYSICAL_LP*PHYSICAL_LK + ((isOdd+x+y+0)&1);
+				int t2 = t1 + PHYSICAL_LP;
 
 #define BGQ_HM_ZLINE_ID KERNEL
 #define BGQ_HM_TUP_WEYLREAD 0

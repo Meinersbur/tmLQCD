@@ -42,39 +42,69 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 	#if BGQ_PREFETCH_STREAM
 	if (!noprefetchstream) {
 		// Lots of streams (14), still without the border weyl ones
+#ifndef NDEBUG
+		const bool debug = true;
+#else
+		const bool debug = false; // Hope that the compiler optimizes the following ifs away
+#endif
 
-		bgq_spinorsite *spinorsite_t_left = BGQ_SPINORSITE(spinorfield, !isOdd, tv-1, x, y, z, t1, t2, false,false);
-		bgq_prefetch_forward(spinorsite_t_left);
-		bgq_spinorsite *spinorsite_t_mid = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y, z, t1, t2, false,false);
+		if (!debug || tv >= 1) {
+			bgq_spinorsite *spinorsite_t_left  = BGQ_SPINORSITE(spinorfield, !isOdd, tv-1, x, y, z, (tv-1)*PHYSICAL_LP*PHYSICAL_LK + ((!isOdd+x+y+z)&1), (tv-1)*PHYSICAL_LP*PHYSICAL_LK + ((!isOdd+x+y+z)&1) + PHYSICAL_LP, false,false); // Only every 2nd site actually used
+			bgq_prefetch_forward(spinorsite_t_left);
+		}
+		bgq_spinorsite *spinorsite_t_mid   = BGQ_SPINORSITE(spinorfield, !isOdd, tv  , x, y, z, (tv  )*PHYSICAL_LP*PHYSICAL_LK + ((!isOdd+x+y+z)&1), (tv  )*PHYSICAL_LP*PHYSICAL_LK + ((!isOdd+x+y+z)&1) + PHYSICAL_LP, false,false);
 		bgq_prefetch_forward(spinorsite_t_mid);
-		bgq_spinorsite *spinorsite_t_right = BGQ_SPINORSITE(spinorfield, !isOdd, tv-1, x, y, z, t1, t2, false,false);
-		bgq_prefetch_forward(spinorsite_t_right);
+		if (!debug || tv < PHYSICAL_LTV-1) {
+			bgq_spinorsite *spinorsite_t_right = BGQ_SPINORSITE(spinorfield, !isOdd, tv+1, x, y, z, (tv+1)*PHYSICAL_LP*PHYSICAL_LK + ((!isOdd+x+y+z)&1), (tv+1)*PHYSICAL_LP*PHYSICAL_LK + ((!isOdd+x+y+z)&1) + PHYSICAL_LP, false,false); // Only every 2nd site actually used
+			bgq_prefetch_forward(spinorsite_t_right);
+		}
 
-		bgq_gaugesite *gaugesite_tup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, TUP, t1, t2, false,false);
+		bgq_gaugesite *gaugesite_tup          = BGQ_GAUGESITE(gaugefield,  isOdd, tv, x, y, z, TUP, t1, t2, false,false);
 		bgq_prefetch_forward(gaugesite_tup);
-		bgq_gaugesite *gaugesite_tdown_flush = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x, y, z, TUP_SHIFT, t1-1, t2-1, false,false);
-		bgq_prefetch_forward(gaugesite_tdown_flush);
-		bgq_gaugesite *gaugesite_tdown_ragged = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x, y, z, TUP, t1-1, t2-1, false,false);
-		bgq_prefetch_forward(gaugesite_tdown_ragged);
+		#if (BGQ_HM_ZLINE_STARTINDENT==-1)
+		if ( ((x+y)&1) == isOdd ) {
+		#endif
+		#if (BGQ_HM_ZLINE_STARTINDENT==-1) || (BGQ_HM_ZLINE_STARTINDENT==0)
+			bgq_gaugesite *gaugesite_tdown_flush  = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x, y, z, TUP_SHIFT, t1-1, t2-1, false,false);
+			bgq_prefetch_forward(gaugesite_tdown_flush);
+		#endif
+		#if (BGQ_HM_ZLINE_STARTINDENT==-1)
+		} else {
+		#endif
+		#if (BGQ_HM_ZLINE_STARTINDENT==-1) || (BGQ_HM_ZLINE_STARTINDENT==1)
+			bgq_gaugesite *gaugesite_tdown_ragged = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x, y, z, TUP, t1-1, t2-1, false,false);
+			bgq_prefetch_forward(gaugesite_tdown_ragged);
+		#endif
+		#if (BGQ_HM_ZLINE_STARTINDENT==-1)
+		}
+		#endif
 
+		if (!debug || x < PHYSICAL_LX-1) {
 		bgq_spinorsite *spinorsite_xup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x+1, y, z, t1, t2, false,false);
 		bgq_prefetch_forward(spinorsite_xup);
+		}
+		if (!debug || x >= 1) {
 		bgq_spinorsite *spinorsite_xdown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x-1, y, z, t1, t2, false,false);
 		bgq_prefetch_forward(spinorsite_xdown);
+		}
 
 		bgq_gaugesite *gaugesite_xup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, XUP, t1, t2, false,false);
 		bgq_prefetch_forward(gaugesite_xup);
-		bgq_gaugesite *gaugesite_xdown = BGQ_GAUGESITE(gaugefield, isOdd, tv, x-1, y, z, XUP, t1, t2, false,false);
+		bgq_gaugesite *gaugesite_xdown = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x-1, y, z, XUP, t1, t2, false,false);
 		bgq_prefetch_forward(gaugesite_xdown);
 
+		if (!debug || y < PHYSICAL_LY-1) {
 		bgq_spinorsite *spinorsite_yup = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y+1, z, t1, t2, false,false);
 		bgq_prefetch_forward(spinorsite_yup);
+		}
+		if (!debug || y >= 1) {
 		bgq_spinorsite *spinorsite_ydown = BGQ_SPINORSITE(spinorfield, !isOdd, tv, x, y-1, z, t1, t2, false,false);
 		bgq_prefetch_forward(spinorsite_ydown);
+		}
 
 		bgq_gaugesite *gaugesite_yup = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y, z, YUP, t1, t2, false,false);
 		bgq_prefetch_forward(gaugesite_yup);
-		bgq_gaugesite *gaugesite_ydown = BGQ_GAUGESITE(gaugefield, isOdd, tv, x, y-1, z, YUP, t1, t2, false,false);
+		bgq_gaugesite *gaugesite_ydown = BGQ_GAUGESITE(gaugefield, !isOdd, tv, x, y-1, z, YUP, t1, t2, false,false);
 		bgq_prefetch_forward(gaugesite_ydown);
 	}
 	#endif

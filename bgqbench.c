@@ -88,9 +88,13 @@ extern FILE *fmemopen(void *__s, size_t __len, __const char *__modes) __THROW;
 #endif
 #include <omp.h>
 
+
 //#if BGQ_PREFETCH_LIST
 #include <l1p/pprefetch.h>
 //#endif
+#ifdef XLC
+#include <l1p/sprefetch.h>
+#endif
 
 #define COUNTOF(arr) (sizeof(arr) / sizeof((arr)[0]))
 
@@ -463,10 +467,16 @@ int main(int argc, char *argv[])
 	update_backward_gauge();
 #endif
 
-#pragma omp parallel
+	bool done = false;
+#pragma omp parallel for schedule(static) ordered firstprivate(done)
+	for (int j = 0; j < omp_get_max_threads(); j+=1)
 	{
-		if (g_proc_id == 0) {
-			printf("MK Here is omp_id %d, cpu_id %d running on SMT-Thread %d of Core %d\n", omp_get_thread_num(), Kernel_ProcessorID(), Kernel_ProcessorThreadID(), Kernel_ProcessorCoreID());
+		if (g_proc_id == 0 && !done) {
+#pragma omp ordered
+			{
+				printf("MK Here is omp_id %2d, cpu_id %2d running on SMT-Thread %d of Core %2d\n", omp_get_thread_num(), Kernel_ProcessorID(), Kernel_ProcessorThreadID(), Kernel_ProcessorCoreID());
+				done = true;
+			}
 		}
 	}
 
@@ -482,10 +492,10 @@ int main(int argc, char *argv[])
 //#pragma omp parallel 
 {
 	for (int i = 0; i < 2; i+=1) {
-		listprefetch_test(false);
-		}
+		//listprefetch_test(false);
+	}
 	for (int i = 0; i < 3; i+=1) {
-		listprefetch_test(true);
+		//listprefetch_test(true);
 	}
 }
 	//check_correctness_double(true);
@@ -560,7 +570,7 @@ static void check_correctness_double(bool nocom) {
 		double compare_even_before;
 		double compare_even;
 
-#pragma omp master
+//#pragma omp master
 		{
 			bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
 			compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
@@ -568,9 +578,9 @@ static void check_correctness_double(bool nocom) {
 
 			//bgq_initbgqref();
 		}
-#pragma omp barrier
+//#pragma omp barrier
 		bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
-#pragma omp master
+//#pragma omp master
 		{
 			//master_print("MK HM_orig start\n");
 			Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], nocom);
@@ -582,7 +592,7 @@ static void check_correctness_double(bool nocom) {
 		}
 //#pragma omp barrier
 		bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
-#pragma omp master
+//#pragma omp master
 		{
 			Hopping_Matrix_switch(1, g_spinor_field[k + 2 * k_max], g_spinor_field[k + k_max], nocom);
 			double compare_odd = bgq_spinorfield_compare_double(true, g_spinorfields_double[k + 2 * k_max], g_spinor_field[k + 2 * k_max], false);
@@ -604,7 +614,7 @@ static void check_correctness_float() {
 		double compare_even_before;
 		double compare_even;
 
-#pragma omp master
+//#pragma omp master
 		{
 			bgq_transfer_spinorfield_float(true, g_spinorfields_float[k], g_spinor_field[k]);
 			compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k], false);
@@ -612,9 +622,9 @@ static void check_correctness_float() {
 
 			//bgq_initbgqref();
 		}
-#pragma omp barrier
+//#pragma omp barrier
 		bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
-#pragma omp master
+//#pragma omp master
 		{
 			Hopping_Matrix(0, g_spinor_field[k + k_max], g_spinor_field[k]);
 			//bgq_savebgqref();
@@ -623,7 +633,7 @@ static void check_correctness_float() {
 		}
 //#pragma omp barrier
 		bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
-#pragma omp master
+//#pragma omp master
 		{
 			Hopping_Matrix(1, g_spinor_field[k + 2 * k_max], g_spinor_field[k + k_max]);
 			double compare_odd = bgq_spinorfield_compare_float(true, g_spinorfields_float[k + 2 * k_max], g_spinor_field[k + 2 * k_max], false);
@@ -635,10 +645,8 @@ static void check_correctness_float() {
 }
 
 
-
-static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
-	int k = 0;
-	int k_max = 1;
+static double runcheck(bool sloppyprec, bgq_hmflags hmflags, int k_max) {
+	const int k = 0;
 	hmflags = hmflags & ~hm_nokamul;
 	double result;
 	double compare_even_before;
@@ -646,7 +654,7 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
 	double compare_odd;
 
 	if (!sloppyprec) {
-#pragma omp master
+//#pragma omp master
 		{
 		memset(g_spinorfields_double[k + k_max], 0, sizeof(bgq_spinorsite_double) * VOLUME_SITES);
 		memset(g_spinorfields_double[k + 2*k_max], 0, sizeof(bgq_spinorsite_double) * VOLUME_SITES);
@@ -655,13 +663,13 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
 		compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
 		}
 		bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
-#pragma omp master
+//#pragma omp master
 		{
 		Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], hmflags & hm_nocom);
 		compare_even = bgq_spinorfield_compare_double(false, g_spinorfields_double[k + k_max], g_spinor_field[k + k_max], true);
 		}
 		bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
-#pragma omp master
+//#pragma omp master
 		{
 		Hopping_Matrix_switch(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max], hmflags & hm_nocom);
 		compare_odd = bgq_spinorfield_compare_double(true, g_spinorfields_double[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
@@ -669,7 +677,7 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
 		result = max(max(compare_even_before, compare_even), compare_odd);
 		}
 	} else {
-#pragma omp master
+//#pragma omp master
 		{
 		memset(g_spinorfields_float[k + k_max], 0, sizeof(bgq_spinorsite_float) * VOLUME_SITES);
 		memset(g_spinorfields_float[k + 2*k_max], 0, sizeof(bgq_spinorsite_float) * VOLUME_SITES);
@@ -678,13 +686,13 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
 		compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k], true);
 		}
 		bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
-#pragma omp master
+//#pragma omp master
 		{
 		Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], hmflags & hm_nocom);
 		compare_even = bgq_spinorfield_compare_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k + k_max], true);
 		}
 		bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
-#pragma omp master
+//#pragma omp master
 		{
 		Hopping_Matrix_switch(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max], hmflags & hm_nocom);
 		compare_odd = bgq_spinorfield_compare_float(true, g_spinorfields_float[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
@@ -696,9 +704,6 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags) {
 	return result;
 }
 
-#ifdef XLC
-#include <l1p/sprefetch.h>
-#endif
 
 static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bgq_hmflags opts) {
 	const bool nocom = opts & hm_nocom;
@@ -726,7 +731,7 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 		pol = noprefetchexplicit ? L1P_stream_confirmed : L1P_confirmed_or_dcbt;
 		break;
 	default:
-		pol = 0;
+		pol = L1P_confirmed_or_dcbt;
 		break;
 	}
 
@@ -734,7 +739,6 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 #pragma omp parallel
 	{
 		L1P_CHECK(L1P_SetStreamPolicy(pol));
-
 	}
 
 #pragma omp parallel
@@ -751,45 +755,46 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 		//L1P_GetStreamTotalDepth
 	}
 
-
-
 	// Error checking
-	double errtmp = runcheck(sloppyprec, opts);
+	double errtmp = runcheck(sloppyprec, opts, k_max);
 
 
-	int iterations = 1 + max(j_max, MYPAPI_SETS);
 	double localsumtime = 0;
 	double localsumsqtime = 0;
 	double err = 0;
 	mypapi_counters counters;
+	counters.init = false;
+	int iterations = 1 + j_max;
+	if (iterations < 1 + MYPAPI_SETS)
+		iterations = 1 + MYPAPI_SETS;
 
 	for (int j = 0; j < iterations; j += 1) {
+		//master_print("Starting iteration %d of %d\n", j+1, iterations);
 		bool isWarmup = (j == 0);
 		bool isLast = (j == iterations-1);
 		bool isPapi = !isWarmup && (j >= iterations - MYPAPI_SETS);
 		bool isJMax = !isWarmup && (j >= iterations - j_max);
 
-		if (isPapi)
+		if (isPapi) {
 			mypapi_start(j - (iterations - MYPAPI_SETS));
+		}
 		double start_time = MPI_Wtime();
 		if (sloppyprec) {
 			for (int k = 0; k < 1; k += 1) {
 				bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, opts);
 				bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, opts);
-				iterations += 1;
 			}
 		} else {
 			for (int k = 0; k < 1; k += 1) {
 				bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, opts);
 				bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, opts);
-				iterations += 1;
 			}
 		}
 		double end_time = MPI_Wtime();
 		mypapi_counters curcounters;
 		if (isPapi) {
 			curcounters = mypapi_stop();
-			counters = mypapi_merge_counters(&curcounters, &curcounters);
+			counters = mypapi_merge_counters(&counters, &curcounters);
 		}
 
 		double runtime = end_time - start_time;
@@ -916,43 +921,58 @@ static void print_repeat(const char * const str, const int count) {
 
 static void print_stats(benchstat stats[COUNTOF(flags)]) {
 	int threads = omp_get_num_threads();
-	printf("%10s|", "");
 
 	for (mypapi_interpretations j = 0; j < __pi_COUNT; j+=1) {
+		printf("%10s|", "");
 		char *desc = NULL;
 
 		for (int i3 = 0; i3 < COUNTOF(flags); i3 += 1) {
 			char str[80];
 			str[0] = '\0';
 
+			double nCycles = stats[i3].counters.native[PEVT_CYCLES];
+			double nCoreCycles = stats[i3].counters.corecycles;
+			double nInstructions = stats[i3].counters.native[PEVT_INST_ALL];
+
 			double nCachableLoads = stats[i3].counters.native[PEVT_LSU_COMMIT_CACHEABLE_LDS];
 			double nL1Misses = stats[i3].counters.native[PEVT_LSU_COMMIT_LD_MISSES];
 			double nL1Hits = nCachableLoads - nL1Misses;
-			assert(nL1Hits >= 0);
+
 			double nL1PMisses = stats[i3].counters.native[PEVT_L1P_BAS_MISS];
-			double nL1PHits = nL1Misses - nL1PMisses;
-			assert(nL1PHits >= 0);
+			double nL1PHits = stats[i3].counters.native[PEVT_L1P_BAS_HIT];
+			double nL1PAccesses = nL1PHits + nL1PHits;
+
 			double nL2Misses = stats[i3].counters.native[PEVT_L2_MISSES];
 			double nL2Hits = stats[i3].counters.native[PEVT_L2_HITS];
-			double nMainHits = nL2Misses;
+			double nL2Access = nL2Misses + nL2Hits;
 
 			switch (j) {
+			case pi_cpi:
+				desc = "Cycles per instruction (Thread)";
+				snprintf(str, sizeof(str), "%f", nCycles / nInstructions);
+				break;
+			case pi_corecpi:
+				desc = "Cycles per instruction (Core)";
+				snprintf(str, sizeof(str), "%.2f", nCoreCycles / nInstructions);
+				break;
 			case pi_hitinl1:
 				desc = "Loads that hit in L1";
-				snprintf(str, sizeof(str), "%f %%" ,  100 * nL1Hits / nCachableLoads);
+				snprintf(str, sizeof(str), "%.2f %%" ,  100 * nL1Hits / nCachableLoads);
 				break;
-			case pi_hitinl1p:
-				desc = "Loads that hit in L1P";
-				snprintf(str, sizeof(str), "%f %%" ,  100 * nL1PHits / nCachableLoads);
+			case pi_l1phitrate:
+				desc = "L1P hit rate";
+				snprintf(str, sizeof(str), "%.2f %%" ,  100 * nL1PHits / nL1PAccesses);
 				break;
-			case pi_hitinl2:
-				desc = "Loads that hit in L2";
-				snprintf(str, sizeof(str), "%f %%" ,  100 * nL2Hits / nCachableLoads);
+			//case pi_hitinl1p:
+			//	desc = "Loads that hit in L1P";
+			//	snprintf(str, sizeof(str), "%f %%" ,  100 * nL1PHits / nCachableLoads);
+			//	break;
+			case pi_l2hitrate:
+				desc = "L2 hit rate";
+				snprintf(str, sizeof(str), "%.2f %%" ,  100 * nL2Hits / nL2Access);
 				break;
-			case pi_hitinmain:
-				desc = "Loads that hit in DDR";
-				snprintf(str, sizeof(str), "%f %%" ,  100 * nMainHits / nCachableLoads);
-				break;
+			default:
+				continue;
 			}
 
 			printf("%"SCELLWIDTH"s|", str);
@@ -963,6 +983,7 @@ static void print_stats(benchstat stats[COUNTOF(flags)]) {
 }
 
 static void exec_bench() {
+	benchstat excerpt;
 	print_repeat("\n", 2);
 
 	for (int i0 = 0; i0 < COUNTOF(kamuls); i0 += 1) {
@@ -983,7 +1004,7 @@ static void exec_bench() {
 			for (int i2 = 0; i2 < COUNTOF(omp_threads); i2 += 1) {
 				int threads = omp_threads[i2];
 
-				if (g_proc_id == 0) printf("%10s|", omp_threads_desc[i2]);
+				if (g_proc_id == 0) printf("%-10s|", omp_threads_desc[i2]);
 
 				benchstat stats[COUNTOF(flags)];
 				for (int i3 = 0; i3 < COUNTOF(flags); i3 += 1) {
@@ -993,8 +1014,13 @@ static void exec_bench() {
 					benchstat result = runbench(1, 3, sloppiness, threads, hmflags);
 					stats[i3] = result;
 
+					if (!kamul && !sloppiness && threads==64 && i3==0) {
+						excerpt = result;
+					}
+
+
 					char str[80] = {0};
-					snprintf(str, sizeof(str), "%.0f mflops/s%s" , result.flops / MEGA, (result.error > 0.001) ? "X" : "");
+					snprintf(str, sizeof(str), "%.0f mflop/s%s" , result.flops / MEGA, (result.error > 0.001) ? "X" : "");
 					if (g_proc_id == 0) printf("%"SCELLWIDTH"s|", str);
 					if (g_proc_id == 0) fflush(stdout);
 				}
@@ -1014,6 +1040,11 @@ static void exec_bench() {
 	}
 
 	if (g_proc_id == 0) printf("Benchmark done\n");
+
+	if (g_proc_id == 0) {
+		 printf("Hardware counter excerpt:\n");
+		mypapi_print_counters(&excerpt.counters);
+	}
 }
 
 
