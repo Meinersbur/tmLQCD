@@ -530,9 +530,11 @@ int main(int argc, char *argv[])
 	return (0);
 }
 
+
 static inline double sqr(double val) {
 	return val*val;
 }
+
 
 typedef struct {
 	double avgtime;
@@ -940,20 +942,24 @@ static void print_stats(benchstat stats[COUNTOF(flags)]) {
 
 			double nL1PMisses = stats[i3].counters.native[PEVT_L1P_BAS_MISS];
 			double nL1PHits = stats[i3].counters.native[PEVT_L1P_BAS_HIT];
-			double nL1PAccesses = nL1PHits + nL1PHits;
+			double nL1PAccesses = nL1PHits + nL1PMisses;
 
 			double nL2Misses = stats[i3].counters.native[PEVT_L2_MISSES];
 			double nL2Hits = stats[i3].counters.native[PEVT_L2_HITS];
-			double nL2Access = nL2Misses + nL2Hits;
+			double nL2Accesses = nL2Misses + nL2Hits;
+
+			double nDcbtHits = stats[i3].counters.native[PEVT_LSU_COMMIT_DCBT_HITS];
+			double nDcbtMisses = stats[i3].counters.native[PEVT_LSU_COMMIT_DCBT_MISSES];
+			double nDcbtAccesses = nDcbtHits + nDcbtMisses;
 
 			switch (j) {
 			case pi_cpi:
 				desc = "Cycles per instruction (Thread)";
-				snprintf(str, sizeof(str), "%f", nCycles / nInstructions);
+				snprintf(str, sizeof(str), "%.3f", nCycles / nInstructions);
 				break;
 			case pi_corecpi:
 				desc = "Cycles per instruction (Core)";
-				snprintf(str, sizeof(str), "%.2f", nCoreCycles / nInstructions);
+				snprintf(str, sizeof(str), "%.3f", nCoreCycles / nInstructions);
 				break;
 			case pi_hitinl1:
 				desc = "Loads that hit in L1";
@@ -969,7 +975,11 @@ static void print_stats(benchstat stats[COUNTOF(flags)]) {
 			//	break;
 			case pi_l2hitrate:
 				desc = "L2 hit rate";
-				snprintf(str, sizeof(str), "%.2f %%" ,  100 * nL2Hits / nL2Access);
+				snprintf(str, sizeof(str), "%.2f %%" ,  100 * nL2Hits / nL2Accesses);
+				break;
+			case pi_dcbthitrate:
+				desc = "dcbt hit rate";
+				snprintf(str, sizeof(str), "%.2f %%" ,  100 * nDcbtHits / nDcbtAccesses);
 				break;
 			default:
 				continue;
@@ -996,7 +1006,7 @@ static void exec_bench() {
 			if (g_proc_id == 0) printf("Benchmarking precision: %s\n", sloppinessess_desc[i1]);
 			if (g_proc_id == 0) printf("%10s|", "");
 			for (int i3 = 0; i3 < COUNTOF(flags); i3 += 1) {
-				if (g_proc_id == 0) printf("%"SCELLWIDTH"s|", flags_desc[i3]);
+				if (g_proc_id == 0) printf("%-"SCELLWIDTH"s|", flags_desc[i3]);
 			}
 			if (g_proc_id == 0) printf("\n");
 			print_repeat("-", 10 + 1 + (CELLWIDTH + 1)*COUNTOF(flags));
@@ -1014,10 +1024,9 @@ static void exec_bench() {
 					benchstat result = runbench(1, 3, sloppiness, threads, hmflags);
 					stats[i3] = result;
 
-					if (!kamul && !sloppiness && threads==64 && i3==0) {
+					if (threads==64 && i3==2) {
 						excerpt = result;
 					}
-
 
 					char str[80] = {0};
 					snprintf(str, sizeof(str), "%.0f mflop/s%s" , result.flops / MEGA, (result.error > 0.001) ? "X" : "");
@@ -1033,18 +1042,19 @@ static void exec_bench() {
 				print_repeat("-", 10 + 1 + (CELLWIDTH + 1)*COUNTOF(flags));
 				if (g_proc_id == 0) printf("\n");
 			}
+
+			if (g_proc_id == 0) {
+				printf("Hardware counter excerpt (64 threads, nocom):\n");
+				mypapi_print_counters(&excerpt.counters);
+			}
 			if (g_proc_id == 0) printf("\n");
+
 		}
 
 		if (g_proc_id == 0) printf("\n");
 	}
 
 	if (g_proc_id == 0) printf("Benchmark done\n");
-
-	if (g_proc_id == 0) {
-		 printf("Hardware counter excerpt:\n");
-		mypapi_print_counters(&excerpt.counters);
-	}
 }
 
 

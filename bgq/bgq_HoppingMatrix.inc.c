@@ -58,6 +58,41 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 #pragma omp parallel
 	{
 
+
+		// Setup options
+		bgq_hmflags implicitprefetch = opts & (hm_prefetchimplicitdisable | hm_prefetchimplicitoptimistic | hm_prefetchimplicitconfirmed);
+		L1P_StreamPolicy_t pol;
+
+		switch (implicitprefetch) {
+		case hm_prefetchimplicitdisable:
+			pol = L1P_stream_disable;
+			break;
+		case hm_prefetchimplicitoptimistic:
+			pol = L1P_stream_optimistic;
+			break;
+		case hm_prefetchimplicitconfirmed:
+			pol = noprefetchexplicit ? L1P_stream_confirmed : L1P_confirmed_or_dcbt;
+			break;
+		default:
+			pol = L1P_confirmed_or_dcbt;
+			break;
+		}
+
+			//L1P_CHECK(L1P_SetStreamPolicy(pol));
+
+			L1P_StreamPolicy_t getpol = 0;
+			L1P_CHECK(L1P_GetStreamPolicy(&getpol));
+			if (getpol != pol)
+				fprintf(stderr, "MK StreamPolicy not accepted\n");
+
+			//L1P_CHECK(L1P_SetStreamDepth());
+			//L1P_CHECK(L1P_SetStreamTotalDepth());
+
+			//L1P_GetStreamDepth
+			//L1P_GetStreamTotalDepth
+
+
+
 	// Load kamul constants
 	bgq_vector4double_decl(qka0); // t
 	bgq_cconst(qka0, ka0.re, ka0.im);

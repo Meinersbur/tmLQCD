@@ -26,6 +26,7 @@ typedef struct {
 	//long long preset[PAPI_END_idx];
 	uint64_t native[UPCI_NUM_EVENTS];
 	uint64_t corecycles;
+	uint64_t nodecycles;
 	double secs;
 } mypapi_counters;
 
@@ -36,6 +37,7 @@ typedef enum {
 
 	pi_l1phitrate,
 	pi_l2hitrate,
+	pi_dcbthitrate,
 	__pi_COUNT,
 
 	pi_hitinl1p
