@@ -551,6 +551,7 @@ typedef struct {
 	double error;
 
 	mypapi_counters counters;
+	bgq_hmflags opts;
 } benchstat;
 
 
@@ -725,21 +726,22 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 
 	// Setup options
 	L1P_StreamPolicy_t pol;
-
 	switch (implicitprefetch) {
 	case hm_prefetchimplicitdisable:
-		pol = L1P_stream_disable;
+		pol = noprefetchstream ? L1P_stream_disable : L1P_confirmed_or_dcbt/*No option to selectively disable implicit stream*/;
 		break;
 	case hm_prefetchimplicitoptimistic:
 		pol = L1P_stream_optimistic;
 		break;
 	case hm_prefetchimplicitconfirmed:
-		pol = noprefetchexplicit ? L1P_stream_confirmed : L1P_confirmed_or_dcbt;
+		pol = noprefetchstream ? L1P_stream_confirmed : L1P_confirmed_or_dcbt;
 		break;
 	default:
+		// Default setting
 		pol = L1P_confirmed_or_dcbt;
 		break;
 	}
+
 
 	omp_set_num_threads(ompthreads);
 #pragma omp parallel
@@ -749,16 +751,23 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 
 #pragma omp parallel
 	{
-		L1P_StreamPolicy_t getpol = 0;
-		L1P_CHECK(L1P_GetStreamPolicy(&getpol));
-		if (getpol != pol)
-			fprintf(stderr, "MK StreamPolicy not accepted\n");
+		// Test whether it persists between parallel sections
+		//L1P_StreamPolicy_t getpol = 0;
+		//L1P_CHECK(L1P_GetStreamPolicy(&getpol));
+		//if (getpol != pol)
+		//	fprintf(stderr, "MK StreamPolicy not accepted\n");
 
 		//L1P_CHECK(L1P_SetStreamDepth());
 		//L1P_CHECK(L1P_SetStreamTotalDepth());
 
 		//L1P_GetStreamDepth
 		//L1P_GetStreamTotalDepth
+
+
+		// Peter Boyle's setting
+		// Note: L1P_CFG_PF_USR_pf_stream_establish_enable is never set in L1P_SetStreamPolicy
+		//uint64_t *addr = ((uint64_t*)(Kernel_L1pBaseAddress() + L1P_CFG_PF_USR_ADJUST));
+		//*addr |=  L1P_CFG_PF_USR_pf_stream_est_on_dcbt | L1P_CFG_PF_USR_pf_stream_optimistic | L1P_CFG_PF_USR_pf_stream_prefetch_enable | L1P_CFG_PF_USR_pf_stream_establish_enable; // Enable everything???
 	}
 
 	// Error checking
@@ -858,6 +867,7 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 	result.flops = flops / avgtime;
 	result.error = err;
 	result.counters = counters;
+	result.opts = opts;
 	return result;
 }
 
@@ -891,12 +901,12 @@ static bgq_hmflags flags[] = {
 		hm_nocom,
 		hm_nocom | hm_nosurface | hm_noweylsend,
 		hm_nocom | hm_nobody,
-		hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
-		hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitconfirmed,
-		hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitoptimistic,
-		hm_nocom | hm_noprefetchlist                       | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
-		hm_nocom | hm_noprefetchlist | hm_noprefetchstream                         | hm_prefetchimplicitdisable,
-		hm_nocom                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable };
+		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
+		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitconfirmed,
+		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitoptimistic,
+		hm_nocom | hm_noweylsend | hm_noprefetchlist                       | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
+		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream                         | hm_prefetchimplicitdisable,
+		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable };
 static char* flags_desc[] = {
 		"Com async",
 		"Com sync",
@@ -935,12 +945,23 @@ static void print_stats(benchstat stats[COUNTOF(flags)]) {
 		for (int i3 = 0; i3 < COUNTOF(flags); i3 += 1) {
 			char str[80];
 			str[0] = '\0';
+			benchstat *stat = &stats[i3];
+			bgq_hmflags opts = stat->opts;
 
-			double sites = VOLUME;
+			uint64_t bodySites = BODY_SITES*4;
+			uint64_t surfaceSites = SURFACE_SITES*4;
+			uint64_t sites = bodySites + surfaceSites;
+
 			double nCycles = stats[i3].counters.native[PEVT_CYCLES];
 			double nCoreCycles = stats[i3].counters.corecycles;
+			double nNodeCycles = stats[i3].counters.nodecycles;
 			double nInstructions = stats[i3].counters.native[PEVT_INST_ALL];
 			double nStores = stats[i3].counters.native[PEVT_LSU_COMMIT_STS];
+			double nL1IStalls = stats[i3].counters.native[PEVT_LSU_COMMIT_STS];
+			double nL1IBuffEmpty = stats[i3].counters.native[PEVT_IU_IBUFF_EMPTY_CYC];
+
+			double nIS1Stalls = stats[i3].counters.native[PEVT_IU_IS1_STALL_CYC];
+			double nIS2Stalls = stats[i3].counters.native[PEVT_IU_IS2_STALL_CYC];
 
 			double nCachableLoads = stats[i3].counters.native[PEVT_LSU_COMMIT_CACHEABLE_LDS];
 			double nL1Misses = stats[i3].counters.native[PEVT_LSU_COMMIT_LD_MISSES];
@@ -961,13 +982,23 @@ static void print_stats(benchstat stats[COUNTOF(flags)]) {
 			double nXUInstr = stats[i3].counters.native[PEVT_INST_XU_ALL];
 			double nAXUInstr = stats[i3].counters.native[PEVT_INST_QFPU_ALL];
 			double nXUAXUInstr = nXUInstr + nAXUInstr;
-			double nNecessaryInstr = sites * (240/*QFMA*/ + 180/*QMUL+QADD*/ + 180/*LD+ST*/)/2;
+
+			double nNecessaryInstr = 0;
+			if (!(opts & hm_nobody))
+				nNecessaryInstr += bodySites * (240/*QFMA*/ + 180/*QMUL+QADD*/ + 180/*LD+ST*/)/2;
+			if (!(opts & hm_noweylsend))
+				nNecessaryInstr += HALO_SITES * (2*3*2/*QMUL+QADD*/ + 4*3/*LD*/ + 2*3/*ST*/)/2;
+			if (!(opts & hm_nosurface))
+				nNecessaryInstr += surfaceSites * (240/*QFMA*/ + 180/*QMUL+QADD*/ + 180/*LD+ST*/ - 2*3*2/*QMUL+QADD*/ - 4*3/*LD*/ + 2*3/*LD*/)/2;
 
 			uint64_t nL1PListStarted = stats[i3].counters.native[PEVT_L1P_LIST_STARTED];
 			uint64_t nL1PListAbandoned= stats[i3].counters.native[PEVT_L1P_LIST_ABANDON];
 			uint64_t nL1PListMismatch= stats[i3].counters.native[PEVT_L1P_LIST_MISMATCH];
 			uint64_t nL1PListSkips = stats[i3].counters.native[PEVT_L1P_LIST_SKIP];
 			uint64_t nL1PListOverruns = stats[i3].counters.native[PEVT_L1P_LIST_CMP_OVRUN_PREFCH];
+
+			double nL1PLatePrefetchStalls = stats[i3].counters.native[PEVT_L1P_BAS_LU_STALL_LIST_RD_CYC];
+
 
 			switch (j) {
 			case pi_cpi:
@@ -977,6 +1008,18 @@ static void print_stats(benchstat stats[COUNTOF(flags)]) {
 			case pi_corecpi:
 				desc = "Cycles per instruction (Core)";
 				snprintf(str, sizeof(str), "%.3f", nCoreCycles / nInstructions);
+				break;
+			case pi_l1istalls:
+				desc = "Empty instr buffer";
+				snprintf(str, sizeof(str), "%.2f %%", nL1IBuffEmpty / nCycles);
+				break;
+			case pi_is1stalls:
+				desc = "IS1 Stalls (dependency)";
+				snprintf(str, sizeof(str), "%.2f %%", 100 * nIS1Stalls / nCycles);
+				break;
+			case pi_is2stalls:
+				desc = "IS2 Stalls (func unit)";
+				snprintf(str, sizeof(str), "%.2f %%", 100 * nIS2Stalls / nCycles);
 				break;
 			case pi_hitinl1:
 				desc = "Loads that hit in L1";
@@ -1025,6 +1068,10 @@ static void print_stats(benchstat stats[COUNTOF(flags)]) {
 			case pi_l1plistoverruns:
 				desc = "List prefetch overrun";
 				snprintf(str, sizeof(str), "%llu", nL1PListOverruns);
+				break;
+			case pi_l1plistlatestalls:
+				desc = "Stalls list prefetch behind";
+				snprintf(str, sizeof(str), "%.2f", nL1PLatePrefetchStalls / nCoreCycles);
 				break;
 			default:
 				continue;
@@ -1118,7 +1165,8 @@ static void exec_bench() {
 	if (g_proc_id == 0) printf("Benchmark done\n");
 }
 
-#define DCBT_DIFF 3
+
+#define DCBT_DIFF 1
 
 L1P_Pattern_t *(*fake_sequential_patterns)[2/*even/odd*/][64/*For each thread*/][6/*total threads*/] = NULL;
 
@@ -1130,7 +1178,7 @@ static void hm_fake_sequential(bool isOdd, bgq_spinorfield_double targetfield, b
 	bgq_vector4double_decl(q);
 	bgq_cconst(q, 5.1, 0);
 
-#pragma omp parallel
+#pragma omp parallel firstprivate(bgq_vars(q))
 	{
 		if (!noprefetchlist) {
 			if (!fake_sequential_patterns) {
@@ -1162,7 +1210,9 @@ static void hm_fake_sequential(bool isOdd, bgq_spinorfield_double targetfield, b
 			//L1P_CHECK(L1P_PatternSetEnable(1));
 
 			L1P_CHECK(L1P_SetPattern(*patternhandle));
-			L1P_CHECK(L1P_PatternStart(l1p_first));
+
+
+			L1P_CHECK(L1P_PatternStart(true));
 
 			// Don't have acces to L1P_CFG_PF_USR (segfault)
 			//int pattern_enable = 0;
@@ -1171,11 +1221,17 @@ static void hm_fake_sequential(bool isOdd, bgq_spinorfield_double targetfield, b
 			//	printf("error: List prefetcher not enabled\n");
 		}
 
-#pragma omp for
-		for (int i = 0; i < VOLUME_SITES; i += 1)
-		        {
+		if (!noprefetchstream) {
+			bgq_prefetch_forward(&spinorfield[0]);
+		}
+
+#pragma omp for schedule(static)
+		for (int i = 0; i < VOLUME_SITES; i += 1) {
 			if (!noprefetchexplicit) {
 				bgq_su3_spinor_prefetch_double(&spinorfield[i+DCBT_DIFF]);
+			}
+			if (!noprefetchstream) {
+				bgq_prefetch_forward(&spinorfield[i]);
 			}
 
 			bgq_su3_spinor_decl(spinor);
@@ -1210,7 +1266,7 @@ static void hm_fake_random(bool isOdd, bgq_spinorfield_double targetfield, bgq_s
 	bgq_vector4double_decl(q);
 	bgq_cconst(q, 5.1, 0);
 
-#pragma omp parallel
+#pragma omp parallel firstprivate(bgq_vars(q))
 	{
 
 		if (!noprefetchlist) {
@@ -1243,6 +1299,12 @@ static void hm_fake_random(bool isOdd, bgq_spinorfield_double targetfield, bgq_s
 			//L1P_CHECK(L1P_PatternSetEnable(1));
 
 			L1P_CHECK(L1P_SetPattern(*patternhandle));
+
+			// From Peter Boye's bfm
+			 //uint64_t *pf_usr = (uint64_t *)L1P_CFG_PF_USR;
+			 //*pf_usr |=  L1P_CFG_PF_USR_pf_stream_est_on_dcbt | L1P_CFG_PF_USR_pf_stream_optimistic | L1P_CFG_PF_USR_pf_stream_prefetch_enable | L1P_CFG_PF_USR_pf_stream_establish_enable;
+
+
 			L1P_CHECK(L1P_PatternStart(l1p_first));
 
 			// Don't have acces to L1P_CFG_PF_USR (segfault)
@@ -1252,9 +1314,9 @@ static void hm_fake_random(bool isOdd, bgq_spinorfield_double targetfield, bgq_s
 			//	printf("error: List prefetcher not enabled\n");
 		}
 
-#pragma omp for
-		for (int j = 0; j < VOLUME_SITES; j += 1)
-		        {
+
+#pragma omp for schedule(static)
+		for (int j = 0; j < VOLUME_SITES; j += 1) {
 			if (!noprefetchexplicit) {
 				const long long lj = j + DCBT_DIFF;
 				const int i = (7 * lj + lj * lj) % VOLUME_SITES;
@@ -1265,6 +1327,9 @@ static void hm_fake_random(bool isOdd, bgq_spinorfield_double targetfield, bgq_s
 			// Some pseudo-random access
 			const long long lj = j;
 			const int i = (7 * lj + lj * lj) % VOLUME_SITES;
+			if (!noprefetchstream) {
+				bgq_prefetch_forward(&spinorfield[i]);
+			}
 
 			bgq_su3_spinor_decl(spinor);
 			bgq_su3_spinor_load_double(spinor, &spinorfield[i]);
@@ -1290,7 +1355,7 @@ static void hm_fake_random(bool isOdd, bgq_spinorfield_double targetfield, bgq_s
 
 
 static void exec_fakebench() {
-	if (g_proc_id == 0) printf("Sequential; access:\n");
+	if (g_proc_id == 0) printf("Sequential access:\n");
 	exec_table(false, hm_fake_sequential, NULL, 0);
 	if (g_proc_id == 0) printf("\n");
 

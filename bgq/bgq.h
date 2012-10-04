@@ -822,7 +822,7 @@ typedef struct {
 	#define bgq_prefetch_backward(addr) \
 		__prefetch_by_stream(3/*backward*/,(addr))
 	#define bgq_l1_zero(addr) \
-		__dcbz(addr) /* sets 128 bytes (L2 chache line size) to zero */
+		__dcbz(addr) /* sets 128 bytes (L2 cache line size) to zero */
 	#define bgq_flush(addr) \
 		__dcbf(addr)
 #elif defined(__GNUC__)

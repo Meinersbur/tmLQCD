@@ -41,7 +41,7 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 
 	#if BGQ_PREFETCH_STREAM
 	if (!noprefetchstream) {
-		// Lots of streams (14), still without the border weyl ones
+		// Lots of streams (13), still without the border weyl ones
 #ifndef NDEBUG
 		const bool debug = true;
 #else

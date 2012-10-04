@@ -34,10 +34,14 @@ typedef struct {
 typedef enum {
 	pi_cpi,
 	pi_corecpi,
-	pi_hitinl1,
+	pi_l1istalls,
 	pi_axufraction,
 	pi_overhead,
 
+	pi_is1stalls,
+	pi_is2stalls,
+
+	pi_hitinl1,
 	pi_l1phitrate,
 	pi_l2hitrate,
 	pi_dcbthitrate,
@@ -47,12 +51,13 @@ typedef enum {
 	pi_l1plistmismatch,
 	pi_l1plistskips,
 	pi_l1plistoverruns,
+	pi_l1plistlatestalls,
 	__pi_COUNT,
 
 	pi_hitinl1p
 } mypapi_interpretations;
 
-#define MYPAPI_SETS 4
+#define MYPAPI_SETS 5
 void mypapi_init();
 void mypapi_start(int i);
 mypapi_counters mypapi_stop();

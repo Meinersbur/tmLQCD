@@ -148,8 +148,8 @@ mypapi_counters mypapi_merge_counters(mypapi_counters *counters1, mypapi_counter
 			result.active[i] = counters1->active[i] || counters2->active[i];
 		}
 
-		result.corecycles = ((counters1->set == 0) ?  counters1->corecycles : 0) + ((counters2->set == 0) ?  counters2->corecycles : 0);
-		result.nodecycles = ((counters1->set == 0) ?  counters1->nodecycles : 0) + ((counters2->set == 0) ?  counters2->nodecycles : 0);
+		result.corecycles = ((counters1->set > 0) ?  0 : counters1->corecycles) + ((counters2->set > 0) ? 0 : counters2->corecycles);
+		result.nodecycles = ((counters1->set > 0) ?  0 : counters1->nodecycles) + ((counters2->set > 0) ? 0 : counters2->nodecycles);
 
 		if (g_proc_id == 0 && omp_get_thread_num() == 0) {
 			//fprintf(stderr, "MK Merge result: %llu\n", result.native[PEVT_CYCLES]);
@@ -190,6 +190,21 @@ static mypapi_counters mypapi_bgpm_read(int eventset, int set) {
 		int eventid = Bgpm_GetEventId(eventset, i);
 
 		switch (eventid) {
+		case PEVT_L1P_BAS_LU_STALL_SRT:
+		case PEVT_L1P_BAS_LU_STALL_SRT_CYC:
+		case PEVT_L1P_BAS_LU_STALL_MMIO_DCR:
+		case PEVT_L1P_BAS_LU_STALL_MMIO_DCR_CYC:
+		case PEVT_L1P_BAS_LU_STALL_STRM_DET:
+		case PEVT_L1P_BAS_LU_STALL_STRM_DET_CYC:
+		case PEVT_L1P_BAS_LU_STALL_LIST_RD:
+		case PEVT_L1P_BAS_LU_STALL_LIST_RD_CYC:
+		case PEVT_L1P_BAS_ST:
+		case PEVT_L1P_BAS_LU_STALL_LIST_WRT:
+		case PEVT_L1P_BAS_LU_STALL_LIST_WRT_CYC:
+			// Per core counters
+			if (result.smtid != 0)
+				continue;
+			break;
 		case PEVT_L2_HITS:
 		case PEVT_L2_MISSES:
 		case PEVT_L2_FETCH_LINE:
@@ -257,6 +272,10 @@ void mypapi_init() {
 			int pues = PuEventSets[j][tid];
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_CYCLES));
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_INST_ALL));
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_IU_IL1_MISS_CYC));
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_IU_IBUFF_EMPTY_CYC));
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_BAS_LU_STALL_LIST_RD_CYC)); // Conflict Set #1 // Cycles lookup was held while list fetched addresses
+
 
 			if (tid == 0) {
 				int l2es = L2EventSet[j];
@@ -321,6 +340,20 @@ void mypapi_init() {
 				L2EventSet[j] = -1;
 			}
 		}
+
+		j += 1;
+				{
+					int pues = PuEventSets[j][tid];
+					//BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_CYCLES));
+					BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_IU_IS1_STALL_CYC)); // Register Dependency Stall
+					BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_IU_IS2_STALL_CYC)); // Instruction Issue Stall
+
+					if (tid == 0) {
+						int l2es = L2EventSet[j];
+						BGPM_ERROR(Bgpm_DeleteEventSet(l2es));
+						L2EventSet[j] = -1;
+					}
+				}
 	}
 }
 
