@@ -135,9 +135,9 @@ mypapi_counters mypapi_merge_counters(mypapi_counters *counters1, mypapi_counter
 			switch (i) {
 			case PEVT_CYCLES:
 				// Count PEVT_CYCLES just once
-				if (counters1->set != 0)
+				if (counters1->set > 0)
 					c1 = 0;
-				if (counters2->set != 0)
+				if (counters2->set > 0)
 					c2 = 0;
 				// Fallthrough
 			default:
@@ -145,13 +145,15 @@ mypapi_counters mypapi_merge_counters(mypapi_counters *counters1, mypapi_counter
 				break;
 			}
 			result.native[i] = merged;
+			result.active[i] = counters1->active[i] || counters2->active[i];
 		}
 
 		result.corecycles = ((counters1->set == 0) ?  counters1->corecycles : 0) + ((counters2->set == 0) ?  counters2->corecycles : 0);
 		result.nodecycles = ((counters1->set == 0) ?  counters1->nodecycles : 0) + ((counters2->set == 0) ?  counters2->nodecycles : 0);
 
-		//if (g_proc_id == 0 && omp_get_thread_num() == 0)
-		//		fprintf(stderr, "MK Merge result: %llu\n", result.native[PEVT_CYCLES]);
+		if (g_proc_id == 0 && omp_get_thread_num() == 0) {
+			//fprintf(stderr, "MK Merge result: %llu\n", result.native[PEVT_CYCLES]);
+		}
 		result.init = true;
 	}
 
@@ -203,6 +205,7 @@ static mypapi_counters mypapi_bgpm_read(int eventset, int set) {
 		uint64_t cnt;
 		BGPM_ERROR(Bgpm_ReadEvent(eventset, i, &cnt));
 		result.native[eventid] = cnt;
+		result.active[eventid] = true;
 	}
 
 	// Cycles are the some on the whole node, but shared between smt threads
@@ -254,8 +257,28 @@ void mypapi_init() {
 			int pues = PuEventSets[j][tid];
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_CYCLES));
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_INST_ALL));
+
+			if (tid == 0) {
+				int l2es = L2EventSet[j];
+				BGPM_ERROR(Bgpm_AddEvent(l2es, PEVT_L2_HITS));
+				BGPM_ERROR(Bgpm_AddEvent(l2es, PEVT_L2_MISSES));
+				BGPM_ERROR(Bgpm_AddEvent(l2es, PEVT_L2_FETCH_LINE)); // L2 lines loaded from main memory
+				BGPM_ERROR(Bgpm_AddEvent(l2es, PEVT_L2_STORE_LINE)); // L2 lines stored to main memory
+				BGPM_ERROR(Bgpm_AddEvent(l2es, PEVT_L2_PREFETCH));
+				BGPM_ERROR(Bgpm_AddEvent(l2es, PEVT_L2_STORE_PARTIAL_LINE));
+			}
+		}
+
+		j += 1;
+		{
+			int pues = PuEventSets[j][tid];
+			//BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_CYCLES));
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_LSU_COMMIT_STS)); // Number of completed store commands.
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_LSU_COMMIT_LD_MISSES));
-			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_LSU_COMMIT_CACHEABLE_LDS)); // Number of completed cache-able load commands. (without dcbt)
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_BAS_STRM_LINE_ESTB)); // Conflict set #1 // Lines established for stream prefetch
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_SKIP)); // Conflict set #2 // core address matched a non head of queue list address (per thread)
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_MISMATCH)); // Conflict set #3 // core address does not match a list address
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_STARTED)); // Conflict set #4 // List prefetch process was started
 
 			if (tid == 0) {
 				int l2es = L2EventSet[j];
@@ -268,20 +291,34 @@ void mypapi_init() {
 		{
 			int pues = PuEventSets[j][tid];
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_CYCLES));
-			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_BAS_MISS));
-			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_BAS_HIT)); // Hits in prefetch directory
-			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_BAS_STRM_LINE_ESTB)); // Lines established for stream prefetch
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_LSU_COMMIT_DCBT_MISSES)); // Number of completed dcbt[st][ls][ep] commands that missed the L1 Data Cache.
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_LSU_COMMIT_DCBT_HITS)); // Number of completed dcbt[st][ls][ep] commands that missed the L1 Data Cache.
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_CMP)); // Conflict set #1 // core address was compared against list
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_ABANDON)); // Conflict set #5 // A2 loads mismatching pattern resulted in abandoned list prefetch
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_CMP_OVRUN_PREFCH)); // Conflict set #6 // core address advances faster than prefetch lines can be established dropping prefetches
 
 			if (tid == 0) {
 				int l2es = L2EventSet[j];
-				BGPM_ERROR(Bgpm_AddEvent(l2es, PEVT_L2_HITS));
-				BGPM_ERROR(Bgpm_AddEvent(l2es, PEVT_L2_MISSES));
-				BGPM_ERROR(Bgpm_AddEvent(l2es, PEVT_L2_FETCH_LINE)); // L2 lines loaded from main memory
-				BGPM_ERROR(Bgpm_AddEvent(l2es, PEVT_L2_STORE_LINE)); // L2 lines stored to main memory
-				BGPM_ERROR(Bgpm_AddEvent(l2es, PEVT_L2_PREFETCH));
-				BGPM_ERROR(Bgpm_AddEvent(l2es, PEVT_L2_STORE_PARTIAL_LINE));
+				BGPM_ERROR(Bgpm_DeleteEventSet(l2es));
+				L2EventSet[j] = -1;
+			}
+		}
+
+		j += 1;
+		{
+			int pues = PuEventSets[j][tid];
+			//BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_CYCLES));
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_LSU_COMMIT_CACHEABLE_LDS)); // Number of completed cache-able load commands. (without dcbt)
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_OVF_MEM)); // Conflict set #5 // Written pattern exceeded allocated buffer
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_INST_XU_ALL)); // All XU instructions completed (instructions which use A2 FX unit - UPC_P_XU_OGRP_*).
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_INST_QFPU_ALL)); // Count all completed instructions which processed by the QFPU unit (UPC_P_AXU_OGRP_*)
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_BAS_MISS));// Conflict set #4
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_BAS_HIT)); // Conflict set #2 // Hits in prefetch directory
+
+			if (tid == 0) {
+				int l2es = L2EventSet[j];
+				BGPM_ERROR(Bgpm_DeleteEventSet(l2es));
+				L2EventSet[j] = -1;
 			}
 		}
 	}
@@ -367,8 +404,8 @@ void mypapi_print_counters(mypapi_counters *counters) {
 		fprintf(stderr, "%10llu = %-30s\n", counters->corecycles, "Core cycles");
 	}
 	for (int i = 0; i < lengthof(counters->native); i+=1) {
-		uint64_t val = counters->native[i];
-		if (val != 0) {
+		if (counters->active[i]) {
+			uint64_t val = counters->native[i];
 			//const char *label = Bgpm_GetEventIdLabel(i);
 			Bgpm_EventInfo_t info;
 			BGPM_ERROR(Bgpm_GetEventIdInfo(i, &info));

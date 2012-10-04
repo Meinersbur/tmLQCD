@@ -40,7 +40,8 @@
 #define g_spinorfields_data NAME2(g_spinorfields_data,PRECISION)
 #define g_spinorfields_data_coords NAME2(g_spinorfields_data_coords,PRECISION)
 
-
+#define g_num_total_spinorfields NAME2(g_num_total_spinorfields,PRECISION)
+int g_num_total_spinorfields;
 
 typedef struct {
 	COMPLEX_PRECISION s[4][3][PHYSICAL_LK]; /* 4*3*2*sizeof(COMPLEX_PRECISION) = 384;192 bytes (6;3 L1 cache lines) */

@@ -85,6 +85,7 @@ extern FILE *fmemopen(void *__s, size_t __len, __const char *__modes) __THROW;
 #ifdef BGQ
 #include "bgq/bgq_field.h"
 #include "bgq/bgq_HoppingMatrix.h"
+#include "bgq/bgq.h"
 #endif
 #include <omp.h>
 
@@ -165,6 +166,7 @@ double gatime, getime;
 
 
 static void exec_bench();
+static void exec_fakebench();
 static void check_correctness_double(bool nocom);
 static void check_correctness_float();
 
@@ -498,6 +500,8 @@ int main(int argc, char *argv[])
 		//listprefetch_test(true);
 	}
 }
+	exec_fakebench();
+
 	//check_correctness_double(true);
 	//check_correctness_double(false);
 	//check_correctness_float();
@@ -707,7 +711,7 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags, int k_max) {
 }
 
 
-static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bgq_hmflags opts) {
+static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bgq_hmflags opts, hm_func_double hm_double, hm_func_float hm_float) {
 	const bool nocom = opts & hm_nocom;
 	const bool nooverlap = opts & hm_nooverlap;
 	const bool nokamul = opts & hm_nokamul;
@@ -783,13 +787,13 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 		double start_time = MPI_Wtime();
 		if (sloppyprec) {
 			for (int k = 0; k < 1; k += 1) {
-				bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, opts);
-				bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, opts);
+				hm_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, opts);
+				hm_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, opts);
 			}
 		} else {
 			for (int k = 0; k < 1; k += 1) {
-				bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, opts);
-				bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, opts);
+				hm_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, opts);
+				hm_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, opts);
 			}
 		}
 		double end_time = MPI_Wtime();
@@ -932,9 +936,11 @@ static void print_stats(benchstat stats[COUNTOF(flags)]) {
 			char str[80];
 			str[0] = '\0';
 
+			double sites = VOLUME;
 			double nCycles = stats[i3].counters.native[PEVT_CYCLES];
 			double nCoreCycles = stats[i3].counters.corecycles;
 			double nInstructions = stats[i3].counters.native[PEVT_INST_ALL];
+			double nStores = stats[i3].counters.native[PEVT_LSU_COMMIT_STS];
 
 			double nCachableLoads = stats[i3].counters.native[PEVT_LSU_COMMIT_CACHEABLE_LDS];
 			double nL1Misses = stats[i3].counters.native[PEVT_LSU_COMMIT_LD_MISSES];
@@ -952,6 +958,17 @@ static void print_stats(benchstat stats[COUNTOF(flags)]) {
 			double nDcbtMisses = stats[i3].counters.native[PEVT_LSU_COMMIT_DCBT_MISSES];
 			double nDcbtAccesses = nDcbtHits + nDcbtMisses;
 
+			double nXUInstr = stats[i3].counters.native[PEVT_INST_XU_ALL];
+			double nAXUInstr = stats[i3].counters.native[PEVT_INST_QFPU_ALL];
+			double nXUAXUInstr = nXUInstr + nAXUInstr;
+			double nNecessaryInstr = sites * (240/*QFMA*/ + 180/*QMUL+QADD*/ + 180/*LD+ST*/)/2;
+
+			uint64_t nL1PListStarted = stats[i3].counters.native[PEVT_L1P_LIST_STARTED];
+			uint64_t nL1PListAbandoned= stats[i3].counters.native[PEVT_L1P_LIST_ABANDON];
+			uint64_t nL1PListMismatch= stats[i3].counters.native[PEVT_L1P_LIST_MISMATCH];
+			uint64_t nL1PListSkips = stats[i3].counters.native[PEVT_L1P_LIST_SKIP];
+			uint64_t nL1PListOverruns = stats[i3].counters.native[PEVT_L1P_LIST_CMP_OVRUN_PREFCH];
+
 			switch (j) {
 			case pi_cpi:
 				desc = "Cycles per instruction (Thread)";
@@ -963,11 +980,15 @@ static void print_stats(benchstat stats[COUNTOF(flags)]) {
 				break;
 			case pi_hitinl1:
 				desc = "Loads that hit in L1";
-				snprintf(str, sizeof(str), "%.2f %%" ,  100 * nL1Hits / nCachableLoads);
+				snprintf(str, sizeof(str), "%.2f %%",  100 * nL1Hits / nCachableLoads);
 				break;
 			case pi_l1phitrate:
 				desc = "L1P hit rate";
-				snprintf(str, sizeof(str), "%.2f %%" ,  100 * nL1PHits / nL1PAccesses);
+				snprintf(str, sizeof(str), "%.2f %%",  100 * nL1PHits / nL1PAccesses);
+				break;
+			case pi_overhead:
+				desc = "Instr overhead";
+				snprintf(str, sizeof(str), "%.2f %%", 100 * nNecessaryInstr / nInstructions);
 				break;
 			//case pi_hitinl1p:
 			//	desc = "Loads that hit in L1P";
@@ -975,11 +996,35 @@ static void print_stats(benchstat stats[COUNTOF(flags)]) {
 			//	break;
 			case pi_l2hitrate:
 				desc = "L2 hit rate";
-				snprintf(str, sizeof(str), "%.2f %%" ,  100 * nL2Hits / nL2Accesses);
+				snprintf(str, sizeof(str), "%.2f %%", 100 * nL2Hits / nL2Accesses);
 				break;
 			case pi_dcbthitrate:
 				desc = "dcbt hit rate";
-				snprintf(str, sizeof(str), "%.2f %%" ,  100 * nDcbtHits / nDcbtAccesses);
+				snprintf(str, sizeof(str), "%.2f %%", 100 * nDcbtHits / nDcbtAccesses);
+				break;
+			case pi_axufraction:
+				desc = "FXU instrs";
+				snprintf(str, sizeof(str), "%.2f %%", 100 * nAXUInstr / nXUAXUInstr);
+				break;
+			case pi_l1pliststarted:
+				desc = "List prefetch started";
+				snprintf(str, sizeof(str), "%llu", nL1PListStarted);
+				break;
+			case pi_l1plistabandoned:
+				desc = "List prefetch abandoned";
+				snprintf(str, sizeof(str), "%llu", nL1PListAbandoned);
+				break;
+			case pi_l1plistmismatch:
+				desc = "List prefetch mismatch";
+				snprintf(str, sizeof(str), "%llu", nL1PListMismatch);
+				break;
+			case pi_l1plistskips:
+				desc = "List prefetch skip";
+				snprintf(str, sizeof(str), "%llu", nL1PListSkips);
+				break;
+			case pi_l1plistoverruns:
+				desc = "List prefetch overrun";
+				snprintf(str, sizeof(str), "%llu", nL1PListOverruns);
 				break;
 			default:
 				continue;
@@ -992,8 +1037,68 @@ static void print_stats(benchstat stats[COUNTOF(flags)]) {
 	}
 }
 
-static void exec_bench() {
+
+static void exec_table(bool sloppiness, hm_func_double hm_double, hm_func_float hm_float, bgq_hmflags additional_opts) {
 	benchstat excerpt;
+
+	if (g_proc_id == 0)
+		printf("%10s|", "");
+	for (int i3 = 0; i3 < COUNTOF(flags); i3 += 1) {
+		if (g_proc_id == 0)
+			printf("%-"SCELLWIDTH"s|", flags_desc[i3]);
+	}
+	if (g_proc_id == 0)
+		printf("\n");
+	print_repeat("-", 10 + 1 + (CELLWIDTH + 1) * COUNTOF(flags));
+	if (g_proc_id == 0)
+		printf("\n");
+	for (int i2 = 0; i2 < COUNTOF(omp_threads); i2 += 1) {
+		int threads = omp_threads[i2];
+
+		if (g_proc_id == 0)
+			printf("%-10s|", omp_threads_desc[i2]);
+
+		benchstat stats[COUNTOF(flags)];
+		for (int i3 = 0; i3 < COUNTOF(flags); i3 += 1) {
+			bgq_hmflags hmflags = flags[i3];
+			hmflags = hmflags | additional_opts;
+
+			benchstat result = runbench(1, 3, sloppiness, threads, hmflags, hm_double, hm_float);
+			stats[i3] = result;
+
+			if (threads == 64 && i3 == 2) {
+				excerpt = result;
+			}
+
+			char str[80] = { 0 };
+			snprintf(str, sizeof(str), "%.0f mflop/s%s", result.flops / MEGA, (result.error > 0.001) ? "X" : "");
+			if (g_proc_id == 0)
+				printf("%"SCELLWIDTH"s|", str);
+			if (g_proc_id == 0)
+				fflush(stdout);
+		}
+		if (g_proc_id == 0)
+			printf("\n");
+
+		if (g_proc_id == 0) {
+			print_stats(stats);
+		}
+
+		print_repeat("-", 10 + 1 + (CELLWIDTH + 1) * COUNTOF(flags));
+		if (g_proc_id == 0)
+			printf("\n");
+	}
+
+	if (g_proc_id == 0) {
+		printf("Hardware counter excerpt (64 threads, nocom):\n");
+		mypapi_print_counters(&excerpt.counters);
+	}
+	if (g_proc_id == 0)
+		printf("\n");
+}
+
+
+static void exec_bench() {
 	print_repeat("\n", 2);
 
 	for (int i0 = 0; i0 < COUNTOF(kamuls); i0 += 1) {
@@ -1004,51 +1109,7 @@ static void exec_bench() {
 			bool sloppiness = sloppinessess[i1];
 
 			if (g_proc_id == 0) printf("Benchmarking precision: %s\n", sloppinessess_desc[i1]);
-			if (g_proc_id == 0) printf("%10s|", "");
-			for (int i3 = 0; i3 < COUNTOF(flags); i3 += 1) {
-				if (g_proc_id == 0) printf("%-"SCELLWIDTH"s|", flags_desc[i3]);
-			}
-			if (g_proc_id == 0) printf("\n");
-			print_repeat("-", 10 + 1 + (CELLWIDTH + 1)*COUNTOF(flags));
-			if (g_proc_id == 0) printf("\n");
-			for (int i2 = 0; i2 < COUNTOF(omp_threads); i2 += 1) {
-				int threads = omp_threads[i2];
-
-				if (g_proc_id == 0) printf("%-10s|", omp_threads_desc[i2]);
-
-				benchstat stats[COUNTOF(flags)];
-				for (int i3 = 0; i3 < COUNTOF(flags); i3 += 1) {
-					bgq_hmflags hmflags = flags[i3];
-					hmflags = hmflags | (!kamul * hm_nokamul);
-
-					benchstat result = runbench(1, 3, sloppiness, threads, hmflags);
-					stats[i3] = result;
-
-					if (threads==64 && i3==2) {
-						excerpt = result;
-					}
-
-					char str[80] = {0};
-					snprintf(str, sizeof(str), "%.0f mflop/s%s" , result.flops / MEGA, (result.error > 0.001) ? "X" : "");
-					if (g_proc_id == 0) printf("%"SCELLWIDTH"s|", str);
-					if (g_proc_id == 0) fflush(stdout);
-				}
-				if (g_proc_id == 0) printf("\n");
-
-				if (g_proc_id == 0) {
-					print_stats(stats);
-				}
-
-				print_repeat("-", 10 + 1 + (CELLWIDTH + 1)*COUNTOF(flags));
-				if (g_proc_id == 0) printf("\n");
-			}
-
-			if (g_proc_id == 0) {
-				printf("Hardware counter excerpt (64 threads, nocom):\n");
-				mypapi_print_counters(&excerpt.counters);
-			}
-			if (g_proc_id == 0) printf("\n");
-
+			exec_table(sloppiness, bgq_HoppingMatrix_double, bgq_HoppingMatrix_float, !kamul * hm_nokamul);
 		}
 
 		if (g_proc_id == 0) printf("\n");
@@ -1057,4 +1118,184 @@ static void exec_bench() {
 	if (g_proc_id == 0) printf("Benchmark done\n");
 }
 
+#define DCBT_DIFF 3
+
+L1P_Pattern_t *(*fake_sequential_patterns)[2/*even/odd*/][64/*For each thread*/][6/*total threads*/] = NULL;
+
+static void hm_fake_sequential(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bgq_hmflags opts) {
+	const bool noprefetchlist = opts & hm_noprefetchlist;
+	const bool noprefetchstream = opts & hm_noprefetchstream;
+	const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
+
+	bgq_vector4double_decl(q);
+	bgq_cconst(q, 5.1, 0);
+
+#pragma omp parallel
+	{
+		if (!noprefetchlist) {
+			if (!fake_sequential_patterns) {
+				fake_sequential_patterns = malloc(sqr(g_num_total_spinorfields_double) * sizeof(*fake_sequential_patterns));
+				memset(fake_sequential_patterns, 0, sqr(g_num_total_spinorfields_double) * sizeof(*fake_sequential_patterns));
+			}
+
+			int targetindex = bgq_spinorfield_find_index_double(targetfield);
+			int spinorindex = bgq_spinorfield_find_index_double(spinorfield);
+			int totThreads = omp_get_num_threads();
+			L1P_Pattern_t **patternhandle = &fake_sequential_patterns[targetindex + spinorindex][isOdd][Kernel_ProcessorID()][ilog(totThreads)];
+			bool l1p_first = false;
+			if (!*patternhandle) {
+				//const uint64_t prefsize = 10000/*how to choose this?*/;
+				const uint64_t prefsize = 2/*safety*/ * 2*(2 + 2) * VOLUME_SITES / totThreads;
+				int retval = L1P_GetPattern(patternhandle);
+				if (retval == L1P_NOTCONFIGURED) {
+					L1P_CHECK(L1P_PatternConfigure(prefsize));
+					L1P_CHECK(L1P_GetPattern(patternhandle));
+				} else {
+					L1P_CHECK(retval);
+					L1P_CHECK(L1P_AllocatePattern(prefsize, patternhandle));
+				}
+				l1p_first = true;
+			}
+			assert(*patternhandle);
+
+			// Don't have acces to L1P_CFG_PF_USR (segfault)
+			//L1P_CHECK(L1P_PatternSetEnable(1));
+
+			L1P_CHECK(L1P_SetPattern(*patternhandle));
+			L1P_CHECK(L1P_PatternStart(l1p_first));
+
+			// Don't have acces to L1P_CFG_PF_USR (segfault)
+			//int pattern_enable = 0;
+			//L1P_CHECK(L1P_PatternGetEnable(&pattern_enable));
+			//if (!pattern_enable)
+			//	printf("error: List prefetcher not enabled\n");
+		}
+
+#pragma omp for
+		for (int i = 0; i < VOLUME_SITES; i += 1)
+		        {
+			if (!noprefetchexplicit) {
+				bgq_su3_spinor_prefetch_double(&spinorfield[i+DCBT_DIFF]);
+			}
+
+			bgq_su3_spinor_decl(spinor);
+			bgq_su3_spinor_load_double(spinor, &spinorfield[i]);
+
+			// Do some transformation
+			bgq_su3_spinor_decl(result);
+			bgq_su3_cvmul(result_v0, q, spinor_v0);
+			bgq_su3_cvmul(result_v1, q, spinor_v1);
+			bgq_su3_cvmul(result_v2, q, spinor_v2);
+			bgq_su3_cvmul(result_v3, q, spinor_v3);
+
+			if (!noprefetchexplicit) {
+				bgq_su3_spinor_zeroload_double(&targetfield[i]);
+			}
+			bgq_su3_spinor_store_double(&targetfield[i], result);
+		}
+
+		if (!noprefetchlist) {
+			L1P_CHECK(L1P_PatternStop());
+		}
+	}
+}
+
+L1P_Pattern_t *(*fake_random_patterns)[2/*even/odd*/][64/*For each thread*/][6/*total threads*/] = NULL;
+
+static void hm_fake_random(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bgq_hmflags opts) {
+	const bool noprefetchlist = opts & hm_noprefetchlist;
+	const bool noprefetchstream = opts & hm_noprefetchstream;
+	const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
+
+	bgq_vector4double_decl(q);
+	bgq_cconst(q, 5.1, 0);
+
+#pragma omp parallel
+	{
+
+		if (!noprefetchlist) {
+			if (!fake_random_patterns) {
+				fake_random_patterns = malloc(sqr(g_num_total_spinorfields_double) * sizeof(*fake_random_patterns));
+				memset(fake_random_patterns, 0, sqr(g_num_total_spinorfields_double) * sizeof(*fake_random_patterns));
+			}
+
+			int targetindex = bgq_spinorfield_find_index_double(targetfield);
+			int spinorindex = bgq_spinorfield_find_index_double(spinorfield);
+			int totThreads = omp_get_num_threads();
+			L1P_Pattern_t **patternhandle = &fake_random_patterns[targetindex + spinorindex][isOdd][Kernel_ProcessorID()][ilog(totThreads)];
+			bool l1p_first = false;
+			if (!*patternhandle) {
+				//const uint64_t prefsize = 10000/*how to choose this?*/;
+				const uint64_t prefsize = 2 * /*safety*/2 * (2 + 2) * VOLUME_SITES / totThreads;
+				int retval = L1P_GetPattern(patternhandle);
+				if (retval == L1P_NOTCONFIGURED) {
+					L1P_CHECK(L1P_PatternConfigure(prefsize));
+					L1P_CHECK(L1P_GetPattern(patternhandle));
+				} else {
+					L1P_CHECK(retval);
+					L1P_CHECK(L1P_AllocatePattern(prefsize, patternhandle));
+				}
+				l1p_first = true;
+			}
+			assert(*patternhandle);
+
+			// Don't have acces to L1P_CFG_PF_USR (segfault)
+			//L1P_CHECK(L1P_PatternSetEnable(1));
+
+			L1P_CHECK(L1P_SetPattern(*patternhandle));
+			L1P_CHECK(L1P_PatternStart(l1p_first));
+
+			// Don't have acces to L1P_CFG_PF_USR (segfault)
+			//int pattern_enable = 0;
+			//L1P_CHECK(L1P_PatternGetEnable(&pattern_enable));
+			//if (!pattern_enable)
+			//	printf("error: List prefetcher not enabled\n");
+		}
+
+#pragma omp for
+		for (int j = 0; j < VOLUME_SITES; j += 1)
+		        {
+			if (!noprefetchexplicit) {
+				const long long lj = j + DCBT_DIFF;
+				const int i = (7 * lj + lj * lj) % VOLUME_SITES;
+
+				bgq_su3_spinor_prefetch_double(&spinorfield[i]);
+			}
+
+			// Some pseudo-random access
+			const long long lj = j;
+			const int i = (7 * lj + lj * lj) % VOLUME_SITES;
+
+			bgq_su3_spinor_decl(spinor);
+			bgq_su3_spinor_load_double(spinor, &spinorfield[i]);
+
+			// Do some transformation
+			bgq_su3_spinor_decl(result);
+			bgq_su3_cvmul(result_v0, q, spinor_v0);
+			bgq_su3_cvmul(result_v1, q, spinor_v1);
+			bgq_su3_cvmul(result_v2, q, spinor_v2);
+			bgq_su3_cvmul(result_v3, q, spinor_v3);
+
+			if (!noprefetchexplicit) {
+				bgq_su3_spinor_zeroload_double(&targetfield[i]);
+			}
+			bgq_su3_spinor_store_double(&targetfield[i], result);
+		}
+
+		if (!noprefetchlist) {
+			L1P_CHECK(L1P_PatternStop());
+		}
+	}
+}
+
+
+static void exec_fakebench() {
+	if (g_proc_id == 0) printf("Sequential; access:\n");
+	exec_table(false, hm_fake_sequential, NULL, 0);
+	if (g_proc_id == 0) printf("\n");
+
+	if (g_proc_id == 0) printf("Random access:\n");
+	exec_table(false, hm_fake_random, NULL, 0);
+	if (g_proc_id == 0) printf("\n");
+}
 

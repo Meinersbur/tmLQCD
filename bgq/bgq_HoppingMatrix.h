@@ -33,6 +33,10 @@ extern uint64_t fetch_depth[64];
 extern uint64_t generate_depth[64];
 extern L1P_Status_t l1plist_status[64];
 
+#define hm_func NAME2(hm_func,PRECISION)
+typedef void (*hm_func_double)(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bgq_hmflags opts);
+typedef void (*hm_func_float)(bool isOdd, bgq_spinorfield_float targetfield, bgq_spinorfield_float spinorfield, bgq_gaugefield_float gaugefield, bgq_hmflags opts);
+
 
 #define bgq_HoppingMatrix NAME2(bgq_HoppingMatrix,PRECISION)
 void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bgq_hmflags opts);

@@ -374,6 +374,7 @@ EXTERN_INLINE double min(double const lhs, double const rhs) {
 }
 
 // from stackoverflow
+// log_2(_v)
 EXTERN_INLINE int ilog(unsigned int _v) {
 	int ret;
 	int m;

@@ -27,6 +27,7 @@ typedef struct {
 	uint64_t native[UPCI_NUM_EVENTS];
 	uint64_t corecycles;
 	uint64_t nodecycles;
+	bool active[UPCI_NUM_EVENTS];
 	double secs;
 } mypapi_counters;
 
@@ -34,16 +35,24 @@ typedef enum {
 	pi_cpi,
 	pi_corecpi,
 	pi_hitinl1,
+	pi_axufraction,
+	pi_overhead,
 
 	pi_l1phitrate,
 	pi_l2hitrate,
 	pi_dcbthitrate,
+
+	pi_l1pliststarted,
+	pi_l1plistabandoned,
+	pi_l1plistmismatch,
+	pi_l1plistskips,
+	pi_l1plistoverruns,
 	__pi_COUNT,
 
 	pi_hitinl1p
 } mypapi_interpretations;
 
-#define MYPAPI_SETS 2
+#define MYPAPI_SETS 4
 void mypapi_init();
 void mypapi_start(int i);
 mypapi_counters mypapi_stop();

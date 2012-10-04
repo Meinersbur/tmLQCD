@@ -38,7 +38,7 @@ static int g_num_spinorfields = -1;
 static int g_num_chi_spinorfields = -1;
 static int g_chi_up_spinorfield_first = -1;
 static int g_chi_dn_spinorfield_first = -1;
-static int g_num_total_spinorfields = -1;
+int g_num_total_spinorfields = -1;
 
 
 #if BGQ_FIELD_COORDCHECK

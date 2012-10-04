@@ -34,6 +34,7 @@ void bgq_spinorfield_mul_weyl_complex(bgq_spinorfield targetfield, bgq_spinorfie
 
 #pragma omp parallel for schedule(static) firstprivate(bgq_vars(qz), bgq_vars(qw))
 	for (int txy = 0; txy < VOLUME_ZLINES; txy += 1) {
+		//TODO: No reason for this specific order
 		WORKLOAD_DECL(txy, VOLUME_ZLINES);
 		const int tv = WORKLOAD_PARAM(PHYSICAL_LTV);
 		const int x = WORKLOAD_PARAM(PHYSICAL_LX);
