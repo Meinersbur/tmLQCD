@@ -8,6 +8,7 @@ autom4te.cache/
 *.log
 config.h
 config.status
+/fixed_volume.h
 /hmc_tm
 *~
 .deps/

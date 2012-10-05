@@ -9,37 +9,42 @@
 #define bgq_HoppingMatrix_impl NAME5(bgq_HoppingMatrix,KAMUL_NAME,PRECISION,DCBT_NAME,ODDNESS_NAME)
 
 void bgq_HoppingMatrix_impl(bool isOdd, bgq_spinorfield targetfield, bgq_spinorfield spinorfield, bgq_gaugefield gaugefield, bgq_hmflags opts) {
-#if !defined(ODDNESS)
-#elif ODDNESS
-	assert(!isOdd);
-	isOdd = true;
-#define isOdd true
-#else
-	assert(isOdd);
-	isOdd = false;
-#define isOdd false
+#if defined(ODDNESS)
+	#if ODDNESS
+		assert(!isOdd);
+		isOdd = true;
+		#define isOdd true
+	#else
+		assert(isOdd);
+		isOdd = false;
+		#define isOdd false
+	#endif
 #endif
 	const bool nocom = opts & hm_nocom;
 	const bool nooverlap = opts & hm_nooverlap;
-#if !defined(BGQ_HM_NOKAMUL)
-	const bool nokamul = opts & hm_nokamul;
-#elif BGQ_HM_NOKAMUL
-	assert(opts & hm_nokamul);
-	const bool nokamul = true;
+#if defined(BGQ_HM_NOKAMUL)
+	#if BGQ_HM_NOKAMUL
+		assert(opts & hm_nokamul);
+		const bool nokamul = true;
+	#else
+		assert(!(opts & hm_nokamul));
+		const bool nokamul = false;
+	#endif
 #else
-	assert(!(opts & hm_nokamul));
-	const bool nokamul = false;
+	const bool nokamul = opts & hm_nokamul;
 #endif
 	const bool noprefetchlist = opts & hm_noprefetchlist;
 	const bool noprefetchstream = opts & hm_noprefetchstream;
-#if !defined(BGQ_DCBT_DISABLE)
-	const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
-#elif BGQ_DCBT_DISABLE
-	assert(opts & hm_noprefetchexplicit);
-	const bool noprefetchexplicit = true;
+#if defined(BGQ_DCBT_DISABLE)
+	#if BGQ_DCBT_DISABLE
+		assert(opts & hm_noprefetchexplicit);
+		const bool noprefetchexplicit = true;
+	#else
+		assert(!(opts & hm_noprefetchexplicit));
+		const bool noprefetchexplicit = false;
+	#endif
 #else
-	assert(!(opts & hm_noprefetchexplicit));
-	const bool noprefetchexplicit = false;
+	const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
 #endif
 	const bool noweylsend = opts & hm_noweylsend;
 	const bool nobody = opts & hm_nobody;

@@ -20,8 +20,12 @@
 #include <omp.h>
 #include <stddef.h>
 
+#ifdef XLC
 #include <l1p/sprefetch.h>
+#endif
+#if BGQ_PREFETCH_LIST
 #include <l1p/pprefetch.h>
+#endif
 
 #ifndef BGQ_FIELD_COORDCHECK
 #define BGQ_FIELD_COORDCHECK 0
@@ -299,8 +303,11 @@ void bgq_init_spinorfields(int count, int chi_count) {
 	g_chi_up_spinorfield_first = count;
 	g_chi_dn_spinorfield_first = count + chi_count;
 
-	//int datasize = g_num_total_spinorfields * READTOTLENGTH;
+#if 0
+	int datasize = g_num_total_spinorfields * READTOTLENGTH * sizeof(PRECISION);
+#else
 	int datasize = g_num_total_spinorfields * sizeof(*g_spinorfields_data) * VOLUME_SITES;
+#endif
 	g_spinorfields_data = malloc_aligned(datasize, 128);
 	#if BGQ_FIELD_COORDCHECK
 		g_spinorfields_data_coords = malloc_aligned(datasize, 128);
@@ -1242,24 +1249,10 @@ void bgq_hm_init() {
 		MPI_CHECK(MPI_Send_init(weylxchange_send[d], size / PRECISION_BYTES, MPI_PRECISION, weylexchange_destination[d], d, g_cart_grid, &(weylexchange_request_send[d])));
 	}
 
-
 	//MPI_CHECK(MPI_Recv_init(weylxchange_recv[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_dn, 0, g_cart_grid, &recvrequest));
 	//MPI_CHECK(MPI_Send_init(weylxchange_send[0], weylxchange_size[0] / PRECISION_BYTES, MPI_PRECISION, g_nb_t_up, 0, g_cart_grid, &sendrequest));
-
-
-
-#if 1
-#pragma omp parallel
-	{
-	L1P_CHECK(L1P_SetStreamPolicy(L1P_stream_disable));
-
-	L1P_StreamPolicy_t pol;
-	L1P_CHECK(L1P_GetStreamPolicy(&pol));
-	if (pol != L1P_stream_disable)
-		master_print("MK StreamPolicy not accepted\n");
-	}
-#endif
 }
+
 
 void bgq_hm_free() {
 	for (direction d = TUP; d <= YDOWN; d += 1) {

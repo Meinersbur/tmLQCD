@@ -89,15 +89,14 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 #pragma omp parallel
 	{
 		int threads = omp_get_num_threads();
-		size_t readtotlength = READTOTLENGTH;
-		size_t writetotlength = WRITETOTLENGTH;
 
 		PRECISION *tmp;
-		PRECISION *addr = ((PRECISION*)spinorfield) + readtotlength / threads;
+		PRECISION *addr = ((PRECISION*)spinorfield) + READTOTLENGTH / threads;
 		addr = (PRECISION*)((size_t)addr & ~(32-1)); // alignment
 
-		PRECISION *writeaddr = ((PRECISION*)targetfield) + writetotlength / threads;
+		PRECISION *writeaddr = ((PRECISION*)targetfield) + WRITETOTLENGTH / threads;
 		writeaddr = (PRECISION*)((size_t)writeaddr & ~(32-1)); // alignment
+
 
 	// Load kamul constants
 	bgq_vector4double_decl(qka0); // t

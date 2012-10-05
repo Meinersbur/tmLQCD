@@ -1,9 +1,16 @@
 #ifndef MYPAPI
 #define MYPAPI
 
+
 #include <stdbool.h>
-#include <papi.h>
+#include <stdint.h>
+
+#ifdef XLC
+//#include <papi.h>
 #include <upci/events.h>
+#else
+#define UPCI_NUM_EVENTS 5
+#endif
 
 #ifndef STRINGIFY
 #define STRINGIFY(x) #x

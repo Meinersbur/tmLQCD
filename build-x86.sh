@@ -52,7 +52,8 @@ CFLAGS="${CFLAGS} -DBGQ_FIELD_COORDCHECK=0"
 CFLAGS="${CFLAGS} -DMPI=1"
 #CFLAGS="${CFLAGS} -DXLC=1"
 CFLAGS="${CFLAGS} -DBGQ_HM_CARRY=1"
-CFLAGS="${CFLAGS} -DBGQ_REPLACE=1"
+CFLAGS="${CFLAGS} -DBGQ_REPLACE=0"
+CFLAGS="${CFLAGS} -DPAPI=0"
 
 
 #LDFLAGS="-lgomp -lblas"
@@ -62,6 +63,7 @@ LDFLAGS="${LDFLAGS} -lblas"
 
 #-./configure --with-lapack="-llapack" --with-limedir="${ROOTPATH}/lime" --enable-mpi --with-mpidimension=3 --disable-halfspinor CC="mpicc" CFLAGS="-g -O0 -ffast-math -fopenmp -Wall -Wundef -DBGQ=1 -DBGQ_QPX=0 -DBGQ_FIELD_COORDCHECK=0 -I/usr/lib/gcc/x86_64-linux-gnu/4.6/include -I/usr/include/openmpi -DBGQ_PREFETCH_EXPLICIT=0 -DBGQ_PREFETCH_STREAM=0 -DBGQ_PREFETCH_LIST=0 -DMPI=1 -DBGQ_HM_CARRY=1 -DBGQ_REPLACE=0" OPTARGS="-O0 -g eart " SOPTARGS="-O0 -g badfg" --enable-optimize=no LDFLAGS="-lgomp -lblas"
 CONFIGURE=""
+CONFIGURE="${CONFIGURE} --with-fixedvolume"
 #CONFIGURE="${CONFIGURE} --with-alignment=32"
 CONFIGURE="${CONFIGURE} --without-bgldram"
 CONFIGURE="${CONFIGURE} --with-limedir=${ROOTPATH}/lime"

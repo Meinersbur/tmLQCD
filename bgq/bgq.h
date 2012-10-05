@@ -941,5 +941,21 @@ typedef struct {
 	bgq_flush((char*)(addr) +  64)
 	// 96 bytes
 
+#ifndef XLC
+#include <omp.h>
+
+static inline int Kernel_ProcessorID() {
+ return omp_get_thread_num();
+}
+
+static inline int Kernel_ProcessorThreadID() {
+ return 0;
+}
+
+static inline int Kernel_ProcessorCoreID() {
+return omp_get_thread_num();
+}
+#endif
+
 #endif /* BGQ_H_ */
 

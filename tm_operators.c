@@ -449,13 +449,16 @@ void H_eo_tm_inv_psi(spinor * const l, spinor * const k,
 
 void mul_one_pm_imu_inv(spinor * const l, const double _sign){
 #if BGQ_REPLACE
+	{
 	double sign = _sign >= 0 ? -1 : 1;
+	double nrm = 1./(1.+g_mu*g_mu);
 
 	bgq_spinorfield_double spinorfield = bgq_translate_spinorfield_double(l);
 
 	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield);
-	bgq_spinorfield_mul_weyl_complex(spinorfield, spinorfield, isOdd, nrm + sign*nrm*g_mu*_Complex_I, nrm - sign*nrm*g_mu*_Complex_I);
+	bgq_spinorfield_mul_weyl_complex_double(spinorfield, spinorfield, isOdd, nrm + sign*nrm*g_mu*_Complex_I, nrm - sign*nrm*g_mu*_Complex_I);
 	return;
+	}
 #endif
 
   complex z,w;
@@ -528,6 +531,7 @@ void mul_one_pm_imu_inv(spinor * const l, const double _sign){
 
 void assign_mul_one_pm_imu_inv(spinor * const l, spinor * const k, const double _sign){
 #if BGQ_REPLACE
+	{
 	double sign = _sign >= 0 ? -1 : 0;
 	double nrm = 1./(1.+g_mu*g_mu);
 
@@ -536,8 +540,9 @@ void assign_mul_one_pm_imu_inv(spinor * const l, spinor * const k, const double 
 
 	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_l);
 	assert(isOdd == bgq_spinorfield_isOdd_double(spinorfield_k));
-	bgq_spinorfield_mul_weyl_complex(spinorfield_l, spinorfield_k, isOdd, nrm + sign*nrm*g_mu*_Complex_I, nrm - sign*nrm*g_mu*_Complex_I);
+	bgq_spinorfield_mul_weyl_complex_double(spinorfield_l, spinorfield_k, isOdd, nrm + sign*nrm*g_mu*_Complex_I, nrm - sign*nrm*g_mu*_Complex_I);
 	return;
+	}
 #endif
 
   complex z,w;
@@ -673,6 +678,7 @@ void mul_one_pm_imu(spinor * const l, const double _sign){
 
 void assign_mul_one_pm_imu(spinor * const l, spinor * const k, const double _sign){
 #if BGQ_REPLACE
+	{
 	double sign = _sign >= 0 ? 1 : -1;
 
 	bgq_spinorfield_double spinorfield_l = bgq_translate_spinorfield_double(l);
@@ -681,6 +687,7 @@ void assign_mul_one_pm_imu(spinor * const l, spinor * const k, const double _sig
 	bool isOdd = bgq_spinorfield_isOdd_double(spinorfield_k);
 	bgq_spinorfield_mul_weyl_complex_double(spinorfield_l, spinorfield_k, isOdd, 1 + sign*g_mu*_Complex_I, 1 - sign*g_mu*_Complex_I);
 	return;
+	}
 #endif
 
   complex z,w;
