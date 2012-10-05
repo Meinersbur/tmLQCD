@@ -299,7 +299,7 @@ void bgq_init_spinorfields(int count, int chi_count) {
 	g_chi_up_spinorfield_first = count;
 	g_chi_dn_spinorfield_first = count + chi_count;
 
-	int datasize = g_num_total_spinorfields * sizeof(*g_spinorfields_data) * VOLUME_SITES;
+	int datasize = g_num_total_spinorfields * READTOTLENGTH;//g_num_total_spinorfields * sizeof(*g_spinorfields_data) * VOLUME_SITES;
 	g_spinorfields_data = malloc_aligned(datasize, 128);
 	#if BGQ_FIELD_COORDCHECK
 		g_spinorfields_data_coords = malloc_aligned(datasize, 128);

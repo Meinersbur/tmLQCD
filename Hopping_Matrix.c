@@ -2479,6 +2479,7 @@ void Hopping_Matrix(int ieo, spinor * const l, spinor * const k){
 
 /* else of If defined SSE2  and if defined XLC */
 #  else
+#undef HopVerMsg
 #define HopVerMsg printf("Hopping_Matrix full_spinor generic edition");
 static su3_vector psi1, psi2, psi, chi, phi1, phi3;
 

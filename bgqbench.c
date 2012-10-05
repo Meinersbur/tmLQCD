@@ -990,6 +990,8 @@ static void print_stats(benchstat stats[COUNTOF(flags)]) {
 				nNecessaryInstr += HALO_SITES * (2*3*2/*QMUL+QADD*/ + 4*3/*LD*/ + 2*3/*ST*/)/2;
 			if (!(opts & hm_nosurface))
 				nNecessaryInstr += surfaceSites * (240/*QFMA*/ + 180/*QMUL+QADD*/ + 180/*LD+ST*/ - 2*3*2/*QMUL+QADD*/ - 4*3/*LD*/ + 2*3/*LD*/)/2;
+			if (!(opts & hm_nokamul))
+				nNecessaryInstr += sites * 8*2*3*6;
 
 			uint64_t nL1PListStarted = stats[i3].counters.native[PEVT_L1P_LIST_STARTED];
 			uint64_t nL1PListAbandoned= stats[i3].counters.native[PEVT_L1P_LIST_ABANDON];
@@ -1031,7 +1033,7 @@ static void print_stats(benchstat stats[COUNTOF(flags)]) {
 				break;
 			case pi_overhead:
 				desc = "Instr overhead";
-				snprintf(str, sizeof(str), "%.2f %%", 100 * nNecessaryInstr / nInstructions);
+				snprintf(str, sizeof(str), "%.2f %%", 100 * (nInstructions - nNecessaryInstr) / nInstructions);
 				break;
 			//case pi_hitinl1p:
 			//	desc = "Loads that hit in L1P";

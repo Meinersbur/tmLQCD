@@ -1,3 +1,31 @@
+
+#undef BGQ_SPINORSITE
+#define BGQ_SPINORSITE(spinorfield, isOdd, tv, x, y, z, t1, t2, isRead, isWrite) (bgq_spinorsite*)(isRead ? /*read*/(tmp=addr,addr+=2*4*3*2,tmp) : (isWrite ? /*write*/(tmp=writeaddr,writeaddr+=2*4*3*2,tmp) : /*prefetch*/(addr) ) )
+#undef BGQ_SPINORSITE_LEFT
+#define BGQ_SPINORSITE_LEFT BGQ_SPINORSITE
+#undef BGQ_SPINORSITE_RIGHT
+#define BGQ_SPINORSITE_RIGHT BGQ_SPINORSITE
+
+#undef BGQ_WEYLSITE_T
+#define BGQ_WEYLSITE_T(weylfield, isOdd, t, xv, y, z, x1, x2, isRead, isWrite) (bgq_weylsite*)(isRead ? /*read*/(tmp=addr,addr+=2*2*3*2,tmp) : (isWrite ? /*write*/(tmp=writeaddr,writeaddr+=2*2*3*2,tmp) : /*prefetch*/(addr) ) )
+#undef BGQ_WEYLSITE_X
+#define BGQ_WEYLSITE_X BGQ_WEYLSITE_T
+#undef BGQ_WEYLSITE_Y
+#define BGQ_WEYLSITE_Y BGQ_WEYLSITE_T
+#undef BGQ_WEYLSITE_Z
+#define BGQ_WEYLSITE_Z BGQ_WEYLSITE_T
+#undef BGQ_WEYLSITE_T_LEFT
+#define BGQ_WEYLSITE_T_LEFT BGQ_WEYLSITE_T
+#undef BGQ_WEYLSITE_T_RIGHT
+#define BGQ_WEYLSITE_T_RIGHT BGQ_WEYLSITE_T
+
+#undef BGQ_GAUGESITE
+#define BGQ_GAUGESITE(gaugefield,isOdd,tv,x,y,z,dir,t1,t2,isRead,isWrite) (bgq_gaugesite*)(isRead ? /*read*/(tmp=addr,addr+=2*3*3*2,tmp) : (isWrite ? /*write*/(tmp=writeaddr,writeaddr+=2*3*3*2,tmp) : /*prefetch*/(addr) ) )
+#undef BGQ_GAUGESITE_LEFT
+#define BGQ_GAUGESITE_LEFT BGQ_GAUGESITE
+#undef BGQ_GAUGESITE_RIGHT
+#define BGQ_GAUGESITE_RIGHT BGQ_GAUGESITE
+
 #ifndef BGQ_HM_NOFUNC
 #include "bgq_HoppingMatrix.h"
 #include "bgq_field_double.h"
@@ -16,6 +44,7 @@
 #define BGQ_HM_SITE_NOFUNC 1
 #define BGQ_HM_DIR_NOFUNC 1
 //#define DD1_L1P_Workaround 1
+
 
 // isOdd refers to the oddness of targetfield; spinorfield will have the opposite oddness
 void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bool nocom, bool nooverlapcom, bool nokamul, bool withprefetchlist, bool withprefetchstream, bool withprefetchexplicit, bool coordcheck) {
@@ -57,6 +86,17 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 
 #pragma omp parallel
 	{
+		int threads = omp_get_num_threads();
+		size_t readtotlength = READTOTLENGTH;
+		size_t writetotlength = WRITETOTLENGTH;
+
+		PRECISION *tmp;
+		PRECISION *addr = ((PRECISION*)spinorfield) + readtotlength / threads;
+		addr = (PRECISION*)((size_t)addr & ~(32-1)); // alignment
+
+		PRECISION *writeaddr = ((PRECISION*)targetfield) + writetotlength / threads;
+		writeaddr = (PRECISION*)((size_t)writeaddr & ~(32-1)); // alignment
+
 	// Load kamul constants
 	bgq_vector4double_decl(qka0); // t
 	bgq_cconst(qka0, ka0.re, ka0.im);

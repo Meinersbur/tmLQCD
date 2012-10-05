@@ -49,6 +49,8 @@ EXTERN_INLINE complex c992cs(double _Complex c99) {
 
 #define NAME2(s1,s2) CONCAT3(s1,_,s2)
 #define NAME3(s1,s2,s3) NAME2(CONCAT3(s1,_,s2),s3)
+#define NAME4(s1,s2,s3,s4) NAME3(CONCAT3(s1,_,s2),s3,s4)
+#define NAME5(s1,s2,s3,s4,s5) NAME4(CONCAT3(s1,_,s2),s3,s4,s5)
 
 #define MAKENAME CONCAT2(tmp,__LINE__) /* TODO: Use __COUNTER__ if available */
 #define MAKENAME1(s1) CONCAT3(MAKENAME, _, s1)

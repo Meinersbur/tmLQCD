@@ -130,6 +130,7 @@ LDFLAGS="${LDFLAGS} -L$HOME/usr/lib -lpapi"
 # FC=bgxlf_r
 CONFIGURE=""
 #CONFIGURE="${CONFIGURE} --with-alignment=32"
+CONFIGURE="${CONFIGURE} --with-fixedvolume"
 CONFIGURE="${CONFIGURE} --without-bgldram"
 CONFIGURE="${CONFIGURE} --with-limedir=${ROOTPATH}/lime"
 CONFIGURE="${CONFIGURE} --enable-mpi"
@@ -149,6 +150,7 @@ CONFIGURE="${CONFIGURE} FC=bgxlf_r"
 
 CONFIGURE="${CONFIGURE} --enable-optimize=no"
 #CONFIGURE="${CONFIGURE} --with-lemondir=${ROOTPATH}/lemon"
+
 
 
 

@@ -208,9 +208,10 @@ void tmlqcd_mpi_init(int argc,char *argv[]) {
   /* exactly correspond to the one in g_cart_grid */
   reorder = 0;
 #  endif
-
+#ifndef FIXEDVOLUME
   N_PROC_T=0; /* the other N_PROC_? are read from input, if not constraint below */
               /* N_PROC_T will be set by MPI_Dims_create, if not constraint below */
+#endif
 #  if defined PARALLELT
   ndims = 1;
 #    ifndef FIXEDVOLUME
@@ -360,6 +361,10 @@ void tmlqcd_mpi_init(int argc,char *argv[]) {
   CMALLOC_ERROR_EXIT(halffield_buffer_z2);
 #  endif
 # endif
+
+  LX_global = LX*g_nproc_x;
+  LY_global = LY*g_nproc_y;
+  LZ_global = LZ*g_nproc_z;
 
   MPI_Cart_create(MPI_COMM_WORLD, nalldims, dims, periods, reorder, &g_cart_grid);
   MPI_Comm_rank(g_cart_grid, &g_cart_id);

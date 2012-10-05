@@ -1,9 +1,9 @@
 #ifndef BGQ_FIELD_H_
 #define BGQ_FIELD_H_
 
+#include "../global.h"
 #include "bgq_utils.h"
 #include "complex_c99.h"
-#include "../global.h"
 #include "../read_input.h"
 #include <stdbool.h>
 #include <assert.h>
@@ -16,7 +16,6 @@
 #define EXTERN_INLINE extern inline
 #define EXTERN_FIELD
 #endif
-
 
 #define LOCAL_LP 2 /* Even/Odd */
 #define LOCAL_LT T
@@ -98,6 +97,8 @@ typedef enum {
 typedef _Complex double complexdouble;
 typedef _Complex float complexfloat;
 
+#define READTOTLENGTH (2*4*3*2/*spinors*/ *(8*VOLUME_SITES) + 2*9*2/*su3*/ * (8*VOLUME_SITES) + 2*2*3*2/*weyl*/ * (HALO_SITES))
+#define WRITETOTLENGTH (2*4*3*2/*spinors*/ *(VOLUME_SITES) + 2*2*3*2/*weyl*/ * (HALO_SITES))
 
 
 #define BGQ_SPINORSITE_ACCESS(spinorfield, isOdd, tv, x, y, z) \

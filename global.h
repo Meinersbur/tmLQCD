@@ -31,6 +31,9 @@
  *
  *
  ***************************************************************/
+#ifdef HAVE_CONFIG_H
+# include<config.h>
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 #ifdef MPI
@@ -72,6 +75,9 @@ EXTERN int g_relative_precision_flag;
 EXTERN int g_debug_level;
 
 EXTERN int T_global;
+EXTERN int LX_global;
+EXTERN int LY_global;
+EXTERN int LZ_global;
 #ifndef FIXEDVOLUME
 EXTERN int T, L, LX, LY, LZ, VOLUME;
 EXTERN int N_PROC_T, N_PROC_X, N_PROC_Y, N_PROC_Z;

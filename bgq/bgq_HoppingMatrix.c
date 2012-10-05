@@ -8,9 +8,11 @@
 #include "bgq_HoppingMatrix.h"
 
 
+#if BGQ_PREFETCH_LIST
 uint64_t fetch_depth[64];
 uint64_t generate_depth[64];
 L1P_Status_t l1plist_status[64];
+#endif
 
 //#ifdef HAVE_CONFIG_H
 //#include <config.h>
@@ -55,17 +57,40 @@ void Hopping_Matrix_nocom(const int ieo, spinor * const l, spinor * const k) {
 void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bgq_hmflags opts) {
 	const bool nokamul = opts & hm_nokamul;
 	const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
+	const bool fixedoddness = opts & hm_fixedoddness;
 
 	if (nokamul) {
-		if (noprefetchexplicit)
-			bgq_HoppingMatrix_nokamul_double_nodcbt(isOdd, targetfield, spinorfield, gaugefield, opts);
-		else
-			bgq_HoppingMatrix_nokamul_double(isOdd, targetfield, spinorfield, gaugefield, opts);
+		if (noprefetchexplicit) {
+			if (!fixedoddness)
+				bgq_HoppingMatrix_nokamul_double_nodcbt_evenodd(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else if (!isOdd)
+				bgq_HoppingMatrix_nokamul_double_nodcbt_even(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else
+				bgq_HoppingMatrix_nokamul_double_nodcbt_odd(isOdd, targetfield, spinorfield, gaugefield, opts);
+		} else {
+			if (!fixedoddness)
+				bgq_HoppingMatrix_nokamul_double_dcbt_evenodd(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else if (!isOdd)
+				bgq_HoppingMatrix_nokamul_double_dcbt_even(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else
+				bgq_HoppingMatrix_nokamul_double_dcbt_odd(isOdd, targetfield, spinorfield, gaugefield, opts);
+		}
 	} else {
-		if (noprefetchexplicit)
-			bgq_HoppingMatrix_kamul_double_nodcbt(isOdd, targetfield, spinorfield, gaugefield, opts);
-		else
-			bgq_HoppingMatrix_kamul_double(isOdd, targetfield, spinorfield, gaugefield, opts);
+		if (noprefetchexplicit) {
+			if (!fixedoddness)
+				bgq_HoppingMatrix_kamul_double_nodcbt_evenodd(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else if (!isOdd)
+				bgq_HoppingMatrix_kamul_double_nodcbt_even(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else
+				bgq_HoppingMatrix_kamul_double_nodcbt_odd(isOdd, targetfield, spinorfield, gaugefield, opts);
+		} else {
+			if (!fixedoddness)
+				bgq_HoppingMatrix_kamul_double_dcbt_evenodd(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else if (!isOdd)
+				bgq_HoppingMatrix_kamul_double_dcbt_even(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else
+				bgq_HoppingMatrix_kamul_double_dcbt_odd(isOdd, targetfield, spinorfield, gaugefield, opts);
+		}
 	}
 }
 
@@ -73,17 +98,40 @@ void bgq_HoppingMatrix_double(bool isOdd, bgq_spinorfield_double targetfield, bg
 void bgq_HoppingMatrix_float(bool isOdd, bgq_spinorfield_float targetfield, bgq_spinorfield_float spinorfield, bgq_gaugefield_float gaugefield, bgq_hmflags opts) {
 	const bool nokamul = opts & hm_nokamul;
 	const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
+	const bool fixedoddness = opts & hm_fixedoddness;
 
 	if (nokamul) {
-		if (noprefetchexplicit)
-			bgq_HoppingMatrix_nokamul_float_nodcbt(isOdd, targetfield, spinorfield, gaugefield, opts);
-		else
-			bgq_HoppingMatrix_nokamul_float(isOdd, targetfield, spinorfield, gaugefield, opts);
+		if (noprefetchexplicit) {
+			if (!fixedoddness)
+				bgq_HoppingMatrix_nokamul_float_nodcbt_evenodd(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else if (!isOdd)
+				bgq_HoppingMatrix_nokamul_float_nodcbt_even(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else
+				bgq_HoppingMatrix_nokamul_float_nodcbt_odd(isOdd, targetfield, spinorfield, gaugefield, opts);
+		} else {
+			if (!fixedoddness)
+				bgq_HoppingMatrix_nokamul_float_dcbt_evenodd(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else if (!isOdd)
+				bgq_HoppingMatrix_nokamul_float_dcbt_even(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else
+				bgq_HoppingMatrix_nokamul_float_dcbt_odd(isOdd, targetfield, spinorfield, gaugefield, opts);
+		}
 	} else {
-		if (noprefetchexplicit)
-			bgq_HoppingMatrix_kamul_float_nodcbt(isOdd, targetfield, spinorfield, gaugefield, opts);
-		else
-			bgq_HoppingMatrix_kamul_float(isOdd, targetfield, spinorfield, gaugefield, opts);
+		if (noprefetchexplicit) {
+			if (!fixedoddness)
+				bgq_HoppingMatrix_kamul_float_nodcbt_evenodd(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else if (!isOdd)
+				bgq_HoppingMatrix_kamul_float_nodcbt_even(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else
+				bgq_HoppingMatrix_kamul_float_nodcbt_odd(isOdd, targetfield, spinorfield, gaugefield, opts);
+		} else {
+			if (!fixedoddness)
+				bgq_HoppingMatrix_kamul_float_dcbt_evenodd(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else if (!isOdd)
+				bgq_HoppingMatrix_kamul_float_dcbt_even(isOdd, targetfield, spinorfield, gaugefield, opts);
+			else
+				bgq_HoppingMatrix_kamul_float_dcbt_odd(isOdd, targetfield, spinorfield, gaugefield, opts);
+		}
 	}
 }
 

@@ -227,13 +227,13 @@ int write_binary_gauge_data(LimeWriter * limewriter, const int prec, DML_Checksu
     tock = MPI_Wtime();
 
     if (g_cart_id == 0) {
-      engineering(measure, L * L * L * T_global * bytes, "b");
+      engineering(measure, LX_global * LY_global * LZ_global * T_global * bytes, "b");
       fprintf(stdout, "Time spent writing %s ", measure);
       engineering(measure, tock-tick, "s");
       fprintf(stdout, "was %s.\n", measure);
-      engineering(measure, (L * L * L * T_global) * bytes / (tock-tick), "b/s");
+      engineering(measure, (LX_global * LY_global * LZ_global * T_global) * bytes / (tock-tick), "b/s");
       fprintf(stdout, "Writing speed: %s", measure);
-      engineering(measure, (L * L * L * T_global) * bytes / (g_nproc * (tock-tick)), "b/s");
+      engineering(measure, (LX_global * LY_global * LZ_global * T_global) * bytes / (g_nproc * (tock-tick)), "b/s");
       fprintf(stdout, " (%s per MPI process).\n", measure);
     }
   }

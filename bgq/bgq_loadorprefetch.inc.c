@@ -26,6 +26,17 @@
 
 #if BGQ_LOADORPREFETCH_PREFETCH
 
+#if BGQ_DCBT_DISABLE
+
+#define bgq_su3_spinor_loadorprefetch(dst,addr)
+#define bgq_su3_spinor_loadorprefetch_left(dst,addr)
+#define bgq_su3_spinor_loadorprefetch_right(dst,addr)
+#define bgq_su3_weyl_loadorprefetch(dst,addr)
+#define bgq_su3_weyl_loadorprefetch_left(dst,addr)
+#define bgq_su3_weyl_loadorprefetch_right(dst,addr)
+#define bgq_su3_matrix_loadorprefetch(dst,addr)
+
+#else
 
 #define bgq_su3_spinor_loadorprefetch(dst,addr) \
 	bgq_su3_spinor_prefetch(addr)
@@ -47,6 +58,8 @@
 
 #define bgq_su3_matrix_loadorprefetch(dst,addr) \
 	bgq_su3_matrix_prefetch(addr)
+
+#endif
 
 
 #elif BGQ_LOADORPREFETCH_LOAD

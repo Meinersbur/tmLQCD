@@ -24,7 +24,7 @@ int write_binary_spinor_data(spinor * const s, spinor * const r,
                              LemonWriter * lemonwriter, DML_Checksum *checksum, int const prec)
 {
   int x, y, z, t, i = 0, xG, yG, zG, tG;
-  int globaldims[] = {T_global, L, L, L};
+  int globaldims[] = {T_global, LX_global, LY_global, LZ_global};
   int scidacMapping[] = {0, 3, 2, 1};
   unsigned long bufoffset = 0;
   char *filebuffer = NULL;
@@ -86,13 +86,13 @@ int write_binary_spinor_data(spinor * const s, spinor * const r,
     tock = MPI_Wtime();
 
     if (g_cart_id == 0) {
-      engineering(measure, L * L * L * T_global * bytes, "b");
+      engineering(measure, LX_global * LY_global * LZ_global * T_global * bytes, "b");
       fprintf(stdout, "Time spent writing %s ", measure);
       engineering(measure, tock - tick, "s");
       fprintf(stdout, "was %s.\n", measure);
-      engineering(measure, (L * L * L * T_global) * bytes / (tock - tick), "b/s");
+      engineering(measure, (LX_global * LY_global * LZ_global * T_global) * bytes / (tock - tick), "b/s");
       fprintf(stdout, "Writing speed: %s", measure);
-      engineering(measure, (L * L * L * T_global) * bytes / (g_nproc * (tock - tick)), "b/s");
+      engineering(measure, (LX_global * LY_global * LZ_global * T_global) * bytes / (g_nproc * (tock - tick)), "b/s");
       fprintf(stdout, " (%s per MPI process).\n", measure);
       fflush(stdout);
     }
@@ -220,13 +220,13 @@ int write_binary_spinor_data(spinor * const s, spinor * const r, LimeWriter * wr
     tock = MPI_Wtime();
 
     if (g_cart_id == 0) {
-      engineering(measure, L * L * L * T_global * bytes, "b");
+      engineering(measure, LX_global * LY_global * LZ_global * T_global * bytes, "b");
       fprintf(stdout, "Time spent writing %s ", measure);
       engineering(measure, tock - tick, "s");
       fprintf(stdout, "was %s.\n", measure);
-      engineering(measure, (L * L * L * T_global) * bytes / (tock - tick), "b/s");
+      engineering(measure, (LX_global * LY_global * LZ_global * T_global) * bytes / (tock - tick), "b/s");
       fprintf(stdout, "Writing speed: %s", measure);
-      engineering(measure, (L * L * L * T_global) * bytes / (g_nproc * (tock - tick)), "b/s");
+      engineering(measure, (LX_global * LY_global * LZ_global * T_global) * bytes / (g_nproc * (tock - tick)), "b/s");
       fprintf(stdout, " (%s per MPI process).\n", measure);
       fflush(stdout);
     }

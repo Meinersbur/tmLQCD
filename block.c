@@ -117,10 +117,10 @@ int init_blocks() {
   for (i = 0; i < 2; ++i) {
     block_list[i].id = i;
     block_list[i].volume = VOLUME/2;
-    block_list[i].LX = LX;
-    block_list[i].LY = LY;
-    block_list[i].LZ = LZ/2;
-    block_list[i].T = T;
+    block_list[i].bLX = LX;
+    block_list[i].bLY = LY;
+    block_list[i].bLZ = LZ/2;
+    block_list[i].bT = T;
     block_list[i].ns = g_N_s;
     block_list[i].spinpad = spinpad;
     for (j = 0 ; j < 6; ++j) {
@@ -256,10 +256,10 @@ int check_blocks_geometry(block * blk) {
     }
   }
   
-  if(itest[blk->volume + blk->spinpad-1] != 2*(blk->LX*blk->LY*blk->LZ+blk->T*blk->LX*blk->LY+blk->T*blk->LY*blk->LZ+blk->T*blk->LX*blk->LZ)) {
+  if(itest[blk->volume + blk->spinpad-1] != 2*(blk->bLX*blk->bLY*blk->bLZ+blk->bT*blk->bLX*blk->bLY+blk->bT*blk->bLY*blk->bLZ+blk->bT*blk->bLX*blk->bLZ)) {
     if(g_proc_id == 0){
       printf("error in block geometry, boundary points wrong %d != %d\n",
-             itest[blk->volume + blk->spinpad-1], 2*(blk->LX*blk->LY*blk->LZ+blk->T*blk->LX*blk->LY+blk->T*blk->LY*blk->LZ+blk->T*blk->LX*blk->LZ));
+             itest[blk->volume + blk->spinpad-1], 2*(blk->bLX*blk->bLY*blk->bLZ+blk->bT*blk->bLX*blk->bLY+blk->bT*blk->bLY*blk->bLZ+blk->bT*blk->bLX*blk->bLZ));
     }
   }
   k+= itest[blk->volume + blk->spinpad-1];

@@ -32,7 +32,7 @@ typedef struct {
   /**** Data members ****/
   int volume;                   /* the block local 4 volume */
   int id;                       /* mpilocal block id */
-  int LX, LY, LZ, T;            /* block local sizes */
+  int bLX, bLY, bLZ, bT;            /* block local sizes */
   int ns;                       /* the number of basis fields, which is needed almost everywhere */
   int coordinate[4];            /* global block coordinate */
   int mpilocal_coordinate[4];   /* mpi process local coordinate */

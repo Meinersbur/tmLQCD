@@ -8,9 +8,9 @@ paramsIldgFormat *construct_paramsIldgFormat(int const prec)
     kill_with_error(NULL, g_cart_id, "Could not allocate paramsIldgFormat.");
 
   format->prec = prec;
-  format->nx = L;
-  format->ny = L;
-  format->nz = L;
+  format->nx = LX_global;
+  format->ny = LY_global;
+  format->nz = LZ_global;
   format->nt = T_global;
 
   return format;

@@ -27,7 +27,7 @@ int write_gauge_field(char * filename, const int prec, paramsXlfInfo const *xlfI
   DML_Checksum     checksum;
   paramsIldgFormat *ildg;
 
-  bytes = (uint64_t)L * L * L * T_global * sizeof(su3) * prec / 16;
+  bytes = (uint64_t)LX_global * LY_global * LZ_global * T_global * sizeof(su3) * prec / 16;
 
   /* the 0 is for not appending */
   construct_writer(&writer, filename, 0);
