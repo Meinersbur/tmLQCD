@@ -1,4 +1,5 @@
 
+#if 0
 #undef BGQ_SPINORSITE
 #define BGQ_SPINORSITE(spinorfield, isOdd, tv, x, y, z, t1, t2, isRead, isWrite) (bgq_spinorsite*)(isRead ? /*read*/(tmp=addr,addr+=2*4*3*2,tmp) : (isWrite ? /*write*/(tmp=writeaddr,writeaddr+=2*4*3*2,tmp) : /*prefetch*/(addr) ) )
 #undef BGQ_SPINORSITE_LEFT
@@ -25,6 +26,7 @@
 #define BGQ_GAUGESITE_LEFT BGQ_GAUGESITE
 #undef BGQ_GAUGESITE_RIGHT
 #define BGQ_GAUGESITE_RIGHT BGQ_GAUGESITE
+#endif
 
 #ifndef BGQ_HM_NOFUNC
 #include "bgq_HoppingMatrix.h"

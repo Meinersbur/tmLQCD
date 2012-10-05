@@ -239,10 +239,10 @@ void bgq_init_spinorfields(int count, int chi_count) {
 		master_error(1, "ERROR: even_odd_flag must be set\n");
 
 	if (LOCAL_LT < 8) /* even/odd, 2-complex vectors, left and right border cannot be the same */
-		master_error(1, "ERROR: Local T-dimension must be at least 8 such that left and right (vectorized) surface do not overlap\n");
+		master_error(1, "ERROR: Local T-dimension (=%d) must be at least 8 such that left and right (vectorized) surface do not overlap\n", LOCAL_LT);
 
 	if (mod(LOCAL_LT,4)!=0) /* even/odd, 2-complex vectors, */
-		master_error(1, "ERROR: Local T-dimension must be a multiple of 4 (vector width * 2 for even/odd)\n");
+		master_error(1, "ERROR: Local T-dimension (=%d) must be a multiple of 4 (vector width * 2 for even/odd)\n", LOCAL_LT);
 
 	if (LOCAL_LX < 2) /* border up- and down- surfaces cannot collapse */
 		master_error(1, "ERROR: Local X-dimension must be larger than 2, such that surfaces do not overlap\n");
@@ -299,7 +299,8 @@ void bgq_init_spinorfields(int count, int chi_count) {
 	g_chi_up_spinorfield_first = count;
 	g_chi_dn_spinorfield_first = count + chi_count;
 
-	int datasize = g_num_total_spinorfields * READTOTLENGTH;//g_num_total_spinorfields * sizeof(*g_spinorfields_data) * VOLUME_SITES;
+	//int datasize = g_num_total_spinorfields * READTOTLENGTH;
+	int datasize = g_num_total_spinorfields * sizeof(*g_spinorfields_data) * VOLUME_SITES;
 	g_spinorfields_data = malloc_aligned(datasize, 128);
 	#if BGQ_FIELD_COORDCHECK
 		g_spinorfields_data_coords = malloc_aligned(datasize, 128);
@@ -487,8 +488,8 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 
 					if (norm1_val > 0.01) {
 						if (first) {
-							if (!silent)
-								master_print("Coordinate (%d,%d,%d,%d)(%d,%d): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t,x,y,z,v,c,creal(refvalue), cimag(refvalue),creal(bgqvalue),cimag(bgqvalue),norm1_val);
+							//if (!silent)
+							//	master_print("Coordinate (%d,%d,%d,%d)(%d,%d): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t,x,y,z,v,c,creal(refvalue), cimag(refvalue),creal(bgqvalue),cimag(bgqvalue),norm1_val);
 							worker_count += 1;
 							//fprintf(stderr, "Coordinate (%d,%d,%d,%d)(%d,%d): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t,x,y,z,v,c,creal(refvalue), cimag(refvalue),creal(bgqvalue),cimag(bgqvalue),norm1_val);
 							//__asm__("int3");

@@ -502,9 +502,9 @@ int main(int argc, char *argv[])
 }
 	exec_fakebench();
 
-	//check_correctness_double(true);
-	//check_correctness_double(false);
-	//check_correctness_float();
+	check_correctness_double(true);
+	check_correctness_double(false);
+	check_correctness_float();
 	assert(even_odd_flag);
 	exec_bench();
 

@@ -25,15 +25,15 @@
 
 /* Set the next 8 number! */
 
-#    define Tdef 4*12
-#    define Xdef 4*12
-#    define Ydef 2*12
-#    define Zdef 1*12
+#    define Tdef (4*12)
+#    define Xdef (4*12)
+#    define Ydef (2*12)
+#    define Zdef (1*12)
 
-#    define N_PROC_T 12
-#    define N_PROC_X 12
-#    define N_PROC_Y 12
-#    define N_PROC_Z 12
+#    define N_PROC_T 4
+#    define N_PROC_X 4
+#    define N_PROC_Y 2
+#    define N_PROC_Z 1
 
 /* The rest is done automatially */
 
