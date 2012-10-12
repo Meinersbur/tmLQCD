@@ -1028,6 +1028,7 @@ void bgq_init_gaugefield() {
 
 	g_gaugefield = &g_gaugefield_data;
 
+
 #if BGQ_FIELD_COORDCHECK
 	for (int isOdd = false; isOdd <= true; isOdd += 1) {
 		for (direction dir = TUP; dir <= TUP_SHIFT; dir += 2) {

@@ -29,7 +29,8 @@ typedef enum {
 	hm_prefetchimplicitoptimistic = 2 << 10,
 	hm_prefetchimplicitconfirmed = 3 << 10,
 
-	hm_l1pnonstoprecord = 1 << 2
+	hm_l1pnonstoprecord = 1 << 12,
+	hm_experimental = 1 << 13
 } bgq_hmflags;
 
 #if BGQ_PREFETCH_LIST

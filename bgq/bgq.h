@@ -247,6 +247,10 @@ typedef struct {
 	(addr) = (void*)((char*)(addr) + (size_t)(offset)); \
 	bgq_lda_double(dst,(addr));
 
+#define bgq_dcbt(addr,offset)
+#define bgq_dcbt_0(addr)
+#define bgq_dcbi(addr,offset)
+#define bgq_dcbi_0(addr)
 
 #else
 #define bgq_elem0(arg) \
@@ -334,6 +338,33 @@ typedef struct {
 
 #define bgq_qvlfduxa(dst,addr,offset) \
 	asm ("qvlfduxa %[v4d],%[ptr],%[off]  \n" : [v4d] "=v" (dst), [ptr] "+b" (addr) : [off] "r" (offset) ) /* no memory clobber, so pay attention! */
+
+#define bgq_qvstfduxa(data,addr,offset) \
+	asm ("qvstfduxa %[v4d],%[ptr],%[off]  \n" : [ptr] "+b" (addr) : [v4d] "v" (data), [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
+
+
+#define bgq_dcbt(addr,offset)  \
+	asm ("dcbt %[offset],%[ptr]  \n" : : [offset] "b" (offset), [ptr] "r" (addr)) /* no memory clobber, hope that the compiler doesn't move this around too much */
+
+#define bgq_dcbt_0(addr) \
+	asm ("dcbt 0,%[ptr]  \n" : : [ptr] "r" (addr)) /* no memory clobber, hope that the compiler doesn't move this around too much */
+
+#define bgq_dcbi(addr,offset) \
+
+// Causes SIGILL
+#define bgq_dcbi(addr,offset) \
+	//asm ("dcbi %offset,%[ptr]  \n" : : [offset] "b" (offset), [ptr] "r" (addr)) /* no memory clobber, hope that the compiler doesn't move this around too much */
+
+// Causes SIGILL
+#define bgq_dcbi_0(addr) \
+	//asm ("dcbi 0,%[ptr]  \n" : : [ptr] "r" (addr)) /* no memory clobber, hope that the compiler doesn't move this around too much */
+
+#define bgq_dcbz(addr,offset)  \
+	asm ("dcbz %[offset],%[ptr]  \n" : : [offset] "b" (offset), [ptr] "r" (addr))
+
+#define bgq_dcbz_0(addr)  \
+	asm ("dcbz 0,%[ptr]  \n" : : [ptr] "r" (addr))
+
 
 #endif
 
@@ -503,21 +534,21 @@ typedef struct {
 #define bgq_su3_spinor_load NAME2(bgq_su3_spinor_load,PRECISION)
 #if BGQ_QPX
 #define bgq_su3_spinor_load_double(dst, addr) \
-{\
+do {\
 	bgq_lda_double(NAME3(dst,v0,c0),   0, addr); /* qvlfdxa */ \
 	void *ptr = (addr); \
-	bgq_qvlfduxa(NAME3(dst,v0,c1), addr, 32); \
-	bgq_qvlfduxa(NAME3(dst,v0,c2), addr, 32); \
-	bgq_qvlfduxa(NAME3(dst,v1,c0), addr, 32); \
-	bgq_qvlfduxa(NAME3(dst,v1,c1), addr, 32); \
-	bgq_qvlfduxa(NAME3(dst,v1,c2), addr, 32); \
-	bgq_qvlfduxa(NAME3(dst,v2,c0), addr, 32); \
-	bgq_qvlfduxa(NAME3(dst,v2,c1), addr, 32); \
-	bgq_qvlfduxa(NAME3(dst,v2,c2), addr, 32); \
-	bgq_qvlfduxa(NAME3(dst,v3,c0), addr, 32); \
-	bgq_qvlfduxa(NAME3(dst,v3,c1), addr, 32); \
-	bgq_qvlfduxa(NAME3(dst,v3,c2), addr, 32); \
-}
+	bgq_qvlfduxa(NAME3(dst,v0,c1), ptr, 32); \
+	bgq_qvlfduxa(NAME3(dst,v0,c2), ptr, 32); \
+	bgq_qvlfduxa(NAME3(dst,v1,c0), ptr, 32); \
+	bgq_qvlfduxa(NAME3(dst,v1,c1), ptr, 32); \
+	bgq_qvlfduxa(NAME3(dst,v1,c2), ptr, 32); \
+	bgq_qvlfduxa(NAME3(dst,v2,c0), ptr, 32); \
+	bgq_qvlfduxa(NAME3(dst,v2,c1), ptr, 32); \
+	bgq_qvlfduxa(NAME3(dst,v2,c2), ptr, 32); \
+	bgq_qvlfduxa(NAME3(dst,v3,c0), ptr, 32); \
+	bgq_qvlfduxa(NAME3(dst,v3,c1), ptr, 32); \
+	bgq_qvlfduxa(NAME3(dst,v3,c2), ptr, 32); \
+} while (0)
 #if 0
 	asm ("qvlfduxa %[v0_c1],%[ptr],%[c32]  \n" : [v0_c1] "=v" (NAME3(dst,v0,c1)), [ptr] "+b" (addr) : [c32] "r" (32) ); \
 	asm ("qvlfduxa %[v0_c2],%[ptr],%[c32]  \n" : [v0_c2] "=v" (NAME3(dst,v0,c2)), [ptr] "+b" (addr) : [c32] "r" (32) ); \
@@ -650,7 +681,7 @@ typedef struct {
 #define bgq_su3_matrix_load NAME2(bgq_su3_matrix_load,PRECISION)
 #if BGQ_QPX
 #define bgq_su3_matrix_load_double(dst, addr) \
-{\
+do {\
 	bgq_lda_double(NAME2(dst,c00),   0, addr); /* qvlfdxa */ \
 	void *ptr = (addr); \
 	bgq_qvlfduxa(NAME2(dst,c00), addr, 32); \
@@ -662,7 +693,7 @@ typedef struct {
 	bgq_qvlfduxa(NAME2(dst,c20), addr, 32); \
 	bgq_qvlfduxa(NAME2(dst,c21), addr, 32); \
 	bgq_qvlfduxa(NAME2(dst,c22), addr, 32); \
-}
+} while (0)
 #else
 #define bgq_su3_matrix_load_double(dest, addr) \
 	bgq_lda_double(NAME2(dest,c00),   0, addr); \
@@ -746,6 +777,24 @@ typedef struct {
 	bgq_ld2a_float(NAME3(dst,v3,c2), 176+8, addr)
 
 #define bgq_su3_spinor_store NAME2(bgq_su3_spinor_store,PRECISION)
+#if BGQ_QPX
+#define bgq_su3_spinor_store_double(addr, spinor) \
+do {\
+	bgq_sta_double(NAME3(spinor,v0,c0),   0, addr); /* qvstfdxa */ \
+	void *ptr = (addr); \
+	bgq_qvstfduxa(NAME3(spinor,v0,c1), ptr, 32); \
+	bgq_qvstfduxa(NAME3(spinor,v0,c2), ptr, 32); \
+	bgq_qvstfduxa(NAME3(spinor,v1,c0), ptr, 32); \
+	bgq_qvstfduxa(NAME3(spinor,v1,c1), ptr, 32); \
+	bgq_qvstfduxa(NAME3(spinor,v1,c2), ptr, 32); \
+	bgq_qvstfduxa(NAME3(spinor,v2,c0), ptr, 32); \
+	bgq_qvstfduxa(NAME3(spinor,v2,c1), ptr, 32); \
+	bgq_qvstfduxa(NAME3(spinor,v2,c2), ptr, 32); \
+	bgq_qvstfduxa(NAME3(spinor,v3,c0), ptr, 32); \
+	bgq_qvstfduxa(NAME3(spinor,v3,c1), ptr, 32); \
+	bgq_qvstfduxa(NAME3(spinor,v3,c2), ptr, 32); \
+} while (0)
+#else
 #define bgq_su3_spinor_store_double(addr,src) \
 	bgq_sta_double(NAME3(src,v0,c0),   0, addr);          \
 	bgq_sta_double(NAME3(src,v0,c1),  32, addr);          \
@@ -759,7 +808,7 @@ typedef struct {
 	bgq_sta_double(NAME3(src,v3,c0), 288, addr);          \
 	bgq_sta_double(NAME3(src,v3,c1), 320, addr);          \
 	bgq_sta_double(NAME3(src,v3,c2), 352, addr)
-
+#endif
 #define bgq_su3_spinor_store_float(addr,src) \
 	bgq_sta_float(NAME3(src,v0,c0),   0, addr);          \
 	bgq_sta_float(NAME3(src,v0,c1),  16, addr);          \
@@ -1043,23 +1092,23 @@ typedef struct {
 #define bgq_su3_spinor_prefetch NAME2(bgq_su3_spinor_prefetch,PRECISION)
 #if BGQ_QPX
 #define bgq_su3_spinor_prefetch_double(addr)     \
-{ \
+do { \
 	void *ptr = (addr); \
+	bgq_prefetch(ptr); \
 	asm ( \
-		"dcbt       0,%[ptr]  \n" \
 		"dcbt  %[c64],%[ptr]  \n" \
 		"dcbt %[c128],%[ptr]  \n" \
 		"dcbt %[c192],%[ptr]  \n" \
 		"dcbt %[c256],%[ptr]  \n" \
 		"dcbt %[c320],%[ptr]  \n" \
 		: [ptr] "+r" (ptr) \
-		: [c64] "r" (64), \
-		  [c128] "r" (128), \
-		  [c192] "r" (192), \
-		  [c256] "r" (256), \
-		  [c320] "r" (320) \
+		: [c64] "b" (64), \
+		  [c128] "b" (128), \
+		  [c192] "b" (192), \
+		  [c256] "b" (256), \
+		  [c320] "b" (320) \
 	); \
-	}
+	} while (0)
 #else
 #define bgq_su3_spinor_prefetch_double(addr)     \
 	bgq_prefetch((char*)(addr) +   0);    \
@@ -1090,21 +1139,21 @@ typedef struct {
 #define bgq_su3_matrix_prefetch NAME2(bgq_su3_matrix_prefetch,PRECISION)
 #if BGQ_QPX
 #define bgq_su3_matrix_prefetch_double(addr)     \
-{ \
+do { \
 	void *ptr = (addr); \
+	bgq_prefetch(ptr); \
 	asm ( \
-		"dcbt       0,%[ptr]  \n" \
 		"dcbt  %[c64],%[ptr]  \n" \
 		"dcbt %[c128],%[ptr]  \n" \
 		"dcbt %[c192],%[ptr]  \n" \
 		"dcbt %[c256],%[ptr]  \n" \
 		: [ptr] "+r" (ptr) \
-		: [c64] "r" (64), \
-		  [c128] "r" (128), \
-		  [c192] "r" (192), \
-		  [c256] "r" (256) \
+		: [c64] "b" (64), \
+		  [c128] "b" (128), \
+		  [c192] "b" (192), \
+		  [c256] "b" (256) \
 	); \
-	}
+	} while (0) /* make it consume a semicolon */
 #else
 #define bgq_su3_matrix_prefetch_double(addr)      \
 	bgq_prefetch((char*)(addr) +   0);    \
@@ -1122,10 +1171,44 @@ typedef struct {
 
 #define bgq_su3_spinor_zeroload NAME2(bgq_su3_spinor_zeroload,PRECISION)
 #define bgq_su3_spinor_zeroload_double(addr) \
+	do { \
+		void *ptr = (addr); \
+		bgq_l1_zero(ptr); \
+		asm ( \
+			"dcbz  %[c64],%[ptr]  \n" \
+			"dcbz %[c128],%[ptr]  \n" \
+			"dcbz %[c192],%[ptr]  \n" \
+			"dcbz %[c256],%[ptr]  \n" \
+			"dcbz %[c320],%[ptr]  \n" \
+			: [ptr] "+r" (ptr) \
+			: [c64] "b" (64), \
+			  [c128] "b" (128), \
+			  [c192] "b" (192), \
+			  [c256] "b" (256), \
+			  [c320] "b" (320) \
+		); \
+	} while (0)
+	// 384 bytes
+#if 0
+#define bgq_su3_spinor_zeroload_double(addr) \
+	do { \
+		void *ptr = (addr); \
+		bgq_l1_zero(ptr); \
+		bgq_dcbz(ptr, 64); \
+		bgq_dcbz(ptr, 128); \
+		bgq_dcbz(ptr, 192); \
+		bgq_dcbz(ptr, 256); \
+		bgq_dcbz(ptr, 320); \
+	while (0)
+	// 384 bytes
+#endif
+#if 0
+#define bgq_su3_spinor_zeroload_double(addr) \
 	bgq_l1_zero((char*)(addr) +   0);    \
 	bgq_l1_zero((char*)(addr) + 128);    \
 	bgq_l1_zero((char*)(addr) + 256)
 	// 384
+#endif
 
 #define bgq_su3_spinor_zeroload_float(addr) \
 	bgq_l1_zero((char*)(addr) + 0);          \
@@ -1186,6 +1269,58 @@ typedef struct {
 	bgq_flush((char*)(addr) +  64);    \
 	bgq_flush((char*)(addr) + 128)
 	// 144 bytes
+
+
+#define bgq_su3_spinor_invalidate NAME2(bgq_su3_spinor_invalidate,PRECISION)
+#define bgq_su3_spinor_invalidate_double(addr) \
+		do { \
+			void *ptr = (addr); \
+			asm ( \
+				"dcbi       0,%[ptr]  \n" \
+				"dcbi  %[c64],%[ptr]  \n" \
+				"dcbi %[c128],%[ptr]  \n" \
+				"dcbi %[c192],%[ptr]  \n" \
+				"dcbi %[c256],%[ptr]  \n" \
+				"dcbi %[c320],%[ptr]  \n" \
+				: [ptr] "+r" (ptr) \
+				: [c64] "b" (64), \
+				  [c128] "b" (128), \
+				  [c192] "b" (192), \
+				  [c256] "b" (256), \
+				  [c320] "b" (320) \
+			); \
+			} while (0)
+	// 384 bytes
+#define bgq_su3_spinor_invalidate_float(addr) \
+	bgq_dcbi_0((char*)(addr) +   0);    \
+	bgq_dcbi_0((char*)(addr) +  64);    \
+	bgq_dcbi_0((char*)(addr) + 128)
+	// 192 bytes
+
+#define bgq_su3_matrix_invalidate NAME2(bgq_su3_matrix_invalidate,PRECISION)
+#define bgq_su3_matrix_invalidate_double(addr) \
+		do { \
+			void *ptr = (addr); \
+			asm ( \
+				"dcbi       0,%[ptr]  \n" \
+				"dcbi  %[c64],%[ptr]  \n" \
+				"dcbi %[c128],%[ptr]  \n" \
+				"dcbi %[c192],%[ptr]  \n" \
+				"dcbi %[c256],%[ptr]  \n" \
+				: [ptr] "+r" (ptr) \
+				: [c64] "b" (64), \
+				  [c128] "b" (128), \
+				  [c192] "b" (192), \
+				  [c256] "b" (256) \
+			); \
+			} while (0) /* make it consume a semicolon */
+	// 288 bytes
+#define bgq_su3_matrix_invalidate_float(addr) \
+	bgq_dcbi_0((char*)(addr) +   0);    \
+	bgq_dcbi_0((char*)(addr) +  64);    \
+	bgq_dcbi_0((char*)(addr) + 128)
+	// 144 bytes
+
 
 
 #ifndef XLC

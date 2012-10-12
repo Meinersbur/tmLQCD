@@ -169,7 +169,7 @@ static void exec_bench();
 static void exec_fakebench();
 static void check_correctness_double(bool nocom);
 static void check_correctness_float();
-static void exec_table_asm(bool sloppiness, bgq_hmflags additional_opts);
+static void exec_table_asm(bool sloppiness, bgq_hmflags additional_opts, int select);
 
 
 complexdouble nooptaway;
@@ -460,6 +460,23 @@ int main(int argc, char *argv[])
 	xchange_gauge();
 #endif
 
+	if (g_proc_id == 0) {
+	char *mem = malloc_aligned(1024, 128);
+	memset(mem, 1, 1024);
+
+	for (int i = 0; i < 512; i+=1) {
+		printf("%x ", mem[i]);
+	}
+	printf("\n\n");
+
+	__dcbz(&mem[128]);
+
+	for (int i = 0; i < 512; i+=1) {
+			printf("%x ", mem[i]);
+		}
+	printf("\n");
+	}
+
 #ifdef BGQ
 	bgq_init_gaugefield_allprec();
 	bgq_init_spinorfields_allprec(2 * k_max + 1, 0);
@@ -501,7 +518,9 @@ int main(int argc, char *argv[])
 	//check_correctness_float();
 #endif
 
-	exec_table_asm(false, 0);
+	exec_table_asm(false, 0, 0);
+	exec_table_asm(false, 0, 1);
+	exec_table_asm(false, 0, 2);
 
 	//exec_fakebench();
 	exec_bench();
@@ -720,6 +739,7 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 	const bool noweylsend = opts & hm_noweylsend;
 	const bool nobody = opts & hm_nobody;
 	const bool nosurface = opts & hm_nosurface;
+	const bool experimental = opts & hm_experimental;
 	bgq_hmflags implicitprefetch = opts & (hm_prefetchimplicitdisable | hm_prefetchimplicitoptimistic | hm_prefetchimplicitconfirmed);
 
 	// Setup options
@@ -888,10 +908,10 @@ static char *omp_threads_desc[] = { "1", "2", "4", "8", "16", "32", "33", "48", 
 
 
 static bgq_hmflags flags[] = {
-		               hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-		hm_nooverlap | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
+//		               hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
+//		hm_nooverlap | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
 		hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-		hm_fixedoddness | hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
+//		hm_fixedoddness | hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
 		hm_nocom | hm_nosurface | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
 		hm_nocom | hm_nobody | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
 		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
@@ -899,14 +919,16 @@ static bgq_hmflags flags[] = {
 		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitconfirmed,
 		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitoptimistic,
 //		hm_nocom | hm_noweylsend | hm_noprefetchlist                       | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
-		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream                         | hm_prefetchimplicitdisable
+		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream                         | hm_prefetchimplicitdisable,
 //		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable
+		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable | hm_l1pnonstoprecord,
+		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable | hm_experimental
 		};
 static char* flags_desc[] = {
-		"Com async",
-		"Com sync",
+//		"Com async",
+//		"Com sync",
 		"Com off",
-		"^fixedodd",
+//		"^fixedodd",
 		"bodyonly",
 		"surfaceonly",
 		"pf def",
@@ -915,7 +937,9 @@ static char* flags_desc[] = {
 		"pf optimistic",
 //		"pf stream",
 		"pf explicit",
-//		"pf list"
+//		"pf list",
+		"pf list nonstop",
+		"pf list exp"
 		};
 
 
@@ -1004,9 +1028,6 @@ static void print_stats(benchstat stats[COUNTOF(flags)], int bodySites, int surf
 			double nL1PStreamPartiallyUsedLines = stats[i3].counters.native[PEVT_L1P_STRM_EVICT_PART_USED];
 			double nL1PStreamLines = stats[i3].counters.native[PEVT_L1P_STRM_LINE_ESTB];
 			double nL1PStreamHits = stats[i3].counters.native[PEVT_L1P_STRM_HIT_LIST];
-
-
-
 
 			switch (j) {
 			case pi_detstreams:
@@ -1194,6 +1215,7 @@ L1P_Pattern_t *(*fake_sequential_patterns)[2/*even/odd*/][64/*For each thread*/]
 #endif
 
 static void hm_fake_sequential(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bgq_hmflags opts) {
+#if 0
 	const bool noprefetchlist = opts & hm_noprefetchlist;
 	const bool noprefetchstream = opts & hm_noprefetchstream;
 	const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
@@ -1281,6 +1303,7 @@ static void hm_fake_sequential(bool isOdd, bgq_spinorfield_double targetfield, b
 		}
 #endif
 	}
+#endif
 }
 
 #if BGQ_PREFETCH_LIST
@@ -1288,6 +1311,7 @@ L1P_Pattern_t *(*fake_random_patterns)[2/*even/odd*/][64/*For each thread*/][6/*
 #endif
 
 static void hm_fake_random(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bgq_hmflags opts) {
+#if 0
 	const bool noprefetchlist = opts & hm_noprefetchlist;
 	const bool noprefetchstream = opts & hm_noprefetchstream;
 	const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
@@ -1383,6 +1407,7 @@ static void hm_fake_random(bool isOdd, bgq_spinorfield_double targetfield, bgq_s
 		}
 #endif
 	}
+#endif
 }
 
 
@@ -1404,16 +1429,82 @@ void bgq_HoppingMatrix_asm(bool isOdd, bgq_spinorfield_double restrict targetfie
 void bgq_HoppingMatrix_asm_parallel(bool isOdd, bgq_spinorfield_double restrict targetfield, bgq_spinorfield_double restrict spinorfield, bgq_gaugefield_double restrict gaugefield, bgq_hmflags opts, int tid, int tot_threads);
 
 
-static benchstat runbench_exec_asm_parallel(int k_max, int j_max, bool sloppyprec, bgq_hmflags opts, bool noprefetchlist, bool l1pnonstoprecord, bool *l1plist_first, int tid, int tot_threads) {
+static void runbench_exec_sequential(int tid, int tot_threads) {
+	double *baseaddr_read = (double*)g_spinorfields_double[0];
+	double *baseaddr_write = (double*)g_spinorfields_double[1];
+
+	size_t count = PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ;
+	size_t threadcount = (count+tot_threads-1)/tot_threads;
+	assert(count==threadcount*tot_threads);
+	for (size_t counter = 0; counter < threadcount; counter += 1) {
+		const size_t txyz = tid*threadcount + counter;
+		if (txyz >= count)
+			break;
+
+		const size_t i = txyz;
+		const size_t i_next = txyz+1;
+
+		double *addr_read = baseaddr_read + i*2*4*3*2;
+		double *addr_write = baseaddr_write + i*2*4*3*2;
+
+		bgq_su3_spinor_decl(spinor);
+		bgq_su3_spinor_load_double(spinor, addr_read);
+
+		bgq_su3_spinor_store_double(addr_write, spinor);
+	}
+}
+
+static void runbench_exec_random(int tid, int tot_threads) {
+	double *baseaddr_read = (double*)g_spinorfields_double[0];
+	double *baseaddr_write = (double*)g_spinorfields_double[1];
+
+	size_t count = PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ;
+	size_t threadcount = (count+tot_threads-1)/tot_threads;
+	assert(count==threadcount*tot_threads);
+	for (size_t counter = 0; counter < threadcount; counter += 1) {
+		const size_t txyz = tid*threadcount + counter;
+		if (txyz >= count)
+			break;
+
+		const size_t i = 7*txyz + txyz*txyz % count; // something seemingly random
+		const size_t i_next = 7*(txyz+1) + (txyz+1)*(txyz+1) % count;
+
+		double *addr_read = baseaddr_read + i*2*4*3*2;
+		double *addr_write = baseaddr_write + i*2*4*3*2;
+
+		bgq_su3_spinor_decl(spinor);
+		bgq_su3_spinor_load_double(spinor, addr_read);
+
+		bgq_su3_spinor_store_double(addr_write, spinor);
+	}
+}
+
+static benchstat runbench_exec_asm_parallel(int k_max, int j_max, bool sloppyprec, bgq_hmflags opts, bool noprefetchlist, bool l1pnonstoprecord, bool *l1plist_first, int tid, int tot_threads, bool isWarmup, int select) {
+	static bgq_gaugefield_double mem;
+
+	if (!mem) {
+		mem = malloc_aligned(8*4*VOLUME/2 * sizeof(bgq_gaugesite_double), 128 /*L2 cache line size*/);
+	}
+
 	if (sloppyprec) {
 		// No impl	yet
 	} else {
 		for (int j = 0; j < j_max; j += 1) {
 			if (!noprefetchlist) {
-			L1P_PatternStart(l1pnonstoprecord || *l1plist_first);
+				L1P_PatternStart(l1pnonstoprecord || *l1plist_first);
 			}
 			for (int k = 0; k < k_max; k += 1) {
-				bgq_HoppingMatrix_asm_parallel(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, opts, tid, tot_threads);
+				switch (select) {
+				case 0:
+					bgq_HoppingMatrix_asm_parallel(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], mem, opts, tid, tot_threads);
+					break;
+				case 1:
+					runbench_exec_sequential(tid, tot_threads);
+					break;
+				case 2:
+					runbench_exec_random(tid, tot_threads);
+					break;
+				}
 			}
 			if (!noprefetchlist) {
 				L1P_PatternStop();
@@ -1424,11 +1515,11 @@ static benchstat runbench_exec_asm_parallel(int k_max, int j_max, bool sloppypre
 }
 
 
-static benchstat runbench_asm(int k_max, int j_max, bool sloppyprec, int ompthreads, bgq_hmflags opts) {
+static benchstat runbench_asm(int k_max, int j_max, bool sloppyprec, int ompthreads, bgq_hmflags opts, int select) {
 	const bool nocom = opts & hm_nocom;
 	const bool nooverlap = opts & hm_nooverlap;
 	const bool nokamul = opts & hm_nokamul;
-	const bool noprefetchlist = opts & hm_noprefetchlist;
+	bool noprefetchlist = opts & hm_noprefetchlist;
 	const bool noprefetchstream = opts & hm_noprefetchstream;
 	const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
 	const bool noweylsend = opts & hm_noweylsend;
@@ -1436,30 +1527,18 @@ static benchstat runbench_asm(int k_max, int j_max, bool sloppyprec, int ompthre
 	const bool nosurface = opts & hm_nosurface;
 	const bgq_hmflags implicitprefetch = opts & (hm_prefetchimplicitdisable | hm_prefetchimplicitoptimistic | hm_prefetchimplicitconfirmed);
 	const bool l1pnonstoprecord = opts & hm_l1pnonstoprecord;
+	const bool experimental = opts & hm_experimental;
+
+	omp_set_num_threads(ompthreads);
 
 	// Setup options
 #ifdef XLC
-	L1P_StreamPolicy_t pol;
-	switch (implicitprefetch) {
-	case hm_prefetchimplicitdisable:
-		pol = noprefetchstream ? L1P_stream_disable : L1P_confirmed_or_dcbt/*No option to selectively disable implicit stream*/;
-		break;
-	case hm_prefetchimplicitoptimistic:
-		pol = L1P_stream_optimistic;
-		break;
-	case hm_prefetchimplicitconfirmed:
-		pol = noprefetchstream ? L1P_stream_confirmed : L1P_confirmed_or_dcbt;
-		break;
-	default:
-		// Default setting
-		pol = L1P_confirmed_or_dcbt;
-		break;
-	}
 
-	omp_set_num_threads(ompthreads);
+
+
 #pragma omp parallel
 	{
-		L1P_CHECK(L1P_SetStreamPolicy(pol));
+
 	}
 
 #pragma omp parallel
@@ -1499,6 +1578,34 @@ static benchstat runbench_asm(int k_max, int j_max, bool sloppyprec, int ompthre
 		int tid = omp_get_thread_num();
 		int tot_threads = omp_get_num_threads();
 
+		if (experimental) {
+			noprefetchlist = false;
+			uint64_t *addr = ((uint64_t*)(Kernel_L1pBaseAddress() + L1P_CFG_PF_USR_ADJUST));
+			*addr |=  L1P_CFG_PF_USR_pf_stream_est_on_dcbt | L1P_CFG_PF_USR_pf_stream_optimistic | L1P_CFG_PF_USR_pf_stream_prefetch_enable | L1P_CFG_PF_USR_pf_stream_establish_enable; // Enable everything???
+		} else {
+		L1P_StreamPolicy_t pol;
+		switch (implicitprefetch) {
+		case hm_prefetchimplicitdisable:
+			pol = noprefetchstream ? L1P_stream_disable : L1P_confirmed_or_dcbt/*No option to selectively disable implicit stream*/;
+			break;
+		case hm_prefetchimplicitoptimistic:
+			pol = L1P_stream_optimistic;
+			break;
+		case hm_prefetchimplicitconfirmed:
+			pol = noprefetchstream ? L1P_stream_confirmed : L1P_confirmed_or_dcbt;
+			break;
+		default:
+			// Default setting
+			pol = L1P_confirmed_or_dcbt;
+			break;
+		}
+		L1P_CHECK(L1P_SetStreamPolicy(pol));
+		}
+
+		if (!noprefetchlist) {
+			L1P_CHECK(L1P_PatternConfigure((sizeof(bgq_spinorsite_double)*9*VOLUME/4 + sizeof(bgq_gaugesite_double)*8*VOLUME/4)/64));
+		}
+
 		double threadsumtime = 0;
 		double threadsumsqtime = 0;
 		bool l1p_first = true;
@@ -1511,12 +1618,16 @@ static benchstat runbench_asm(int k_max, int j_max, bool sloppyprec, int ompthre
 			// Barrier outside timed loop
 			#pragma omp barrier
 
+			//if (!noprefetchlist) {
+			//	L1P_PatternStart(isWarmup);
+			//}
+
 			if (isPapi) {
 				mypapi_start(j - (iterations - MYPAPI_SETS));
 			}
 			double start_time = MPI_Wtime();
 
-			runbench_exec_asm_parallel(k_max, j_max, sloppyprec, opts, noprefetchlist, l1pnonstoprecord, &l1p_first, tid, tot_threads);
+			runbench_exec_asm_parallel(k_max, j_max, sloppyprec, opts, noprefetchlist, l1pnonstoprecord, &l1p_first, tid, tot_threads, isWarmup, select);
 
 			double end_time = MPI_Wtime();
 			if (isPapi) {
@@ -1525,6 +1636,10 @@ static benchstat runbench_asm(int k_max, int j_max, bool sloppyprec, int ompthre
 					counters = mypapi_merge_counters(&counters, &curcounters);
 				}
 			}
+
+			//if (!noprefetchlist) {
+			//	L1P_PatternStop();
+			//}
 
 
 			double runtime = end_time - start_time;
@@ -1537,6 +1652,10 @@ static benchstat runbench_asm(int k_max, int j_max, bool sloppyprec, int ompthre
 		if (tid == 0) {
 			localsumtime = threadsumtime / (iterations-1);
 			localsumsqtime = threadsumsqtime / (iterations-1);
+		}
+
+		if (!noprefetchlist) {
+			L1P_CHECK(L1P_PatternUnconfigure());
 		}
 	}
 
@@ -1577,8 +1696,18 @@ static benchstat runbench_asm(int k_max, int j_max, bool sloppyprec, int ompthre
 }
 
 
-static void exec_table_asm(bool sloppiness, bgq_hmflags additional_opts) {
+static void exec_table_asm(bool sloppiness, bgq_hmflags additional_opts, int select) {
+	switch (select) {
+	case 0:
 	master_print("Benchmarking plain:\n");
+	break;
+	case 1:
+		master_print("Benchmarking sequential:\n");
+		break;
+	case 2:
+		master_print("Benchmarking ransdom:\n");
+		break;
+	}
 	benchstat excerpt;
 
 	if (g_proc_id == 0)
@@ -1603,7 +1732,7 @@ static void exec_table_asm(bool sloppiness, bgq_hmflags additional_opts) {
 			bgq_hmflags hmflags = flags[i3];
 			hmflags = hmflags | additional_opts;
 
-			benchstat result = runbench_asm(1, 3, sloppiness, threads, hmflags);
+			benchstat result = runbench_asm(1, 3, sloppiness, threads, hmflags, select);
 			stats[i3] = result;
 
 			if (threads == 64 && i3 == 2) {

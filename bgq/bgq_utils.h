@@ -244,8 +244,8 @@ if (xyz_counter==0) { \
  */
 
 #define WORKLOAD_CHECK \
-	if (xyz_counter!=0) { \
-		fprintf(stderr, "xyz_counter=%d xyz_total=%d xyz_isntance=%d BODY_ZLINES=%d\n", xyz_counter, xyz_total, xyz_isntance, BODY_ZLINES); \
+	if (xyz_counter!=0 && g_proc_id==0) { \
+		fprintf(stderr, "xyz_counter=%d xyz_total=%d xyz_isntance=%d\n", xyz_counter, xyz_total, xyz_isntance); \
 	} \
 	assert(xyz_counter==0); \
 	assert(xyz_total==1);
