@@ -303,7 +303,7 @@ void bgq_init_spinorfields(int count, int chi_count) {
 	g_chi_up_spinorfield_first = count;
 	g_chi_dn_spinorfield_first = count + chi_count;
 
-#if 0
+#if 1
 	int datasize = g_num_total_spinorfields * READTOTLENGTH * sizeof(PRECISION);
 #else
 	int datasize = g_num_total_spinorfields * sizeof(*g_spinorfields_data) * VOLUME_SITES;
@@ -513,7 +513,7 @@ double bgq_spinorfield_compare(const bool isOdd, bgq_spinorfield const bgqfield,
 		}
 
 #if BGQ && defined(XLC)
-#pragma omp tm_atomic
+#pragma tm_atomic
 #else
 #pragma omp critical
 #endif

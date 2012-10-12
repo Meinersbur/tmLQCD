@@ -49,22 +49,25 @@ typedef enum {
 	pi_is2stalls,
 
 	pi_hitinl1,
+	pi_l1pstreamhitinl1p,
 	pi_l1phitrate,
 	pi_l2hitrate,
 	pi_dcbthitrate,
 
+	pi_detstreams,
+	pi_l1pstreamunusedlines,
+
+	__pi_COUNT,
+	pi_hitinl1p,
 	pi_l1pliststarted,
 	pi_l1plistabandoned,
 	pi_l1plistmismatch,
 	pi_l1plistskips,
 	pi_l1plistoverruns,
-	pi_l1plistlatestalls,
-	__pi_COUNT,
-
-	pi_hitinl1p
+	pi_l1plistlatestalls
 } mypapi_interpretations;
 
-#define MYPAPI_SETS 5
+#define MYPAPI_SETS 6
 void mypapi_init();
 void mypapi_start(int i);
 mypapi_counters mypapi_stop();

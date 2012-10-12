@@ -1,5 +1,5 @@
 
-#if 0
+#if 1
 #undef BGQ_SPINORSITE
 #define BGQ_SPINORSITE(spinorfield, isOdd, tv, x, y, z, t1, t2, isRead, isWrite) (bgq_spinorsite*)(isRead ? /*read*/(tmp=addr,addr+=2*4*3*2,tmp) : (isWrite ? /*write*/(tmp=writeaddr,writeaddr+=2*4*3*2,tmp) : /*prefetch*/(addr) ) )
 #undef BGQ_SPINORSITE_LEFT
@@ -88,13 +88,14 @@ void bgq_HoppingMatrix(bool isOdd, bgq_spinorfield_double targetfield, bgq_spino
 
 #pragma omp parallel
 	{
-		int threads = omp_get_num_threads();
+		const int threads = omp_get_num_threads();
+		const int tid = omp_get_thread_num();
 
 		PRECISION *tmp;
-		PRECISION *addr = ((PRECISION*)spinorfield) + READTOTLENGTH / threads;
+		PRECISION *addr = ((PRECISION*)spinorfield) + (size_t)tid * READTOTLENGTH / threads;
 		addr = (PRECISION*)((size_t)addr & ~(32-1)); // alignment
 
-		PRECISION *writeaddr = ((PRECISION*)targetfield) + WRITETOTLENGTH / threads;
+		PRECISION *writeaddr = ((PRECISION*)targetfield) + (size_t)tid * WRITETOTLENGTH / threads;
 		writeaddr = (PRECISION*)((size_t)writeaddr & ~(32-1)); // alignment
 
 

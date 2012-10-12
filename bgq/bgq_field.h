@@ -97,8 +97,10 @@ typedef enum {
 typedef _Complex double complexdouble;
 typedef _Complex float complexfloat;
 
-#define READTOTLENGTH (2*4*3*2/*spinors*/ *(8*VOLUME_SITES) + 2*9*2/*su3*/ * (8*VOLUME_SITES) + 2*2*3*2/*weyl*/ * (HALO_SITES))
-#define WRITETOTLENGTH (2*4*3*2/*spinors*/ *(VOLUME_SITES) + 2*2*3*2/*weyl*/ * (HALO_SITES))
+//#define READTOTLENGTH (2*4*3*2/*spinors*/ *(8*VOLUME_SITES) + 2*9*2/*su3*/ * (8*VOLUME_SITES) + 2*2*3*2/*weyl*/ * (HALO_SITES))
+//#define WRITETOTLENGTH (2*4*3*2/*spinors*/ *(VOLUME_SITES) + 2*2*3*2/*weyl*/ * (HALO_SITES))
+#define READTOTLENGTH (2*4*3*2/*spinors*/ *(8*VOLUME_SITES) + 2*9*2/*su3*/ *(8*VOLUME_SITES))
+#define WRITETOTLENGTH (2*4*3*2/*spinors*/ *(VOLUME_SITES))
 
 
 #define BGQ_SPINORSITE_ACCESS(spinorfield, isOdd, tv, x, y, z) \

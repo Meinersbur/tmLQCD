@@ -201,6 +201,15 @@ static mypapi_counters mypapi_bgpm_read(int eventset, int set) {
 		case PEVT_L1P_BAS_ST:
 		case PEVT_L1P_BAS_LU_STALL_LIST_WRT:
 		case PEVT_L1P_BAS_LU_STALL_LIST_WRT_CYC:
+
+		case PEVT_L1P_STRM_LINE_ESTB:
+		case PEVT_L1P_STRM_HIT_FWD:
+		case PEVT_L1P_STRM_L1_HIT_FWD:
+		case PEVT_L1P_STRM_EVICT_UNUSED:
+		case PEVT_L1P_STRM_EVICT_PART_USED:
+		case PEVT_L1P_STRM_REMOTE_INVAL_MATCH:
+		case PEVT_L1P_STRM_DONT_CACHE:
+		case PEVT_L1P_STRM_LINE_ESTB_ALL_LIST:
 			// Per core counters
 			if (result.smtid != 0)
 				continue;
@@ -274,8 +283,7 @@ void mypapi_init() {
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_INST_ALL));
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_IU_IL1_MISS_CYC));
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_IU_IBUFF_EMPTY_CYC));
-			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_BAS_LU_STALL_LIST_RD_CYC)); // Conflict Set #1 // Cycles lookup was held while list fetched addresses
-
+			//BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_MISMATCH)); // Conflict set #3 // core address does not match a list address
 
 			if (tid == 0) {
 				int l2es = L2EventSet[j];
@@ -295,9 +303,9 @@ void mypapi_init() {
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_LSU_COMMIT_STS)); // Number of completed store commands.
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_LSU_COMMIT_LD_MISSES));
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_BAS_STRM_LINE_ESTB)); // Conflict set #1 // Lines established for stream prefetch
-			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_SKIP)); // Conflict set #2 // core address matched a non head of queue list address (per thread)
-			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_MISMATCH)); // Conflict set #3 // core address does not match a list address
-			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_STARTED)); // Conflict set #4 // List prefetch process was started
+			//BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_SKIP)); // Conflict set #2 // core address matched a non head of queue list address (per thread)
+			//BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_STARTED)); // Conflict set #4 // List prefetch process was started
+			//BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_OVF_MEM)); // Conflict set #5 // Written pattern exceeded allocated buffer
 
 			if (tid == 0) {
 				int l2es = L2EventSet[j];
@@ -309,12 +317,12 @@ void mypapi_init() {
 		j += 1;
 		{
 			int pues = PuEventSets[j][tid];
-			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_CYCLES));
+			//BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_CYCLES));
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_LSU_COMMIT_DCBT_MISSES)); // Number of completed dcbt[st][ls][ep] commands that missed the L1 Data Cache.
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_LSU_COMMIT_DCBT_HITS)); // Number of completed dcbt[st][ls][ep] commands that missed the L1 Data Cache.
-			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_CMP)); // Conflict set #1 // core address was compared against list
-			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_ABANDON)); // Conflict set #5 // A2 loads mismatching pattern resulted in abandoned list prefetch
-			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_CMP_OVRUN_PREFCH)); // Conflict set #6 // core address advances faster than prefetch lines can be established dropping prefetches
+			//BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_CMP)); // Conflict set #1 // core address was compared against list
+			//BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_ABANDON)); // Conflict set #5 // A2 loads mismatching pattern resulted in abandoned list prefetch
+			//BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_CMP_OVRUN_PREFCH)); // Conflict set #6 // core address advances faster than prefetch lines can be established dropping prefetches
 
 			if (tid == 0) {
 				int l2es = L2EventSet[j];
@@ -328,11 +336,11 @@ void mypapi_init() {
 			int pues = PuEventSets[j][tid];
 			//BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_CYCLES));
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_LSU_COMMIT_CACHEABLE_LDS)); // Number of completed cache-able load commands. (without dcbt)
-			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_LIST_OVF_MEM)); // Conflict set #5 // Written pattern exceeded allocated buffer
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_INST_XU_ALL)); // All XU instructions completed (instructions which use A2 FX unit - UPC_P_XU_OGRP_*).
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_INST_QFPU_ALL)); // Count all completed instructions which processed by the QFPU unit (UPC_P_AXU_OGRP_*)
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_BAS_MISS));// Conflict set #4
 			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_BAS_HIT)); // Conflict set #2 // Hits in prefetch directory
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_BAS_LU_STALL_LIST_RD_CYC)); // Conflict Set #1 // Cycles lookup was held while list fetched addresses
 
 			if (tid == 0) {
 				int l2es = L2EventSet[j];
@@ -342,18 +350,37 @@ void mypapi_init() {
 		}
 
 		j += 1;
-				{
-					int pues = PuEventSets[j][tid];
-					//BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_CYCLES));
-					BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_IU_IS1_STALL_CYC)); // Register Dependency Stall
-					BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_IU_IS2_STALL_CYC)); // Instruction Issue Stall
+		{
+			int pues = PuEventSets[j][tid];
+			//BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_CYCLES));
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_IU_IS1_STALL_CYC)); // Register Dependency Stall
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_IU_IS2_STALL_CYC)); // Instruction Issue Stall
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_STRM_EVICT_UNUSED)); // Conflict set #4 // per core // Lines fetched and never hit evicted
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_STRM_EVICT_PART_USED)); // Conflict set #5 // per core // Line fetched and only partially used evicted
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_STRM_LINE_ESTB)); // Conflict set #1 // per core // lines established for any reason and thread
 
-					if (tid == 0) {
-						int l2es = L2EventSet[j];
-						BGPM_ERROR(Bgpm_DeleteEventSet(l2es));
-						L2EventSet[j] = -1;
-					}
-				}
+
+
+			if (tid == 0) {
+				int l2es = L2EventSet[j];
+				BGPM_ERROR(Bgpm_DeleteEventSet(l2es));
+				L2EventSet[j] = -1;
+			}
+		}
+
+		j += 1;
+		{
+			int pues = PuEventSets[j][tid];
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_CYCLES));
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_STRM_STRM_ESTB)); // Conflict set #1 // per thread // streams detected and established
+			BGPM_ERROR(Bgpm_AddEvent(pues, PEVT_L1P_STRM_HIT_LIST)); // Conflict set #4 // per thread // Hits for lines fetched by list engine
+
+			if (tid == 0) {
+				int l2es = L2EventSet[j];
+				BGPM_ERROR(Bgpm_DeleteEventSet(l2es));
+				L2EventSet[j] = -1;
+			}
+		}
 	}
 }
 
@@ -397,9 +424,12 @@ static double mypapi_wtime() {
 
 static int activeEventSet = -1;
 
-void mypapi_start(int i) {
-	assert(omp_get_thread_num() == 0);
 
+void mypapi_start(int i) {
+	int ompid = omp_get_thread_num();
+	assert(!omp_in_parallel() || !omp_get_nested());
+
+	if (ompid == 0) {
 	xCyc = GetTimeBase();
 	//xCyc = PAPI_get_real_cyc();
 	xNsec = mypapi_wtime();
@@ -409,9 +439,12 @@ void mypapi_start(int i) {
 	xOmpTime = omp_get_wtime();
 
 	activeEventSet = i;
+	}
 
-#pragma omp parallel
+// this sould execute for in threads, regardless of omp_in_parallel()
+#pragma omp parallel private(ompid)
 	{
+		ompid = omp_get_thread_num();
 		int tid = Kernel_ProcessorID();
 		int cid = Kernel_ProcessorCoreID();
 		int sid = Kernel_ProcessorThreadID();
@@ -450,44 +483,56 @@ void mypapi_print_counters(mypapi_counters *counters) {
 }
 
 
-mypapi_counters mypapi_stop() {
-	assert(omp_get_thread_num() == 0);
 
-	mypapi_counters result;
-	result.init = false;
-#pragma omp parallel shared(result)
-	{
-		int tid = Kernel_ProcessorID();
-		int cid = Kernel_ProcessorCoreID();
-		int sid = Kernel_ProcessorThreadID();
-		int i = activeEventSet;
-		assert(i >= 0);
-		assert(i < MYPAPI_SETS);
 
-		int pues = PuEventSets[i][tid];
-		BGPM_ERROR(Bgpm_Stop(pues));
-		if (tid == 0) {
-			int l2es = L2EventSet[i];
-			if (l2es >= 0) {
-				BGPM_ERROR(Bgpm_Stop(l2es));
-			}
-		}
+void mypapi_stop_work(mypapi_counters *result) {
+	int ompid = omp_get_thread_num();
 
-		mypapi_counters local_result = mypapi_bgpm_read(pues, i);
-		if (tid == 0) {
-			int l2es = L2EventSet[i];
-			if (l2es >= 0) {
-				mypapi_counters local_result_l2 = mypapi_bgpm_read(l2es, i);
-				local_result = mypapi_merge_counters(&local_result, &local_result_l2);
-			}
-		}
-#pragma omp critical
-		{
-			result = mypapi_merge_counters(&result, &local_result);
+	ompid = omp_get_thread_num();
+	int tid = Kernel_ProcessorID();
+	int cid = Kernel_ProcessorCoreID();
+	int sid = Kernel_ProcessorThreadID();
+	int i = activeEventSet;
+	assert(i >= 0);
+	assert(i < MYPAPI_SETS);
+
+	int pues = PuEventSets[i][tid];
+	BGPM_ERROR(Bgpm_Stop(pues));
+	if (tid == 0) {
+		int l2es = L2EventSet[i];
+		if (l2es >= 0) {
+			BGPM_ERROR(Bgpm_Stop(l2es));
 		}
 	}
 
-	assert(result.init);
+	mypapi_counters local_result = mypapi_bgpm_read(pues, i);
+	if (tid == 0) {
+		int l2es = L2EventSet[i];
+		if (l2es >= 0) {
+			mypapi_counters local_result_l2 = mypapi_bgpm_read(l2es, i);
+			local_result = mypapi_merge_counters(&local_result, &local_result_l2);
+		}
+	}
+
+#pragma omp critical (mypapi)
+	{
+		*result = mypapi_merge_counters(result, &local_result);
+	}
+}
+
+
+mypapi_counters mypapi_stop() {
+	static mypapi_counters result; // static to force it shared between all threads, even if this func is called by all threads (i.e. in a #pragma omp parallel)
+	if (omp_in_parallel()) {
+		// Already in parallel, no need to start threads
+		mypapi_stop_work(&result);
+	} else {
+		// Start counters in all threads
+		#pragma omp parallel
+		{
+			mypapi_stop_work(&result);
+		}
+	}
 	return result;
 }
 

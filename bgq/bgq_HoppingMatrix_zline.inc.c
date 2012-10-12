@@ -190,7 +190,7 @@ void bgq_HoppingMatrix_zline(bgq_spinorfield_double targetfield, bgq_spinorfield
 	// A 2-unrolled for-loop
 	// How does the compiler cope with the jump into the middle? Does it still do strength reduction of variables dependent on z?
 	// If there is a single jump target  (BGQ_HM_ZLINE_STARTINDENT!=-1), does it recognize the loop?
-	// NOTE: This jump-into-the middle saves us dublication of the loop
+	// NOTE: This jump-into-the middle saves us duplication of the loop
 	while (true) {
 		// Begin with flush line
 		STARTFLUSH:
