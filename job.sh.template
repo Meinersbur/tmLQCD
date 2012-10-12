@@ -1,0 +1,9 @@
+#! /usr/bin/bash
+
+make -j benchmark
+if [ "$?" -ne "0" ]; then
+  echo "Make failed, not submitting job"
+  exit 1
+fi
+
+llsubmit job.ll

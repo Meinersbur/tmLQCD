@@ -37,8 +37,9 @@ LAPACK="${LAPACK} -lpthread"
 CFLAGS=""
 CFLAGS="${CFLAGS} -I/bgsys/drivers/ppcfloor/arch/include"
 CFLAGS="${CFLAGS} -I/bgsys/drivers/ppcfloor/comm/xl/include"
+CFLAGS="${CFLAGS} -I${HOME}/usr/include"
 CFLAGS="${CFLAGS} -O5"
-CFLAGS="${CFLAGS} -qprefetch=aggressive"
+#CFLAGS="${CFLAGS} -qprefetch=aggressive"
 CFLAGS="${CFLAGS} -qarch=qp"
 CFLAGS="${CFLAGS} -qtune=qp"
 CFLAGS="${CFLAGS} -qmaxmem=-1"
@@ -46,18 +47,17 @@ CFLAGS="${CFLAGS} -qtm" # Enable transactional memory
 #CFLAGS="${CFLAGS} -qsimd=noauto"
 CFLAGS="${CFLAGS} -qsmp=noauto"
 #CFLAGS="${CFLAGS} -qstrict=all"
-CFLAGS="${CFLAGS} -qstrict=none"
+#CFLAGS="${CFLAGS} -qstrict=none"
+CFLAGS="${CFLAGS} -qstrict=order"
 #CFLAGS="${CFLAGS} -qipa=level=2"
 CFLAGS="${CFLAGS} -g"
 #CFLAGS="${CFLAGS} -qsimd=auto"
 #CFLAGS="${CFLAGS} -qsmp=noauto"
-CFLAGS="${CFLAGS} -I$HOME/usr/include"
 
-
-CFLAGS="${CFLAGS} -DXLC=1"
-CFLAGS="${CFLAGS} -DNDEBUG=1"
-CFLAGS="${CFLAGS} -DBGQ=1"
-CFLAGS="${CFLAGS} -DBGQ_QPX=1"
+#CFLAGS="${CFLAGS} -DXLC=1"
+#CFLAGS="${CFLAGS} -DNDEBUG=1"
+#CFLAGS="${CFLAGS} -DBGQ=1"
+#CFLAGS="${CFLAGS} -DBGQ_QPX=1"
 #CFLAGS="${CFLAGS} -DPAPI=1"
 
 
@@ -100,7 +100,7 @@ CONFIGURE="${CONFIGURE} --without-bgldram"
 CONFIGURE="${CONFIGURE} --with-limedir=${HOME}/lime"
 CONFIGURE="${CONFIGURE} --enable-mpi"
 #CONFIGURE="${CONFIGURE} --enable-qpx"
-CONFIGURE="${CONFIGURE} --with-mpidimension=XYT"
+CONFIGURE="${CONFIGURE} --with-mpidimension=XYZT"
 #CONFIGURE="${CONFIGURE} --enable-omp"
 CONFIGURE="${CONFIGURE} --enable-gaugecopy"
 CONFIGURE="${CONFIGURE} --enable-halfspinor"
@@ -109,17 +109,16 @@ CONFIGURE="${CONFIGURE} --enable-largefile"
 CONFIGURE="${CONFIGURE} --with-lapack="\"'${LAPACK}'\"
 CONFIGURE="${CONFIGURE} CC=/bgsys/drivers/ppcfloor/comm/xl/bin/mpixlc_r"
 #CONFIGURE="${CONFIGURE} CC=/bgsys/drivers/ppcfloor/comm/xl.ndebug/bin/mpixlc_r"
+#CONFIGURE="${CONFIGURE} CCDEP=mpixlc_r"
 CONFIGURE="${CONFIGURE} CFLAGS="\"'${CFLAGS}'\"
 CONFIGURE="${CONFIGURE} F77=bgf77"
 CONFIGURE="${CONFIGURE} LDFLAGS="\"'${LDFLAGS}'\"
 CONFIGURE="${CONFIGURE} FC=bgxlf_r"
-
-CONFIGURE="${CONFIGURE} --enable-optimize=no"
 #CONFIGURE="${CONFIGURE} --with-lemondir=${ROOTPATH}/lemon"
 
-
-
-
+CONFIGURE="${CONFIGURE} --enable-optimize=no"
+CONFIGURE="${CONFIGURE} --enable-qpx"
+CONFIGURE="${CONFIGURE} --enable-spi"
 
 
 
