@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
+	<storageModule moduleId="org.eclipse.cdt.core.settings">
+		<cconfiguration id="org.eclipse.ptp.rdt.managedbuild.toolchain.xlc.base.585871033">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="org.eclipse.ptp.rdt.managedbuild.toolchain.xlc.base.585871033" moduleId="org.eclipse.cdt.core.settings" name="Default">
+				<externalSettings/>
+				<extensions>
+					<extension id="org.eclipse.cdt.errorparsers.xlc.XlcErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration buildProperties="" id="org.eclipse.ptp.rdt.managedbuild.toolchain.xlc.base.585871033" name="Default" parent="org.eclipse.cdt.build.core.emptycfg">
+					<folderInfo id="org.eclipse.ptp.rdt.managedbuild.toolchain.xlc.base.585871033.1307391830" name="/" resourcePath="">
+						<toolChain id="org.eclipse.ptp.rdt.managedbuild.toolchain.xlc.base.147523881" name="org.eclipse.ptp.rdt.managedbuild.toolchain.xlc.base" superClass="org.eclipse.ptp.rdt.managedbuild.toolchain.xlc.base">
+							<targetPlatform id="org.eclipse.ptp.rdt.managedbuild.toolchain.xlc.base.585871033.2055411023" name=""/>
+							<builder id="org.eclipse.ptp.rdt.managedbuilder.xlc.builder.base.711832814" managedBuildOn="false" name="Remote GNU Make.Default" superClass="org.eclipse.ptp.rdt.managedbuilder.xlc.builder.base"/>
+							<tool id="org.eclipse.ptp.rdt.managedbuild.tool.xlc.cpp.compiler.base.802424142" name="Remote XL C++ Compiler" superClass="org.eclipse.ptp.rdt.managedbuild.tool.xlc.cpp.compiler.base"/>
+							<tool id="org.eclipse.ptp.rdt.managedbuild.tool.xlc.c.compiler.base.1676283518" name="Remote XL C Compiler" superClass="org.eclipse.ptp.rdt.managedbuild.tool.xlc.c.compiler.base"/>
+							<tool id="org.eclipse.ptp.rdt.managedbuild.tool.xlc.c.linker.exe.base.1876484883" name="XL C Executable Linker" superClass="org.eclipse.ptp.rdt.managedbuild.tool.xlc.c.linker.exe.base"/>
+							<tool id="org.eclipse.ptp.rdt.managedbuild.tool.xlc.cpp.linker.exe.base.1193518303" name="XL C++ Executable Linker" superClass="org.eclipse.ptp.rdt.managedbuild.tool.xlc.cpp.linker.exe.base"/>
+							<tool id="org.eclipse.ptp.rdt.managedbuild.tool.xlc.assembler.exe.base.917689349" name="XL Assembler" superClass="org.eclipse.ptp.rdt.managedbuild.tool.xlc.assembler.exe.base"/>
+						</toolChain>
+					</folderInfo>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+		</cconfiguration>
+	</storageModule>
+	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+		<project id="tmLQCD_official.null.18117314" name="tmLQCD_official"/>
+	</storageModule>
+	<storageModule moduleId="scannerConfiguration">
+		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+</cproject>

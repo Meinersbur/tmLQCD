@@ -40,7 +40,7 @@ AC_CHECK_PROG(CCDEP, gcc, "gcc", "$CC")
 LDFLAGS="$LDFLAGS -L\${HOME}/lib -L\${top_builddir}/lib"
 CCLD=${CC}
 
-USESUBDIRS="buffers cu io solver linalg"
+USESUBDIRS="buffers cu io solver linalg bgq"
 
 AC_CHECK_HEADERS([stdint.h],
 [ dnl for inttypes.h and stdint.h for uint_xxx types
@@ -115,6 +115,7 @@ AC_ARG_ENABLE(qpx,
 if test $enable_qpx = yes; then
   AC_MSG_RESULT(yes)
   AC_DEFINE(BGQ,1,Compile with QPX intrinsics)
+  AC_DEFINE(BGQ_QPX,1,Compile with QPX intrinsics)
   AC_MSG_NOTICE([Compiling with QPX intrinsics on BGQ, enabling compiler optimizations for XLC.])
   OPTARGS="-O3 -qstrict=all -qtune=qp -qarch=qp -qmaxmem=-1"
   SOPTARGS="$OPTARGS" 
@@ -389,7 +390,7 @@ DEPFLAGS="$DEPFLAGS"
     withautoalign=0
     AC_MSG_RESULT(auto)
     AC_DEFINE(ALIGN_BASE, 0x00, [Align base])
-    AC_DEFINE(ALIGN, [], [])
+    AC_DEFINE(ALIGN, [], [Align base])
   else
     AC_MSG_RESULT(Unusable value for array alignment)
     AC_MSG_ERROR([Only alignment to 0, 16, 32, 64 or 128 bits, or auto alignment available])
