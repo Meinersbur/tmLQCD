@@ -16,39 +16,22 @@
  * You should have received a copy of the GNU General Public License
  * along with tmLQCD.  If not, see <http://www.gnu.org/licenses/>.
  ***********************************************************************/
-/* $Id$ */
 /*******************************************************************************
- *
- * Benchmark program for the even-odd preconditioned Wilson-Dirac operator
- *
- *
- *******************************************************************************/
+*
+* Benchmark program for the even-odd preconditioned Wilson-Dirac operator
+*
+*
+*******************************************************************************/
 
 #define MAIN_PROGRAM
-//#define DD1_L1P_Workaround 1
-#if HAVE_CONFIG_H
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+# include<config.h>
 #endif
-//#undef BGL
-
 #include <stdlib.h>
 #include <stdio.h>
-
-#include <unistd.h>   /* GG */
-#include <fcntl.h> /* GG */
-
-/* GG */
-extern FILE *fmemopen(void *__s, size_t __len, __const char *__modes) __THROW;
-
-// MK
-#include "mypapi.h"
-
 #include <math.h>
 #include <time.h>
 #include <string.h>
-#include "su3.h"
-#include "su3adj.h"
-
 #if (defined BGL && !defined BGP)
 #  include <rts.h>
 #endif
@@ -59,7 +42,13 @@ extern FILE *fmemopen(void *__s, size_t __len, __const char *__modes) __THROW;
 #  include <io/gauge.h>
 # endif
 #endif
-
+#ifdef OMP
+# include <omp.h>
+# include "init_omp_accumulators.h"
+#endif
+#include "gettime.h"
+#include "su3.h"
+#include "su3adj.h"
 #include "ranlxd.h"
 #include "geometry_eo.h"
 #include "read_input.h"
@@ -75,77 +64,48 @@ extern FILE *fmemopen(void *__s, size_t __len, __const char *__modes) __THROW;
 #include "init_spinor_field.h"
 #include "init_moment_field.h"
 #include "init_dirac_halfspinor.h"
-#include "update_backward_gauge.h"
 #include "test/check_geometry.h"
 #include "xchange_halffield.h"
 #include "D_psi.h"
 #include "phmc.h"
 #include "mpi_init.h"
 
-#ifdef BGQ
+
+/* BEGIN MK */
 #include "bgq/bgq_field.h"
 #include "bgq/bgq_HoppingMatrix.h"
-#include "bgq/bgq.h"
-#endif
+#include "bgq/bgq_qpx.h"
+#include "bgq/bgq_utils.h"
 #include <omp.h>
+#include "bgq/mypapi.h"
 
-
-#if BGQ_PREFETCH_LIST
-#include <l1p/pprefetch.h>
-#endif
 #ifdef XLC
+#include <l1p/pprefetch.h>
 #include <l1p/sprefetch.h>
 #endif
 
 #define COUNTOF(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-/* GG */
+static void exec_bench();
+static void exec_fakebench();
+static void check_correctness_double(bool nocom);
+static void check_correctness_float();
+static void exec_table_asm(bool sloppiness, bgq_hmflags additional_opts, int select);
 
-void usage()
-{
-	fprintf(stdout, "Benchmark for Wilson twisted mass QCD\n");
-	/*   fprintf(stdout, "Version %s \n\n", PACKAGE_VERSION); */
-	/*   fprintf(stdout, "Please send bug reports to %s\n", PACKAGE_BUGREPORT); */
-	fprintf(stdout, "Usage:   benchmark [options]\n");
-	fprintf(stdout, "Options: [-f input-filename]\n");
-	fprintf(stdout, "         [-v] verbose output (default no)\n");
-	fprintf(stdout, "         [-h|-? this help]\n");
-	exit(0);
-}
+typedef bgq_spinorfield bgq_spinorfield_double;
+typedef bgq_spinorfield bgq_spinorfield_float;
 
-/* #define BACKTRACE yes */
-#if defined BACKTRACE
-void
-print_trace (void)
-{
-	/* GG */
-	if ( g_proc_id )
-	return;
+typedef bgq_gaugefield bgq_gaugefield_double;
+typedef bgq_gaugefield bgq_gaugefield_float;
 
-	void *array[20];
-	size_t size;
-	char **strings;
-	size_t i;
+typedef bgq_gaugesite bgq_gaugesite_double;
+typedef bgq_gaugesite bgq_gaugesite_float;
 
-	size = backtrace (array, 20);
-	strings = backtrace_symbols (array, size);
+typedef void (*hm_func_double)(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bgq_hmflags opts);
+typedef void (*hm_func_float)(bool isOdd, bgq_spinorfield_float targetfield, bgq_spinorfield_float spinorfield, bgq_gaugefield_float gaugefield, bgq_hmflags opts);
+/* END MK */
 
-	//printf ("Obtained %zd stack frames.\n", size);
 
-	for (i = 0; i < size; i++)
-	if ( ! strstr(strings[i], "../invert [") && ! strstr(strings[i], "../invert(print_t") && ! strstr(strings[i], "/lib64/libc") )
-	printf ("%s==", strings[i]);
-	/*           printf ("%s\n", strings[i]); */
-
-	free (strings);
-}
-#else
-void print_trace(void) {
-}
-#endif
-
-/* GG */
-double gatime, getime;
 
 #ifdef PARALLELT
 #  define SLICE (LX*LY*LZ/2)
@@ -164,329 +124,202 @@ double gatime, getime;
 #endif
 
 
+int check_xchange();
 
-static void exec_bench();
-static void exec_fakebench();
-static void check_correctness_double(bool nocom);
-static void check_correctness_float();
-static void exec_table_asm(bool sloppiness, bgq_hmflags additional_opts, int select);
-
-
-complexdouble nooptaway;
-#if BGQ_PREFETCH_LIST
-L1P_Pattern_t *(g_patternhandle[64]);
-#endif
-
-static void listprefetch_test(bool l1plist) {
-	bgq_spinorfield_double spinorfield = g_spinorfields_double[0];
-
-	//mypapi_start();
-
-//#pragma omp parallel
-	{
-#if BGQ_PREFETCH_LIST
-		bool l1p_first = false;
-		if (l1plist) {
-			int totThreads = omp_get_num_threads();
-			const int bitsp[] = {};
-			L1P_Pattern_t **patternhandle = &g_patternhandle[Kernel_ProcessorID()];
-			if (!*patternhandle) {
-				const uint64_t prefsize = 1000000/*how to choose this?*/;
-				int retval = L1P_GetPattern(patternhandle);
-				if (retval == L1P_NOTCONFIGURED) {
-					L1P_CHECK(L1P_PatternConfigure(prefsize));
-					L1P_CHECK(L1P_GetPattern(patternhandle));
-				} else {
-					L1P_CHECK(retval);
-					L1P_CHECK(L1P_AllocatePattern(prefsize,patternhandle));
-				}
-				l1p_first = true;
-			}
-			assert(*patternhandle);
-
-			L1P_CHECK(L1P_SetPattern(*patternhandle));
-			L1P_CHECK(L1P_PatternStart(!l1p_first));
-	}
-#endif
-
-	complexdouble sum = 0;
-	for (int i = 0; i < VOLUME; i+=1) {
-		// Some pseudo-random access
-		long long li = i;
-		int j = (7*li + li*li) % VOLUME;
-
-		bgq_spinorsite_double *site = &spinorfield[j];
-		complexdouble val = site->s[i % 4][i % 3][i % 2];
-		sum += val;
-	}
-	nooptaway = sum;
-
-#if BGQ_PREFETCH_LIST
-	if (l1plist) {
-	uint64_t fetch_depth;
-	uint64_t generate_depth;
-	L1P_PatternGetCurrentDepth(&fetch_depth, &generate_depth);
-	L1P_PatternStop();
-
-	L1P_Status_t st;
-	L1P_PatternStatus(&st);
-	master_print("L1P_LIST: l1pfirst=%d maxed=%d abandoned=%d finished=%d endoflist=%d fetch_depth=%d generate_depth=%d\n", l1p_first, st.s.maximum, st.s.abandoned, st.s.finished, st.s.endoflist, (int)fetch_depth, (int)generate_depth);
-	}
-#endif
-
-	//mypapi_stop();
-	}
-}
-
-
-int main(int argc, char *argv[])
+int main(int argc,char *argv[])
 {
-	int j;
-	int k_max = 1;
+  int j,j_max,k,k_max = 1;
 #ifdef HAVE_LIBLEMON
-	paramsXlfInfo *xlfInfo;
+  paramsXlfInfo *xlfInfo;
 #endif
+  int status = 0;
 
-	/* GG */
-	FILE* yyingg = NULL;
-	void* yybufgg = NULL;
-	int yyfd;
-	char *input_filename = NULL;
-	int c;
+  static double t1,t2,dt,sdt,dts,qdt,sqdt;
+  double antioptaway=0.0;
+
 #ifdef MPI
+  static double dt2;
 
+  DUM_DERI = 6;
+  DUM_SOLVER = DUM_DERI+2;
+  DUM_MATRIX = DUM_SOLVER+6;
+  NO_OF_SPINORFIELDS = DUM_MATRIX+2;
 
-	DUM_DERI = 6;
-	DUM_SOLVER = DUM_DERI + 2;
-	DUM_MATRIX = DUM_SOLVER + 6;
-	NO_OF_SPINORFIELDS = DUM_MATRIX + 2;
+#  ifdef OMP
+  int mpi_thread_provided;
+  MPI_Init_thread(&argc, &argv, MPI_THREAD_SERIALIZED, &mpi_thread_provided);
+#  else
+  MPI_Init(&argc, &argv);
+#  endif
+  MPI_Comm_rank(MPI_COMM_WORLD, &g_proc_id);
 
-	verbose = 0;
-
-	//MPI_Init(&argc, &argv);
-	int provided_threadlevel;
-	MPI_CHECK(MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided_threadlevel));
-
-	/* GG */
-	MPI_CHECK(MPI_Comm_rank(MPI_COMM_WORLD, &g_proc_id));
-	master_print("provided threadlevel=%d\n", provided_threadlevel);
-#endif
-	g_rgi_C1 = 1.;
-
-	/* GG modified ... */
-	while ((c = getopt(argc, argv, "vh?f:")) != -1) {
-		switch (c) {
-		case 'f':
-			input_filename = calloc(200, sizeof(char));
-			strcpy(input_filename, optarg);
-			break;
-		case 'v':
-			verbose = 1;
-			break;
-
-		case 'h':
-			case '?':
-			default:
-			usage();
-			break;
-		}
-	}
-
-	/* Read the input file */
-	/*   read_input("benchmark.input"); */
-	if (input_filename == NULL ) {
-		fprintf(stderr, "MK You forgot to specify a benchamrk.input\n");
-		strcpy(input_filename, "benchmark.input");
-	}
-
-	/* GG */
-	/*   strcpy(input_filename, "benchmark.input"); */
-#define MPIO yes
-#ifndef MPIO
-	read_input(input_filename);
 #else
-	/* New read style with MPI_Bcast */
-	yybufgg = (void *) malloc(8192*sizeof(char));
-	yyingg = (FILE*) malloc(sizeof(FILE*));
-	if (g_proc_id == 0) {
-		yyfd = open(input_filename, O_RDONLY);
-		if (!yyfd) {
-			fprintf(stderr, "MK Cannot open file %s\n", input_filename);
-			exit(2);
-		}
-		read(yyfd, yybufgg, 8192);
-		close(yyfd);
-	}
-	MPI_Bcast(yybufgg, 8192, MPI_CHAR, 0, MPI_COMM_WORLD );
-	yyingg = fmemopen(yybufgg, strlen(yybufgg), "r");
-	read_input_fh(yyingg);
+  g_proc_id = 0;
 #endif
 
-	/* GG */
-	if (g_proc_id)
-		verbose = 0;
+  g_rgi_C1 = 1.;
 
-	tmlqcd_mpi_init(argc, argv);
-	mypapi_init();
+    /* Read the input file */
+  if((status = read_input("benchmark.input")) != 0) {
+    fprintf(stderr, "Could not find input file: benchmark.input\nAborting...\n");
+    exit(-1);
+  }
 
-	if (g_proc_id == 0) {
+#ifdef OMP
+  if(omp_num_threads > 0)
+  {
+     omp_set_num_threads(omp_num_threads);
+  }
+  else {
+    if( g_proc_id == 0 )
+      printf("# No value provided for OmpNumThreads, running in single-threaded mode!\n");
+
+    omp_num_threads = 1;
+    omp_set_num_threads(omp_num_threads);
+  }
+
+  init_omp_accumulators(omp_num_threads);
+#endif
+
+  tmlqcd_mpi_init(argc, argv);
+
+  if(g_proc_id==0) {
 #ifdef SSE
-		printf("# The code was compiled with SSE instructions\n");
+    printf("# The code was compiled with SSE instructions\n");
 #endif
 #ifdef SSE2
-		printf("# The code was compiled with SSE2 instructions\n");
+    printf("# The code was compiled with SSE2 instructions\n");
 #endif
 #ifdef SSE3
-		printf("# The code was compiled with SSE3 instructions\n");
+    printf("# The code was compiled with SSE3 instructions\n");
 #endif
 #ifdef P4
-		printf("# The code was compiled for Pentium4\n");
+    printf("# The code was compiled for Pentium4\n");
 #endif
 #ifdef OPTERON
-		printf("# The code was compiled for AMD Opteron\n");
+    printf("# The code was compiled for AMD Opteron\n");
 #endif
 #ifdef _GAUGE_COPY
-		printf("# The code was compiled with -D_GAUGE_COPY\n");
+    printf("# The code was compiled with -D_GAUGE_COPY\n");
 #endif
 #ifdef BGL
-		printf("# The code was compiled for Blue Gene/L\n");
-#endif
-#ifdef PREFETCH
-		printf("# the code was compiled with -DPREFETCH\n");
-#else
-		printf("# the code was compiled without -DPREFETCH\n");
-#endif
-		//print_prefetch;
-#ifdef OMP
-		printf("# the code was compiled with -DOMP\n");
-#else
-		printf("# the code was compiled without -DOMP\n");
+    printf("# The code was compiled for Blue Gene/L\n");
 #endif
 #ifdef BGP
-		printf("# The code was compiled for Blue Gene/P\n");
+    printf("# The code was compiled for Blue Gene/P\n");
 #endif
 #ifdef _USE_HALFSPINOR
-		printf("# The code was compiled with -D_USE_HALFSPINOR\n");
+    printf("# The code was compiled with -D_USE_HALFSPINOR\n");
 #endif
 #ifdef _USE_SHMEM
-		printf("# the code was compiled with -D_USE_SHMEM\n");
+    printf("# The code was compiled with -D_USE_SHMEM\n");
 #  ifdef _PERSISTENT
-		printf("# the code was compiled for persistent MPI calls (halfspinor only)\n");
+    printf("# The code was compiled for persistent MPI calls (halfspinor only)\n");
 #  endif
 #endif
 #ifdef MPI
 #  ifdef _NON_BLOCKING
-		printf("# the code was compiled for non-blocking MPI calls (spinor and gauge)\n");
+    printf("# The code was compiled for non-blocking MPI calls (spinor and gauge)\n");
 #  endif
 #endif
-		//printHopVerMsg();
-		printf("\n");
-		fflush(stdout);
-	}
+    printf("\n");
+    fflush(stdout);
+  }
+
 
 #ifdef _GAUGE_COPY
-	init_gauge_field(VOLUMEPLUSRAND + g_dbw2rand, 1);
+  init_gauge_field(VOLUMEPLUSRAND + g_dbw2rand, 1);
 #else
-	init_gauge_field(VOLUMEPLUSRAND + g_dbw2rand, 0);
+  init_gauge_field(VOLUMEPLUSRAND + g_dbw2rand, 0);
 #endif
-	init_geometry_indices(VOLUMEPLUSRAND + g_dbw2rand);
+  init_geometry_indices(VOLUMEPLUSRAND + g_dbw2rand);
 
-	if (even_odd_flag) {
-		j = init_spinor_field(VOLUMEPLUSRAND / 2, 2 * k_max + 1);
-	}
-	else {
-		j = init_spinor_field(VOLUMEPLUSRAND, 2 * k_max);
-	}
+  if(even_odd_flag) {
+    j = init_spinor_field(VOLUMEPLUSRAND/2, 2*k_max+1);
+  }
+  else {
+    j = init_spinor_field(VOLUMEPLUSRAND, 2*k_max);
+  }
 
-	if (j != 0) {
-		fprintf(stderr, "Not enough memory for spinor fields! Aborting...\n");
-		exit(0);
-	}
-	j = init_moment_field(VOLUME, VOLUMEPLUSRAND);
-	if (j != 0) {
-		fprintf(stderr, "Not enough memory for moment fields! Aborting...\n");
-		exit(0);
-	}
+  if ( j!= 0) {
+    fprintf(stderr, "Not enough memory for spinor fields! Aborting...\n");
+    exit(0);
+  }
+  j = init_moment_field(VOLUME, VOLUMEPLUSRAND + g_dbw2rand);
+  if ( j!= 0) {
+    fprintf(stderr, "Not enough memory for moment fields! Aborting...\n");
+    exit(0);
+  }
 
-	if (g_proc_id == 0) {
-		fprintf(stdout, "The number of processes is %d \n", g_nproc);
-		printf("# The lattice size is %d x %d x %d x %d\n",
-		        (int) (T * g_nproc_t), (int) (LX * g_nproc_x), (int) (LY * g_nproc_y), (int) (g_nproc_z * LZ));
-		printf("# The local lattice size is %d x %d x %d x %d\n",
-		        (int) (T), (int) (LX), (int) (LY), (int) LZ);
-		if (even_odd_flag) {
-			printf("# benchmarking the even/odd preconditioned Dirac operator\n");
-		}
-		else {
-			printf("# benchmarking the standard Dirac operator\n");
-		}
-		fflush(stdout);
-	}
+  if(g_proc_id == 0) {
+    fprintf(stdout,"# The number of processes is %d \n",g_nproc);
+    printf("# The lattice size is %d x %d x %d x %d\n",
+	   (int)(T*g_nproc_t), (int)(LX*g_nproc_x), (int)(LY*g_nproc_y), (int)(g_nproc_z*LZ));
+    printf("# The local lattice size is %d x %d x %d x %d\n",
+	   (int)(T), (int)(LX), (int)(LY),(int) LZ);
+    if(even_odd_flag) {
+      printf("# benchmarking the even/odd preconditioned Dirac operator\n");
+    }
+    else {
+      printf("# benchmarking the standard Dirac operator\n");
+    }
+    fflush(stdout);
+  }
 
-	/* define the geometry */
-	geometry();
-	/* define the boundary conditions for the fermion fields */
-	boundary(g_kappa);
+  /* define the geometry */
+  geometry();
+  /* define the boundary conditions for the fermion fields */
+  boundary(g_kappa);
 
 #ifdef _USE_HALFSPINOR
-	j = init_dirac_halfspinor();
-	if (j != 0) {
-		fprintf(stderr, "Not enough memory for halfspinor fields! Aborting...\n");
-		exit(0);
-	}
-	if (g_sloppy_precision_flag == 1) {
-		g_sloppy_precision = 1;
-		j = init_dirac_halfspinor32();
-		if (j != 0) {
-			fprintf(stderr, "Not enough memory for 32-Bit halfspinor fields! Aborting...\n");
-			exit(0);
-		}
-	}
+  j = init_dirac_halfspinor();
+  if ( j!= 0) {
+    fprintf(stderr, "Not enough memory for halfspinor fields! Aborting...\n");
+    exit(0);
+  }
+  if(g_sloppy_precision_flag == 1) {
+    g_sloppy_precision = 1;
+    j = init_dirac_halfspinor32();
+    if ( j!= 0) {
+      fprintf(stderr, "Not enough memory for 32-Bit halfspinor fields! Aborting...\n");
+      exit(0);
+    }
+  }
 #  if (defined _PERSISTENT)
-	init_xchange_halffield();
+  init_xchange_halffield();
 #  endif
 #endif
 
-	//check_geometry();
+  status = check_geometry();
+  if (status != 0) {
+    fprintf(stderr, "Checking of geometry failed. Unable to proceed.\nAborting....\n");
+    exit(1);
+  }
 #if (defined MPI && !(defined _USE_SHMEM))
-	//check_xchange();
+  check_xchange();
 #endif
 
-	start_ranlux(1, 123456);
-	random_gauge_field(reproduce_randomnumber_flag);
+  start_ranlux(1, 123456);
+  random_gauge_field(reproduce_randomnumber_flag);
 
 #ifdef MPI
-	/*For parallelization: exchange the gaugefield */
-	xchange_gauge();
+  /*For parallelization: exchange the gaugefield */
+  xchange_gauge(g_gauge_field);
 #endif
 
-	if (g_proc_id == 0) {
-	char *mem = malloc_aligned(1024, 128);
-	memset(mem, 1, 1024);
+  /* BEGIN MK */
+  assert(even_odd_flag);
 
-	for (int i = 0; i < 512; i+=1) {
-		printf("%x ", mem[i]);
-	}
-	printf("\n\n");
 
-	__dcbz(&mem[128]);
+	//bgq_init_gaugefield_allprec();
+	//bgq_init_spinorfields_allprec(2 * k_max + 1, 0);
+	//bgq_hm_init_allprec();
 
-	for (int i = 0; i < 512; i+=1) {
-			printf("%x ", mem[i]);
-		}
-	printf("\n");
-	}
+	//bgq_update_backward_gauge();
 
-#ifdef BGQ
-	bgq_init_gaugefield_allprec();
-	bgq_init_spinorfields_allprec(2 * k_max + 1, 0);
-	bgq_hm_init_allprec();
-
-	bgq_update_backward_gauge();
-#endif
 
 #ifdef _GAUGE_COPY
-	update_backward_gauge();
+	//update_backward_gauge();
 #endif
 
 	bool done = false;
@@ -504,11 +337,12 @@ int main(int argc, char *argv[])
 
 
 	for (int k = 0; k < k_max; k+=1) {
+		/*initialize the pseudo-fermion fields*/
 		random_spinor_field(g_spinor_field[k], VOLUME / 2, 0);
-		bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
+		//bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
 
-		double compare_transfer = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
-		assert(compare_transfer == 0 /* fields should be bit-identical*/);
+		//double compare_transfer = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
+		//assert(compare_transfer == 0 /* fields should be bit-identical*/);
 	}
 
 
@@ -524,37 +358,147 @@ int main(int argc, char *argv[])
 
 	//exec_fakebench();
 	exec_bench();
+  /* END MK */
 
 
-	/* GG */
-#if 0
-#ifdef HAVE_LIBLEMON
-	if(g_proc_id==0) {
-		printf("doing parallel IO test ...\n");
-	}
-	xlfInfo = construct_paramsXlfInfo(0.5, 0);
-	write_lemon_gauge_field_parallel( "conf.test", 64, xlfInfo);
-	free(xlfInfo);
-	if(g_proc_id==0) {
-		printf("done ...\n");
-	}
+
+    while(sdt < 30.) {
+#ifdef MPI
+      MPI_Barrier(MPI_COMM_WORLD);
 #endif
+      t1 = gettime();
+      antioptaway=0.0;
+      for (j=0;j<j_max;j++) {
+        for (k=0;k<k_max;k++) {
+          Hopping_Matrix(0, g_spinor_field[k+k_max], g_spinor_field[k]);
+          Hopping_Matrix(1, g_spinor_field[2*k_max], g_spinor_field[k+k_max]);
+          antioptaway+=creal(g_spinor_field[2*k_max][0].s0.c0);
+        }
+      }
+      t2 = gettime();
+      dt = t2-t1;
+#ifdef MPI
+      MPI_Allreduce (&dt, &sdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+#else
+      sdt = dt;
 #endif
+      qdt=dt*dt;
+#ifdef MPI
+      MPI_Allreduce (&qdt, &sqdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+#else
+      sqdt = qdt;
+#endif
+      sdt=sdt/((double)g_nproc);
+      sqdt=sqrt(sqdt/g_nproc-sdt*sdt);
+      j_max*=2;
+    }
+    j_max=j_max/2;
+    dts=dt;
+    sdt=1.0e6f*sdt/((double)(k_max*j_max*(VOLUME)));
+    sqdt=1.0e6f*sqdt/((double)(k_max*j_max*(VOLUME)));
+
+    if(g_proc_id==0) {
+      printf("# The following result is just to make sure that the calculation is not optimized away: %e\n", antioptaway);
+      printf("# Total compute time %e sec, variance of the time %e sec. (%d iterations).\n", sdt, sqdt, j_max);
+      printf("# Communication switched on:\n# (%d Mflops [%d bit arithmetic])\n", (int)(1608.0f/sdt),(int)sizeof(spinor)/3);
+#ifdef OMP
+      printf("# Mflops per OpenMP thread ~ %d\n",(int)(1608.0f/(omp_num_threads*sdt)));
+#endif
+      printf("\n");
+      fflush(stdout);
+    }
 
 #ifdef MPI
-	MPI_Finalize();
+    /* isolated computation */
+    t1 = gettime();
+    antioptaway=0.0;
+    for (j=0;j<j_max;j++) {
+      for (k=0;k<k_max;k++) {
+        Hopping_Matrix_nocom(0, g_spinor_field[k+k_max], g_spinor_field[k]);
+        Hopping_Matrix_nocom(1, g_spinor_field[2*k_max], g_spinor_field[k+k_max]);
+        antioptaway += creal(g_spinor_field[2*k_max][0].s0.c0);
+      }
+    }
+    t2 = gettime();
+    dt2 = t2-t1;
+    /* compute the bandwidth */
+    dt=dts-dt2;
+    MPI_Allreduce (&dt, &sdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    sdt=sdt/((double)g_nproc);
+    MPI_Allreduce (&dt2, &dt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    dt=dt/((double)g_nproc);
+    dt=1.0e6f*dt/((double)(k_max*j_max*(VOLUME)));
+    if(g_proc_id==0) {
+      printf("# The following result is printed just to make sure that the calculation is not optimized away: %e\n",antioptaway);
+      printf("# Communication switched off: \n# (%d Mflops [%d bit arithmetic])\n", (int)(1608.0f/dt),(int)sizeof(spinor)/3);
+#ifdef OMP
+      printf("# Mflops per OpenMP thread ~ %d\n",(int)(1608.0f/(omp_num_threads*dt)));
 #endif
-	free_gauge_field();
-	free_geometry_indices();
-	free_spinor_field();
-	free_moment_field();
-	return (0);
+      printf("\n");
+      fflush(stdout);
+    }
+    sdt=sdt/((double)k_max);
+    sdt=sdt/((double)j_max);
+    sdt=sdt/((double)(2*SLICE));
+    if(g_proc_id==0) {
+      printf("# The size of the package is %d bytes.\n",(SLICE)*192);
+#ifdef _USE_HALFSPINOR
+      printf("# The bandwidth is %5.2f + %5.2f MB/sec\n", 192./sdt/1024/1024, 192./sdt/1024./1024);
+#else
+      printf("# The bandwidth is %5.2f + %5.2f MB/sec\n", 2.*192./sdt/1024/1024, 2.*192./sdt/1024./1024);
+#endif
+    }
+#endif
+    fflush(stdout);
+
+
+#ifdef HAVE_LIBLEMON
+  if(g_proc_id==0) {
+    printf("# Performing parallel IO test ...\n");
+  }
+  xlfInfo = construct_paramsXlfInfo(0.5, 0);
+  write_gauge_field( "conf.test", 64, xlfInfo);
+  free(xlfInfo);
+  if(g_proc_id==0) {
+    printf("# done ...\n");
+  }
+#endif
+
+
+#ifdef MPI
+  MPI_Finalize();
+#endif
+#ifdef OMP
+  free_omp_accumulators();
+#endif
+  free_gauge_field();
+  free_geometry_indices();
+  free_spinor_field();
+  free_moment_field();
+  return(0);
 }
 
 
-static inline double sqr(double val) {
-	return val*val;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+complexdouble nooptaway;
+#if BGQ_PREFETCH_LIST
+L1P_Pattern_t *(g_patternhandle[64]);
+#endif
+
+
+
+
 
 
 typedef struct {
@@ -583,27 +527,27 @@ static void Hopping_Matrix_switch(const int ieo, spinor * const l, spinor * cons
 }
 
 
-static void check_correctness_double(bool nocom) {
+inline void check_correctness_double(bool nocom) {
 	master_print("MK Checking double precision%s correctness...\n", nocom ? " (no communication)" : "");
 
 //#pragma omp parallel
 	{
 		int k = 0;
 		int k_max = 1;
-		bgq_hmflags hmflags = hm_nocom * nocom | hm_nooverlap;
-		double compare_even_before;
-		double compare_even;
+		//bgq_hmflags hmflags = hm_nocom * nocom | hm_nooverlap;
+		double compare_even_before=0;
+		//double compare_even=0;
 
 //#pragma omp master
 		{
-			bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
-			compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
+			//bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
+			//compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
 			assert(compare_even_before == 0 /* should be bitwise identical */);
 
 			//bgq_initbgqref();
 		}
 //#pragma omp barrier
-		bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
+		//bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
 //#pragma omp master
 		{
 			//master_print("MK HM_orig start\n");
@@ -611,59 +555,59 @@ static void check_correctness_double(bool nocom) {
 			//master_print("MK HM_orig end\n");
 			//bgq_savebgqref();
 			//__asm__("int3");
-			compare_even = bgq_spinorfield_compare_double(false, g_spinorfields_double[k + k_max], g_spinor_field[k + k_max], false);
+			//compare_even = bgq_spinorfield_compare_double(false, g_spinorfields_double[k + k_max], g_spinor_field[k + k_max], false);
 			//assert(compare_even < 0.001);
 		}
 //#pragma omp barrier
-		bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
+		//bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
 //#pragma omp master
 		{
 			Hopping_Matrix_switch(1, g_spinor_field[k + 2 * k_max], g_spinor_field[k + k_max], nocom);
-			double compare_odd = bgq_spinorfield_compare_double(true, g_spinorfields_double[k + 2 * k_max], g_spinor_field[k + 2 * k_max], false);
+			//double compare_odd = bgq_spinorfield_compare_double(true, g_spinorfields_double[k + 2 * k_max], g_spinor_field[k + 2 * k_max], false);
 			//assert(compare_odd < 0.001);
 
-			master_print("Numerical instability between double precision implementations: even %e, odd %e\n", compare_even, compare_odd);
+			//master_print("Numerical instability between double precision implementations: even %e, odd %e\n", compare_even, compare_odd);
 		}
 	}
 }
 
-static void check_correctness_float() {
+inline void check_correctness_float() {
 	master_print("MK Checking float precision correctness...\n");
 
 //#pragma omp parallel
 	{
 		int k = 0;
 		int k_max = 1;
-		bgq_hmflags hmflags = 0;
-		double compare_even_before;
-		double compare_even;
+		//bgq_hmflags hmflags = 0;
+		double compare_even_before=0;
+		//double compare_even;
 
 //#pragma omp master
 		{
-			bgq_transfer_spinorfield_float(true, g_spinorfields_float[k], g_spinor_field[k]);
-			compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k], false);
+			//bgq_transfer_spinorfield_float(true, g_spinorfields_float[k], g_spinor_field[k]);
+			//compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k], false);
 			assert(compare_even_before == 0 /* should be bitwise identical */);
 
 			//bgq_initbgqref();
 		}
 //#pragma omp barrier
-		bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
+		//bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
 //#pragma omp master
 		{
 			Hopping_Matrix(0, g_spinor_field[k + k_max], g_spinor_field[k]);
 			//bgq_savebgqref();
-			compare_even = bgq_spinorfield_compare_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k + k_max], false);
+			//compare_even = bgq_spinorfield_compare_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k + k_max], false);
 			//assert(compare_even < 0.001);
 		}
 //#pragma omp barrier
-		bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
+		//bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
 //#pragma omp master
 		{
 			Hopping_Matrix(1, g_spinor_field[k + 2 * k_max], g_spinor_field[k + k_max]);
-			double compare_odd = bgq_spinorfield_compare_float(true, g_spinorfields_float[k + 2 * k_max], g_spinor_field[k + 2 * k_max], false);
+			//double compare_odd = bgq_spinorfield_compare_float(true, g_spinorfields_float[k + 2 * k_max], g_spinor_field[k + 2 * k_max], false);
 			//assert(compare_odd < 0.001);
 
-			master_print("Numerical instability between float precision implementations: even %g, odd %g\n", compare_even, compare_odd);
+			//master_print("Numerical instability between float precision implementations: even %g, odd %g\n", compare_even, compare_odd);
 		}
 	}
 }
@@ -673,53 +617,53 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags, int k_max) {
 	const int k = 0;
 	hmflags = hmflags & ~hm_nokamul;
 	double result;
-	double compare_even_before;
-	double compare_even;
-	double compare_odd;
+	double compare_even_before=0;
+	double compare_even=0;
+	double compare_odd=0;
 
 	if (!sloppyprec) {
 //#pragma omp master
 		{
-		memset(g_spinorfields_double[k + k_max], 0, sizeof(bgq_spinorsite_double) * VOLUME_SITES);
-		memset(g_spinorfields_double[k + 2*k_max], 0, sizeof(bgq_spinorsite_double) * VOLUME_SITES);
+		//memset(g_spinorfields_double[k + k_max], 0, sizeof(bgq_spinorsite_double) * VOLUME_SITES);
+		//memset(g_spinorfields_double[k + 2*k_max], 0, sizeof(bgq_spinorsite_double) * VOLUME_SITES);
 
-		bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
-		compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
+		//bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
+		//compare_even_before = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
 		}
-		bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
+		//bgq_HoppingMatrix_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, hmflags);
 //#pragma omp master
 		{
 		Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], hmflags & hm_nocom);
-		compare_even = bgq_spinorfield_compare_double(false, g_spinorfields_double[k + k_max], g_spinor_field[k + k_max], true);
+		//compare_even = bgq_spinorfield_compare_double(false, g_spinorfields_double[k + k_max], g_spinor_field[k + k_max], true);
 		}
-		bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
+		//bgq_HoppingMatrix_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, hmflags);
 //#pragma omp master
 		{
 		Hopping_Matrix_switch(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max], hmflags & hm_nocom);
-		compare_odd = bgq_spinorfield_compare_double(true, g_spinorfields_double[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
+		//compare_odd = bgq_spinorfield_compare_double(true, g_spinorfields_double[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
 
 		result = max(max(compare_even_before, compare_even), compare_odd);
 		}
 	} else {
 //#pragma omp master
 		{
-		memset(g_spinorfields_float[k + k_max], 0, sizeof(bgq_spinorsite_float) * VOLUME_SITES);
-		memset(g_spinorfields_float[k + 2*k_max], 0, sizeof(bgq_spinorsite_float) * VOLUME_SITES);
+		//memset(g_spinorfields_float[k + k_max], 0, sizeof(bgq_spinorsite_float) * VOLUME_SITES);
+		//memset(g_spinorfields_float[k + 2*k_max], 0, sizeof(bgq_spinorsite_float) * VOLUME_SITES);
 
-		bgq_transfer_spinorfield_float(true, g_spinorfields_float[k], g_spinor_field[k]);
-		compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k], true);
+		//bgq_transfer_spinorfield_float(true, g_spinorfields_float[k], g_spinor_field[k]);
+		//compare_even_before = bgq_spinorfield_compare_float(true, g_spinorfields_float[k], g_spinor_field[k], true);
 		}
-		bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
+		//bgq_HoppingMatrix_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, hmflags);
 //#pragma omp master
 		{
 		Hopping_Matrix_switch(0, g_spinor_field[k + k_max], g_spinor_field[k], hmflags & hm_nocom);
-		compare_even = bgq_spinorfield_compare_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k + k_max], true);
+		//compare_even = bgq_spinorfield_compare_float(false, g_spinorfields_float[k + k_max], g_spinor_field[k + k_max], true);
 		}
-		bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
+		//bgq_HoppingMatrix_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, hmflags);
 //#pragma omp master
 		{
 		Hopping_Matrix_switch(1, g_spinor_field[k + 2*k_max], g_spinor_field[k + k_max], hmflags & hm_nocom);
-		compare_odd = bgq_spinorfield_compare_float(true, g_spinorfields_float[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
+		//compare_odd = bgq_spinorfield_compare_float(true, g_spinorfields_float[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
 
 		result = max(max(compare_even_before, compare_even), compare_odd);
 		}
@@ -730,17 +674,17 @@ static double runcheck(bool sloppyprec, bgq_hmflags hmflags, int k_max) {
 
 
 static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads, bgq_hmflags opts, hm_func_double hm_double, hm_func_float hm_float) {
-	const bool nocom = opts & hm_nocom;
-	const bool nooverlap = opts & hm_nooverlap;
+	//const bool nocom = opts & hm_nocom;
+	//const bool nooverlap = opts & hm_nooverlap;
 	const bool nokamul = opts & hm_nokamul;
-	const bool noprefetchlist = opts & hm_noprefetchlist;
-	const bool noprefetchstream = opts & hm_noprefetchstream;
-	const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
+	//const bool noprefetchlist = opts & hm_noprefetchlist;
+	//const bool noprefetchstream = opts & hm_noprefetchstream;
+	//const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
 	const bool noweylsend = opts & hm_noweylsend;
 	const bool nobody = opts & hm_nobody;
 	const bool nosurface = opts & hm_nosurface;
-	const bool experimental = opts & hm_experimental;
-	bgq_hmflags implicitprefetch = opts & (hm_prefetchimplicitdisable | hm_prefetchimplicitoptimistic | hm_prefetchimplicitconfirmed);
+	//const bool experimental = opts & hm_experimental;
+	//bgq_hmflags implicitprefetch = opts & (hm_prefetchimplicitdisable | hm_prefetchimplicitoptimistic | hm_prefetchimplicitconfirmed);
 
 	// Setup options
 #ifdef XLC
@@ -810,7 +754,7 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 	for (int j = 0; j < iterations; j += 1) {
 		//master_print("Starting iteration %d of %d\n", j+1, iterations);
 		bool isWarmup = (j == 0);
-		bool isLast = (j == iterations-1);
+		//bool isLast = (j == iterations-1);
 		bool isPapi = !isWarmup && (j >= iterations - MYPAPI_SETS);
 		bool isJMax = !isWarmup && (j >= iterations - j_max);
 
@@ -820,13 +764,13 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 		double start_time = MPI_Wtime();
 		if (sloppyprec) {
 			for (int k = 0; k < 1; k += 1) {
-				hm_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, opts);
-				hm_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, opts);
+				//hm_float(false, g_spinorfields_float[k + k_max], g_spinorfields_float[k], g_gaugefield_float, opts);
+				//hm_float(true, g_spinorfields_float[2 * k_max], g_spinorfields_float[k + k_max], g_gaugefield_float, opts);
 			}
 		} else {
 			for (int k = 0; k < 1; k += 1) {
-				hm_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, opts);
-				hm_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, opts);
+				//hm_double(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], g_gaugefield_double, opts);
+				//hm_double(true, g_spinorfields_double[2 * k_max], g_spinorfields_double[k + k_max], g_gaugefield_double, opts);
 			}
 		}
 		double end_time = MPI_Wtime();
@@ -860,8 +804,8 @@ static benchstat runbench(int k_max, int j_max, bool sloppyprec, int ompthreads,
 	double rmstime = sqrt((sumsqtime / g_nproc) - sqr(avgtime));
 
 	int lups = LOCAL_LT * LOCAL_LX * LOCAL_LY * LOCAL_LZ;
-	int lups_body = BODY_ZLINES * PHYSICAL_LP*PHYSICAL_LK * LOCAL_LZ;
-	int lups_surface = SURFACE_ZLINES * PHYSICAL_LP*PHYSICAL_LK * LOCAL_LZ;
+	int lups_body=0;// = BODY_ZLINES * PHYSICAL_LP*PHYSICAL_LK * LOCAL_LZ;
+	int lups_surface=0;// = SURFACE_ZLINES * PHYSICAL_LP*PHYSICAL_LK * LOCAL_LZ;
 	assert(lups == lups_body + lups_surface);
 	assert(lups == VOLUME);
 
@@ -1170,7 +1114,8 @@ static void exec_table(bool sloppiness, hm_func_double hm_double, hm_func_float 
 			printf("\n");
 
 		if (g_proc_id == 0) {
-			print_stats(stats, BODY_SITES*4, SURFACE_SITES*4, HALO_SITES*4);
+			//print_stats(stats, BODY_SITES*4, SURFACE_SITES*4, HALO_SITES*4);
+			print_stats(stats, 0,0,0);
 		}
 
 		print_repeat("-", 10 + 1 + (CELLWIDTH + 1) * COUNTOF(flags));
@@ -1191,14 +1136,14 @@ static void exec_bench() {
 	print_repeat("\n", 2);
 
 	for (int i0 = 0; i0 < COUNTOF(kamuls); i0 += 1) {
-		bool kamul = kamuls[i0];
+		//bool kamul = kamuls[i0];
 		if (g_proc_id == 0) printf("Benchmark: %s\n", kamuls_desc[i0]);
 
 		for (int i1 = 0; i1 < COUNTOF(sloppinessess); i1 += 1) {
-			bool sloppiness = sloppinessess[i1];
+			//bool sloppiness = sloppinessess[i1];
 
 			if (g_proc_id == 0) printf("Benchmarking precision: %s\n", sloppinessess_desc[i1]);
-			exec_table(sloppiness, bgq_HoppingMatrix_double, bgq_HoppingMatrix_float, !kamul * hm_nokamul);
+			//exec_table(sloppiness, bgq_HoppingMatrix_double, bgq_HoppingMatrix_float, !kamul * hm_nokamul);
 		}
 
 		if (g_proc_id == 0) printf("\n");
@@ -1213,6 +1158,8 @@ static void exec_bench() {
 #if BGQ_PREFETCH_LIST
 L1P_Pattern_t *(*fake_sequential_patterns)[2/*even/odd*/][64/*For each thread*/][6/*total threads*/] = NULL;
 #endif
+
+
 
 static void hm_fake_sequential(bool isOdd, bgq_spinorfield_double targetfield, bgq_spinorfield_double spinorfield, bgq_gaugefield_double gaugefield, bgq_hmflags opts) {
 #if 0
@@ -1411,7 +1358,7 @@ static void hm_fake_random(bool isOdd, bgq_spinorfield_double targetfield, bgq_s
 }
 
 
-static void exec_fakebench() {
+inline void exec_fakebench() {
 	if (g_proc_id == 0) printf("Sequential access:\n");
 	exec_table(false, hm_fake_sequential, NULL, 0);
 	if (g_proc_id == 0) printf("\n");
@@ -1430,8 +1377,8 @@ void bgq_HoppingMatrix_asm_parallel(bool isOdd, bgq_spinorfield_double restrict 
 
 
 static void runbench_exec_sequential(int tid, int tot_threads) {
-	double *baseaddr_read = (double*)g_spinorfields_double[0];
-	double *baseaddr_write = (double*)g_spinorfields_double[1];
+	double *baseaddr_read = 0;// = (double*)g_spinorfields_double[0];
+	double *baseaddr_write = 0;// = (double*)g_spinorfields_double[1];
 
 	size_t count = PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ;
 	size_t threadcount = (count+tot_threads-1)/tot_threads;
@@ -1442,7 +1389,7 @@ static void runbench_exec_sequential(int tid, int tot_threads) {
 			break;
 
 		const size_t i = txyz;
-		const size_t i_next = txyz+1;
+		//const size_t i_next = txyz+1;
 
 		double *addr_read = baseaddr_read + i*2*4*3*2;
 		double *addr_write = baseaddr_write + i*2*4*3*2;
@@ -1455,8 +1402,8 @@ static void runbench_exec_sequential(int tid, int tot_threads) {
 }
 
 static void runbench_exec_random(int tid, int tot_threads) {
-	double *baseaddr_read = (double*)g_spinorfields_double[0];
-	double *baseaddr_write = (double*)g_spinorfields_double[1];
+	double *baseaddr_read=0;// = (double*)g_spinorfields_double[0];
+	double *baseaddr_write=0;// = (double*)g_spinorfields_double[1];
 
 	size_t count = PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ;
 	size_t threadcount = (count+tot_threads-1)/tot_threads;
@@ -1467,7 +1414,7 @@ static void runbench_exec_random(int tid, int tot_threads) {
 			break;
 
 		const size_t i = 7*txyz + txyz*txyz % count; // something seemingly random
-		const size_t i_next = 7*(txyz+1) + (txyz+1)*(txyz+1) % count;
+		//const size_t i_next = 7*(txyz+1) + (txyz+1)*(txyz+1) % count;
 
 		double *addr_read = baseaddr_read + i*2*4*3*2;
 		double *addr_write = baseaddr_write + i*2*4*3*2;
@@ -1479,7 +1426,7 @@ static void runbench_exec_random(int tid, int tot_threads) {
 	}
 }
 
-static benchstat runbench_exec_asm_parallel(int k_max, int j_max, bool sloppyprec, bgq_hmflags opts, bool noprefetchlist, bool l1pnonstoprecord, bool *l1plist_first, int tid, int tot_threads, bool isWarmup, int select) {
+static void runbench_exec_asm_parallel(int k_max, int j_max, bool sloppyprec, bgq_hmflags opts, bool noprefetchlist, bool l1pnonstoprecord, bool *l1plist_first, int tid, int tot_threads, bool isWarmup, int select) {
 	static bgq_gaugefield_double mem;
 
 	if (!mem) {
@@ -1490,13 +1437,15 @@ static benchstat runbench_exec_asm_parallel(int k_max, int j_max, bool sloppypre
 		// No impl	yet
 	} else {
 		for (int j = 0; j < j_max; j += 1) {
+#ifdef XLC
 			if (!noprefetchlist) {
 				L1P_PatternStart(l1pnonstoprecord || *l1plist_first);
 			}
+#endif
 			for (int k = 0; k < k_max; k += 1) {
 				switch (select) {
 				case 0:
-					bgq_HoppingMatrix_asm_parallel(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], mem, opts, tid, tot_threads);
+					//bgq_HoppingMatrix_asm_parallel(false, g_spinorfields_double[k + k_max], g_spinorfields_double[k], mem, opts, tid, tot_threads);
 					break;
 				case 1:
 					runbench_exec_sequential(tid, tot_threads);
@@ -1506,28 +1455,30 @@ static benchstat runbench_exec_asm_parallel(int k_max, int j_max, bool sloppypre
 					break;
 				}
 			}
+#ifdef XLC
 			if (!noprefetchlist) {
 				L1P_PatternStop();
 				*l1plist_first = false;
 			}
+#endif
 		}
 	}
 }
 
 
 static benchstat runbench_asm(int k_max, int j_max, bool sloppyprec, int ompthreads, bgq_hmflags opts, int select) {
-	const bool nocom = opts & hm_nocom;
-	const bool nooverlap = opts & hm_nooverlap;
+	//const bool nocom = opts & hm_nocom;
+	//const bool nooverlap = opts & hm_nooverlap;
 	const bool nokamul = opts & hm_nokamul;
 	bool noprefetchlist = opts & hm_noprefetchlist;
-	const bool noprefetchstream = opts & hm_noprefetchstream;
-	const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
-	const bool noweylsend = opts & hm_noweylsend;
+	//const bool noprefetchstream = opts & hm_noprefetchstream;
+	//const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
+	//const bool noweylsend = opts & hm_noweylsend;
 	const bool nobody = opts & hm_nobody;
-	const bool nosurface = opts & hm_nosurface;
-	const bgq_hmflags implicitprefetch = opts & (hm_prefetchimplicitdisable | hm_prefetchimplicitoptimistic | hm_prefetchimplicitconfirmed);
+	//const bool nosurface = opts & hm_nosurface;
+	//const bgq_hmflags implicitprefetch = opts & (hm_prefetchimplicitdisable | hm_prefetchimplicitoptimistic | hm_prefetchimplicitconfirmed);
 	const bool l1pnonstoprecord = opts & hm_l1pnonstoprecord;
-	const bool experimental = opts & hm_experimental;
+	//const bool experimental = opts & hm_experimental;
 
 	omp_set_num_threads(ompthreads);
 
@@ -1578,6 +1529,7 @@ static benchstat runbench_asm(int k_max, int j_max, bool sloppyprec, int ompthre
 		int tid = omp_get_thread_num();
 		int tot_threads = omp_get_num_threads();
 
+#ifdef XLC
 		if (experimental) {
 			noprefetchlist = false;
 			uint64_t *addr = ((uint64_t*)(Kernel_L1pBaseAddress() + L1P_CFG_PF_USR_ADJUST));
@@ -1605,6 +1557,7 @@ static benchstat runbench_asm(int k_max, int j_max, bool sloppyprec, int ompthre
 		if (!noprefetchlist) {
 			L1P_CHECK(L1P_PatternConfigure((sizeof(bgq_spinorsite_double)*9*VOLUME/4 + sizeof(bgq_gaugesite_double)*8*VOLUME/4)/64));
 		}
+#endif
 
 		double threadsumtime = 0;
 		double threadsumsqtime = 0;
@@ -1612,7 +1565,7 @@ static benchstat runbench_asm(int k_max, int j_max, bool sloppyprec, int ompthre
 
 		for (int j = 0; j < iterations; j += 1) {
 			bool isWarmup = (j == 0);
-			bool isLast = (j == iterations-1);
+			//bool isLast = (j == iterations-1);
 			bool isPapi = !isWarmup && (j >= iterations - MYPAPI_SETS);
 
 			// Barrier outside timed loop
@@ -1654,9 +1607,11 @@ static benchstat runbench_asm(int k_max, int j_max, bool sloppyprec, int ompthre
 			localsumsqtime = threadsumsqtime / (iterations-1);
 		}
 
+#ifdef XLC
 		if (!noprefetchlist) {
 			L1P_CHECK(L1P_PatternUnconfigure());
 		}
+#endif
 	}
 
 	double localavgtime = localsumtime / j_max;

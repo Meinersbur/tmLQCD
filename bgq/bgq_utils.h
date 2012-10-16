@@ -24,6 +24,8 @@
 #define EXTERN_INIT(val) = (val)
 #endif
 
+typedef _Complex double complexdouble;
+typedef _Complex float complexfloat;
 
 #if 0
 #define cs2c99(cs) \
@@ -398,7 +400,15 @@ EXTERN_INLINE int ilog(unsigned int _v) {
 
 void opaque_func_call();
 
+EXTERN_INLINE double sqr(double val) {
+	return val*val;
+}
+
+
+#define ADD_PADDING(addr,alignment) (void*)(((uintptr_t)(addr) + ((uintptr_t)(alignment)-1)) & ((uintptr_t)(alignment)-1))
+
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD
+#undef EXTERN_INIT
 
 #endif /* BGQ_UTILS_H_ */

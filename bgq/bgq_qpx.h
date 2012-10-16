@@ -8,6 +8,7 @@
 #ifndef BGQ_QPX_H_
 #define BGQ_QPX_H_
 
+#include "bgq_utils.h"
 //#include <mpi.h>
 //#include "complex_c99.h"
 #include <string.h>
@@ -15,6 +16,11 @@
 #ifndef BGQ_QPX
 #define BGQ_QPX 0
 #endif
+
+#define BGQ_ALIGNMENT_L1 64
+#define BGQ_ALIGNMENT_L1P 128
+#define BGQ_ALIGNMENT_L2 128
+
 
 
 typedef struct {
@@ -59,6 +65,9 @@ typedef struct {
 
 #define bgq_vars(name) \
 	NAME2(name,q0),NAME2(name,q1),NAME2(name,q2),NAME2(name,q3)
+
+#define bgq_params(name) \
+	double NAME2(name,q0),double NAME2(name,q1),double NAME2(name,q2),double NAME2(name,q3)
 
 #define bgq_vector4double_decl(name) \
 	double NAME2(name,q0); \
@@ -124,16 +133,16 @@ typedef struct {
 	NAME2(dst,q3) = - NAME2(arg,q3)
 
 #define bgq_add(dst,lhs,rhs)        \
-	dst##_q0 = lhs##_q0 + rhs##_q0; \
-	dst##_q1 = lhs##_q1 + rhs##_q1; \
-	dst##_q2 = lhs##_q2 + rhs##_q2; \
-	dst##_q3 = lhs##_q3 + rhs##_q3
+	NAME2(dst,q0) = NAME2(lhs,q0) + NAME2(rhs,q0); \
+	NAME2(dst,q1) = NAME2(lhs,q1) + NAME2(rhs,q1); \
+	NAME2(dst,q2) = NAME2(lhs,q2) + NAME2(rhs,q2); \
+	NAME2(dst,q3) = NAME2(lhs,q3) + NAME2(rhs,q3)
 
 #define bgq_sub(dst,lhs,rhs)        \
-	dst##_q0 = lhs##_q0 - rhs##_q0; \
-	dst##_q1 = lhs##_q1 - rhs##_q1; \
-	dst##_q2 = lhs##_q2 - rhs##_q2; \
-	dst##_q3 = lhs##_q3 - rhs##_q3
+	NAME2(dst,q0) = NAME2(lhs,q0) - NAME2(rhs,q0); \
+	NAME2(dst,q1) = NAME2(lhs,q1) - NAME2(rhs,q1); \
+	NAME2(dst,q2) = NAME2(lhs,q2) - NAME2(rhs,q2); \
+	NAME2(dst,q3) = NAME2(lhs,q3) - NAME2(rhs,q3)
 
 #define bgq_xxnpmadd(dst,a,b,c)                     \
 	{                                               \
@@ -148,20 +157,20 @@ typedef struct {
 #define bgq_iadd(dst,lhs,rhs)         \
 	{                                 \
 		bgq_vector4double_decl(tmp);  \
-		tmp_q0 = lhs##_q0 - rhs##_q1; \
-		tmp_q1 = lhs##_q1 + rhs##_q0; \
-		tmp_q2 = lhs##_q2 - rhs##_q3; \
-		tmp_q3 = lhs##_q3 + rhs##_q2; \
+		tmp_q0 = NAME2(lhs,q0) - NAME2(rhs,q1); \
+		tmp_q1 = NAME2(lhs,q1) + NAME2(rhs,q0); \
+		tmp_q2 = NAME2(lhs,q2) - NAME2(rhs,q3); \
+		tmp_q3 = NAME2(lhs,q3) + NAME2(rhs,q2); \
 		bgq_mov(dst,tmp);             \
 	}
 
 #define bgq_isub(dst,lhs,rhs)         \
 	{                                 \
 		bgq_vector4double_decl(tmp);  \
-		tmp_q0 = lhs##_q0 + rhs##_q1; \
-		tmp_q1 = lhs##_q1 - rhs##_q0; \
-		tmp_q2 = lhs##_q2 + rhs##_q3; \
-		tmp_q3 = lhs##_q3 - rhs##_q2; \
+		tmp_q0 = NAME2(lhs,q0) + NAME2(rhs,q1); \
+		tmp_q1 = NAME2(lhs,q1) - NAME2(rhs,q0); \
+		tmp_q2 = NAME2(lhs,q2) + NAME2(rhs,q3); \
+		tmp_q3 = NAME2(lhs,q3) - NAME2(rhs,q2); \
 		bgq_mov(dst,tmp);             \
 	}
 
@@ -267,6 +276,9 @@ typedef struct {
 
 #define bgq_vars(name) \
 	name
+
+#define bgq_params(name) \
+	double (name)
 
 #define bgq_vector4double_decl(name) \
 	vector4double name
@@ -519,16 +531,32 @@ typedef struct {
 	bgq_vector4double_decl(CONCAT(name,_c1)); \
 	bgq_vector4double_decl(CONCAT(name,_c2))
 
+#define bgq_su3_vparams(name) \
+	bgq_params(NAME2(name,c0)), \
+	bgq_params(NAME2(name,c1)), \
+	bgq_params(NAME2(name,c2))
+
 #define bgq_su3_mdecl(name)             \
-	bgq_vector4double_decl(name##_c00); \
-	bgq_vector4double_decl(name##_c01); \
-	bgq_vector4double_decl(name##_c02); \
-	bgq_vector4double_decl(name##_c10); \
-	bgq_vector4double_decl(name##_c11); \
-	bgq_vector4double_decl(name##_c12); \
-	bgq_vector4double_decl(name##_c20); \
-	bgq_vector4double_decl(name##_c21); \
-	bgq_vector4double_decl(name##_c22)
+	bgq_vector4double_decl(NAME2(name,c00)); \
+	bgq_vector4double_decl(NAME2(name,c01)); \
+	bgq_vector4double_decl(NAME2(name,c02)); \
+	bgq_vector4double_decl(NAME2(name,c10)); \
+	bgq_vector4double_decl(NAME2(name,c11)); \
+	bgq_vector4double_decl(NAME2(name,c12)); \
+	bgq_vector4double_decl(NAME2(name,c20)); \
+	bgq_vector4double_decl(NAME2(name,c21)); \
+	bgq_vector4double_decl(NAME2(name,c22))
+
+#define bgq_su3_mparams(name) \
+	bgq_params(NAME2(name,c00)), \
+	bgq_params(NAME2(name,c01)), \
+	bgq_params(NAME2(name,c02)), \
+	bgq_params(NAME2(name,c10)), \
+	bgq_params(NAME2(name,c11)), \
+	bgq_params(NAME2(name,c12)), \
+	bgq_params(NAME2(name,c20)), \
+	bgq_params(NAME2(name,c21)), \
+	bgq_params(NAME2(name,c22))
 
 #define bgq_su3_spinor_decl(name) \
 	bgq_su3_vdecl(NAME2(name,v0));     \
@@ -536,9 +564,19 @@ typedef struct {
 	bgq_su3_vdecl(NAME2(name,v2));     \
 	bgq_su3_vdecl(NAME2(name,v3))
 
+#define bgq_su3_spinor_params(name) \
+	bgq_su3_mparams(NAME2(name,v0)), \
+	bgq_su3_mparams(NAME2(name,v1)), \
+	bgq_su3_mparams(NAME2(name,v2)), \
+	bgq_su3_mparams(NAME2(name,v3))
+
 #define bgq_su3_weyl_decl(name) \
 	bgq_su3_vdecl(name##_v0);	\
 	bgq_su3_vdecl(name##_v1)
+
+#define bgq_su3_weyl_params(name) \
+	bgq_su3_mparams(NAME(name,v0)), \
+	bgq_su3_mparams(NAME(name,v1))
 
 #define bgq_su3_vzero(dst) \
 	bgq_zero(NAME2(dst,c0)); \
