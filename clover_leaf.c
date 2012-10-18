@@ -370,7 +370,7 @@ void six_det(_Complex double* const rval, _Complex double a[6][6])
 }
 
 /*definitions needed for the functions sw_trace(int ieo) and sw_trace(int ieo)*/
-inline void populate_6x6_matrix(_Complex double a[6][6], const su3 * const C, const int row, const int col) {
+static inline void populate_6x6_matrix(_Complex double a[6][6], const su3 * const C, const int row, const int col) {
   a[0+row][0+col] = C->c00;
   a[0+row][1+col] = C->c01;
   a[0+row][2+col] = C->c02;
@@ -383,7 +383,7 @@ inline void populate_6x6_matrix(_Complex double a[6][6], const su3 * const C, co
   return;
 }
 
-inline void get_3x3_block_matrix(su3 * const C, _Complex double a[6][6], const int row, const int col) {
+static inline void get_3x3_block_matrix(su3 * const C, _Complex double a[6][6], const int row, const int col) {
   C->c00 = a[0+row][0+col];
   C->c01 = a[0+row][1+col];
   C->c02 = a[0+row][2+col];
@@ -402,7 +402,7 @@ inline void get_3x3_block_matrix(su3 * const C, _Complex double a[6][6], const i
 // it is expected that sw_term is called beforehand such that
 // the array sw is populated properly
 
-inline void add_tm(_Complex double a[6][6], const double mu) {
+static inline void add_tm(_Complex double a[6][6], const double mu) {
   for(int i = 0; i < 6; i++) {
     a[i][i] += I*mu;
   }
