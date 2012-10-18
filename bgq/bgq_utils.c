@@ -41,11 +41,3 @@ void opaque_func_call() {
 	}
 	free(p);
 }
-
-
-void *rpl_malloc(size_t size) {
-	if (size==0)
-		size=1;
-#undef malloc
-	return malloc(size);
-}
