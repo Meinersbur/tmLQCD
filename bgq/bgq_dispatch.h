@@ -8,10 +8,15 @@
 #ifndef BGQ_DISPATCH_H_
 #define BGQ_DISPATCH_H_
 
-typedef void (bgq_dispatch_func*)(void *arg, size_t tid, size_t threads);
+#include <string.h>
+
+typedef void (*bgq_worker_func)(void *arg, size_t tid, size_t threads);
+typedef int (*bgq_master_func)();
+
+int bgq_parallel(bgq_master_func master_func);
 
 void bgq_worker();
-void bgq_master_call(bgq_dispatch_func func, void *arg);
-void bgq_master_nomorework();
+void bgq_master_call(bgq_worker_func worker_func, void *arg);
+void bgq_master_sync();
 
 #endif /* BGQ_DISPATCH_H_ */

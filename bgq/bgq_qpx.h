@@ -99,32 +99,42 @@ typedef struct {
 	NAME2(dst,q3) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 3)
 
 #define bgq_ld2a_double(dst,offset,addr)                                      \
-	assert( (((size_t)(addr)) + (offset)) % 16 == 0);                          \
+	assert( (((uintptr_t)(addr)) + (offset)) % 16 == 0);                          \
 	NAME2(dst,q0) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 0); \
 	NAME2(dst,q1) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 1); \
 	NAME2(dst,q2) = NAME2(dst,q0);                                             \
 	NAME2(dst,q3) = NAME2(dst,q1)
 
 #define bgq_ld2a_float(dst,offset,addr) \
-	assert( (((size_t)(addr)) + (offset)) % 8 == 0);                         \
+	assert( (((uintptr_t)(addr)) + (offset)) % 8 == 0);                         \
 	NAME2(dst,q0) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 0); \
 	NAME2(dst,q1) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 1); \
 	NAME2(dst,q2) = NAME2(dst,q0);                                           \
 	NAME2(dst,q3) = NAME2(dst,q1)
 
 #define bgq_sta_double(src,offset,addr) \
-	assert( (((size_t)(addr)) + (offset)) % 32 == 0);                         \
+	assert( (((uintptr_t)(addr)) + (offset)) % 32 == 0);                         \
 	BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 0) = NAME2(src,q0); \
 	BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 1) = NAME2(src,q1); \
 	BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 2) = NAME2(src,q2); \
 	BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 3) = NAME2(src,q3)
 
 #define bgq_sta_float(src,offset,addr) \
-	assert( (((size_t)(addr)) + (offset)) % 16 == 0);                        \
+	assert( (((uintptr_t)(addr)) + (offset)) % 16 == 0);                        \
 	BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 0) = NAME2(src,q0); \
 	BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 1) = NAME2(src,q1); \
 	BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 2) = NAME2(src,q2); \
 	BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 3) = NAME2(src,q3)
+
+#define bgq_st2a_double(src,offset,addr) \
+	assert( (((uintptr_t)(addr)) + (offset)) % 16 == 0); \
+	BGQ_VECTOR4DOUBLE_SUBSCRIPT((uint8_t*)(addr) + (size_t)(offset), 0) = NAME2(src,q0); \
+	BGQ_VECTOR4DOUBLE_SUBSCRIPT((uint8_t*)(addr) + (size_t)(offset), 1) = NAME2(src,q1)
+
+#define bgq_st2a_float(src,offset,addr) \
+	assert( (((uintptr_t)(addr)) + (offset)) % 8 == 0);                        \
+	BGQ_VECTOR4FLOAT_SUBSCRIPT((uint8_t*)(addr) + (offset), 0) = NAME2(src,q0); \
+	BGQ_VECTOR4FLOAT_SUBSCRIPT((uint8_t*)(addr) + (offset), 1) = NAME2(src,q1)
 
 #define bgq_neg(dst,arg)            \
 	NAME2(dst,q0) = - NAME2(arg,q0); \
@@ -194,6 +204,30 @@ typedef struct {
 		bgq_mov(dst,MAKENAME4(merge2,dst,a23_to01,b01_to23));                   \
 	}
 
+// returns the left complex part of both arguments, i.e.
+// (a_q0 a_q1 b_q0 b_q1)
+#define bgq_lmerge(dst, a01_to01, b01_to23) \
+	do {                                     \
+		bgq_vector4double_decl(tmp);         \
+		NAME2(tmp,q0) = NAME2(a01_to01,q0);  \
+		NAME2(tmp,q1) = NAME2(a01_to01,q1);  \
+		NAME2(tmp,q2) = NAME2(b01_to23,q0);  \
+		NAME2(tmp,q3) = NAME2(b01_to23,q1);  \
+		bgq_mov(dst,tmp);                    \
+	} while (0)
+
+// returns the right complex part of both arguments, i.e.
+// (a_q2 a_q3 b_q2 b_q3)
+#define bgq_rmerge(dst, a23_to01, b23_to23) \
+	do {                                     \
+		bgq_vector4double_decl(tmp);         \
+		NAME2(tmp,q0) = NAME2(a23_to01,q2);  \
+		NAME2(tmp,q1) = NAME2(a23_to01,q3);  \
+		NAME2(tmp,q2) = NAME2(b23_to23,q2);  \
+		NAME2(tmp,q3) = NAME2(b23_to23,q3);  \
+		bgq_mov(dst,tmp);                    \
+	} while (0)
+
 #define bgq_xmul(dst,lhs,rhs)              \
 	{                                      \
 		bgq_vector4double_decl(MAKENAME4(xmul,dst,lhs,rhs));                \
@@ -253,8 +287,17 @@ typedef struct {
 	NAME2(dst,q3) = 0
 
 #define bgq_qvlfduxa(dst,addr,offset) \
-	(addr) = (void*)((char*)(addr) + (size_t)(offset)); \
-	bgq_lda_double(dst,(addr));
+	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
+	bgq_lda_double(dst,0,addr)
+
+#define bgq_qvstfduxa(data,addr,offset) \
+	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
+	bgq_sta_double(data,0,addr)
+
+#define bgq_qvstfcduxa(data,addr,offset) \
+	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
+	bgq_st2a_double(data,0,addr)
+
 
 #define bgq_dcbt(addr,offset)
 #define bgq_dcbt_0(addr)
@@ -341,7 +384,7 @@ typedef struct {
 // returns the right complex part of both arguments, i.e.
 // (a_q2 a_q3 b_q2 b_q3)
 #define bgq_rmerge(dst, a23_to01, b23_to23) \
-	(dst) = vec_perm(a23_to01, b23_to23, vec_gpci(02345))
+	(dst) = vec_perm(a23_to01, b23_to23, vec_gpci(02367))
 
 #define bgq_xmul(dst,lhs,rhs) \
 	(dst) = vec_xmul(lhs,rhs)
@@ -527,9 +570,14 @@ typedef struct {
 // [3] = b[1] = b.im
 
 #define bgq_su3_vdecl(name)            \
-	bgq_vector4double_decl(CONCAT(name,_c0)); \
-	bgq_vector4double_decl(CONCAT(name,_c1)); \
-	bgq_vector4double_decl(CONCAT(name,_c2))
+	bgq_vector4double_decl(NAME2(name,c0)); \
+	bgq_vector4double_decl(NAME2(name,c1)); \
+	bgq_vector4double_decl(NAME2(name,c2))
+
+#define bgq_su3_vvars(name) \
+	bgq_vars(NAME2(name,c0)), \
+	bgq_vars(NAME2(name,c1)), \
+	bgq_vars(NAME2(name,c2))
 
 #define bgq_su3_vparams(name) \
 	bgq_params(NAME2(name,c0)), \
@@ -546,6 +594,17 @@ typedef struct {
 	bgq_vector4double_decl(NAME2(name,c20)); \
 	bgq_vector4double_decl(NAME2(name,c21)); \
 	bgq_vector4double_decl(NAME2(name,c22))
+
+#define bgq_su3_mvars(name) \
+	bgq_vars(NAME2(name,c00)), \
+	bgq_vars(NAME2(name,c01)), \
+	bgq_vars(NAME2(name,c02)), \
+	bgq_vars(NAME2(name,c10)), \
+	bgq_vars(NAME2(name,c11)), \
+	bgq_vars(NAME2(name,c12)), \
+	bgq_vars(NAME2(name,c20)), \
+	bgq_vars(NAME2(name,c21)), \
+	bgq_vars(NAME2(name,c22))
 
 #define bgq_su3_mparams(name) \
 	bgq_params(NAME2(name,c00)), \
@@ -564,15 +623,21 @@ typedef struct {
 	bgq_su3_vdecl(NAME2(name,v2));     \
 	bgq_su3_vdecl(NAME2(name,v3))
 
+#define bgq_su3_spinor_vars(name) \
+	bgq_su3_vvars(NAME2(name,v0)), \
+	bgq_su3_vvars(NAME2(name,v1)), \
+	bgq_su3_vvars(NAME2(name,v2)), \
+	bgq_su3_vvars(NAME2(name,v3))
+
 #define bgq_su3_spinor_params(name) \
-	bgq_su3_mparams(NAME2(name,v0)), \
-	bgq_su3_mparams(NAME2(name,v1)), \
-	bgq_su3_mparams(NAME2(name,v2)), \
-	bgq_su3_mparams(NAME2(name,v3))
+	bgq_su3_vparams(NAME2(name,v0)), \
+	bgq_su3_vparams(NAME2(name,v1)), \
+	bgq_su3_vparams(NAME2(name,v2)), \
+	bgq_su3_vparams(NAME2(name,v3))
 
 #define bgq_su3_weyl_decl(name) \
-	bgq_su3_vdecl(name##_v0);	\
-	bgq_su3_vdecl(name##_v1)
+	bgq_su3_vdecl(NAME2(name,v0));	\
+	bgq_su3_vdecl(NAME2(name,v1))
 
 #define bgq_su3_weyl_params(name) \
 	bgq_su3_mparams(NAME(name,v0)), \
@@ -710,15 +775,15 @@ do {\
 		bgq_vector4double_decl(left1); \
 		bgq_vector4double_decl(left2); \
 		bgq_lda_double(left0,   0, ptr1); \
-		bgq_qvstfduxa(left1, ptr1, 32); \
-		bgq_qvstfduxa(left2, ptr1, 32); \
+		bgq_qvlfduxa(left1, ptr1, 32); \
+		bgq_qvlfduxa(left2, ptr1, 32); \
 		void *ptr2 = (addr2); \
 		bgq_vector4double_decl(right0); \
 		bgq_vector4double_decl(right1); \
 		bgq_vector4double_decl(right2); \
 		bgq_lda_double(right0,   0, ptr2); \
-		bgq_qvstfduxa(right1, ptr2, 32); \
-		bgq_qvstfduxa(right2, ptr2, 32); \
+		bgq_qvlfduxa(right1, ptr2, 32); \
+		bgq_qvlfduxa(right2, ptr2, 32); \
 		bgq_lmerge(NAME3(dest,v0,c0), left0, right0); \
 		bgq_rmerge(NAME3(dest,v0,c1), left0, right0); \
 		bgq_lmerge(NAME3(dest,v0,c2), left1, right1); \
@@ -1391,7 +1456,7 @@ do { \
 				"dcbi %[c192],%[ptr]  \n" \
 				"dcbi %[c256],%[ptr]  \n" \
 				"dcbi %[c320],%[ptr]  \n" \
-				: [ptr] "+r" (ptr) \
+				: [ptr] "r" (ptr) \
 				: [c64] "b" (64), \
 				  [c128] "b" (128), \
 				  [c192] "b" (192), \
@@ -1416,7 +1481,7 @@ do { \
 				"dcbi %[c128],%[ptr]  \n" \
 				"dcbi %[c192],%[ptr]  \n" \
 				"dcbi %[c256],%[ptr]  \n" \
-				: [ptr] "+r" (ptr) \
+				: [ptr] "r" (ptr) \
 				: [c64] "b" (64), \
 				  [c128] "b" (128), \
 				  [c192] "b" (192), \
@@ -1429,6 +1494,26 @@ do { \
 	bgq_dcbi_0((char*)(addr) +  64);    \
 	bgq_dcbi_0((char*)(addr) + 128)
 	// 144 bytes
+
+
+
+#if BGQ_QPX
+#define bgq_10ptrs_prefetch(addr)     \
+do { \
+	void *ptr = (addr); \
+	bgq_prefetch(ptr); \
+	asm ( \
+		"dcbt  %[c64],%[ptr]  \n" \
+		: [ptr] "+r" (ptr) \
+		: [c64] "b" (64), \
+	); \
+	} while (0) /* make it consume a semicolon */
+#else
+#define bgq_10ptrs_prefetch(addr)      \
+	bgq_prefetch((uint8_t*)(addr) +   0);    \
+	bgq_prefetch((uint8_t*)(addr) +  64);    \
+	// 10 pointers = 80 byte
+#endif
 
 
 
@@ -1446,6 +1531,12 @@ static inline int Kernel_ProcessorThreadID() {
 static inline int Kernel_ProcessorCoreID() {
 	return omp_get_thread_num();
 }
+
+// Memory barrier
+static inline void mbar() {
+	__sync_synchronize();
+}
+
 #endif
 
 

@@ -330,11 +330,12 @@ void bgq_spinorfields_init(size_t std_count, size_t chi_count) {
 	}
 }
 
-
 void bgq_gaugefield_init() {
-	g_bgq_gaugefield_fromHalfvolume = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromHalfvolume),BGQ_ALIGNMENT_L2);
-	g_bgq_gaugefield_fromSurface = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromSurface),BGQ_ALIGNMENT_L2);
-	g_bgq_gaugefield_fromBody = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromBody),BGQ_ALIGNMENT_L2);
+	for (size_t isOdd = false; isOdd <= true; isOdd += 1) {
+		g_bgq_gaugefield_fromHalfvolume[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromHalfvolume), BGQ_ALIGNMENT_L2);
+		g_bgq_gaugefield_fromSurface[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromSurface), BGQ_ALIGNMENT_L2);
+		g_bgq_gaugefield_fromBody[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromBody), BGQ_ALIGNMENT_L2);
+	}
 }
 
 

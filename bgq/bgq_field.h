@@ -8,6 +8,8 @@
 #ifndef BGQ_FIELD_H_
 #define BGQ_FIELD_H_
 
+#include "bgq_utils.h"
+
 #include "../global.h"
 
 #include <stdbool.h>
@@ -121,16 +123,11 @@ EXTERN_FIELD size_t PHYSICAL_BODY;
 #define COMM_Y 1
 #define COMM_Z 1
 #else
-#error Unkonwn inter-node parallelization
+#error Unknown inter-node parallelization
 #endif
 
 
-
-
-
-typedef _Complex double complex_double;
-typedef _Complex float complex_float;
-#define COMPLEX_PRECISION complex_double
+#define COMPLEX_PRECISION complexdouble
 
 typedef enum {
 	TUP = 0,
@@ -313,6 +310,9 @@ typedef struct {
 
 	bgq_spinorsite *sec_fullspinor;
 
+	//TODO: We may even interleave these with the data itself, but may cause alignment issues
+	// Idea: sizeof(bgq_weyl_ptr_t)==10*8==80, so one bgq_weyl_ptr_t every 2(5;10) spinors solves the issue
+	// In case we write as fullspinor layout, the are not needed
 	bgq_weyl_ptr_t *destptrFromHalfvolume;
 	bgq_weyl_ptr_t *destptrFromSurface;
 	bgq_weyl_ptr_t *destptrFromBody;
@@ -337,9 +337,9 @@ EXTERN_FIELD bgq_weyl_offsets_t *g_bgq_destoffset_fromBody[PHYSICAL_LP];
 
 // The gaugefield as GAUGE_COPY
 EXTERN_FIELD bgq_weylfield_controlblock *g_bgq_spinorfields EXTERN_INIT(NULL);
-EXTERN_FIELD bgq_gaugesite *g_bgq_gaugefield_fromHalfvolume;
-EXTERN_FIELD bgq_gaugesite *g_bgq_gaugefield_fromSurface;
-EXTERN_FIELD bgq_gaugesite *g_bgq_gaugefield_fromBody;
+EXTERN_FIELD bgq_gaugesite *g_bgq_gaugefield_fromHalfvolume[PHYSICAL_LP];
+EXTERN_FIELD bgq_gaugesite *g_bgq_gaugefield_fromSurface[PHYSICAL_LP];
+EXTERN_FIELD bgq_gaugesite *g_bgq_gaugefield_fromBody[PHYSICAL_LP];
 
 
 EXTERN_FIELD bool g_bgq_indices_initialized EXTERN_INIT(false);

@@ -15,11 +15,11 @@
 #include <mpi.h>
 
 #ifndef BGQ_UTILS_C_
-#define EXTERN_INLINE inline
+#define EXTERN_INLINE extern __inline__
 #define EXTERN_FIELD extern
 #define EXTERN_INIT(val)
 #else
-#define EXTERN_INLINE extern inline
+#define EXTERN_INLINE __inline__
 #define EXTERN_FIELD
 #define EXTERN_INIT(val) = (val)
 #endif
@@ -328,6 +328,7 @@ EXTERN_INLINE int divdown(const int dividend, const int divisor) {
 	CONCAT(beacon, __LINE__) = true; \
 	}
 
+#if 0
 EXTERN_FIELD double bgq_g_wtick EXTERN_INIT(0);
 
 EXTERN_INLINE void bgq_init_wtime() {
@@ -339,7 +340,7 @@ EXTERN_INLINE double bgq_wtime() {
 	assert(bgq_g_wtick != 0);
 	return MPI_Wtime();
 }
-
+#endif
 
 #define master_print(...)              \
 	if (g_proc_id == 0)                 \
