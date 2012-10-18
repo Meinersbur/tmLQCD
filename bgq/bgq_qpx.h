@@ -105,6 +105,11 @@ typedef struct {
 	NAME2(dst,q2) = NAME2(dst,q0);                                             \
 	NAME2(dst,q3) = NAME2(dst,q1)
 
+#define bgq_ld2a_leftonly_double(dst,offset,addr)                                      \
+	assert( (((uintptr_t)(addr)) + (offset)) % 16 == 0);                          \
+	NAME2(dst,q0) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 0); \
+	NAME2(dst,q1) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 1)
+
 #define bgq_ld2a_float(dst,offset,addr) \
 	assert( (((uintptr_t)(addr)) + (offset)) % 8 == 0);                         \
 	NAME2(dst,q0) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 0); \
@@ -574,6 +579,11 @@ typedef struct {
 	bgq_vector4double_decl(NAME2(name,c1)); \
 	bgq_vector4double_decl(NAME2(name,c2))
 
+#define bgq_su3_vdecl_leftonly(name)            \
+	bgq_vector4double_decl_leftonly(NAME2(name,c0)); \
+	bgq_vector4double_decl_leftonly(NAME2(name,c1)); \
+	bgq_vector4double_decl_leftonly(NAME2(name,c2))
+
 #define bgq_su3_vvars(name) \
 	bgq_vars(NAME2(name,c0)), \
 	bgq_vars(NAME2(name,c1)), \
@@ -638,6 +648,10 @@ typedef struct {
 #define bgq_su3_weyl_decl(name) \
 	bgq_su3_vdecl(NAME2(name,v0));	\
 	bgq_su3_vdecl(NAME2(name,v1))
+
+#define bgq_su3_weyl_decl_leftonly(name) \
+	bgq_su3_vdecl_leftonly(NAME2(name,v0));	\
+	bgq_su3_vdecl_leftonly(NAME2(name,v1))
 
 #define bgq_su3_weyl_params(name) \
 	bgq_su3_mparams(NAME(name,v0)), \
@@ -767,6 +781,37 @@ do {\
 	bgq_lda_float(NAME3(dest,v1,c1),  64, addr);        \
 	bgq_lda_float(NAME3(dest,v1,c2),  80, addr)
 
+#define bgq_su3_weyl_left_load_double(dest, addr) \
+	bgq_ld2a_double(NAME3(dest,v0,c0),   0, addr);        \
+	bgq_ld2a_double(NAME3(dest,v0,c1),  16, addr);        \
+	bgq_ld2a_double(NAME3(dest,v0,c2),  32, addr);        \
+	bgq_ld2a_double(NAME3(dest,v1,c0),  48, addr);        \
+	bgq_ld2a_double(NAME3(dest,v1,c1),  64, addr);        \
+	bgq_ld2a_double(NAME3(dest,v1,c2),  80, addr)
+	// 96 byte
+
+#define bgq_su3_weyl_left_load_leftonly_double(dest, addr) \
+	bgq_ld2a_leftonly_double(NAME3(dest,v0,c0),   0, addr);        \
+	bgq_ld2a_leftonly_double(NAME3(dest,v0,c1),  16, addr);        \
+	bgq_ld2a_leftonly_double(NAME3(dest,v0,c2),  32, addr);        \
+	bgq_ld2a_leftonly_double(NAME3(dest,v1,c0),  48, addr);        \
+	bgq_ld2a_leftonly_double(NAME3(dest,v1,c1),  64, addr);        \
+	bgq_ld2a_leftonly_double(NAME3(dest,v1,c2),  80, addr)
+	// 96 byte
+
+#define bgq_su3_weyl_left_move_double(dstaddr,srcaddr) \
+	do { \
+		bgq_vector4double_decl(tmp0); \
+		bgq_vector4double_decl(tmp1); \
+		bgq_vector4double_decl(tmp2); \
+		bgq_lda_double(tmp0,  0, srcaddr); \
+		bgq_lda_double(tmp1, 32, srcaddr); \
+		bgq_lda_double(tmp2, 64, srcaddr); \
+		bgq_sta_double(tmp0,  0, dstaddr); \
+		bgq_sta_double(tmp1, 32, dstaddr); \
+		bgq_sta_double(tmp2, 64, dstaddr); \
+	} while (0)
+	// 96 byte (3x 32B)
 
 #define bgq_su3_weyl_load_combine_double(dest, addr1, addr2) \
 	do { \

@@ -151,7 +151,7 @@ if (xyz_counter==0) { \
 	 xyz_torig = xyz_total,               \
 	 xyz_total = xyz_torig / xyz_param,   \
 	 xyz_counter = xyz_orig / xyz_param,          \
-	 mod(xyz_orig, xyz_param))
+	 (xyz_orig % xyz_param))
 /*
  xyz_orig	xyz			return (=PARAM)
  0			0			0

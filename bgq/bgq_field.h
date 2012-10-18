@@ -38,6 +38,7 @@
 #define GLOBAL_LZ ((size_t)LZ*(size_t)N_PROC_Z)
 #define GLOBAL_VOLUME (GLOBAL_LT*GLOBAL_LX*GLOBAL_LY*GLOBAL_LZ)
 
+
 /* local logical coordinates */
 
 #define LOCAL_LT ((size_t)T)
@@ -45,6 +46,7 @@
 #define LOCAL_LY ((size_t)LY)
 #define LOCAL_LZ ((size_t)LZ)
 #define LOCAL_VOLUME ((size_t)VOLUME)
+#define LOCAL_LD 8 /* Number of directions */
 
 #define LOCAL_HALO_T (LOCAL_LX*LOCAL_LY*LOCAL_LZ)
 #define LOCAL_HALO_X (LOCAL_LT*LOCAL_LY*LOCAL_LZ)
@@ -60,17 +62,11 @@
 #define PHYSICAL_LY LOCAL_LY
 #define PHYSICAL_LZ LOCAL_LZ
 #define PHYSICAL_LK 2 /* Vector unit width (2 complex = 4 reals) */
-#define PHYSICAL_LD 8 /* Number of directions */
+#define PHYSICAL_LD 8/*10*/ /* Number of directions */
 #define PHYSICAL_VOLUME (PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ) /* (VOLUME/(PHYSICAL_LP*PHYSICAL_LK)) */
 EXTERN_FIELD size_t PHYSICAL_BODY;
-#if 0
-#define PHYSICAL_BODY ( \
-	COMM_T*(PHYSICAL_LTV-2) + (1-COMM_T)*(PHYSICAL_LTV) + \
-	COMM_X*(PHYSICAL_LX-2) + (1-COMM_X)*(PHYSICAL_LX) + \
-	COMM_Y*(PHYSICAL_LY-2) + (1-COMM_Y)*(PHYSICAL_LY) + \
-	COMM_Z*(PHYSICAL_LZ-2) + (1-COMM_Z)*(PHYSICAL_LZ) )
-#endif
 #define PHYSICAL_SURFACE (PHYSICAL_VOLUME-PHYSICAL_BODY)
+#define PHYSICAL_HALO (COMM_T*2*LOCAL_HALO_T + COMM_X*2*LOCAL_HALO_X + COMM_Y*2*LOCAL_HALO_Y + COMM_Z*2*LOCAL_HALO_Z)
 
 #define PHYSICAL_INDEX_LEXICAL(isOdd, tv, x, y, z) (tv + PHYSICAL_LTV*(x + PHYSICAL_LX*(y + PHYSICAL_LY*(z))))
 #define PHYSICAL_LEXICAL2TV(isOdd,ih) ((ih)%PHYSICAL_LTV)
@@ -247,6 +243,33 @@ typedef struct {
 size_t bgq_offsetof_weylsite[P_COUNT] = {offsetof(bgq_weylsite,tup1),offsetof(bgq_weylsite,tup2),offsetof(bgq_weylsite,tdown1),offsetof(bgq_weylsite,tdown2),
 		offsetof(bgq_weylsite,xup),offsetof(bgq_weylsite,xdown),offsetof(bgq_weylsite,yup),offsetof(bgq_weylsite,ydown),offsetof(bgq_weylsite,zup),offsetof(bgq_weylsite,zdown)};
 
+EXTERN_INLINE void *bgq_weylsite_getdirection(bgq_weylsite *site, bgq_physical_direction d) {
+	switch (d) {
+	case P_TUP1:
+		return &site->tup1;
+	case P_TUP2:
+		return &site->tup2;
+	case P_TDOWN1:
+		return &site->tdown1;
+	case P_TDOWN2:
+		return &site->tdown2;
+	case P_XUP:
+		return &site->xup;
+	case P_XDOWN:
+		return &site->xdown;
+	case P_YUP:
+		return &site->yup;
+	case P_YDOWN :
+		return &site->ydown;
+	case P_ZUP:
+		return &site->zup;
+	case P_ZDOWN:
+		return &site->zdown;
+	}
+	assert(!"Unreachable");
+	exit(1);
+}
+
 typedef struct {
 	COMPLEX_PRECISION s[2];
 } bgq_weyl;
@@ -280,6 +303,38 @@ typedef enum {
 	//sec_fullspinor,
 	sec_end
 } bgq_weylfield_section;
+
+EXTERN_INLINE bgq_direction bgq_section2direction(bgq_weylfield_section sec) {
+	switch (sec) {
+	case sec_send_tup:
+	case sec_recv_tup:
+		return TUP;
+	case sec_send_tdown:
+	case sec_recv_tdown:
+		return TDOWN;
+	case sec_send_xup:
+	case sec_recv_xup:
+		return XUP;
+	case sec_send_xdown:
+	case sec_recv_xdown:
+		return XDOWN;
+	case sec_send_yup:
+	case sec_recv_yup:
+		return YUP;
+	case sec_send_ydown:
+	case sec_recv_ydown:
+		return YDOWN;
+	case sec_send_zup:
+	case sec_recv_zup:
+		return ZUP;
+	case sec_send_zdown:
+	case sec_recv_zdown:
+		return ZDOWN;
+	default:
+		assert(!"This section has no direction");
+		exit(1);
+	}
+}
 
 typedef struct {
 	bool isInitinialized;
@@ -316,6 +371,15 @@ typedef struct {
 	bgq_weyl_ptr_t *destptrFromHalfvolume;
 	bgq_weyl_ptr_t *destptrFromSurface;
 	bgq_weyl_ptr_t *destptrFromBody;
+
+	bgq_weyl_nonvec **destptrFromRecvTup;
+	bgq_weyl_nonvec **destptrFromRecvTdown;
+	bgq_weyl_vec **destptrFromRecvXup;
+	bgq_weyl_vec **destptrFromRecvXdown;
+	bgq_weyl_vec **destptrFromRecvYup;
+	bgq_weyl_vec **destptrFromRecvYdown;
+	bgq_weyl_vec **destptrFromRecvZup;
+	bgq_weyl_vec **destptrFromRecvZdown;
 } bgq_weylfield_controlblock;
 
 // Index translations
@@ -432,6 +496,19 @@ EXTERN_INLINE bool bgq_physical2eo(bool isOdd, size_t tv, size_t x, size_t y, si
 	return (x+y+z+isOdd)&1;
 }
 
+EXTERN_INLINE size_t bgq_physical2t1(bool isOdd, size_t tv, size_t x, size_t y, size_t z) {
+	assert(0 <= tv && tv < PHYSICAL_LTV);
+	assert(0 <= x && x < LOCAL_LX);
+	assert(0 <= y && y < LOCAL_LY);
+	assert(0 <= z && z < LOCAL_LZ);
+	size_t t1 = PHYSICAL_LP*PHYSICAL_LK*tv + bgq_physical2eo(isOdd,tv,x,y,z);
+	assert(0 <= t1 && t1 < LOCAL_LT);
+	return t1;
+}
+EXTERN_INLINE size_t bgq_physical2t2(bool isOdd, size_t tv, size_t x, size_t y, size_t z) {
+	size_t t1 = bgq_physical2t1(isOdd, tv, x, y, z);
+	return (t1+2)%LOCAL_LT;
+}
 EXTERN_INLINE size_t bgq_physical2halfvolume(size_t tv, size_t x, size_t y, size_t z) {
 	assert(0 <= tv && tv < PHYSICAL_LTV);
 	assert(0 <= x && x < PHYSICAL_LX);
@@ -453,18 +530,6 @@ EXTERN_INLINE size_t bgq_halfvolume2tv(size_t ih) {
 	assert(0 <= ih && ih < PHYSICAL_VOLUME);
 	return ih%PHYSICAL_LTV;
 }
-EXTERN_INLINE size_t bgq_halfvolume2t1(bool isOdd, size_t ih) {
-	assert(0 <= ih && ih < PHYSICAL_VOLUME);
-	size_t tv = bgq_halfvolume2tv(ih);
-	size_t t1 = (tv*PHYSICAL_LP*PHYSICAL_LK + 2 + isOdd) % LOCAL_LT;
-	return t1;
-}
-EXTERN_INLINE size_t bgq_halfvolume2t2(bool isOdd, size_t ih) {
-	assert(0 <= ih && ih < PHYSICAL_VOLUME);
-	size_t tv = bgq_halfvolume2tv(ih);
-	size_t t2 = (tv*PHYSICAL_LP*PHYSICAL_LK + 2 + isOdd + 2) % LOCAL_LT;
-	return t2;
-}
 EXTERN_INLINE size_t bgq_halfvolume2x(size_t ih) {
 	assert(0 <= ih && ih < PHYSICAL_VOLUME);
 	return (ih/PHYSICAL_LTV)%PHYSICAL_LX;
@@ -479,12 +544,36 @@ EXTERN_INLINE size_t bgq_halfvolume2z(size_t ih) {
 	assert(result < PHYSICAL_LZ);
 	return result;
 }
+EXTERN_INLINE size_t bgq_halfvolume2t1(bool isOdd, size_t ih) {
+	assert(0 <= ih && ih < PHYSICAL_VOLUME);
+	size_t tv = bgq_halfvolume2tv(ih);
+	size_t x = bgq_halfvolume2x(ih);
+	size_t y = bgq_halfvolume2y(ih);
+	size_t z = bgq_halfvolume2z(ih);
+	size_t t1 = bgq_physical2t1(isOdd,tv,x,y,z);
+	return t1;
+}
+EXTERN_INLINE size_t bgq_halfvolume2t2(bool isOdd, size_t ih) {
+	assert(0 <= ih && ih < PHYSICAL_VOLUME);
+	assert(0 <= ih && ih < PHYSICAL_VOLUME);
+	size_t tv = bgq_halfvolume2tv(ih);
+	size_t x = bgq_halfvolume2x(ih);
+	size_t y = bgq_halfvolume2y(ih);
+	size_t z = bgq_halfvolume2z(ih);
+	size_t t2 = bgq_physical2t2(isOdd,tv,x,y,z);
+	return t2;
+}
 EXTERN_INLINE bool bgq_halfvolume2isSurface(bool isOdd, size_t ih) {
 	assert(g_bgq_indices_initialized);
 	assert(0 <= ih && ih < PHYSICAL_VOLUME);
 	return g_bgq_index_halfvolume2surface[isOdd][ih] != -1;
 }
-
+EXTERN_INLINE bool bgq_halfvolume2surface(bool isOdd, size_t ih) {
+	assert(g_bgq_indices_initialized);
+	assert(0 <= ih && ih < PHYSICAL_VOLUME);
+	assert(g_bgq_index_halfvolume2surface[isOdd][ih] != -1);
+	return g_bgq_index_halfvolume2surface[isOdd][ih];
+}
 EXTERN_INLINE size_t bgq_surface2halfvolume(bool isOdd, size_t is) {
 	assert(g_bgq_indices_initialized);
 	assert(0 <= is && is < PHYSICAL_SURFACE);
@@ -499,7 +588,16 @@ EXTERN_INLINE size_t bgq_body2halfvolume(bool isOdd, size_t ib) {
 	assert(0 <= ih && ih < PHYSICAL_VOLUME);
 	return ih;
 }
-
+EXTERN_INLINE size_t bgq_physical2surface(bool isOdd, size_t tv, size_t x, size_t y, size_t z) {
+	assert(0 <= tv && tv < PHYSICAL_LTV);
+	assert(0 <= x && x < PHYSICAL_LX);
+	assert(0 <= y && y < PHYSICAL_LY);
+	assert(0 <= z && z < PHYSICAL_LZ);
+	size_t ih = bgq_physical2halfvolume(tv,x,y,z);
+	size_t is = bgq_halfvolume2surface(isOdd, ih);
+	assert(0 <= is && is < PHYSICAL_SURFACE);
+	return is;
+}
 
 
 

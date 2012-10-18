@@ -232,6 +232,96 @@ typedef struct {
 } bgq_HoppingMatrix_workload;
 
 
+static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t threads) {
+	const bgq_HoppingMatrix_workload *args = argptr;
+	const bgq_weylfield_controlblock *spinorfield = args->spinorfield;
+
+	const size_t workload = PHYSICAL_HALO;
+	const size_t threadload = (workload+threads-1)/threads;
+	const size_t begin = tid*threadload;
+	const size_t end = min(workload, begin+threadload);
+	for (size_t i = begin; i<end; ) {
+		WORKLOAD_DECL(i,workload);
+
+		if (WORKLOAD_SPLIT(2*LOCAL_LT)) {
+			//TODO: Iteration workload imbalance
+			// One DIM_T iteration loads/stores just half data as the other dimensions
+			// We may shuffle tid's such that every core has one thread on T_DIM and three others
+			bgq_weyl_nonvec **destptrs;
+			bgq_weyl_nonvec *weylbase;
+			if (WORKLOAD_SPLIT(1)) {
+				destptrs = spinorfield->destptrFromRecvTup;
+				weylbase = spinorfield->sec_recv_tup;
+			} else {
+				destptrs = spinorfield->destptrFromRecvTdown;
+				weylbase = spinorfield->sec_recv_tdown;
+			}
+
+			const size_t beginj = WORKLOAD_PARAM(LOCAL_LT);
+			const size_t endj = min(LOCAL_LT, threadload);
+			for (size_t j = beginj; j < endj; j+=1) {
+				bgq_weyl_nonvec *weylsrc = &weylbase[j]; //TODO: Check strength reduction
+				bgq_weyl_nonvec *destptr = destptrs[j];//TODO: Also prefetch destptrs
+
+				bgq_su3_weyl_prefetch_double(&weylbase[j+1]); //TODO: prefetch just _nonvec
+				bgq_su3_weyl_left_move_double(destptr,weylsrc);
+			}
+			i += (endj - beginj);
+		} else {
+			bgq_weyl_vec **destptrs;
+			bgq_weyl_vec *weylbase;
+			size_t count;
+
+			if (WORKLOAD_SPLIT(2*PHYSICAL_LX)) {
+				if (WORKLOAD_SPLIT(1)) {
+					destptrs = spinorfield->destptrFromRecvXup;
+					weylbase = spinorfield->sec_recv_xup;
+				} else {
+					destptrs = spinorfield->destptrFromRecvXdown;
+					weylbase = spinorfield->sec_recv_xdown;
+				}
+				count = PHYSICAL_LX;
+			} else if (WORKLOAD_SPLIT(2*PHYSICAL_LY)) {
+				if (WORKLOAD_SPLIT(1)) {
+					destptrs = spinorfield->destptrFromRecvYup;
+					weylbase = spinorfield->sec_recv_yup;
+				} else {
+					destptrs = spinorfield->destptrFromRecvYdown;
+					weylbase = spinorfield->sec_recv_ydown;
+				}
+				count = PHYSICAL_LY;
+			} else if(WORKLOAD_SPLIT(2*PHYSICAL_LZ)) {
+				if (WORKLOAD_SPLIT(1)) {
+					destptrs = spinorfield->destptrFromRecvZup;
+					weylbase = spinorfield->sec_recv_zup;
+				} else {
+					destptrs = spinorfield->destptrFromRecvZdown;
+					weylbase = spinorfield->sec_recv_zdown;
+				}
+				count = PHYSICAL_LX;
+			} else {
+				assert(!"Impossible to get here");
+				exit(1);
+			}
+
+			const size_t beginj = WORKLOAD_PARAM(count);
+			const size_t endj = min(count, threadload);
+			for (size_t j = beginj; j < endj; j+=1) {
+				bgq_weyl_vec *weylsrc = &weylbase[j]; //TODO: Check strength reduction
+				bgq_weyl_vec *destptr = destptrs[j];
+
+				bgq_su3_weyl_prefetch_double(&weylbase[j+1]);//TODO: Also prefetch destptrs
+				bgq_su3_weyl_decl(weyl);
+				bgq_su3_weyl_load_double(weyl, weylsrc);
+				bgq_su3_weyl_store_double(destptr, weyl);
+			}
+			i += (endj - beginj);
+		}
+
+		WORKLOAD_CHECK
+	}
+}
+
 static void bgq_HoppingMatrix_worker_surface(void *argptr, size_t tid, size_t threads) {
 	const bgq_HoppingMatrix_workload *args = argptr;
 	const bool isOdd = args->isOdd;
@@ -301,7 +391,10 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 // 4. Wait for the workers to finish
 	bgq_master_sync();
 
-// 5. Compute the surface
+// 5. Move received to correct location
+	bgq_master_call(&bgq_HoppingMatrix_worker_datamove, &work);
+
+// 6. Compute the surface
 	bgq_master_call(&bgq_HoppingMatrix_worker_surface, &work);
 }
 

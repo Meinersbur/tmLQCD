@@ -552,7 +552,11 @@ static void List_PAPI_Events(const int pEventSet, int* pEvents, int* pNumEvents)
 
 void mypapi_init(){}
 void mypapi_start(int i){}
-mypapi_counters mypapi_stop(){}
+mypapi_counters mypapi_stop(){
+	mypapi_counters dummy;
+	dummy.init=false;
+	return dummy;
+}
 mypapi_counters mypapi_merge_counters(mypapi_counters *counters1, mypapi_counters *counters2) {
 	mypapi_counters result = {0};
 	return result;

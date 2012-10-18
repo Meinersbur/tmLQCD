@@ -263,6 +263,7 @@
 
 /* Define to rpl_malloc if the replacement function should be used. */
 #undef malloc
+void *malloc();
 
 /* Define to `long int' if <sys/types.h> does not define. */
 #undef off_t

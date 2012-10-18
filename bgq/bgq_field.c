@@ -279,10 +279,11 @@ void bgq_spinorfields_init(size_t std_count, size_t chi_count) {
 
 	size_t field_datasize = bgq_weyl_section_offset(sec_end);
 	field_datasize = (field_datasize + 127) & ~(size_t)127;
-	field_datasize += PHYSICAL_VOLUME * sizeof(bgq_spinorsite);
+	field_datasize += PHYSICAL_VOLUME * sizeof(bgq_spinorsite); // Fullspinor field
 	field_datasize = (field_datasize + 127) & ~(size_t)127;
-	field_datasize += 2*PHYSICAL_VOLUME * sizeof(size_t);
-	field_datasize = (field_datasize + 127) & ~(size_t)127;
+	field_datasize += 2*PHYSICAL_VOLUME * sizeof(size_t); // destptrs
+	field_datasize += PHYSICAL_HALO * sizeof(void*); // destptr from halo
+	field_datasize = (field_datasize + 127) & ~(size_t)127; // For padding the next field
 
 	g_bgq_spinorfields = malloc(tot_count * sizeof(bgq_weylsite));
 	memset(g_bgq_spinorfields, 0, tot_count * sizeof(bgq_weylsite));
@@ -326,15 +327,181 @@ void bgq_spinorfields_init(size_t std_count, size_t chi_count) {
 		uint8_t *ptrBodyBase = ptrSurfaceBase + PHYSICAL_SURFACE * sizeof(*g_bgq_spinorfields[i].destptrFromSurface);
 		g_bgq_spinorfields[i].destptrFromBody = (bgq_weyl_ptr_t*)ptrBodyBase;
 
-
+		uint8_t *ptrHaloBase = ptrBodyBase + PHYSICAL_BODY * sizeof(bgq_weyl_ptr_t);
+		uint8_t *ptrHalo = ptrHaloBase;
+		if (COMM_T) {
+			g_bgq_spinorfields[i].destptrFromRecvTup = (bgq_weyl_nonvec**)ptrHalo;
+			ptrHalo += LOCAL_LT * sizeof(bgq_weyl_nonvec*);
+			g_bgq_spinorfields[i].destptrFromRecvTdown = (bgq_weyl_nonvec**)ptrHalo;
+			ptrHalo += LOCAL_LT * sizeof(bgq_weyl_nonvec*);
+		}
+		if (COMM_X) {
+			g_bgq_spinorfields[i].destptrFromRecvXup = (bgq_weyl_vec**)ptrHalo;
+			ptrHalo += LOCAL_LX * sizeof(bgq_weyl_vec*);
+			g_bgq_spinorfields[i].destptrFromRecvXdown = (bgq_weyl_vec**)ptrHalo;
+			ptrHalo += LOCAL_LX * sizeof(bgq_weyl_vec*);
+		}
+		if (COMM_Y) {
+			g_bgq_spinorfields[i].destptrFromRecvYup = (bgq_weyl_vec**)ptrHalo;
+			ptrHalo += LOCAL_LX * sizeof(bgq_weyl_vec*);
+			g_bgq_spinorfields[i].destptrFromRecvYdown = (bgq_weyl_vec**)ptrHalo;
+			ptrHalo += LOCAL_LX * sizeof(bgq_weyl_vec*);
+		}
+		if (COMM_Z) {
+			g_bgq_spinorfields[i].destptrFromRecvZup = (bgq_weyl_vec**)ptrHalo;
+			ptrHalo += LOCAL_LX * sizeof(bgq_weyl_vec*);
+			g_bgq_spinorfields[i].destptrFromRecvZdown = (bgq_weyl_vec**)ptrHalo;
+			ptrHalo += LOCAL_LX * sizeof(bgq_weyl_vec*);
+		}
 	}
 }
+
 
 void bgq_gaugefield_init() {
 	for (size_t isOdd = false; isOdd <= true; isOdd += 1) {
 		g_bgq_gaugefield_fromHalfvolume[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromHalfvolume), BGQ_ALIGNMENT_L2);
 		g_bgq_gaugefield_fromSurface[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromSurface), BGQ_ALIGNMENT_L2);
 		g_bgq_gaugefield_fromBody[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromBody), BGQ_ALIGNMENT_L2);
+	}
+}
+
+static void bgq_spinorfield_initdstptr_halo(bool isOdd, bgq_weylfield_controlblock *field, bgq_physical_direction pd) {
+	bgq_direction d = bgq_physical2direction(pd);
+	bgq_dimension dim = bgq_direction2dimension(d);
+
+	size_t begin_tv = 0;
+	size_t begin_x = 0;
+	size_t begin_y = 0;
+	size_t begin_z = 0;
+	size_t end_tv = PHYSICAL_LTV;
+	size_t end_x = PHYSICAL_LX;
+	size_t end_y = PHYSICAL_LY;
+	size_t end_z = PHYSICAL_LZ;
+	int shift_t = 0;
+	int shift_x = 0;
+	int shift_y = 0;
+	int shift_z = 0;
+	bgq_weylfield_section sec_neighbor;
+	bgq_weylfield_section sec;
+
+	switch (pd) {
+	case P_TUP1:
+		case P_TUP2:
+		begin_tv = PHYSICAL_LTV - 1;
+		end_tv = PHYSICAL_LTV - 1;
+		shift_t = +1;
+		sec_neighbor = sec_send_tdown;
+		sec = sec_recv_tup;
+		break;
+	case P_TDOWN1:
+		case P_TDOWN2:
+		begin_tv = PHYSICAL_LTV - 1;
+		end_tv = PHYSICAL_LTV - 1;
+		shift_t = -1;
+		sec_neighbor = sec_send_tup;
+		sec = sec_recv_tdown;
+		break;
+	case P_XUP:
+		begin_tv = PHYSICAL_LX - 1;
+		end_tv = PHYSICAL_LX - 1;
+		shift_x = +1;
+		sec_neighbor = sec_send_xdown;
+		sec = sec_recv_xup;
+		break;
+	case P_XDOWN:
+		begin_tv = 0;
+		end_tv = 0;
+		shift_x = -1;
+		sec_neighbor = sec_send_xup;
+		sec = sec_recv_xdown;
+		break;
+	case P_YUP:
+		begin_tv = PHYSICAL_LY - 1;
+		end_tv = PHYSICAL_LY - 1;
+		shift_y = +1;
+		sec_neighbor = sec_send_ydown;
+		sec = sec_recv_yup;
+		break;
+	case P_YDOWN:
+		begin_tv = 0;
+		end_tv = 0;
+		shift_y = -1;
+		sec_neighbor = sec_send_yup;
+		sec = sec_recv_ydown;
+		break;
+	case P_ZUP:
+		begin_tv = PHYSICAL_LZ - 1;
+		end_tv = PHYSICAL_LZ - 1;
+		shift_x = +1;
+		sec_neighbor = sec_send_zdown;
+		sec = sec_recv_zup;
+		break;
+	case P_ZDOWN:
+		begin_tv = 0;
+		end_tv = 0;
+		shift_z = -1;
+		sec_neighbor = sec_send_zup;
+		sec = sec_recv_zdown;
+		break;
+	}
+
+	for (size_t z = begin_z; z < end_z; z += 1) {
+		for (size_t y = begin_y; y < end_y; y += 1) {
+			for (size_t x = begin_x; x < end_x; x += 1) {
+				for (size_t tv = begin_tv; tv < end_tv; tv += 1) {
+					size_t t1 = bgq_physical2t1(isOdd, tv, x, y, z);
+					size_t t2 = bgq_physical2t2(isOdd, tv, x, y, z);
+					size_t is = bgq_physical2surface(isOdd, tv, x, y, z);
+
+					bool isOdd_neighbor = !isOdd;
+					size_t tv_neighbor = tv; // For completeness
+					size_t t1_neighbor = (t1+LOCAL_LT+shift_t)%LOCAL_LT;
+					size_t t2_neighbor = (t2+LOCAL_LT+shift_t)%LOCAL_LT;
+					size_t x_neighbor = (x+LOCAL_LX+shift_x)%LOCAL_LX;
+					size_t y_neighbor = (y+LOCAL_LY+shift_y)%LOCAL_LY;
+					size_t z_neighbor = (z+LOCAL_LZ+shift_z)%LOCAL_LZ;
+					size_t is_neighbor = bgq_physical2surface(isOdd_neighbor, tv_neighbor, x_neighbor, y_neighbor, z_neighbor);
+					assert(isOdd_neighbor == bgq_local2isOdd(t1_neighbor, x_neighbor, y_neighbor, z_neighbor));
+					assert(isOdd_neighbor == bgq_local2isOdd(t2_neighbor, x_neighbor, y_neighbor, z_neighbor));
+
+					switch (pd) {
+					case P_TUP1:
+						break;
+					case P_TUP2:
+						break;
+					case P_TDOWN1:
+						break;
+					case P_TDOWN2:
+						break;
+					case P_XUP:
+						break;
+					case P_XDOWN:
+						break;
+					case P_YUP:
+						break;
+					case P_YDOWN:
+						break;
+					case P_ZUP:
+						break;
+					case P_ZDOWN:
+						break;
+					}
+
+					// Determine where the neighbor node would write this value
+					size_t offset = bgq_decode_offset(g_bgq_destoffset_fromSurface[isOdd_neighbor][is_neighbor].pd[sec_neighbor]);
+					assert(bgq_weyl_section_offset(sec_neighbor) <= offset && offset < bgq_weyl_section_offset(sec_neighbor + 1));
+					size_t relativeOffset = offset - bgq_weyl_section_offset(sec_neighbor);
+
+					// determine which index it is
+					size_t srcidx = relativeOffset / (dim==DIM_T) ? sizeof(bgq_weyl_nonvec) : sizeof(bgq_weyl_vec);
+
+					// Where does it need to be written?
+					void *destptr = bgq_weylsite_getdirection(&field->sec_surface[is], pd);
+
+					field->destptrFromRecvZup[srcidx] = destptr;
+				}
+			}
+		}
 	}
 }
 
@@ -363,6 +530,25 @@ void bgq_spinorfield_reset(bgq_weylfield_controlblock *field, bool isOdd, bool a
 			for (size_t pd = 0; pd < P_COUNT; pd += 1) {
 				field->destptrFromBody[ib].pd[pd] = weylbase + bgq_decode_offset(g_bgq_destoffset_fromBody[isOdd][ib].pd[pd]);
 			}
+		}
+
+		if (COMM_T) {
+			bgq_spinorfield_initdstptr_halo(isOdd, field, P_TUP1);
+			bgq_spinorfield_initdstptr_halo(isOdd, field, P_TUP2);
+			bgq_spinorfield_initdstptr_halo(isOdd, field, P_TDOWN1);
+			bgq_spinorfield_initdstptr_halo(isOdd, field, P_TDOWN2);
+		}
+		if (COMM_X) {
+			bgq_spinorfield_initdstptr_halo(isOdd, field, P_XUP);
+			bgq_spinorfield_initdstptr_halo(isOdd, field, P_XDOWN);
+		}
+		if (COMM_Y) {
+			bgq_spinorfield_initdstptr_halo(isOdd, field, P_YUP);
+			bgq_spinorfield_initdstptr_halo(isOdd, field, P_YDOWN);
+		}
+		if (COMM_Z) {
+			bgq_spinorfield_initdstptr_halo(isOdd, field, P_ZUP);
+			bgq_spinorfield_initdstptr_halo(isOdd, field, P_ZDOWN);
 		}
 	}
 
