@@ -15,11 +15,11 @@
 #include <mpi.h>
 
 #ifndef BGQ_UTILS_C_
-#define EXTERN_INLINE extern __inline__
+#define EXTERN_INLINE __inline__
 #define EXTERN_FIELD extern
 #define EXTERN_INIT(val)
 #else
-#define EXTERN_INLINE __inline__
+#define EXTERN_INLINE extern __inline__
 #define EXTERN_FIELD
 #define EXTERN_INIT(val) = (val)
 #endif

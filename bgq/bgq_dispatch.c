@@ -8,6 +8,8 @@
 #define BGQ_DISPATCH_C_
 #include "bgq_dispatch.h"
 
+#include "bgq_qpx.h"
+
 #ifdef BGQ
 #include <l2/barrier.h>
 #include <wu/wait.h>
@@ -32,22 +34,25 @@ static volatile bool g_bgq_dispatch_terminate;
 static volatile bool g_bgq_dispatch_sync;
 
 
-int bgq_parallel(bgq_master_func master_func) {
+int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 	assert(!omp_in_parallel() && "This starts the parallel section, do not call it within one");
 	g_bgq_dispatch_func = NULL;
 	g_bgq_dispatch_arg = NULL;
 	g_bgq_dispatch_terminate = false;
+	int master_result = 0;
 
 	// We use OpenMP only to start the threads
 	// Overhead of using OpenMP is too large
 #pragma omp parallel
 	{
+		size_t tid = omp_get_thread_num();
+
 		// Start workers, master thread will return
 		bgq_worker();
 
-		size_t tid = omp_get_thread_num();
+		// Start control program in master
 		if (tid == 0) {
-			master_func();
+			master_result = master_func(master_arg);
 
 			// After program finishes, set flag so worker threads can terminate
 			g_bgq_dispatch_func = NULL;
@@ -60,6 +65,7 @@ int bgq_parallel(bgq_master_func master_func) {
 		// Wakeup workers to terminate
 		bgq_worker();
 	}
+	return master_result;
 }
 
 

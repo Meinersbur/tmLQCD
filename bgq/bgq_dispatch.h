@@ -11,9 +11,9 @@
 #include <string.h>
 
 typedef void (*bgq_worker_func)(void *arg, size_t tid, size_t threads);
-typedef int (*bgq_master_func)();
+typedef int (*bgq_master_func)(void *arg);
 
-int bgq_parallel(bgq_master_func master_func);
+int bgq_parallel(bgq_master_func master_func, void *master_arg);
 
 void bgq_worker();
 void bgq_master_call(bgq_worker_func worker_func, void *arg);
