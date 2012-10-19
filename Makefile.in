@@ -101,8 +101,10 @@ all: Makefile all-recursive dep hmc_tm invert
 
 # run the GIT-VERSION-GEN script to generate version information in git_hash.h
 # making sure that we run in the correct directory
-${top_srcdir}/git_hash.h:
-	@cd @srcdir@ && sh GIT-VERSION-GEN
+${top_srcdir}/git_hash.h: .git
+	@echo "Rebuilding git_hash.h"
+	@sh GIT-VERSION-GEN
+	@touch git_hash.h
 
 -include $(addsuffix .d,$(ALLOBJ))
 
@@ -132,10 +134,10 @@ $(addsuffix .o,$(filter ${NOOPTMOD},${MODULES})): %.o: ${srcdir}/%.c %.d Makefil
 ${addsuffix .o, ${SMODULES}}: %.o: ${srcdir}/%.c %.d Makefile $(abs_top_builddir)/config.h
 	${COMPILE} ${SOPTARGS} -c $<
 
-${addsuffix .o, ${PROGRAMS}}: %.o: ${srcdir}/%.c %.d Makefile $(abs_top_builddir)/config.h ${top_srcdir}/git_hash.h
+${addsuffix .o, ${PROGRAMS}}: %.o: ${srcdir}/%.c %.d Makefile $(abs_top_builddir)/config.h
 	${COMPILE} ${OPTARGS} -c $<
 
-${PROGRAMS}: %: %.o libhmc.a all-recursive
+${PROGRAMS}: %: %.o libhmc.a
 	 ${LINK} $@.o $(GPUOBJECTS) $(GPUOBJECTS_C) $(LIBS)
 
 # The rules for unit tests are kept in a separate file for tidyness
@@ -171,9 +173,9 @@ distclean: distclean-recursive Makefile
 	rm -f hmc_tm hybrid *.o *.d *~ Makefile config.log config.status fixed_volume.h
 	rm -f config.h
 
-.PHONY: all ${top_srcdir}/git_hash.h clean compile-clean distclean dep install \
-	$(PROGRAMS) all-recursive \
+.PHONY: all clean compile-clean distclean dep install \
+	all-recursive \
 	all-debug-recursive all-profile-recursive \
 	clean-recursive distclean-recursive \
-	compile-clean-recursive $(LINKLIBS) \
-	tests libhmc.a
+	compile-clean-recursive \
+	tests
