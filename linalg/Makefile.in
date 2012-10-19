@@ -27,7 +27,7 @@ DEFS = @DEFS@
 INCLUDES = @INCLUDES@
 LDADD =
 #COMPILE = ${CC} ${DEFS} ${INCLUDES} ${CFLAGS}
-COMPILE = ${CC} $(DEFS) ${INCLUDES} ${CFLAGS}
+COMPILE = ${CC} $(DEFS) ${INCLUDES} ${CPPFLAGS} ${CFLAGS}
 
 LIBRARIES = liblinalg
 liblinalg_TARGETS = assign_add_mul_r_add_mul \

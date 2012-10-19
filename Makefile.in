@@ -39,7 +39,7 @@ LINKLIBS = ${top_builddir}/linalg/liblinalg.a  \
 	${top_builddir}/buffers/libbuffers.a $(top_builddir)/cu/libcu.a \
 	${top_builddir}/bgq/libbgq.a
 
-COMPILE = ${CC} ${DEFS} ${INCLUDES} -o $@ ${CFLAGS}
+COMPILE = ${CC} ${DEFS} ${INCLUDES} -o $@ ${CPPFLAGS} ${CFLAGS}
 
 SMODULES = Hopping_Matrix_nocom tm_times_Hopping_Matrix Hopping_Matrix tm_operators tm_sub_Hopping_Matrix
 

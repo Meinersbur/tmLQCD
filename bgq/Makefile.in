@@ -27,7 +27,7 @@ DEFS = @DEFS@
 
 INCLUDES = @INCLUDES@
 LDADD =
-COMPILE = ${CC} $(DEFS) ${INCLUDES} ${CFLAGS}
+COMPILE = ${CC} $(DEFS) ${INCLUDES} ${CPPFLAGS} ${CFLAGS}
 
 LIBRARIES = libbgq
 libbgq_TARGETS = bgq_utils bgq_field bgq_HoppingMatrix bgq_dispatch mypapi

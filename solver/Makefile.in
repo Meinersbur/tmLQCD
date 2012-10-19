@@ -26,7 +26,7 @@ DEFS = @DEFS@
 INCLUDES = @INCLUDES@
 LDADD =
 #COMPILE = ${CC} ${DEFS} $(INCLUDES) ${CFLAGS}
-COMPILE = ${CC} ${DEFS} ${INCLUDES} ${CFLAGS} ${OPTARGS}
+COMPILE = ${CC} ${DEFS} ${INCLUDES} ${CPPFLAGS} ${CFLAGS} ${OPTARGS}
 
 LIBRARIES = libsolver
 libsolver_TARGETS = bicgstab_complex gmres \
