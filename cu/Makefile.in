@@ -59,7 +59,7 @@ libcu.a: ${libcu_OBJECTS} Makefile
 # rule to generate .d files
 
 $(addsuffix .d,$(libcu_TARGETS)): %.d: ${srcdir}/%.c Makefile
-	@$(CCDEP) ${DEPFLAGS} ${INCLUDES} $< > $@
+	@ $(CCDEP) ${DEPFLAGS} ${CPPFLAGS} ${INCLUDES} ${DEFS} $< > $@
 
 # rule to make dependencies
 
@@ -77,4 +77,4 @@ distclean: clean
 	rm -f Makefile
 
 
-.PHONY: all dep clean compile-clean distclean
+.PHONY: all dep clean compile-clean distclean FORCE

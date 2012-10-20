@@ -91,7 +91,7 @@ liblinalg.a: ${liblinalg_OBJECTS} ${liblinalg_SOBJECTS} Makefile
 # rule to generate .d files
 
 $(addsuffix .d, $(liblinalg_TARGETS) ${liblinalg_STARGETS}): %.d: ${srcdir}/%.c Makefile
-	@${CCDEP} ${DEPFLAGS} ${INCLUDES} $< > $@
+	@ $(CCDEP) ${DEPFLAGS} ${CPPFLAGS} ${INCLUDES} ${DEFS} $< > $@
 
 # rule to make dependencies
 
@@ -109,4 +109,4 @@ clean: compile-clean
 distclean: clean
 	rm -f Makefile
 
-.PHONY: all dep clean compile-clean distclean profile all-profile debug all-debug
+.PHONY: all dep clean compile-clean distclean profile all-profile debug all-debug FORCE

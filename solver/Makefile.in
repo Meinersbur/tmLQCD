@@ -80,7 +80,7 @@ libsolver.a: ${libsolver_OBJECTS} Makefile
 # rule to generate .d files
 
 $(addsuffix .d,$(libsolver_TARGETS)): %.d: ${srcdir}/%.c Makefile
-	@$(CCDEP) ${DEPFLAGS} ${INCLUDES} $< > $@
+	@ $(CCDEP) ${DEPFLAGS} ${CPPFLAGS} ${INCLUDES} ${DEFS} $< > $@
 
 # rule to make dependencies
 
@@ -99,4 +99,4 @@ distclean: clean
 	rm -f Makefile
 
 
-.PHONY: all dep clean compile-clean distclean debug all-debug profile all-profile
+.PHONY: all dep clean compile-clean distclean debug all-debug profile all-profile FORCE

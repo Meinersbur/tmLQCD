@@ -130,4 +130,4 @@ distclean: clean
 	rm -f Makefile
 
 
-.PHONY: all dep clean compile-clean distclean debug all-debug profile all-profile
+.PHONY: all dep clean compile-clean distclean debug all-debug profile all-profile FORCE

@@ -28,7 +28,8 @@ $(addsuffix .o,$(EXTERNMODULES)): %.o:
 
 #extern libs
 
-$(LINKLIBS): %.a: Makefile $(abs_top_builddir)/config.status $(top_srcdir)/configure
+# If a subdir library is required, always start recursive make to see if something has changed
+$(LINKLIBS): FORCE
 	@( cd $(dir $@) && ${MAKE} $(notdir $@) )
 
 #dep rules
