@@ -148,7 +148,7 @@ void bgq_indices_init() {
 
 				// Reserve some offset in surface/body to ensure consecutive layout
 				size_t thisOffset = nextoffset[mainsec];
-				assert(thisOffset == bgq_weyl_section_offset(sec_surface) + g_bgq_index_halfvolume2surfacebody[isOdd][ih]*sizeof(bgq_weylsite) + bgq_offsetof_weylsite[pd]);
+				//assert(thisOffset == bgq_weyl_section_offset(sec_surface) + g_bgq_index_halfvolume2surfacebody[isOdd][ih]*sizeof(bgq_weylsite) + bgq_offsetof_weylsite[pd]);
 				nextoffset[mainsec] += eltsize;
 
 				if (sec != mainsec) {

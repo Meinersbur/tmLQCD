@@ -14,15 +14,24 @@
 #include <stdlib.h>
 #include <mpi.h>
 
+#if __GNUC__ && !__GNUC_STDC_INLINE__
+#define EXTERN_INLINE_DECLARATION extern inline
+#define EXTERN_INLINE_DEFINITION inline
+#else
+#define EXTERN_INLINE_DECLARATION inline
+#define EXTERN_INLINE_DEFINITION extern inline
+#endif
+
 #ifndef BGQ_UTILS_C_
-#define EXTERN_INLINE __inline__
+#define EXTERN_INLINE EXTERN_INLINE_DECLARATION
 #define EXTERN_FIELD extern
 #define EXTERN_INIT(val)
 #else
-#define EXTERN_INLINE extern __inline__
+#define EXTERN_INLINE EXTERN_INLINE_DEFINITION
 #define EXTERN_FIELD
 #define EXTERN_INIT(val) = (val)
 #endif
+
 
 typedef _Complex double complexdouble;
 typedef _Complex float complexfloat;

@@ -18,7 +18,7 @@
 
 #define PRECISION double
 
-inline void  bgq_spinorfield_weyl_store_raw(bgq_weyl_ptr_t *targetptrs, bgq_su3_spinor_params(spinor)) {
+static inline void bgq_spinorfield_weyl_store_raw(bgq_weyl_ptr_t *targetptrs, bgq_su3_spinor_params(spinor)) {
 	//TODO: prefetch targetptrs
 
 	// T+ /////////////////////////////////////////////////////////////////////////
@@ -80,7 +80,7 @@ inline void  bgq_spinorfield_weyl_store_raw(bgq_weyl_ptr_t *targetptrs, bgq_su3_
 	}
 }
 
-inline void bgq_spinorfield_weyl_store_fromHalfvolume(bgq_weylfield_controlblock *targetfield, bool isOdd, size_t ih, bgq_su3_spinor_params(spinor)) {
+static inline void bgq_spinorfield_weyl_store_fromHalfvolume(bgq_weylfield_controlblock *targetfield, bool isOdd, size_t ih, bgq_su3_spinor_params(spinor)) {
 	//bgq_spinorfield_reset(targetfield, isOdd, true, false);
 	assert(targetfield->isInitinialized);
 	assert(targetfield->isOdd == isOdd);
@@ -96,7 +96,7 @@ inline void bgq_spinorfield_weyl_store_fromHalfvolume(bgq_weylfield_controlblock
 
 
 
-inline void bgq_HoppingMatrix_kernel_raw(bgq_weyl_ptr_t *targetptrs, bgq_weylsite *spinorsite, bgq_gaugesite *gaugesite) {
+static inline void bgq_HoppingMatrix_kernel_raw(bgq_weyl_ptr_t *targetptrs, bgq_weylsite *spinorsite, bgq_gaugesite *gaugesite) {
 	bgq_su3_spinor_decl(result);
 	//bgq_su3_spinor_zero(result);
 
@@ -364,7 +364,7 @@ static void bgq_HoppingMatrix_worker_body(void *argptr, size_t tid, size_t threa
 }
 
 
-void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield) {
+void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield, bgq_hmflags opts) {
 	assert(targetfield);
 	bgq_spinorfield_reset(targetfield, isOdd, true, false);
 	assert(targetfield->isOdd == isOdd);
@@ -379,6 +379,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 // Required before calling this function
 
 // 2. Start communication
+	/* not yet implemented */
 
 // 3. Compute the body
 	bgq_HoppingMatrix_workload work = {
@@ -388,8 +389,8 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	};
 	bgq_master_call(&bgq_HoppingMatrix_worker_body, &work);
 
-// 4. Wait for the workers to finish
-	bgq_master_sync();
+// 4. Wait for the communication to finish
+	/* Not yet implemented */
 
 // 5. Move received to correct location
 	bgq_master_call(&bgq_HoppingMatrix_worker_datamove, &work);

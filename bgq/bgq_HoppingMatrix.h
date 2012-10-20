@@ -8,6 +8,11 @@
 #ifndef BGQ_HOPPINGMATRIX_H_
 #define BGQ_HOPPINGMATRIX_H_
 
+#include "bgq_field.h"
+
+#include <stdbool.h>
+
+
 typedef enum {
 	hm_nocom = 1 << 0,
 	hm_nooverlap = 1 << 1,
@@ -29,5 +34,7 @@ typedef enum {
 	hm_prefetchimplicitoptimistic = 2 << 12,
 	hm_prefetchimplicitconfirmed = 3 << 12
 } bgq_hmflags;
+
+void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield, bgq_hmflags opts);
 
 #endif /* BGQ_HOPPINGMATRIX_H_ */

@@ -94,7 +94,7 @@ typedef bgq_gaugefield bgq_gaugefield_float;
 typedef bgq_gaugesite bgq_gaugesite_double;
 typedef bgq_gaugesite bgq_gaugesite_float;
 
-typedef void (*benchfunc_t)(bgq_hmflags flags, int k);
+typedef void (*benchfunc_t)(bgq_hmflags flags, int k, int k_max);
 /* END MK */
 
 
@@ -274,7 +274,7 @@ static int benchmark_master(void *argptr) {
 			{
 				// The main benchmark
 				for (int k = 0; k < k_max; k += 1) {
-					benchfunc(opts, k);
+					benchfunc(opts, k, k_max);
 				}
 				bgq_master_sync(); // Wait for all threads to finish
 			}
@@ -653,15 +653,16 @@ static void exec_table(benchfunc_t benchmark, bgq_hmflags additional_opts, int j
 }
 
 
-static void benchmark_hopmat(bgq_hmflags flags, int k) {
-
+static void benchmark_hopmat(bgq_hmflags flags, int k, int k_max) {
+	bgq_HoppingMatrix(false, &g_bgq_spinorfields[k+k_max], &g_bgq_spinorfields[k], flags);
+	bgq_HoppingMatrix(true, &g_bgq_spinorfields[2*k_max], &g_bgq_spinorfields[k+k_max], flags);
 }
 
 
 static void exec_bench(int j_max, int k_max) {
-	//bgq_init_gaugefield_allprec();
-	//bgq_init_spinorfields_allprec(2 * k_max + 1, 0);
-	//bgq_hm_init_allprec();
+	bgq_indices_init();
+	bgq_gaugefield_init();
+	bgq_spinorfields_init(2*k_max+1, 0);
 
 	//bgq_update_backward_gauge();
 
@@ -694,11 +695,10 @@ static void exec_bench(int j_max, int k_max) {
 	}
 
 
-#if !BGQ_REPLACE
 	//check_correctness_double(true);
 	//check_correctness_double(false);
 	//check_correctness_float();
-#endif
+
 
 	//exec_table(&benchmark_hopmat, 0);
 	//exec_bench(bm_hopmat, false, 0);

@@ -19,11 +19,11 @@
 
 
 #ifndef BGQ_FIELD_C_
-#define EXTERN_INLINE __inline__
+#define EXTERN_INLINE EXTERN_INLINE_DECLARATION
 #define EXTERN_FIELD extern
 #define EXTERN_INIT(val)
 #else
-#define EXTERN_INLINE extern __inline__
+#define EXTERN_INLINE EXTERN_INLINE_DEFINITION
 #define EXTERN_FIELD
 #define EXTERN_INIT(val) = (val)
 #endif
@@ -196,6 +196,11 @@ EXTERN_INLINE bgq_direction bgq_physical2direction(bgq_physical_direction pd) {
 	return -1;
 }
 
+void bgq_indices_init();
+void bgq_spinorfields_init(size_t std_count, size_t chi_count);
+void bgq_gaugefield_init();
+
+
 
 EXTERN_INLINE bgq_dimension bgq_direction2dimension(bgq_direction d) {
 	return d/2;
@@ -240,8 +245,13 @@ typedef struct {
 	bgq_weyl_vec zup;
 	bgq_weyl_vec zdown;
 } bgq_weylsite;
-size_t bgq_offsetof_weylsite[P_COUNT] = {offsetof(bgq_weylsite,tup1),offsetof(bgq_weylsite,tup2),offsetof(bgq_weylsite,tdown1),offsetof(bgq_weylsite,tdown2),
-		offsetof(bgq_weylsite,xup),offsetof(bgq_weylsite,xdown),offsetof(bgq_weylsite,yup),offsetof(bgq_weylsite,ydown),offsetof(bgq_weylsite,zup),offsetof(bgq_weylsite,zdown)};
+#if 0
+EXTERN_FIELD size_t bgq_offsetof_weylsite[P_COUNT]
+EXTERN_INIT((
+		{offsetof(bgq_weylsite,tup1),offsetof(bgq_weylsite,tup2),offsetof(bgq_weylsite,tdown1),offsetof(bgq_weylsite,tdown2),
+		offsetof(bgq_weylsite,xup),offsetof(bgq_weylsite,xdown),offsetof(bgq_weylsite,yup),offsetof(bgq_weylsite,ydown),offsetof(bgq_weylsite,zup),offsetof(bgq_weylsite,zdown)}
+	));
+#endif
 
 EXTERN_INLINE void *bgq_weylsite_getdirection(bgq_weylsite *site, bgq_physical_direction d) {
 	switch (d) {
