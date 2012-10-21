@@ -18,79 +18,8 @@
 
 #define PRECISION double
 
-static inline void bgq_spinorfield_weyl_store_raw(bgq_weyl_ptr_t *targetptrs, bgq_su3_spinor_params(spinor)) {
-	//TODO: prefetch targetptrs
 
-	// T+ /////////////////////////////////////////////////////////////////////////
-	{
-		bgq_su3_weyl_decl(weyl_tup);
-		bgq_su3_reduce_weyl_tup(weyl_tup, spinor);
-		bgq_su3_weyl_left_store_double(targetptrs->pd[P_TUP1], weyl_tup);
-		bgq_su3_weyl_right_store_double(targetptrs->pd[P_TUP2], weyl_tup);
-	}
 
-	// T- /////////////////////////////////////////////////////////////////////////
-	{
-		bgq_su3_weyl_decl(weyl_tdown);
-		bgq_su3_reduce_weyl_tdown(weyl_tdown, spinor);
-		bgq_su3_weyl_left_store_double(targetptrs->pd[P_TDOWN1], weyl_tdown);
-		bgq_su3_weyl_right_store_double(targetptrs->pd[P_TDOWN2], weyl_tdown);
-	}
-
-	// X+ /////////////////////////////////////////////////////////////////////////
-	{
-		bgq_su3_weyl_decl(weyl_xup);
-		bgq_su3_reduce_weyl_xup(weyl_xup, spinor);
-		bgq_su3_weyl_store_double(targetptrs->pd[P_XUP], weyl_xup);
-	}
-
-	// X- /////////////////////////////////////////////////////////////////////////
-	{
-		bgq_su3_weyl_decl(weyl_xdown);
-		bgq_su3_reduce_weyl_xdown(weyl_xdown, spinor);
-		bgq_su3_weyl_store_double(targetptrs->pd[P_XDOWN], weyl_xdown);
-	}
-
-	// Y+ /////////////////////////////////////////////////////////////////////////
-	{
-		bgq_su3_weyl_decl(weyl_yup);
-		bgq_su3_reduce_weyl_yup(weyl_yup, spinor);
-		bgq_su3_weyl_store_double(targetptrs->pd[P_YUP], weyl_yup);
-	}
-
-	// Y- /////////////////////////////////////////////////////////////////////////
-	{
-		bgq_su3_weyl_decl(weyl_ydown);
-		bgq_su3_reduce_weyl_ydown(weyl_ydown, spinor);
-		bgq_su3_weyl_store_double(targetptrs->pd[P_YDOWN], weyl_ydown);
-	}
-
-	// Z+ /////////////////////////////////////////////////////////////////////////
-	{
-		bgq_su3_weyl_decl(weyl_zup);
-		bgq_su3_reduce_weyl_zup(weyl_zup, spinor);
-		bgq_su3_weyl_store_double(targetptrs->pd[P_ZUP], weyl_zup);
-	}
-
-	// Z- /////////////////////////////////////////////////////////////////////////
-	{
-		bgq_su3_weyl_decl(weyl_zdown);
-		bgq_su3_reduce_weyl_zdown(weyl_zdown, spinor);
-		bgq_su3_weyl_store_double(targetptrs->pd[P_ZDOWN], weyl_zdown);
-	}
-}
-
-static inline void bgq_spinorfield_weyl_store_fromHalfvolume(bgq_weylfield_controlblock *targetfield, bool isOdd, size_t ih, bgq_su3_spinor_params(spinor)) {
-	//bgq_spinorfield_reset(targetfield, isOdd, true, false);
-	assert(targetfield->isInitinialized);
-	assert(targetfield->isOdd == isOdd);
-	assert(targetfield->hasWeylfieldData == true);
-
-	bgq_weyl_ptr_t *weylptrs = &targetfield->destptrFromHalfvolume[ih]; // TODO: Check that compiler does strength reduction after inline, otherwise do manually
-	//TODO: probably compiler will li an offset for every destptrFromHalfvolume, can do better using addi
-
-	bgq_spinorfield_weyl_store_raw(weylptrs, bgq_su3_spinor_vars(spinor));
-}
 
 
 
@@ -366,7 +295,8 @@ static void bgq_HoppingMatrix_worker_body(void *argptr, size_t tid, size_t threa
 
 void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield, bgq_hmflags opts) {
 	assert(targetfield);
-	bgq_spinorfield_reset(targetfield, isOdd, true, false);
+	bgq_spinorfield_setup(targetfield, isOdd, false, true,false,false);
+	bgq_spinorfield_setup(spinorfield, isOdd, false, false,true,false);
 	assert(targetfield->isOdd == isOdd);
 
 	assert(spinorfield);

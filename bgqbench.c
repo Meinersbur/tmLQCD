@@ -276,7 +276,7 @@ static int benchmark_master(void *argptr) {
 				for (int k = 0; k < k_max; k += 1) {
 					benchfunc(opts, k, k_max);
 				}
-				bgq_master_sync(); // Wait for all threads to finish
+				bgq_master_sync(); // Wait for all threads to finish, to get worst thread timing
 			}
 
 			if (isPapi) {
@@ -688,7 +688,7 @@ static void exec_bench(int j_max, int k_max) {
 	for (int k = 0; k < k_max; k+=1) {
 		/*initialize the pseudo-fermion fields*/
 		random_spinor_field(g_spinor_field[k], VOLUME / 2, 0);
-		//bgq_transfer_spinorfield_double(true, g_spinorfields_double[k], g_spinor_field[k]);
+		bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 
 		//double compare_transfer = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
 		//assert(compare_transfer == 0 /* fields should be bit-identical*/);
@@ -707,7 +707,6 @@ static void exec_bench(int j_max, int k_max) {
 
 	exec_table(&benchmark_hopmat , 0, j_max, k_max);
 }
-
 
 
 static void exec_bench_all() {
@@ -749,12 +748,12 @@ int main(int argc,char *argv[])
   DUM_MATRIX = DUM_SOLVER+6;
   NO_OF_SPINORFIELDS = DUM_MATRIX+2;
 
-#  ifdef OMP
+//#  ifdef OMP
   int mpi_thread_provided;
-  MPI_Init_thread(&argc, &argv, MPI_THREAD_SERIALIZED, &mpi_thread_provided);
-#  else
-  MPI_Init(&argc, &argv);
-#  endif
+  MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &mpi_thread_provided);
+//#  else
+//  MPI_Init(&argc, &argv);
+//#  endif
   MPI_Comm_rank(MPI_COMM_WORLD, &g_proc_id);
 
 #else

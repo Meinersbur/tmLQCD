@@ -415,7 +415,7 @@ EXTERN_INLINE double sqr(double val) {
 }
 
 
-#define ADD_PADDING(addr,alignment) (void*)(((uintptr_t)(addr) + ((uintptr_t)(alignment)-1)) & ((uintptr_t)(alignment)-1))
+#define ADD_PADDING(addr,alignment) (void*)(((uintptr_t)(addr) + ((uintptr_t)(alignment)-1)) & ~((uintptr_t)(alignment)-1))
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

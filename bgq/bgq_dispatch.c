@@ -39,8 +39,8 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 	g_bgq_dispatch_func = NULL;
 	g_bgq_dispatch_arg = NULL;
 	g_bgq_dispatch_terminate = false;
+	g_bgq_dispatch_sync = false;
 	int master_result = 0;
-
 	// We use OpenMP only to start the threads
 	// Overhead of using OpenMP is too large
 #pragma omp parallel
@@ -70,7 +70,7 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 
 
 void bgq_worker() {
-	assert(omp_in_parallel() && "Call this inside #pragma omp parallel");
+	//assert(omp_in_parallel() && "Call this inside #pragma omp parallel");
 	size_t threads = omp_get_num_threads();
 	size_t tid = omp_get_thread_num();
 	//assert((tid != 0) && "This function is for non-master threads only");
