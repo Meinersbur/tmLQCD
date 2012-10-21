@@ -31,6 +31,16 @@
 
 
 /* global logical coordinates */
+/*
+A point in the lattice
+
+Coordinate: (t,x,y,z) where
+assert(0 <= t && t < GLOBAL_LT);
+assert(0 <= x && x < GLOBAL_LX);
+assert(0 <= y && y < GLOBAL_LY);
+assert(0 <= z && z < GLOBAL_LZ);
+Logically, it is a torus, therefore (t+i*GLOBAL_LT)==t (mod GLOBAL_LT) for every dimension
+*/
 
 #define GLOBAL_LT ((size_t)T_global)
 #define GLOBAL_LX ((size_t)LX*(size_t)N_PROC_X)
@@ -40,13 +50,32 @@
 
 
 /* local logical coordinates */
+/*
+A point in the lattice stored on this MPI rank, relative to the top left 4D-rectangular coordinate on this rank
+
+Spinor coordinate: (g_proc_coords[0],g_proc_coords[1],g_proc_coords[2],g_proc_coords[3]) (t,x,y,z) where
+assert(0 <= t && t < LOCAL_LT);
+assert(0 <= x && x < LOCAL_LX);
+assert(0 <= y && y < LOCAL_LY);
+assert(0 <= z && z < LOCAL_LZ);
+Coordinates out of this rectangle may be stores on other MPI ranks
+Note the the global lattice is a torus and not every dimension is needed to span multiple nodes
+
+Weyl coordinate: (g_proc_coords[0],g_proc_coords[1],g_proc_coords[2],g_proc_coords[3]) (t,x,y,z,d) where
+assert(0 <= t && t < LOCAL_LT);
+assert(0 <= x && x < LOCAL_LX);
+assert(0 <= y && y < LOCAL_LY);
+assert(0 <= z && z < LOCAL_LZ);
+assert(TUP <= d && z <= ZDOWN);
+Specifies the weyl component when the spinor at (t,x,y,z) is decompositioned into its directions
+*/
 
 #define LOCAL_LT ((size_t)T)
 #define LOCAL_LX ((size_t)LX)
 #define LOCAL_LY ((size_t)LY)
 #define LOCAL_LZ ((size_t)LZ)
-#define LOCAL_VOLUME ((size_t)VOLUME)
 #define LOCAL_LD 8 /* Number of directions */
+#define LOCAL_VOLUME ((size_t)VOLUME)
 
 #define LOCAL_HALO_T (LOCAL_LX*LOCAL_LY*LOCAL_LZ)
 #define LOCAL_HALO_X (LOCAL_LT*LOCAL_LY*LOCAL_LZ)
@@ -55,6 +84,47 @@
 
 
 /* local physical coordinates */
+/*
+Used to compute the memory location where specific lattice datum is stored
+
+Spinor coordinate: (g_proc_coords[0],g_proc_coords[1],g_proc_coords[2],g_proc_coords[3]) (isOdd,tv,x,y,z,k) where
+assert(false <= isOdd && isOdd <= true); assert(0 <= isOdd && isOdd < PHYSICAL_LP);
+assert(0 <= tv && tv < PHYSICAL_LTV);
+assert(0 <= x && x < PHYSICAL_LX);
+assert(0 <= y && y < PHYSICAL_LY);
+assert(0 <= z && z < PHYSICAL_LZ);
+assert(0 <= k && k < PHYSICAL_LK);
+Even and odd locations are stored independently (P stands for for parity)
+Every memory location stores two logical lattice location, two locations in T-dimension are always processed together (V stands for Vector) These are usually called t1 and t2, for k==0 and k==1 respectively
+Note that tv is shifted such that tv==PHYSICAL_LTV-1 are the two logical locations on the surface (i.e. t2==0 and t1==LOCAL_LT-1)
+The other dimensions are handled like local coordinates
+
+
+Weyl coordinate: (g_proc_coords[0],g_proc_coords[1],g_proc_coords[2],g_proc_coords[3]) (isOdd,tv,x,y,z,k,pd)
+assert(false <= isOdd && isOdd <= true); assert(0 <= isOdd && isOdd < PHYSICAL_LP);
+assert(0 <= tv && tv < PHYSICAL_LTV);
+assert(0 <= x && x < PHYSICAL_LX);
+assert(0 <= y && y < PHYSICAL_LY);
+assert(0 <= z && z < PHYSICAL_LZ);
+assert(0 <= k && k < PHYSICAL_LK);
+assert(P_TUP1 <= pd && pd <= P_ZDOWN); assert(0 <= pd && pd < P_COUNT);
+Denotes the weyl components used assemble the spinor in the next HoppingMatrix iteration (note the difference to the local coordinate system)
+The t-directions are not vectorized here because they originate from different locations. Therefore, the k-coordinate is split up into two new "physical" dimension
+
+
+Halfvolume coordinate: (g_proc_coords[0],g_proc_coords[1],g_proc_coords[2],g_proc_coords[3]) (isOdd,ih) where
+assert(false <= isOdd && isOdd <= true); assert(0 <= isOdd && isOdd < PHYSICAL_LP);
+assert(0 <= ih && ih < PHYSICAL_VOLUME);
+The tv,x,y,z-coordinates linearized into the ih coordinate
+
+
+Surface/Body coordinate: (g_proc_coords[0],g_proc_coords[1],g_proc_coords[2],g_proc_coords[3]) (isOdd,isSurface,is/ib) where
+assert(false <= isSurface && isSurface <= true);
+assert(0 <= is && is <= PHYSCIAL_SURFACE);
+assert(0 <= ib && ib <= PHYSCIAL_BODY);
+The spinor at the local lattice's surface are stored in a different memory block than the locations not at a border
+
+*/
 
 #define PHYSICAL_LP 2 /* Even/Odd */
 #define PHYSICAL_LTV (LOCAL_LT/(PHYSICAL_LP*PHYSICAL_LK))
@@ -68,13 +138,13 @@ EXTERN_FIELD size_t PHYSICAL_BODY;
 #define PHYSICAL_SURFACE (PHYSICAL_VOLUME-PHYSICAL_BODY)
 #define PHYSICAL_HALO (COMM_T*2*LOCAL_HALO_T + COMM_X*2*LOCAL_HALO_X + COMM_Y*2*LOCAL_HALO_Y + COMM_Z*2*LOCAL_HALO_Z)
 
-#define PHYSICAL_INDEX_LEXICAL(isOdd, tv, x, y, z) (tv + PHYSICAL_LTV*(x + PHYSICAL_LX*(y + PHYSICAL_LY*(z))))
-#define PHYSICAL_LEXICAL2TV(isOdd,ih) ((ih)%PHYSICAL_LTV)
-#define PHYSICAL_LEXICAL2X(isOdd,ih) (((ih)/PHYSICAL_LTV)%PHYSICAL_LX)
-#define PHYSICAL_LEXICAL2Y(isOdd,ih) (((ih)/(PHYSICAL_LTV*PHYSICAL_LX))%PHYSICAL_LY)
-#define PHYSICAL_LEXICAL2Z(isOdd,ih) ((ih)/(PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LY))
-#define PHYSICAL_LEXICAL2T1(isOdd,ih) (4*PHYSICAL_LEXICAL2TV(isOdd,ih) + ((PHYSICAL_LEXICAL2X(isOdd,ih)+PHYSICAL_LEXICAL2Y(isOdd,ih)+PHYSICAL_LEXICAL2Z(isOdd,ih)+isOdd)&1))
-#define PHYSICAL_LEXICAL2T2(isOdd,ih) (PHYSICAL_LEXICAL2T1(isOdd,ih) + 2)
+//#define PHYSICAL_INDEX_LEXICAL(isOdd, tv, x, y, z) (tv + PHYSICAL_LTV*(x + PHYSICAL_LX*(y + PHYSICAL_LY*(z))))
+//#define PHYSICAL_LEXICAL2TV(isOdd,ih) ((ih)%PHYSICAL_LTV)
+//#define PHYSICAL_LEXICAL2X(isOdd,ih) (((ih)/PHYSICAL_LTV)%PHYSICAL_LX)
+//#define PHYSICAL_LEXICAL2Y(isOdd,ih) (((ih)/(PHYSICAL_LTV*PHYSICAL_LX))%PHYSICAL_LY)
+//#define PHYSICAL_LEXICAL2Z(isOdd,ih) ((ih)/(PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LY))
+//#define PHYSICAL_LEXICAL2T1(isOdd,ih) (4*PHYSICAL_LEXICAL2TV(isOdd,ih) + ((PHYSICAL_LEXICAL2X(isOdd,ih)+PHYSICAL_LEXICAL2Y(isOdd,ih)+PHYSICAL_LEXICAL2Z(isOdd,ih)+isOdd)&1))
+//#define PHYSICAL_LEXICAL2T2(isOdd,ih) (PHYSICAL_LEXICAL2T1(isOdd,ih) + 2)
 
 #define PHYSICAL_HALO_T (COMM_T*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ/PHYSICAL_LP)
 #define PHYSICAL_HALO_X (COMM_X*PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ)
@@ -225,13 +295,13 @@ typedef struct {
 typedef bgq_spinorsite (*bgq_spinorfield);
 
 typedef struct {
-	COMPLEX_PRECISION s[2][3][PHYSICAL_LK]; // 96 byte (3 L1 cache lines)
+	COMPLEX_PRECISION s[2][3][PHYSICAL_LK]; // 192 byte (3 L1 cache lines)
 } bgq_weyl_vec;
 
 typedef struct {
-	COMPLEX_PRECISION s[2][3]; // 48 byte
+	COMPLEX_PRECISION s[2][3]; // 96 byte
 	COMPLEX_PRECISION _padding[2]; // 32 byte
-} bgq_weyl_nonvec; // 64 byte (One L1 cache line)
+} bgq_weyl_nonvec; // 128 byte (2 L1 cache lines)
 
 typedef struct {
 	bgq_weyl_nonvec tup1;
@@ -445,7 +515,7 @@ EXTERN_INLINE size_t bgq_local2tv(size_t t, size_t x, size_t y, size_t z) {
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
-	size_t tv = (t + LOCAL_LT - 2) / (PHYSICAL_LP*PHYSICAL_LK);
+	size_t tv = ((t + LOCAL_LT - 2) / (PHYSICAL_LP*PHYSICAL_LK))%PHYSICAL_LTV;
 	assert(0 <= tv && tv < PHYSICAL_LTV);
 	return tv;
 }
@@ -500,18 +570,18 @@ EXTERN_INLINE bool bgq_local2isSurface(size_t t, size_t x, size_t y, size_t z) {
 
 EXTERN_INLINE bool bgq_physical2eo(bool isOdd, size_t tv, size_t x, size_t y, size_t z) {
 	assert(0 <= tv && tv < PHYSICAL_LTV);
-	assert(0 <= x && x < LOCAL_LX);
-	assert(0 <= y && y < LOCAL_LY);
-	assert(0 <= z && z < LOCAL_LZ);
-	return (x+y+z+isOdd)&1;
+	assert(0 <= x && x < PHYSICAL_LX);
+	assert(0 <= y && y < PHYSICAL_LY);
+	assert(0 <= z && z < PHYSICAL_LZ);
+	return (x+y+z+isOdd)%PHYSICAL_LK;
 }
 
 EXTERN_INLINE size_t bgq_physical2t1(bool isOdd, size_t tv, size_t x, size_t y, size_t z) {
 	assert(0 <= tv && tv < PHYSICAL_LTV);
-	assert(0 <= x && x < LOCAL_LX);
-	assert(0 <= y && y < LOCAL_LY);
-	assert(0 <= z && z < LOCAL_LZ);
-	size_t t1 = PHYSICAL_LP*PHYSICAL_LK*tv + bgq_physical2eo(isOdd,tv,x,y,z);
+	assert(0 <= x && x < PHYSICAL_LX);
+	assert(0 <= y && y < PHYSICAL_LY);
+	assert(0 <= z && z < PHYSICAL_LZ);
+	size_t t1 = 2 + PHYSICAL_LP*PHYSICAL_LK*tv + bgq_physical2eo(isOdd,tv,x,y,z);
 	assert(0 <= t1 && t1 < LOCAL_LT);
 	return t1;
 }
@@ -533,7 +603,7 @@ EXTERN_INLINE size_t bgq_local2halfvolume(size_t t, size_t x, size_t y, size_t z
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
-	size_t tv = t / (PHYSICAL_LP*PHYSICAL_LK);
+	size_t tv = bgq_local2tv(t,x,y,z);
 	return bgq_physical2halfvolume(tv,x,y,z);
 }
 EXTERN_INLINE size_t bgq_halfvolume2tv(size_t ih) {
@@ -581,8 +651,16 @@ EXTERN_INLINE bool bgq_halfvolume2isSurface(bool isOdd, size_t ih) {
 EXTERN_INLINE bool bgq_halfvolume2surface(bool isOdd, size_t ih) {
 	assert(g_bgq_indices_initialized);
 	assert(0 <= ih && ih < PHYSICAL_VOLUME);
-	assert(g_bgq_index_halfvolume2surface[isOdd][ih] != -1);
-	return g_bgq_index_halfvolume2surface[isOdd][ih];
+	size_t is = g_bgq_index_halfvolume2surface[isOdd][ih];
+	assert(0 <= is && is < PHYSICAL_SURFACE);
+	return is;
+}
+EXTERN_INLINE bool bgq_halfvolume2body(bool isOdd, size_t ih) {
+	assert(g_bgq_indices_initialized);
+	assert(0 <= ih && ih < PHYSICAL_VOLUME);
+	size_t ib = g_bgq_index_halfvolume2body[isOdd][ih];
+	assert(0 <= ib && ib < PHYSICAL_BODY);
+	return ib;
 }
 EXTERN_INLINE size_t bgq_surface2halfvolume(bool isOdd, size_t is) {
 	assert(g_bgq_indices_initialized);
@@ -722,6 +800,9 @@ EXTERN_INLINE bool bgq_isCommBody(size_t t, size_t x, size_t y, size_t z) {
 	return !bgq_isCommSurface(t,x,y,z);
 }
 
+EXTERN_INLINE bgq_direction bgq_direction_revert(bgq_direction d) {
+	return d^1;
+}
 
 // We compress offsets so they fit into an 32 bit integer
 EXTERN_INLINE uint32_t bgq_encode_offset(size_t index) {

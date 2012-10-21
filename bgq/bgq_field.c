@@ -12,30 +12,30 @@
 #include "bgq_qpx.h"
 
 
-static bgq_weylfield_section bgq_HoppingMatrix_init_source_sectionof(bool isOdd, size_t t, size_t x, size_t y, size_t z, bgq_direction d) {
+static bgq_weylfield_section bgq_HoppingMatrix_init_source_sectionof(bool isOdd, size_t t, size_t x, size_t y, size_t z, bgq_direction d, bool isSend) {
 	if (COMM_T && (t==LOCAL_LT-1) && (d==TUP)) {
-		return sec_recv_tup;
+		return isSend ? sec_send_tup : sec_recv_tup;
 	}
 	if (COMM_T && (t==0) && (d==TDOWN)) {
-		return sec_recv_tdown;
+		return isSend ? sec_send_tdown : sec_recv_tdown;
 	}
 	if (COMM_X && (x==LOCAL_LX-1) && (d==XUP)) {
-		return sec_recv_xup;
+		return isSend ? sec_send_xup : sec_recv_xup;
 	}
 	if (COMM_X && (x==0) && (d==XDOWN)) {
-		return sec_recv_xdown;
+		return isSend ? sec_send_xdown : sec_recv_xdown;
 	}
 	if (COMM_Y && (y==LOCAL_LY-1) && (d==YUP)) {
-		return sec_recv_yup;
+		return isSend ? sec_send_yup: sec_recv_yup;
 	}
 	if (COMM_Y && (y==0) && (d==YDOWN)) {
-		return sec_recv_ydown;
+		return isSend ? sec_send_ydown : sec_recv_ydown;
 	}
 	if (COMM_Z && (z==LOCAL_LZ-1) && (d==ZUP)) {
-		return sec_recv_yup;
+		return isSend ? sec_send_zup : sec_recv_zup;
 	}
 	if (COMM_Z && (z==0) && (d==ZDOWN)) {
-		return sec_recv_ydown;
+		return isSend ? sec_send_zdown : sec_recv_zdown;
 	}
 
 	bool isSurface = bgq_local2isSurface(t,x,y,z);
@@ -52,10 +52,10 @@ void bgq_indices_init() {
 
 
 	size_t body_volume;
-	if (PHYSICAL_LTV<=2 || PHYSICAL_LX<=2 || PHYSICAL_LY<=2 || PHYSICAL_LZ<=2) {
+	if ((PHYSICAL_LTV<=2) || (PHYSICAL_LX<=2) || (PHYSICAL_LY<=2) || (PHYSICAL_LZ<=2)) {
 		body_volume = 0;
 	} else {
-		size_t body_tv = COMM_T ? (PHYSICAL_LTV-2) : PHYSICAL_LTV;
+		size_t body_tv = COMM_T ? (PHYSICAL_LTV-1) : PHYSICAL_LTV;
 		size_t body_x = COMM_X ? (PHYSICAL_LX-2) : PHYSICAL_LX;
 		size_t body_y = COMM_Y ? (PHYSICAL_LY-2) : PHYSICAL_LY;
 		size_t body_z = COMM_Z ? (PHYSICAL_LZ-2) : PHYSICAL_LZ;
@@ -71,13 +71,13 @@ void bgq_indices_init() {
 		g_bgq_index_halfvolume2body[isOdd] = malloc(PHYSICAL_VOLUME * sizeof(*g_bgq_index_halfvolume2body[isOdd]));
 		g_bgq_index_halfvolume2surfacebody[isOdd] = malloc(PHYSICAL_VOLUME * sizeof(*g_bgq_index_halfvolume2surfacebody[isOdd]));
 
-		g_bgq_offset_fromHalfvolume[isOdd] = malloc(PHYSICAL_VOLUME * sizeof(g_bgq_offset_fromHalfvolume[isOdd]));
-		g_bgq_offset_fromSurface[isOdd] = malloc(PHYSICAL_SURFACE * sizeof(g_bgq_offset_fromSurface[isOdd]));
-		g_bgq_offset_fromBody[isOdd] = malloc(PHYSICAL_BODY * sizeof(g_bgq_offset_fromBody[isOdd]));
+		g_bgq_offset_fromHalfvolume[isOdd] = malloc(PHYSICAL_VOLUME * sizeof(*g_bgq_offset_fromHalfvolume[isOdd]));
+		g_bgq_offset_fromSurface[isOdd] = malloc(PHYSICAL_SURFACE * sizeof(*g_bgq_offset_fromSurface[isOdd]));
+		g_bgq_offset_fromBody[isOdd] = malloc(PHYSICAL_BODY * sizeof(*g_bgq_offset_fromBody[isOdd]));
 
-		g_bgq_destoffset_fromHalfvolume[isOdd] = malloc(PHYSICAL_VOLUME * sizeof(g_bgq_destoffset_fromHalfvolume[isOdd]));
-		g_bgq_destoffset_fromSurface[isOdd] = malloc(PHYSICAL_SURFACE * sizeof(g_bgq_destoffset_fromSurface[isOdd]));
-		g_bgq_destoffset_fromBody[isOdd] = malloc(PHYSICAL_BODY * sizeof(g_bgq_destoffset_fromBody[isOdd]));
+		g_bgq_destoffset_fromHalfvolume[isOdd] = malloc(PHYSICAL_VOLUME * sizeof(*g_bgq_destoffset_fromHalfvolume[isOdd]));
+		g_bgq_destoffset_fromSurface[isOdd] = malloc(PHYSICAL_SURFACE * sizeof(*g_bgq_destoffset_fromSurface[isOdd]));
+		g_bgq_destoffset_fromBody[isOdd] = malloc(PHYSICAL_BODY * sizeof(*g_bgq_destoffset_fromBody[isOdd]));
 	}
 
 
@@ -101,21 +101,20 @@ void bgq_indices_init() {
 			assert(isOdd == bgq_local2isOdd(t2,x,y,z));
 
 			bool isSurface = bgq_local2isSurface(t1, x, y, z) || bgq_local2isSurface(t2, x, y, z);
-			assert(isSurface == bgq_local2isSurface(t1, x, y, z));
-			assert(isSurface == bgq_local2isSurface(t2, x, y, z));
-
 			if (isSurface) {
 				size_t is = nextIndexSurface;
+				assert(0 <= is && is < PHYSICAL_SURFACE);
 				g_bgq_index_surface2halfvolume[isOdd][is] = ih;
 				g_bgq_index_halfvolume2surfacebody[isOdd][ih] = is;
 				g_bgq_index_halfvolume2surface[isOdd][ih] = is;
-				g_bgq_index_halfvolume2body[isOdd][ih] = -1;
+				g_bgq_index_halfvolume2body[isOdd][ih] = (size_t)-1;
 				nextIndexSurface += 1;
 			} else {
 				size_t ib = nextIndexBody;
+				assert(0 <= ib && ib < PHYSICAL_BODY);
 				g_bgq_index_body2halfvolume[isOdd][ib] = ih;
 				g_bgq_index_halfvolume2surfacebody[isOdd][ih] = ib;
-				g_bgq_index_halfvolume2surface[isOdd][ih] = -1;
+				g_bgq_index_halfvolume2surface[isOdd][ih] = (size_t)-1;
 				g_bgq_index_halfvolume2body[isOdd][ih] = ib;
 				nextIndexBody += 1;
 			}
@@ -137,13 +136,14 @@ void bgq_indices_init() {
 			size_t y = bgq_halfvolume2y(ih);
 			size_t z = bgq_halfvolume2z(ih);
 			bool isSurface = bgq_local2isSurface(t1,x,y,z) || bgq_local2isSurface(t2,x,y,z);
-			assert(isSurface == (g_bgq_index_halfvolume2surface[isOdd][ih]!=-1));
+			assert(isSurface == (g_bgq_index_halfvolume2surface[isOdd][ih]!=(size_t)-1));
+			assert(isSurface == (g_bgq_index_halfvolume2body[isOdd][ih]==(size_t)-1));
 			bgq_weylfield_section mainsec = isSurface ? sec_surface : sec_body;
 
 			for (size_t pd = P_TUP1; pd <= P_ZDOWN; pd+=1) {
 				bgq_direction d = bgq_physical2direction(d);
 				bgq_dimension dim = bgq_direction2dimension(d);
-				bgq_weylfield_section sec = bgq_HoppingMatrix_init_source_sectionof(isOdd, ((pd==P_TUP2) || (pd==P_TDOWN2)) ? t2 : t1, x, y, z, d);
+				bgq_weylfield_section sec = bgq_HoppingMatrix_init_source_sectionof(isOdd, ((pd==P_TUP2) || (pd==P_TDOWN2)) ? t2 : t1, x, y, z, d, false);
 				size_t eltsize = (dim==DIM_T) ? sizeof(bgq_weyl_nonvec) : sizeof(bgq_weyl_vec);
 
 				// Reserve some offset in surface/body to ensure consecutive layout
@@ -158,12 +158,10 @@ void bgq_indices_init() {
 				}
 				g_bgq_offset_fromHalfvolume[isOdd][ih].pd[pd] = bgq_encode_offset(thisOffset);
 				if (isSurface) {
-					size_t is = g_bgq_index_halfvolume2surface[isOdd][ih];
-					assert(is!=-1);
+					size_t is =  bgq_halfvolume2surface(isOdd,ih);
 					g_bgq_offset_fromSurface[isOdd][is].pd[pd] = bgq_encode_offset(thisOffset);
 				} else {
-					size_t ib = g_bgq_index_halfvolume2body[isOdd][ih];
-					assert(ib!=-1);
+					size_t ib = bgq_halfvolume2body(isOdd,ih);
 					g_bgq_offset_fromBody[isOdd][ib].pd[pd] = bgq_encode_offset(thisOffset);
 				}
 			}
@@ -171,97 +169,116 @@ void bgq_indices_init() {
 	}
 
 
-	// Determine dest locations
+	// Determine dest locations (where to write a weyl when calculated)
 	for (size_t isOdd = false; isOdd <= true; isOdd+=1) {
-		for (size_t ih = 0; ih < PHYSICAL_VOLUME; ih+=1) {
-			size_t tv = PHYSICAL_LEXICAL2TV(isOdd, ih);
-			size_t t1 = PHYSICAL_LEXICAL2T1(isOdd, ih);
-			size_t t2 = PHYSICAL_LEXICAL2T2(isOdd, ih);
-			size_t x = PHYSICAL_LEXICAL2X(isOdd, ih);
-			size_t y = PHYSICAL_LEXICAL2Y(isOdd, ih);
-			size_t z = PHYSICAL_LEXICAL2Z(isOdd, ih);
+		bool isOdd_src = !isOdd;
+		bool isOdd_dst = isOdd;
+		for (size_t ih_src = 0; ih_src < PHYSICAL_VOLUME; ih_src+=1) {
+			const size_t tv_src = bgq_halfvolume2tv(ih_src);
+			const size_t t1_src = bgq_halfvolume2t1(isOdd, ih_src);
+			const size_t t2_src = bgq_halfvolume2t2(isOdd, ih_src);
+			const size_t x_src = bgq_halfvolume2x(ih_src);
+			const size_t y_src = bgq_halfvolume2y(ih_src);
+			const size_t z_src = bgq_halfvolume2z(ih_src);
 
-			bool isSurface =  bgq_local2isSurface(t1,x,y,z) || bgq_local2isSurface(t2,x,y,z);
-			bool isFirstInVector = bgq_physical2eo(isOdd, tv,x,y,z);
-			assert(isFirstInVector == (t1==tv*PHYSICAL_LK*PHYSICAL_LP));
-			assert(isFirstInVector == (t2==(tv*PHYSICAL_LK*PHYSICAL_LP+2)));
+			const bool isSurface = bgq_local2isSurface(t1_src,x_src,y_src,z_src) || bgq_local2isSurface(t2_src,x_src,y_src,z_src);
+			const bool isSecondInVector_src = bgq_physical2eo(isOdd_src, tv_src,x_src,y_src,z_src);
+			assert(!isSecondInVector_src == (t1_src==(tv_src*PHYSICAL_LK*PHYSICAL_LP+2)));
+			assert(!isSecondInVector_src == (t2_src==(tv_src*PHYSICAL_LK*PHYSICAL_LP+2+2)));
 
-			for (size_t pd = P_TUP1; pd <= P_ZDOWN; pd+=1) {
-				bgq_direction d = bgq_physical2direction(d);
+			for (size_t pd_cnt = P_TUP1; pd_cnt <= P_ZDOWN; pd_cnt+=1) {
+				const bgq_physical_direction pd_src = pd_cnt;
+				const bgq_direction d = bgq_physical2direction(pd_src);
+				const bgq_dimension dim = bgq_direction2dimension(d);
+				size_t t_src = ((pd_src==P_TUP2) || (pd_src==P_TDOWN2)) ? t2_src : t1_src;
 
-				size_t tv_src = tv;
-				size_t t1_src = t1;
-				size_t t2_src = t2;
-				size_t x_src = x;
-				size_t y_src = y;
-				size_t z_src = z;
-				bgq_physical_direction pd_src;
-				switch (pd) {
+				size_t tv_dst = tv_src;
+				size_t t1_dst = t1_src;
+				size_t t2_dst = t2_src;
+				size_t t_dst = t_src;
+				size_t x_dst = x_src;
+				size_t y_dst = y_src;
+				size_t z_dst = z_src;
+				bgq_physical_direction pd_dst = pd_src;
+
+				switch (pd_src) {
 				case P_TUP1:
-					t1_src += 1;
+					t_dst = (t1_dst + LOCAL_LT - 1) % LOCAL_LT;
 					//t2_src += 1;
-					tv_src = tv;
-					pd_src = isFirstInVector ? P_TDOWN1 : P_TDOWN2;
-					assert(tv_src==t1_src/(PHYSICAL_LP*PHYSICAL_LK));
+					tv_dst = !isSecondInVector_src ? tv_src-1 : tv_src;
+					pd_dst = !isSecondInVector_src ? P_TUP2 : P_TUP1;
+					assert(tv_dst==bgq_local2tv(t1_dst,x_dst,y_dst,z_dst));
 					break;
 				case P_TDOWN1:
-					t1_src -= 1;
+					t_dst = (t1_dst + 1) % LOCAL_LT;
 					//t2_src -= 1;
-					tv_src = isFirstInVector ? tv-1 : tv;
-					pd_src = isFirstInVector ? P_TUP2 : P_TUP1;
-					assert(tv_src==t1_src/(PHYSICAL_LP*PHYSICAL_LK));
+					tv_dst = !isSecondInVector_src ? tv_src : tv_src;
+					pd_dst = !isSecondInVector_src ? P_TDOWN1 : P_TDOWN2;
+					assert(tv_dst==bgq_local2tv(t1_dst,x_dst,y_dst,z_dst));
 					break;
 				case P_TUP2:
 					//t1_src += 1;
-					t2_src += 1;
-					tv_src = isFirstInVector ? tv : tv+1;
-					pd_src = isFirstInVector ? P_TDOWN2 : P_TDOWN1;
-					assert(tv_src==t2_src/(PHYSICAL_LP*PHYSICAL_LK));
+					t_dst = (t2_dst + LOCAL_LT - 1) % LOCAL_LT;
+					tv_dst = !isSecondInVector_src ? tv_src : tv_src;
+					pd_dst = !isSecondInVector_src ? P_TUP1 : P_TUP2;
+					assert(tv_dst==bgq_local2tv(t1_dst,x_dst,y_dst,z_dst));
 					break;
 				case P_TDOWN2:
 					//t1_src -= 1;
-					t2_src -= 1;
-					tv_src = tv;
-					pd_src = isFirstInVector ? P_TUP1 : P_TUP2;
-					assert(tv_src==t2_src/(PHYSICAL_LP*PHYSICAL_LK));
+					t_dst = (t2_dst + 1) % LOCAL_LT;
+					tv_dst = !isSecondInVector_src ? tv_src : tv_src+1;
+					pd_dst = !isSecondInVector_src ? P_TDOWN2 : P_TDOWN1;
+					assert(tv_dst==bgq_local2tv(t1_dst,x_dst,y_dst,z_dst));
 					break;
 				case P_XUP:
-					x_src += 1;
-					pd_src = P_XDOWN;
+					x_dst -= 1;
+					//pd_src = P_XDOWN;
 					break;
 				case P_XDOWN:
-					x_src -= 1;
-					pd_src = P_XUP;
+					x_dst += 1;
+					//pd_dst = P_XUP;
 					break;
 				case P_YUP:
-					y_src += 1;
-					pd_src = P_YDOWN;
+					y_dst -= 1;
+					//pd_src = P_YDOWN;
 					break;
 				case P_YDOWN:
-					y_src -= 1;
-					pd_src = P_YUP;
+					y_dst += 1;
+					//pd_src = P_YUP;
 					break;
 				case P_ZUP:
-					z_src += 1;
-					pd_src = P_ZDOWN;
+					z_dst -= 1;
+					//pd_dst = P_ZDOWN;
 					break;
 				case P_ZDOWN:
-					z_src -= 1;
-					pd_src = P_ZUP;
+					z_dst += 1;
+					//pd_src = P_ZUP;
 					break;
 				}
+				bgq_weylfield_section sec_src = bgq_HoppingMatrix_init_source_sectionof(isOdd_dst, t_src, x_src, y_src, z_src, d, false);
+				bgq_weylfield_section sec_dst = bgq_HoppingMatrix_init_source_sectionof(isOdd_dst, t_dst, x_dst, y_dst, z_dst, bgq_direction_revert(d), true);
 
-				size_t ih_src = bgq_physical2halfvolume(tv_src,x_src,y_src,z_src);
-				uint32_t encodedOffset = g_bgq_offset_fromHalfvolume[!isOdd][ih_src].pd[pd_src];
-				g_bgq_destoffset_fromHalfvolume[isOdd][ih].pd[pd] = encodedOffset;
-				if (isSurface) {
-					size_t is = g_bgq_index_halfvolume2surface[isOdd][ih];
-					assert(is!=-1);
-					g_bgq_destoffset_fromSurface[isOdd][is].pd[pd] = encodedOffset;
+				// Find the offset at which the other node expects the datum
+				size_t offset_src = g_bgq_offset_fromHalfvolume[isOdd_src][ih_src].pd[pd_src];
+				size_t offset_src_write;
+				size_t ih_dst = bgq_physical2halfvolume(tv_dst, x_dst, y_dst, z_dst);
+				if ((sec_src==sec_body) || (sec_src==sec_surface)) {
+					// No communication, do everything locally
+					assert(sec_src==sec_dst);
+					offset_src_write = offset_src;
 				} else {
-					size_t ib = g_bgq_index_halfvolume2body[isOdd][ih];
-					assert(ib!=-1);
-					g_bgq_destoffset_fromBody[isOdd][ib].pd[pd] = encodedOffset;
+					// Communication with MPI buffers, translate recv- to send-buffer
+					size_t relOffset = bgq_weyl_section_offset(sec_src)/*recv*/ - offset_src;
+					offset_src_write = bgq_weyl_section_offset(sec_dst) + relOffset;
+				}
+
+				g_bgq_destoffset_fromHalfvolume[isOdd][ih_dst].pd[pd_dst] = bgq_encode_offset(offset_src_write);
+				if (isSurface) {
+					size_t is_dst = bgq_halfvolume2surface(isOdd_dst,ih_dst);
+					g_bgq_destoffset_fromSurface[isOdd][is_dst].pd[pd_dst] = bgq_encode_offset(offset_src_write);
+				} else {
+					size_t ib_dst = bgq_halfvolume2body(isOdd_dst,ih_dst);
+					g_bgq_destoffset_fromBody[isOdd][ib_dst].pd[pd_dst] = bgq_encode_offset(offset_src_write);
 				}
 			}
 		}
