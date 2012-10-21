@@ -215,7 +215,7 @@ if (xyz_counter==0) { \
  1			1			0
  2			2			0
  ...
- TILES-1		TILES-1		0
+ TILES-1	TILES-1		0
  TILES		0			1
  1			1
  2			1

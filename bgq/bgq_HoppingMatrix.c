@@ -162,6 +162,7 @@ typedef struct {
 
 
 static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t threads) {
+	//TODO: This code is relatively irregular kernel; should be possible to straighten it
 	const bgq_HoppingMatrix_workload *args = argptr;
 	const bgq_weylfield_controlblock *spinorfield = args->spinorfield;
 
@@ -172,13 +173,13 @@ static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t t
 	for (size_t i = begin; i<end; ) {
 		WORKLOAD_DECL(i,workload);
 
-		if (WORKLOAD_SPLIT(2*LOCAL_LT)) {
+		if (COMM_T && WORKLOAD_SPLIT(2*LOCAL_HALO_T)) {
 			//TODO: Iteration workload imbalance
 			// One DIM_T iteration loads/stores just half data as the other dimensions
-			// We may shuffle tid's such that every core has one thread on T_DIM and three others
+
 			bgq_weyl_nonvec **destptrs;
 			bgq_weyl_nonvec *weylbase;
-			if (WORKLOAD_SPLIT(1)) {
+			if (WORKLOAD_CHUNK(2)) {
 				destptrs = spinorfield->destptrFromRecvTup;
 				weylbase = spinorfield->sec_recv_tup;
 			} else {
@@ -186,14 +187,14 @@ static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t t
 				weylbase = spinorfield->sec_recv_tdown;
 			}
 
-			const size_t beginj = WORKLOAD_PARAM(LOCAL_LT);
-			const size_t endj = min(LOCAL_LT, threadload);
+			const size_t beginj = WORKLOAD_PARAM(LOCAL_HALO_T);
+			const size_t endj = min(LOCAL_HALO_T, threadload);
 			for (size_t j = beginj; j < endj; j+=1) {
 				bgq_weyl_nonvec *weylsrc = &weylbase[j]; //TODO: Check strength reduction
 				bgq_weyl_nonvec *destptr = destptrs[j];//TODO: Also prefetch destptrs
 
 				bgq_su3_weyl_prefetch_double(&weylbase[j+1]); //TODO: prefetch just _nonvec
-				bgq_su3_weyl_left_move_double(destptr,weylsrc);
+				bgq_su3_weyl_left_move_double(destptr, weylsrc);
 			}
 			i += (endj - beginj);
 		} else {
@@ -201,33 +202,33 @@ static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t t
 			bgq_weyl_vec *weylbase;
 			size_t count;
 
-			if (WORKLOAD_SPLIT(2*PHYSICAL_LX)) {
-				if (WORKLOAD_SPLIT(1)) {
+			if (COMM_X && WORKLOAD_SPLIT(2*LOCAL_HALO_X)) {
+				if (WORKLOAD_CHUNK(2)) {
 					destptrs = spinorfield->destptrFromRecvXup;
 					weylbase = spinorfield->sec_recv_xup;
 				} else {
 					destptrs = spinorfield->destptrFromRecvXdown;
 					weylbase = spinorfield->sec_recv_xdown;
 				}
-				count = PHYSICAL_LX;
-			} else if (WORKLOAD_SPLIT(2*PHYSICAL_LY)) {
-				if (WORKLOAD_SPLIT(1)) {
+				count = LOCAL_HALO_X;
+			} else if (COMM_Y && WORKLOAD_SPLIT(2*LOCAL_HALO_Y)) {
+				if (WORKLOAD_CHUNK(2)) {
 					destptrs = spinorfield->destptrFromRecvYup;
 					weylbase = spinorfield->sec_recv_yup;
 				} else {
 					destptrs = spinorfield->destptrFromRecvYdown;
 					weylbase = spinorfield->sec_recv_ydown;
 				}
-				count = PHYSICAL_LY;
-			} else if(WORKLOAD_SPLIT(2*PHYSICAL_LZ)) {
-				if (WORKLOAD_SPLIT(1)) {
+				count = LOCAL_HALO_Y;
+			} else if(COMM_Z && WORKLOAD_SPLIT(2*LOCAL_HALO_Z)) {
+				if (WORKLOAD_CHUNK(2)) {
 					destptrs = spinorfield->destptrFromRecvZup;
 					weylbase = spinorfield->sec_recv_zup;
 				} else {
 					destptrs = spinorfield->destptrFromRecvZdown;
 					weylbase = spinorfield->sec_recv_zdown;
 				}
-				count = PHYSICAL_LX;
+				count = LOCAL_HALO_Z;
 			} else {
 				assert(!"Impossible to get here");
 				exit(1);
@@ -296,7 +297,7 @@ static void bgq_HoppingMatrix_worker_body(void *argptr, size_t tid, size_t threa
 void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield, bgq_hmflags opts) {
 	assert(targetfield);
 	bgq_spinorfield_setup(targetfield, isOdd, false, true,false,false);
-	bgq_spinorfield_setup(spinorfield, isOdd, false, false,true,false);
+	bgq_spinorfield_setup(spinorfield, !isOdd, false, false,true,false);
 	assert(targetfield->isOdd == isOdd);
 
 	assert(spinorfield);
@@ -306,7 +307,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	assert(spinorfield->hasWeylfieldData);
 
 // 1. Distribute
-// Required before calling this function
+// Required before calling this function or done in bgq_spinorfield_setup
 
 // 2. Start communication
 	/* not yet implemented */

@@ -443,6 +443,7 @@ typedef struct {
 	bgq_weyl_vec *sec_recv_zdown;
 	bgq_weylsite *sec_surface;
 	bgq_weylsite *sec_body;
+	uint8_t *sec_end;
 
 	bgq_spinorsite *sec_fullspinor;
 
@@ -545,7 +546,9 @@ EXTERN_INLINE bool bgq_local2isOdd(size_t t, size_t x, size_t y, size_t z) {
 	assert(0 <= z && z < LOCAL_LZ);
 	return (t+x+y+z)%PHYSICAL_LP;
 }
-EXTERN_INLINE bool bgq_local2isSurface(size_t t, size_t x, size_t y, size_t z) {
+
+//Do not use! "isSurface" is a property of a physical (vectorized) site
+EXTERN_INLINE bool bgq_local2isSurface_raw(size_t t, size_t x, size_t y, size_t z) {
 	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
@@ -569,6 +572,7 @@ EXTERN_INLINE bool bgq_local2isSurface(size_t t, size_t x, size_t y, size_t z) {
 		return true;
 	return false;
 }
+
 EXTERN_INLINE bool bgq_physical2eo(bool isOdd, size_t tv, size_t x, size_t y, size_t z) {
 	assert(0 <= tv && tv < PHYSICAL_LTV);
 	assert(0 <= x && x < PHYSICAL_LX);
@@ -596,7 +600,26 @@ EXTERN_INLINE bool bgq_physical2isSurface(bool isOdd, size_t tv, size_t x, size_
 	assert(0 <= z && z < PHYSICAL_LZ);
 	size_t t1 = bgq_physical2t1(isOdd,tv,x,y,z);
 	size_t t2 = bgq_physical2t2(isOdd,tv,x,y,z);
-	return bgq_local2isSurface(t1,x,y,z) || bgq_local2isSurface(t2,x,y,z);
+	bool isSurface = false;
+	if (COMM_T)
+		isSurface = isSurface || (tv==PHYSICAL_LTV-1); // xup and xdown surface sites are mapped into the same tv
+	if (COMM_X)
+		isSurface = isSurface || (x==0) || (x==PHYSICAL_LX-1);
+	if (COMM_Y)
+		isSurface = isSurface || (y==0) || (y==PHYSICAL_LY-1);
+	if (COMM_Z)
+		isSurface = isSurface || (z==0) || (z==PHYSICAL_LZ-1);
+	assert(isSurface == (bgq_local2isSurface_raw(t1,x,y,z) || bgq_local2isSurface_raw(t2,x,y,z)));
+	return isSurface;
+}
+EXTERN_INLINE bool bgq_local2isSurface(size_t t, size_t x, size_t y, size_t z) {
+	assert(0 <= t && t < LOCAL_LT);
+	assert(0 <= x && x < LOCAL_LX);
+	assert(0 <= y && y < LOCAL_LY);
+	assert(0 <= z && z < LOCAL_LZ);
+	bool isOdd = bgq_local2isOdd(t,x,y,z);
+	size_t tv = bgq_local2tv(t,x,y,z);
+	return bgq_physical2isSurface(isOdd,tv,x,y,z);
 }
 EXTERN_INLINE size_t bgq_physical2halfvolume(size_t tv, size_t x, size_t y, size_t z) {
 	assert(0 <= tv && tv < PHYSICAL_LTV);
@@ -695,7 +718,11 @@ EXTERN_INLINE size_t bgq_physical2surface(bool isOdd, size_t tv, size_t x, size_
 	assert(0 <= is && is < PHYSICAL_SURFACE);
 	return is;
 }
-
+EXTERN_INLINE size_t bgq_surface2tv(bool isOdd, size_t is) {
+	assert(0 <= is && is < PHYSICAL_SURFACE);
+	size_t ih = bgq_surface2halfvolume(isOdd, is);
+	return bgq_halfvolume2tv(ih);
+}
 
 
 
