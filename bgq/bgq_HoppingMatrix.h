@@ -59,58 +59,56 @@ EXTERN_INLINE void bgq_spinorfield_weyl_store_raw(bgq_weyl_ptr_t *targetptrs, bg
 	{
 		bgq_su3_weyl_decl(weyl_tup);
 		bgq_su3_reduce_weyl_tup(weyl_tup, spinor);
-		bgq_su3_weyl_left_store_double(targetptrs->pd[P_TUP1], weyl_tup);
-		bgq_su3_weyl_right_store_double(targetptrs->pd[P_TUP2], weyl_tup);
+		bgq_su3_weyl_store_double(targetptrs->d[TUP], weyl_tup);
 	}
 
 	// T- /////////////////////////////////////////////////////////////////////////
 	{
 		bgq_su3_weyl_decl(weyl_tdown);
 		bgq_su3_reduce_weyl_tdown(weyl_tdown, spinor);
-		bgq_su3_weyl_left_store_double(targetptrs->pd[P_TDOWN1], weyl_tdown);
-		bgq_su3_weyl_right_store_double(targetptrs->pd[P_TDOWN2], weyl_tdown);
+		bgq_su3_weyl_store_double(targetptrs->d[TDOWN], weyl_tdown);
 	}
 
 	// X+ /////////////////////////////////////////////////////////////////////////
 	{
 		bgq_su3_weyl_decl(weyl_xup);
 		bgq_su3_reduce_weyl_xup(weyl_xup, spinor);
-		bgq_su3_weyl_store_double(targetptrs->pd[P_XUP], weyl_xup);
+		bgq_su3_weyl_store_double(targetptrs->d[XUP], weyl_xup);
 	}
 
 	// X- /////////////////////////////////////////////////////////////////////////
 	{
 		bgq_su3_weyl_decl(weyl_xdown);
 		bgq_su3_reduce_weyl_xdown(weyl_xdown, spinor);
-		bgq_su3_weyl_store_double(targetptrs->pd[P_XDOWN], weyl_xdown);
+		bgq_su3_weyl_store_double(targetptrs->d[XDOWN], weyl_xdown);
 	}
 
 	// Y+ /////////////////////////////////////////////////////////////////////////
 	{
 		bgq_su3_weyl_decl(weyl_yup);
 		bgq_su3_reduce_weyl_yup(weyl_yup, spinor);
-		bgq_su3_weyl_store_double(targetptrs->pd[P_YUP], weyl_yup);
+		bgq_su3_weyl_store_double(targetptrs->d[YUP], weyl_yup);
 	}
 
 	// Y- /////////////////////////////////////////////////////////////////////////
 	{
 		bgq_su3_weyl_decl(weyl_ydown);
 		bgq_su3_reduce_weyl_ydown(weyl_ydown, spinor);
-		bgq_su3_weyl_store_double(targetptrs->pd[P_YDOWN], weyl_ydown);
+		bgq_su3_weyl_store_double(targetptrs->d[YDOWN], weyl_ydown);
 	}
 
 	// Z+ /////////////////////////////////////////////////////////////////////////
 	{
 		bgq_su3_weyl_decl(weyl_zup);
 		bgq_su3_reduce_weyl_zup(weyl_zup, spinor);
-		bgq_su3_weyl_store_double(targetptrs->pd[P_ZUP], weyl_zup);
+		bgq_su3_weyl_store_double(targetptrs->d[ZUP], weyl_zup);
 	}
 
 	// Z- /////////////////////////////////////////////////////////////////////////
 	{
 		bgq_su3_weyl_decl(weyl_zdown);
 		bgq_su3_reduce_weyl_zdown(weyl_zdown, spinor);
-		bgq_su3_weyl_store_double(targetptrs->pd[P_ZDOWN], weyl_zdown);
+		bgq_su3_weyl_store_double(targetptrs->d[ZDOWN], weyl_zdown);
 	}
 }
 

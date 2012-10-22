@@ -781,23 +781,7 @@ do {\
 	bgq_lda_float(NAME3(dest,v1,c1),  64, addr);        \
 	bgq_lda_float(NAME3(dest,v1,c2),  80, addr)
 
-#define bgq_su3_weyl_left_load_double(dest, addr) \
-	bgq_ld2a_double(NAME3(dest,v0,c0),   0, addr);        \
-	bgq_ld2a_double(NAME3(dest,v0,c1),  16, addr);        \
-	bgq_ld2a_double(NAME3(dest,v0,c2),  32, addr);        \
-	bgq_ld2a_double(NAME3(dest,v1,c0),  48, addr);        \
-	bgq_ld2a_double(NAME3(dest,v1,c1),  64, addr);        \
-	bgq_ld2a_double(NAME3(dest,v1,c2),  80, addr)
-	// 96 byte
 
-#define bgq_su3_weyl_left_load_leftonly_double(dest, addr) \
-	bgq_ld2a_leftonly_double(NAME3(dest,v0,c0),   0, addr);        \
-	bgq_ld2a_leftonly_double(NAME3(dest,v0,c1),  16, addr);        \
-	bgq_ld2a_leftonly_double(NAME3(dest,v0,c2),  32, addr);        \
-	bgq_ld2a_leftonly_double(NAME3(dest,v1,c0),  48, addr);        \
-	bgq_ld2a_leftonly_double(NAME3(dest,v1,c1),  64, addr);        \
-	bgq_ld2a_leftonly_double(NAME3(dest,v1,c2),  80, addr)
-	// 96 byte
 
 #define bgq_su3_weyl_left_move_double(dstaddr,srcaddr) \
 	do { \

@@ -210,6 +210,7 @@ typedef enum {
 	DIR_DOWN = 1
 } bgq_direction;
 
+#if 0
 typedef enum {
 	P_TUP1,
 	P_TUP2,
@@ -223,14 +224,9 @@ typedef enum {
 	P_ZDOWN
 } bgq_physical_direction;
 #define P_COUNT 10
+#endif
 
-typedef struct {
-	uint32_t pd[P_COUNT];
-} bgq_weyl_offsets_t;
 
-typedef struct {
-	void *pd[P_COUNT];
-} bgq_weyl_ptr_t;
 
 typedef enum {
 	DIM_T,
@@ -241,7 +237,7 @@ typedef enum {
 
 
 
-
+#if 0
 EXTERN_INLINE bgq_direction bgq_physical2direction(bgq_physical_direction pd) {
 	switch (pd) {
 	case P_TUP1:
@@ -266,6 +262,7 @@ EXTERN_INLINE bgq_direction bgq_physical2direction(bgq_physical_direction pd) {
 	assert(!"Unreachable");
 	return -1;
 }
+#endif
 
 void bgq_indices_init();
 void bgq_spinorfields_init(size_t std_count, size_t chi_count);
@@ -299,12 +296,16 @@ typedef struct {
 	COMPLEX_PRECISION s[2][3][PHYSICAL_LK]; // 192 byte (3 L1 cache lines)
 } bgq_weyl_vec;
 
+#if 0
 typedef struct {
 	COMPLEX_PRECISION s[2][3]; // 96 byte
 	COMPLEX_PRECISION _padding[2]; // 32 byte
 } bgq_weyl_nonvec; // 128 byte (2 L1 cache lines)
+#endif
 
 typedef struct {
+	bgq_weyl_vec d[PHYSICAL_LD];
+#if 0
 	bgq_weyl_nonvec tup1;
 	bgq_weyl_nonvec tup2;
 	bgq_weyl_nonvec tdown1;
@@ -315,6 +316,7 @@ typedef struct {
 	bgq_weyl_vec ydown;
 	bgq_weyl_vec zup;
 	bgq_weyl_vec zdown;
+#endif
 } bgq_weylsite;
 #if 0
 EXTERN_FIELD size_t bgq_offsetof_weylsite[P_COUNT]
@@ -324,6 +326,17 @@ EXTERN_INIT((
 	));
 #endif
 
+typedef struct {
+	//uint32_t pd[P_COUNT];
+	uint32_t d[PHYSICAL_LD];
+} bgq_weyl_offsets_t;
+
+typedef struct {
+	//void *pd[P_COUNT];
+	bgq_weyl_vec *d[PHYSICAL_LD];
+} bgq_weyl_ptr_t;
+
+#if 0
 EXTERN_INLINE void *bgq_weylsite_getdirection(bgq_weylsite *site, bgq_physical_direction d) {
 	switch (d) {
 	case P_TUP1:
@@ -350,6 +363,7 @@ EXTERN_INLINE void *bgq_weylsite_getdirection(bgq_weylsite *site, bgq_physical_d
 	assert(!"Unreachable");
 	exit(1);
 }
+#endif
 
 typedef struct {
 	COMPLEX_PRECISION s[2];
@@ -424,23 +438,9 @@ typedef struct {
 	bool hasWeylfieldData;
 	bool hasFullspinorData;
 
-	uint8_t *sec_weyl; // corresponds to offset 0 for the following fields
-	bgq_weyl_nonvec *sec_send_tup;
-	bgq_weyl_nonvec *sec_send_tdown;
-	bgq_weyl_vec *sec_send_xup;
-	bgq_weyl_vec *sec_send_xdown;
-	bgq_weyl_vec *sec_send_yup;
-	bgq_weyl_vec *sec_send_ydown;
-	bgq_weyl_vec *sec_send_zup;
-	bgq_weyl_vec *sec_send_zdown;
-	bgq_weyl_nonvec *sec_recv_tup;
-	bgq_weyl_nonvec *sec_recv_tdown;
-	bgq_weyl_vec *sec_recv_xup;
-	bgq_weyl_vec *sec_recv_xdown;
-	bgq_weyl_vec *sec_recv_yup;
-	bgq_weyl_vec *sec_recv_ydown;
-	bgq_weyl_vec *sec_recv_zup;
-	bgq_weyl_vec *sec_recv_zdown;
+	uint8_t *sec_weyl; //TODO: can be made bgq_weyl_vec // corresponds to offset 0 for the following fields
+	bgq_weyl_vec *sec_send[PHYSICAL_LD];
+	bgq_weyl_vec *sec_recv[PHYSICAL_LD];
 	bgq_weylsite *sec_surface;
 	bgq_weylsite *sec_body;
 	uint8_t *sec_end;
@@ -454,14 +454,10 @@ typedef struct {
 	bgq_weyl_ptr_t *destptrFromSurface;
 	bgq_weyl_ptr_t *destptrFromBody;
 
-	bgq_weyl_nonvec **destptrFromRecvTup;
-	bgq_weyl_nonvec **destptrFromRecvTdown;
-	bgq_weyl_vec **destptrFromRecvXup;
-	bgq_weyl_vec **destptrFromRecvXdown;
-	bgq_weyl_vec **destptrFromRecvYup;
-	bgq_weyl_vec **destptrFromRecvYdown;
-	bgq_weyl_vec **destptrFromRecvZup;
-	bgq_weyl_vec **destptrFromRecvZdown;
+	//bgq_weyl_vec **destptrFromT_;
+
+
+	bgq_weyl_vec **destptrFromRecv[PHYSICAL_LD];
 } bgq_weylfield_controlblock;
 
 // Index translations
@@ -585,13 +581,19 @@ EXTERN_INLINE size_t bgq_physical2t1(bool isOdd, size_t tv, size_t x, size_t y, 
 	assert(0 <= x && x < PHYSICAL_LX);
 	assert(0 <= y && y < PHYSICAL_LY);
 	assert(0 <= z && z < PHYSICAL_LZ);
-	size_t t1 = 2 + PHYSICAL_LP*PHYSICAL_LK*tv + bgq_physical2eo(isOdd,tv,x,y,z);
-	assert(0 <= t1 && t1 < LOCAL_LT);
+	size_t t1 = PHYSICAL_LP*tv + bgq_physical2eo(isOdd,tv,x,y,z);
+	assert(0 <= t1 && t1 < LOCAL_LT/2);
 	return t1;
 }
 EXTERN_INLINE size_t bgq_physical2t2(bool isOdd, size_t tv, size_t x, size_t y, size_t z) {
+	assert(0 <= tv && tv < PHYSICAL_LTV);
+	assert(0 <= x && x < PHYSICAL_LX);
+	assert(0 <= y && y < PHYSICAL_LY);
+	assert(0 <= z && z < PHYSICAL_LZ);
 	size_t t1 = bgq_physical2t1(isOdd, tv, x, y, z);
-	return (t1+2)%LOCAL_LT;
+	size_t t2 = t1 + LOCAL_LT/2;
+	assert(LOCAL_LT/2 <= t2 && t2 < LOCAL_LT);
+	return t2;
 }
 EXTERN_INLINE bool bgq_physical2isSurface(bool isOdd, size_t tv, size_t x, size_t y, size_t z) {
 	assert(0 <= tv && tv < PHYSICAL_LTV);
@@ -739,7 +741,7 @@ EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
 			case sec_send_tdown:
 			case sec_recv_tup:
 			case sec_recv_tdown:
-			secsize = PHYSICAL_HALO_T * sizeof(bgq_weyl_nonvec);
+			secsize = PHYSICAL_HALO_T * sizeof(bgq_weyl_vec);
 			break;
 		case sec_send_xup:
 			case sec_send_xdown:
