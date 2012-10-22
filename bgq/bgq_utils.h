@@ -235,7 +235,7 @@ if (xyz_counter==0) { \
 	 xyz_counter = mod(xyz_orig, xyz_total),               \
 	 xyz_orig / xyz_total)
 /*
- xyz_orig	xyz			return (=CHUNCK)
+ xyz_orig	xyz			return (=CHUNK)
  0			0			0
  1			1			0
  2			2			0
@@ -416,6 +416,35 @@ EXTERN_INLINE double sqr(double val) {
 
 
 #define ADD_PADDING(addr,alignment) (void*)(((uintptr_t)(addr) + ((uintptr_t)(alignment)-1)) & ~((uintptr_t)(alignment)-1))
+
+
+EXTERN_INLINE size_t gcd_sizet(size_t a, size_t b) {
+	assert(1 <= a);
+	assert(1 <= b);
+	while (b) {
+		size_t t = b;
+		b = a % b;
+		a = t;
+	}
+	return a;
+}
+
+
+EXTERN_INLINE size_t lcm_sizet(size_t a, size_t b) {
+	assert(1 <= a);
+	assert(1 <= b);
+	assert((a*b) % gcd_sizet(a,b) == 0);
+	return (a*b) /  gcd_sizet(a,b);
+}
+
+
+#define UNREACHABLE \
+	{ \
+	assert(!"Unreachable"); \
+	__builtin_unreachable(); \
+	exit(1); \
+	}
+
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

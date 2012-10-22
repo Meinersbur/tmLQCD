@@ -1050,16 +1050,16 @@ do {\
 	bgq_su3_vmerge(dst##_v2, a##_v2, b##_v2); \
 	bgq_su3_vmerge(dst##_v3, a##_v3, b##_v3)
 
-#define bgq_su3_weyl_merge(dst,a,b)         \
-	bgq_su3_vmerge(NAME2(dst,v0), NAME2(a,v0), NAME2(b,v0)); \
-	bgq_su3_vmerge(NAME2(dst,v1), NAME2(a,v1), NAME2(b,v1))
+#define bgq_su3_weyl_merge2(dst,a,b)         \
+	bgq_su3_vmerge2(NAME2(dst,v0), NAME2(a,v0), NAME2(b,v0)); \
+	bgq_su3_vmerge2(NAME2(dst,v1), NAME2(a,v1), NAME2(b,v1))
 
 #define bgq_su3_vmov(dst,src)    \
 	bgq_mov(NAME2(dst,c0), NAME2(src,c0)); \
 	bgq_mov(NAME2(dst,c1), NAME2(src,c1)); \
 	bgq_mov(NAME2(dst,c2), NAME2(src,c2))
 
-#define bgq_su3_vmerge(dst,a,b)           \
+#define bgq_su3_vmerge2(dst,a,b)           \
 	bgq_merge2(NAME2(dst,c0), NAME2(a,c0), NAME2(b,c0)); \
 	bgq_merge2(NAME2(dst,c1), NAME2(a,c1), NAME2(b,c1)); \
 	bgq_merge2(NAME2(dst,c2), NAME2(a,c2), NAME2(b,c2))

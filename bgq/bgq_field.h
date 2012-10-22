@@ -147,7 +147,7 @@ EXTERN_FIELD size_t PHYSICAL_BODY;
 //#define PHYSICAL_LEXICAL2T1(isOdd,ih) (4*PHYSICAL_LEXICAL2TV(isOdd,ih) + ((PHYSICAL_LEXICAL2X(isOdd,ih)+PHYSICAL_LEXICAL2Y(isOdd,ih)+PHYSICAL_LEXICAL2Z(isOdd,ih)+isOdd)&1))
 //#define PHYSICAL_LEXICAL2T2(isOdd,ih) (PHYSICAL_LEXICAL2T1(isOdd,ih) + 2)
 
-#define PHYSICAL_HALO_T (COMM_T*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ/PHYSICAL_LP)
+#define PHYSICAL_HALO_T (COMM_T*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ/PHYSICAL_LP) //TODO: Remove? Interpretation not clear. With vectorization? without?
 #define PHYSICAL_HALO_X (COMM_X*PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ)
 #define PHYSICAL_HALO_Y (COMM_Y*PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ)
 #define PHYSICAL_HALO_Z (COMM_Z*PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LY)
@@ -376,26 +376,33 @@ typedef struct {
 } bgq_weylfield_status;
 
 typedef enum {
-	//sec_status,
+	// Yes, the order is important for COMM_X==1
+	// k==0
+	sec_recv_tdown,
 	sec_send_tup,
+	// k==1
 	sec_send_tdown,
+	sec_recv_tup,
+
 	sec_send_xup,
 	sec_send_xdown,
 	sec_send_yup,
 	sec_send_ydown,
 	sec_send_zup,
 	sec_send_zdown,
-	sec_recv_tup,
-	sec_recv_tdown,
+
+	// Recv sections are unused without inter-node communication
+	// However, keep the here in order not to break code
 	sec_recv_xup,
 	sec_recv_xdown,
 	sec_recv_yup,
 	sec_recv_ydown,
 	sec_recv_zup,
 	sec_recv_zdown,
+
 	sec_surface,
 	sec_body,
-	//sec_fullspinor,
+
 	sec_end
 } bgq_weylfield_section;
 
@@ -431,6 +438,8 @@ EXTERN_INLINE bgq_direction bgq_section2direction(bgq_weylfield_section sec) {
 	}
 }
 
+
+
 typedef struct {
 	bool isInitinialized;
 	bool isOdd;
@@ -454,10 +463,11 @@ typedef struct {
 	bgq_weyl_ptr_t *destptrFromSurface;
 	bgq_weyl_ptr_t *destptrFromBody;
 
-	//bgq_weyl_vec **destptrFromT_;
 
+	bgq_weyl_vec **destptrFromTRecv;
+	bgq_weyl_vec **destptrFromRecv;
 
-	bgq_weyl_vec **destptrFromRecv[PHYSICAL_LD];
+	//bgq_weyl_vec **destptrFromRecv[PHYSICAL_LD];
 } bgq_weylfield_controlblock;
 
 // Index translations
@@ -466,6 +476,9 @@ EXTERN_FIELD size_t *g_bgq_index_body2halfvolume[PHYSICAL_LP];
 EXTERN_FIELD size_t *g_bgq_index_halfvolume2surface[PHYSICAL_LP]; // -1 if not surface
 EXTERN_FIELD size_t *g_bgq_index_halfvolume2body[PHYSICAL_LP]; // -1 if not body
 EXTERN_FIELD size_t *g_bgq_index_halfvolume2surfacebody[PHYSICAL_LP];
+
+EXTERN_FIELD size_t *g_bgq_index2halfvolume[PHYSICAL_LP];
+EXTERN_FIELD bgq_direction *g_bgq_index2direction[PHYSICAL_LP];
 
 // Mapping of weyls to memory offsets
 EXTERN_FIELD bgq_weyl_offsets_t *g_bgq_offset_fromHalfvolume[PHYSICAL_LP];
@@ -514,7 +527,8 @@ EXTERN_INLINE size_t bgq_local2tv(size_t t, size_t x, size_t y, size_t z) {
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
-	size_t tv = ((t + LOCAL_LT - 2) / (PHYSICAL_LP*PHYSICAL_LK))%PHYSICAL_LTV;
+	size_t t1 = t % (LOCAL_LT/PHYSICAL_LK); // Normalize to left virtual halflattice
+	size_t tv = t1 / PHYSICAL_LP; // Remove isOdd information
 	assert(0 <= tv && tv < PHYSICAL_LTV);
 	return tv;
 }
@@ -523,9 +537,9 @@ EXTERN_INLINE bool bgq_local2k(size_t t, size_t x, size_t y, size_t z) {
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
-	size_t teo = (t + LOCAL_LT - 2) / PHYSICAL_LP;
-	size_t k = teo % PHYSICAL_LK;
+	size_t k = t / (LOCAL_LT/PHYSICAL_LK);
 	assert((k==0) || (k==1));
+	assert(k == (t >= LOCAL_LT/PHYSICAL_LK));
 	return k;
 }
 EXTERN_INLINE bool bgq_local2eo(size_t t, size_t x, size_t y, size_t z) {
@@ -533,7 +547,7 @@ EXTERN_INLINE bool bgq_local2eo(size_t t, size_t x, size_t y, size_t z) {
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
-	return t&1;
+	return t%PHYSICAL_LP;
 }
 EXTERN_INLINE bool bgq_local2isOdd(size_t t, size_t x, size_t y, size_t z) {
 	assert(0 <= t && t < LOCAL_LT);
@@ -602,9 +616,10 @@ EXTERN_INLINE bool bgq_physical2isSurface(bool isOdd, size_t tv, size_t x, size_
 	assert(0 <= z && z < PHYSICAL_LZ);
 	size_t t1 = bgq_physical2t1(isOdd,tv,x,y,z);
 	size_t t2 = bgq_physical2t2(isOdd,tv,x,y,z);
+	bool eo = bgq_physical2eo(isOdd,tv,x,y,z);
 	bool isSurface = false;
 	if (COMM_T)
-		isSurface = isSurface || (tv==PHYSICAL_LTV-1); // xup and xdown surface sites are mapped into the same tv
+		isSurface = isSurface || (!eo && (tv==0)) || (eo && (tv==PHYSICAL_LTV-1));
 	if (COMM_X)
 		isSurface = isSurface || (x==0) || (x==PHYSICAL_LX-1);
 	if (COMM_Y)
@@ -727,9 +742,32 @@ EXTERN_INLINE size_t bgq_surface2tv(bool isOdd, size_t is) {
 }
 
 
+EXTERN_INLINE bgq_weylfield_section bgq_direction2section(bgq_direction d, bool isSend) {
+	switch (d) {
+	case TUP:
+		return isSend ? sec_send_tup : sec_recv_tup;
+	case TDOWN:
+		return isSend ? sec_send_tdown : sec_recv_tdown;
+	case XUP:
+		return isSend ? sec_send_tup : sec_recv_tup;
+	case XDOWN:
+		return isSend ? sec_send_tdown : sec_recv_tdown;
+	case YUP:
+		return isSend ? sec_send_tup : sec_recv_tup;
+	case YDOWN:
+		return isSend ? sec_send_tdown : sec_recv_tdown;
+	case ZUP:
+		return isSend ? sec_send_tup : sec_recv_tup;
+	case ZDOWN:
+		return isSend ? sec_send_tdown : sec_recv_tdown;
+	default:
+		UNREACHABLE
+	}
+}
+
 
 EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
-	size_t result = 0;
+	size_t result = sizeof(bgq_weyl_vec); // Do not use the first entry; "0" should signify an error
 
 	for (bgq_weylfield_section sec = 0; sec < sec_end; sec += 1) {
 		if (section == sec)
@@ -774,7 +812,7 @@ EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
 		}
 
 		result += secsize;
-		result = (result + (BGQ_ALIGNMENT_L2-1)) & ~(BGQ_ALIGNMENT_L2-1); // Padding for alignment
+		//result = (result + (BGQ_ALIGNMENT_L2-1)) & ~(BGQ_ALIGNMENT_L2-1); // Padding for alignment
 	}
 	assert(section==sec_end);
 	return result;
@@ -791,12 +829,12 @@ EXTERN_INLINE bgq_weylfield_section bgq_sectionOfOffset(size_t offset) {
 }
 
 
-static inline bool bgq_isOdd(size_t t, size_t x, size_t y, size_t z) {
+static bool bgq_isOdd(size_t t, size_t x, size_t y, size_t z) {
 	return (t+x+y+z)&1;
 }
 
 
-EXTERN_INLINE bool bgq_isCommSurface(size_t t, size_t x, size_t y, size_t z) {
+static bool bgq_isCommSurface(size_t t, size_t x, size_t y, size_t z) {
 #ifdef COMM_T
 if ((t==0) || (t==LOCAL_LT-1))
 	return true;
@@ -817,19 +855,22 @@ return false;
 }
 
 
-EXTERN_INLINE bool bgq_isCommBody(size_t t, size_t x, size_t y, size_t z) {
+static bool bgq_isCommBody(size_t t, size_t x, size_t y, size_t z) {
 	return !bgq_isCommSurface(t,x,y,z);
 }
+
 
 EXTERN_INLINE bgq_direction bgq_direction_revert(bgq_direction d) {
 	return d^1;
 }
+
 
 // We compress offsets so they fit into an 32 bit integer
 EXTERN_INLINE uint32_t bgq_encode_offset(size_t index) { assert(index+1);
 	assert((index & (32-1)) == 0);
 	return index >> 5; // Always 32-bit aligned
 }
+
 
 EXTERN_INLINE size_t bgq_decode_offset(uint32_t code) { assert(code+1);
 	return (size_t)code << 5;
