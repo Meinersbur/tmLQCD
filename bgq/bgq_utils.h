@@ -442,7 +442,7 @@ EXTERN_INLINE size_t lcm_sizet(size_t a, size_t b) {
 	{ \
 	assert(!"Unreachable"); \
 	__builtin_unreachable(); \
-	exit(1); \
+	abort(); \
 	}
 
 

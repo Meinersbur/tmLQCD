@@ -667,6 +667,10 @@ static void exec_bench(int j_max, int k_max) {
 	//bgq_update_backward_gauge();
 
 
+	// Test indices initialization
+	bgq_spinorfield_setup(&g_bgq_spinorfields[k_max], false, false, false, false, true);
+	bgq_spinorfield_setup(&g_bgq_spinorfields[0], true, false, false, false, true);
+
 #ifdef _GAUGE_COPY
 	//update_backward_gauge();
 #endif
@@ -693,6 +697,7 @@ static void exec_bench(int j_max, int k_max) {
 		//double compare_transfer = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
 		//assert(compare_transfer == 0 /* fields should be bit-identical*/);
 	}
+
 
 
 	//check_correctness_double(true);

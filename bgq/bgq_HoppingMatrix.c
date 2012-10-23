@@ -263,7 +263,7 @@ static void bgq_HoppingMatrix_worker_body(void *argptr, size_t tid, size_t threa
 		//TODO: Check strength reduction
 		bgq_weylsite *spinorsite = &spinorfield->sec_body[ib];
 		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromBody[isOdd][ib];
-		bgq_weyl_ptr_t *destptrs = &spinorfield->destptrFromBody[ib];
+		bgq_weyl_ptr_t *destptrs = &targetfield->destptrFromBody[ib];
 
 		bgq_HoppingMatrix_kernel_raw(destptrs, spinorsite, gaugesite); //TODO: Check if inlined
 	}
