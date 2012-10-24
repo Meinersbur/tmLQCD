@@ -13,7 +13,7 @@
 #include "bgq_dispatch.h"
 #include "bgq_qpx.h"
 
-
+#pragma GCC diagnostic ignored "-Wunused-variable"
 static bgq_weylfield_section bgq_section_commbuftran(bgq_weylfield_section sec, bool isSendSide) {
 	switch (sec) {
 	case sec_send_tup:
@@ -206,7 +206,8 @@ static size_t bgq_offset_recv2send(size_t offset_recv) {
 // i.e. body -> body,surface
 //      surface -> body,surface or communication buffer to be sent to other node
 static size_t bgq_weylfield_destoffsetForWeyl(bool isOdd, size_t ih_src, bgq_direction d_src) {
-	bool isOdd_src = isOdd; bool isOdd_dst = !isOdd;
+	bool isOdd_src = isOdd;
+	bool isOdd_dst = !isOdd;
 	size_t tv_src = bgq_halfvolume2tv(ih_src);
 	size_t t1_src = bgq_halfvolume2t1(isOdd_src, ih_src);
 	size_t t2_src = bgq_halfvolume2t2(isOdd_src, ih_src);
@@ -264,7 +265,7 @@ static size_t bgq_weylfield_destoffsetForWeyl(bool isOdd, size_t ih_src, bgq_dir
 	// Not that the section might logically belong to a different MPI node
 	bgq_weylfield_section sec_write = bgq_section_commbuftran(sec_read, true); // src finds the correct location in preparation for dst
 	assert(!bgq_section2isRecv(sec_write));
-	// Find the offset at which the other node expects the datum
+	// Find the offset at which the src node (can be this very same node) expects the datum
 	size_t ih_dst = bgq_physical2halfvolume(tv_dst, x_dst, y_dst, z_dst);
 	size_t offset_read = bgq_decode_offset(g_bgq_ih_dst2offset[isOdd][ih_dst].d[d_dst]);
 	assert(bgq_sectionOfOffset(offset_read) == sec_read);
@@ -538,12 +539,19 @@ void bgq_indices_init() {
 			assert(isSurface == (g_bgq_index_halfvolume2body[isOdd_dst][ih_dst]==(size_t)-1));
 			bgq_weylfield_section mainsec = isSurface ? sec_surface : sec_body;
 
+			if (ih_dst==126) {
+				int g = 0;
+			}
+
 			for (size_t d_dst = 0; d_dst < PHYSICAL_LD; d_dst += 1) {
 				bgq_dimension dim = bgq_direction2dimension(d_dst);
 				bgq_weylfield_section sec = bgq_HoppingMatrix_init_source_sectionof_physical(isOdd_dst, tv_dst, x_dst, y_dst, z_dst, d_dst);
 
 				// Reserve some offset in surface/body to ensure consecutive layout
 				size_t thisOffset = nextoffset[mainsec];
+				if (thisOffset/sizeof(bgq_weyl_vec)==32) {
+					int d = 0;
+				}
 				assert(bgq_sectionOfOffset(thisOffset) == mainsec);
 				assert(thisOffset == bgq_weyllayout_halfvolume2consecutiveoffset(isOdd_dst, ih_dst, d_dst));
 				g_bgq_index2ih_dst[isOdd][thisOffset / sizeof(bgq_weyl_vec)] = ih_dst;
@@ -555,12 +563,19 @@ void bgq_indices_init() {
 					assert((sec!=sec_surface) && (sec!=sec_body));
 
 					thisOffset = nextoffset[sec];
+					if (thisOffset/sizeof(bgq_weyl_vec)==32) {
+						int d = 0;
+					}
 					g_bgq_index2ih_dst[isOdd][thisOffset / sizeof(bgq_weyl_vec)] = ih_dst;
 					g_bgq_index2d_dst[isOdd][thisOffset / sizeof(bgq_weyl_vec)] = d_dst;
 					nextoffset[sec] += sizeof(bgq_weyl_vec);
 
 					// Sender part (this is on the inter-node sending the data to this node)
 					size_t offset_sender = bgq_offset_recv2send(thisOffset);
+					assert(bgq_sectionOfOffset(offset_sender) == bgq_section_commbuftran(sec,true));
+					if (offset_sender/sizeof(bgq_weyl_vec)==32) {
+						int d = 0;
+					}
 					g_bgq_index2ih_dst[isOdd][offset_sender / sizeof(bgq_weyl_vec)] = ih_dst;
 					g_bgq_index2d_dst[isOdd][offset_sender / sizeof(bgq_weyl_vec)] = d_dst;
 				}
@@ -616,7 +631,15 @@ void bgq_indices_init() {
 		bool isOdd_dst = !isOdd;
 		for (size_t ih_src = 0; ih_src < PHYSICAL_VOLUME; ih_src += 1) {
 			for (size_t d_src = 0; d_src < PHYSICAL_LD; d_src += 1) {
+				if (ih_src==6 && d_src==XUP) {
+					int k = 0;
+				}
 				size_t offset_send = bgq_weylfield_destoffsetForWeyl(isOdd, ih_src, d_src);
+				size_t index_send = offset_send / sizeof(bgq_weyl_vec);
+				if (43200 == offset_send) {
+					int b = 0;
+				}
+
 				assert(!bgq_section2isRecv(bgq_sectionOfOffset(offset_send)));
 
 				size_t encodedOffset = bgq_encode_offset(offset_send);
@@ -631,16 +654,42 @@ void bgq_indices_init() {
 				}
 
 				// Reverse lookup
+				// 3 different offset calculations: send,recv,consecutive; may overlap some regions
 				size_t index_write = offset_send / sizeof(bgq_weyl_vec);
+				if (index_write==516) {
+					int e = 0;
+				}
 				g_bgq_index2ih_src[isOdd][index_write] = ih_src;
 				g_bgq_index2d_src[isOdd][index_write] = d_src;
 				assert(d_src == bgq_offset2dsrc(offset_send));
 
 				size_t offset_receiver = bgq_offset_send2recv(offset_send);
+				if (18624 == offset_receiver) {
+					int a = 0;
+				}
+				assert(!bgq_section2isRecv(offset_receiver));
+				assert(bgq_offset_recv2send(offset_receiver) == offset_send);
 				size_t index_receiver = offset_receiver / sizeof(bgq_weyl_vec);
+				if (index_receiver==516) {
+					int e = 0;
+				}
 				g_bgq_index2ih_src[isOdd][index_receiver] = ih_src;
 				g_bgq_index2d_src[isOdd][index_receiver] = d_src;
 				assert(d_src == bgq_offset2dsrc(offset_receiver));
+
+				size_t tv_src = bgq_halfvolume2tv(ih_src);
+				size_t t1_src = bgq_halfvolume2t1(isOdd_dst, ih_src);
+				size_t t2_src = bgq_halfvolume2t2(isOdd_dst, ih_src);
+				size_t x_src = bgq_halfvolume2x(ih_src);
+				size_t y_src = bgq_halfvolume2y(ih_src);
+				size_t z_src = bgq_halfvolume2z(ih_src);
+				bgq_direction d_dst = bgq_direction_revert(d_src);
+				size_t ih_dst = bgq_src2ih_dst(t1_src, x_src, y_src, z_src, d_src);
+				assert(ih_dst == bgq_src2ih_dst(t2_src, x_src, y_src, z_src, d_src));
+				size_t offset_consecutive = bgq_weyllayout_halfvolume2consecutiveoffset(isOdd_dst,ih_dst,d_dst);
+				size_t index_consecutive = offset_consecutive / sizeof(bgq_weyl_vec);
+				g_bgq_index2ih_src[isOdd][index_consecutive] = ih_src;
+				g_bgq_index2d_src[isOdd][index_consecutive] = d_src;
 			}
 		}
 	}
@@ -648,12 +697,34 @@ void bgq_indices_init() {
 #ifndef NDEBUG
 	for (size_t isOdd = false; isOdd <= true; isOdd += 1) {
 		for (size_t offset = bgq_weyl_section_offset(0); offset < bgq_weyl_section_offset(sec_end); offset += sizeof(bgq_weyl_vec)) {
-			bgq_weylfield_section sec = bgq_sectionOfOffset(offset);
 			size_t index = offset / sizeof(bgq_weyl_vec);
+			if (index == 516) {
+				int f = 0;
+			}
+			if (6336 == offset) {
+				int b= 0;
+			}
+			if (18624 == offset) {
+				int a = 0;
+			}
+			bgq_weylfield_section sec = bgq_sectionOfOffset(offset);
+			if (bgq_section2isRecv(sec)) {
+				size_t offsend = bgq_offset_recv2send(offset);
+			}
+
+
+			size_t ih_dst = g_bgq_index2ih_dst[isOdd][index];
+			assert(0 <= ih_dst && ih_dst < PHYSICAL_VOLUME);
+			bgq_direction d_dst = g_bgq_index2d_dst[isOdd][index];
+			assert(d_dst == bgq_offset2ddst(offset));
+
 			size_t ih_src = g_bgq_index2ih_src[isOdd][index];
 			assert(0 <= ih_src && ih_src < PHYSICAL_VOLUME);
 			bgq_direction d_src = g_bgq_index2d_src[isOdd][index];
 			assert(d_src == bgq_offset2dsrc(offset));
+
+			assert(d_dst == bgq_direction_revert(d_src));
+			//assert(bgq_src2ih_dst());
 		}
 	}
 #endif
@@ -825,10 +896,10 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		// For 5th phase (datamove)
 		if (COMM_T) {
 			if (allocate)
-				field->destptrFromTRecv = malloc((LOCAL_HALO_T + 0 + LOCAL_HALO_T) * sizeof(bgq_weyl_vec*));
+				field->destptrFromTRecv = malloc((LOCAL_HALO_T/PHYSICAL_LP + 0 + LOCAL_HALO_T/PHYSICAL_LP) * sizeof(bgq_weyl_vec*));
 
 			size_t beginj = 0;
-			size_t endj = 2*LOCAL_HALO_T; // There should be no padding between sections
+			size_t endj = 2*LOCAL_HALO_T/PHYSICAL_LP; // There should be no padding between sections
 			assert(endj == (bgq_weyl_section_offset(sec_recv_tup+1) - bgq_weyl_section_offset(sec_send_tup))/sizeof(bgq_weyl_vec));
 			for (int j = beginj; j < endj; j+=1) {
 				size_t offset_left = bgq_weyl_section_offset(sec_send_tup) + j * sizeof(bgq_weyl_vec); // Overlap into sec_recv_tup

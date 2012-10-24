@@ -914,7 +914,7 @@ EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
 			case sec_send_tdown:
 			case sec_recv_tup:
 			case sec_recv_tdown:
-			secsize = LOCAL_HALO_T * sizeof(bgq_weyl_vec);
+			secsize = LOCAL_HALO_T * sizeof(bgq_weyl_vec)/PHYSICAL_LP /* */;
 			break;
 		case sec_send_xup:
 			case sec_send_xdown:

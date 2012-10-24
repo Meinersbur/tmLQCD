@@ -167,7 +167,7 @@ static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t t
 	const bgq_weylfield_controlblock *spinorfield = args->spinorfield;
 
 
-	const size_t workload_recvt = 2*(COMM_T ? 2*LOCAL_HALO_T : LOCAL_HALO_T);
+	const size_t workload_recvt = 2*(COMM_T ? 2*LOCAL_HALO_T/PHYSICAL_LP : LOCAL_HALO_T/PHYSICAL_LP);
 	const size_t workload_recv = 2*PHYSICAL_HALO_X + 2*PHYSICAL_HALO_Y + 2*PHYSICAL_HALO_Z;
 	const size_t workload = workload_recvt + workload_recv;
 	const size_t threadload = (workload+threads-1)/threads;
@@ -181,8 +181,8 @@ static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t t
 			(void)WORKLOAD_PARAM(2); // Count an T-iteration twice; better have few underloaded threads (so remaining SMT-threads have some more ressources) then few overloaded threads (so the master thread has to wait for them)
 
 #if COMM_T
-			size_t beginj = WORKLOAD_PARAM(2*LOCAL_HALO_T);
-			size_t endj = min(2*LOCAL_HALO_T,threadload/2);
+			size_t beginj = WORKLOAD_PARAM(2*LOCAL_HALO_T/PHYSICAL_LP);
+			size_t endj = min(2*LOCAL_HALO_T/PHYSICAL_LP,threadload/2);
 			for (size_t j = beginj; j < endj; j+=1) {
 				//TODO: Check strength reduction
 				//TODO: Prefetch
