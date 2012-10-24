@@ -182,7 +182,7 @@ static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t t
 
 #if COMM_T
 			size_t beginj = WORKLOAD_PARAM(2*LOCAL_HALO_T/PHYSICAL_LP);
-			size_t endj = min(2*LOCAL_HALO_T/PHYSICAL_LP,threadload/2);
+			size_t endj = min(2*LOCAL_HALO_T/PHYSICAL_LP,beginj+threadload/2);
 			for (size_t j = beginj; j < endj; j+=1) {
 				//TODO: Check strength reduction
 				//TODO: Prefetch
@@ -210,18 +210,20 @@ static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t t
 			// Do other dimensions
 
 			size_t beginj = WORKLOAD_PARAM(workload_recv);
-			size_t endj = min(workload_recv,threadload);
+			size_t endj = min(workload_recv,beginj+threadload);
 			for (size_t j = beginj; j < endj; j+=1) {
 				//TODO: Check strength reduction
 				//TODO: Prefetch
 				//TODO: Inline assembler
 				bgq_weyl_vec *weyladdr_src= &spinorfield->sec_recv[XUP][j]; // Note: overlaps into following sections
-				bgq_weyl_vec *weyladdr_dst = spinorfield->destptrFromTRecv[j];
+				bgq_weyl_vec *weyladdr_dst = spinorfield->destptrFromRecv[j];
+				assert((bgq_weyl_vec *)spinorfield->sec_weyl <= weyladdr_dst && weyladdr_dst <  (bgq_weyl_vec *)spinorfield->sec_end);
 
 				bgq_su3_weyl_decl(weyl);
 				bgq_su3_weyl_load_double(weyl, weyladdr_src);
 				bgq_su3_weyl_store_double(weyladdr_dst, weyl);
 			}
+			i += (endj - beginj);
 		}
 		WORKLOAD_CHECK
 	}
@@ -264,6 +266,9 @@ static void bgq_HoppingMatrix_worker_body(void *argptr, size_t tid, size_t threa
 		bgq_weylsite *spinorsite = &spinorfield->sec_body[ib];
 		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromBody[isOdd][ib];
 		bgq_weyl_ptr_t *destptrs = &targetfield->destptrFromBody[ib];
+		for (size_t d = 0; d < PHYSICAL_LD; d+=1){
+			assert((bgq_weyl_vec*)targetfield->sec_weyl <= destptrs->d[d] && destptrs->d[d] < (bgq_weyl_vec*)targetfield->sec_end);
+		}
 
 		bgq_HoppingMatrix_kernel_raw(destptrs, spinorsite, gaugesite); //TODO: Check if inlined
 	}
@@ -272,7 +277,7 @@ static void bgq_HoppingMatrix_worker_body(void *argptr, size_t tid, size_t threa
 
 void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield, bgq_hmflags opts) {
 	assert(targetfield);
-	bgq_spinorfield_setup(targetfield, isOdd, false, true, false, false);
+	bgq_spinorfield_setup(targetfield, isOdd, false, true, false, true);
 	bgq_spinorfield_setup(spinorfield, !isOdd, false, false, true, false);
 	assert(targetfield->isOdd == isOdd);
 

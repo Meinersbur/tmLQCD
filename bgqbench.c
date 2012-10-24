@@ -222,6 +222,14 @@ static void benchmark_setup_worker(void *argptr, size_t tid, size_t threads) {
 }
 
 
+static void ompbar() {
+#pragma omp barrier
+}
+
+static void ompbar2() {
+	ompbar();
+}
+
 static int benchmark_master(void *argptr) {
 	master_args * const args = argptr;
 	const int j_max = args->j_max;
@@ -308,8 +316,8 @@ static int benchmark_master(void *argptr) {
 		double rmstime = sqrt((sumsqtime / g_nproc) - sqr(avgtime));
 
 		int lups = LOCAL_LT * LOCAL_LX * LOCAL_LY * LOCAL_LZ;
-		int lups_body=0;// = BODY_ZLINES * PHYSICAL_LP*PHYSICAL_LK * LOCAL_LZ;
-		int lups_surface=0;// = SURFACE_ZLINES * PHYSICAL_LP*PHYSICAL_LK * LOCAL_LZ;
+		int lups_body= PHYSICAL_BODY*PHYSICAL_LP*PHYSICAL_LK;
+		int lups_surface=PHYSICAL_SURFACE*PHYSICAL_LP*PHYSICAL_LK;
 		assert(lups == lups_body + lups_surface);
 		assert(lups == VOLUME);
 
@@ -377,8 +385,47 @@ static char *kamuls_desc[] = { "dslash", "kamul" };
 static bool sloppinessess[] = { false, true };
 static char *sloppinessess_desc[] = { "double", "float" };
 
-static int omp_threads[] = { 1, 2, 4, 8, 16, 32, 33, 48, 56, 64 };
+static int omp_threads[] = { 2, 2, 4, 8, 16, 32, 33, 48, 56, 64 };
 static char *omp_threads_desc[] = { "1", "2", "4", "8", "16", "32", "33", "48", "56", "64" };
+
+
+static bgq_hmflags flags[] = {
+//		               hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
+//		hm_nooverlap | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
+		hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit};
+#if 0
+//		hm_fixedoddness | hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
+		hm_nocom | hm_nosurface | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
+		hm_nocom | hm_nobody | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
+		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
+		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
+		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitconfirmed,
+		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitoptimistic,
+//		hm_nocom | hm_noweylsend | hm_noprefetchlist                       | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
+		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream                         | hm_prefetchimplicitdisable,
+//		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable
+		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable | hm_l1pnonstoprecord,
+		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable | hm_experimental
+		};
+#endif
+static char* flags_desc[] = {
+//		"Com async",
+//		"Com sync",
+		"Com off",
+//		"^fixedodd",
+		"bodyonly",
+		"surfaceonly",
+		"pf def",
+		"pf disable",
+		"pf confirmed",
+		"pf optimistic",
+//		"pf stream",
+		"pf explicit",
+//		"pf list",
+		"pf list nonstop",
+		"pf list exp"
+		};
+
 
 
 #define CELLWIDTH 15
@@ -555,41 +602,6 @@ static void print_stats(benchstat *stats, int bodySites, int surfaceSites, int h
 }
 
 
-static bgq_hmflags flags[] = {
-//		               hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-//		hm_nooverlap | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-		hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-//		hm_fixedoddness | hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-		hm_nocom | hm_nosurface | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-		hm_nocom | hm_nobody | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
-		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitconfirmed,
-		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitoptimistic,
-//		hm_nocom | hm_noweylsend | hm_noprefetchlist                       | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
-		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream                         | hm_prefetchimplicitdisable,
-//		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable
-		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable | hm_l1pnonstoprecord,
-		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable | hm_experimental
-		};
-static char* flags_desc[] = {
-//		"Com async",
-//		"Com sync",
-		"Com off",
-//		"^fixedodd",
-		"bodyonly",
-		"surfaceonly",
-		"pf def",
-		"pf disable",
-		"pf confirmed",
-		"pf optimistic",
-//		"pf stream",
-		"pf explicit",
-//		"pf list",
-		"pf list nonstop",
-		"pf list exp"
-		};
-
 
 static void exec_table(benchfunc_t benchmark, bgq_hmflags additional_opts, int j_max, int k_max) {
 //static void exec_table(bool sloppiness, hm_func_double hm_double, hm_func_float hm_float, bgq_hmflags additional_opts) {
@@ -668,8 +680,8 @@ static void exec_bench(int j_max, int k_max) {
 
 
 	// Test indices initialization
-	bgq_spinorfield_setup(&g_bgq_spinorfields[k_max], false, false, false, false, true);
-	bgq_spinorfield_setup(&g_bgq_spinorfields[0], true, false, false, false, true);
+	//bgq_spinorfield_setup(&g_bgq_spinorfields[k_max], false, false, false, false, true);
+	//bgq_spinorfield_setup(&g_bgq_spinorfields[0], true, false, false, false, true);
 
 #ifdef _GAUGE_COPY
 	//update_backward_gauge();
@@ -916,8 +928,25 @@ int main(int argc,char *argv[])
 #endif
 
 /* BEGIN MK */
+#if 0
+  for (int t = 0; t <= 64; t+=1) {
+  omp_set_num_threads(t);
+#pragma omp parallel
+  {
+	  size_t tid = omp_get_thread_num();
+	  for (int k = 0; k < 100; k+=1)
+	  if (tid==0) {
+		  ompbar();
+	  } else {
+		  ompbar2();
+	  }
+  }
+  }
+#endif
+
   assert(even_odd_flag);
   exec_bench(j_max, k_max);
+  return 0;
 /* END MK */
 
 

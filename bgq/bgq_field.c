@@ -812,6 +812,8 @@ static bgq_weyl_vec *bgq_offset2pointer(uint8_t *weylbase, size_t offset) {
 
 static bgq_weyl_vec *bgq_encodedoffset2pointer(uint8_t *weylbase, size_t code) {
 	size_t offset = bgq_decode_offset(code);
+	assert(offset % sizeof(bgq_weyl_vec) == 0);
+	assert(1 <= offset && offset < bgq_weyl_section_offset(sec_end));
 	return bgq_offset2pointer(weylbase,offset);
 }
 
@@ -844,6 +846,7 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		weylAvailable = false;
 		field->sec_weyl = NULL;
 		field->sec_fullspinor = NULL;
+		field->destptrFromHalfvolume = NULL;
 	}
 
 	if ((writeWeyl && !field->sec_weyl) || (field->sec_weyl && field->isOdd != isOdd)) {
@@ -867,8 +870,8 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		field->sec_end = weylbase + bgq_weyl_section_offset(sec_end);
 
 		// For 1st phase (distribute)
-		if (allocate)
-			field->destptrFromHalfvolume = malloc(PHYSICAL_VOLUME * sizeof(*field->destptrFromHalfvolume));
+		if (allocate) {
+			field->destptrFromHalfvolume = malloc(PHYSICAL_VOLUME * sizeof(*field->destptrFromHalfvolume));}
 		for (size_t ih_src = 0; ih_src < PHYSICAL_VOLUME; ih_src += 1) {
 			for (size_t d_src = 0; d_src < PHYSICAL_LD; d_src += 1) {
 				field->destptrFromHalfvolume[ih_src].d[d_src] = bgq_encodedoffset2pointer(weylbase, g_bgq_ihsrc2offsetwrite[isOdd][ih_src].d[d_src]);

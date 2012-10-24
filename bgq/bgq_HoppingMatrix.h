@@ -119,6 +119,9 @@ EXTERN_INLINE void bgq_spinorfield_weyl_store_fromHalfvolume(bgq_weylfield_contr
 	assert(targetfield->isOdd == isOdd);
 
 	bgq_weyl_ptr_t *weylptrs = &targetfield->destptrFromHalfvolume[ih]; // TODO: Check that compiler does strength reduction after inline, otherwise do manually
+	for (size_t d = 0; d < PHYSICAL_LD; d+=1){
+		assert((bgq_weyl_vec*)targetfield->sec_weyl <= weylptrs->d[d] && weylptrs->d[d] < (bgq_weyl_vec*)targetfield->sec_end);
+	}
 	//TODO: probably compiler will li an offset for every destptrFromHalfvolume, can do better using addi
 
 	bgq_spinorfield_weyl_store_raw(weylptrs, bgq_su3_spinor_vars(spinor));
