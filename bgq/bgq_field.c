@@ -817,49 +817,174 @@ static bgq_weyl_vec *bgq_encodedoffset2pointer(uint8_t *weylbase, size_t code) {
 	return bgq_offset2pointer(weylbase,offset);
 }
 
+void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t threads) {
+	const bgq_weylfield_controlblock *spinorfield = argptr;
+
+	const size_t workload_recvt = 2*(COMM_T ? 2*LOCAL_HALO_T/PHYSICAL_LP : LOCAL_HALO_T/PHYSICAL_LP);
+	const size_t workload_recv = 2*PHYSICAL_HALO_X + 2*PHYSICAL_HALO_Y + 2*PHYSICAL_HALO_Z;
+	const size_t workload = workload_recvt + workload_recv;
+	const size_t threadload = (workload+threads-1)/threads;
+	const size_t begin = tid*threadload;
+	const size_t end = min(workload, begin+threadload);
+	for (size_t i = begin; i<end; ) {
+		WORKLOAD_DECL(i,workload);
+
+		if (WORKLOAD_SPLIT(workload_recvt)) {
+			// Do T-dimension
+			(void)WORKLOAD_PARAM(2); // Count an T-iteration twice; better have few underloaded threads (so remaining SMT-threads have some more ressources) then few overloaded threads (so the master thread has to wait for them)
+
+#if COMM_T
+			size_t beginj = WORKLOAD_PARAM(2*LOCAL_HALO_T/PHYSICAL_LP);
+			size_t endj = min(2*LOCAL_HALO_T/PHYSICAL_LP,beginj+threadload/2);
+			for (size_t j = beginj; j < endj; j+=1) {
+				//TODO: Check strength reduction
+				//TODO: Prefetch
+				//TODO: Inline assembler
+				bgq_weyl_vec *weyladdr_left = &spinorfield->sec_recv[TDOWN][j]; // Note: Overlaps into sec_send_tdown
+				bgq_weyl_vec *weyladdr_right = &spinorfield->sec_send[TUP][j]; // Note: Overlaps into sec_recv_tup
+				bgq_weyl_vec *weyladdr_dst = spinorfield->destptrFromTRecv[j];
+
+				bgq_su3_weyl_decl(weyl_left);
+				bgq_su3_weyl_load_left_double(weyl_left, weyladdr_left);
+				bgq_su3_weyl_decl(weyl_right);
+				bgq_su3_weyl_load_right_double(weyl_right, weyladdr_right);
+
+				bgq_su3_weyl_decl(weyl);
+				bgq_su3_weyl_merge2(weyl, weyl_left, weyl_right);
+
+				bgq_su3_weyl_store_double(weyladdr_dst, weyl);
+			}
+			i += 2*(endj - beginj);
+#else
+			assert(!"yet implemented");
+#endif
+
+		} else {
+			// Do other dimensions
+
+			size_t beginj = WORKLOAD_PARAM(workload_recv);
+			size_t endj = min(workload_recv,beginj+threadload);
+			for (size_t j = beginj; j < endj; j+=1) {
+				//TODO: Check strength reduction
+				//TODO: Prefetch
+				//TODO: Inline assembler
+				bgq_weyl_vec *weyladdr_src= &spinorfield->sec_recv[XUP][j]; // Note: overlaps into following sections
+				bgq_weyl_vec *weyladdr_dst = spinorfield->destptrFromRecv[j];
+				assert((bgq_weyl_vec *)spinorfield->sec_weyl <= weyladdr_dst && weyladdr_dst <  (bgq_weyl_vec *)spinorfield->sec_end);
+
+				bgq_su3_weyl_decl(weyl);
+				bgq_su3_weyl_load_double(weyl, weyladdr_src);
+				bgq_su3_weyl_store_double(weyladdr_dst, weyl);
+			}
+			i += (endj - beginj);
+		}
+		WORKLOAD_CHECK
+	}
+}
+
 
 void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl) {
 	assert(field);
 	assert(readFullspinor || writeFullspinor || readWeyl || writeWeyl);
 	// Do something
 
-	//bool initDestPtrs;
 	bool fullspinorAvailable;
 	bool weylAvailable;
 	if (field->isInitinialized) {
-		if (field->isOdd == isOdd) {
-			//initDestPtrs = false;
-			fullspinorAvailable = field->hasFullspinorData;
-			weylAvailable = field->hasWeylfieldData;
-		} else {
-			// Warning: field has already initialized for a different oddness
-			// For optimal performance, always reuse fields with same oddness
-			// TODO: Even and Odd fields can be made similar enough such that the pointers are the same? (e.g. Mirror T-Dimension)
-			master_print("PERFORMANCE WARNING: Performance loss by reuse of spinorfield with different oddness\n");
-			//initDestPtrs = true;
-			fullspinorAvailable = false;
-			weylAvailable = false;
-		}
+		fullspinorAvailable = field->hasFullspinorData;
+		weylAvailable = field->hasWeylfieldData || field->waitingForRecv;
 	} else {
-		//initDestPtrs = true;
 		fullspinorAvailable = false;
 		weylAvailable = false;
 		field->sec_weyl = NULL;
 		field->sec_fullspinor = NULL;
-		field->destptrFromHalfvolume = NULL;
+		field->hasFullspinorData = false;
+		field->hasWeylfieldData = false;
+		field->waitingForRecv = false;
+		field->isOdd = isOdd;
+		field->isSloppy = false;
+
+		field->isInitinialized = true;
 	}
 
-	if ((writeWeyl && !field->sec_weyl) || (field->sec_weyl && field->isOdd != isOdd)) {
-		bool allocate = field->sec_weyl==NULL;
+	// Possible actions
+	bool actionAllocFulllayout= false;
+	bool actionAllocWeyllayout = false;
+	bool actionInitWeylPtrs = false;
+	bool actionWaitForRecv = false;
+	bool actionDatamove = false;
 
-		size_t weylfieldsize = bgq_weyl_section_offset(sec_end);
-		if (allocate) {
-			size_t displacement = bgq_weyl_section_offset(0);
-			field->sec_weyl = (uint8_t*)malloc_aligned(weylfieldsize - displacement, BGQ_ALIGNMENT_L2) + displacement/*so that offset points to invalid memory*/;
-			//TODO: Also store a proper pointer to tell Valgrind we haven't forgotten this pointer
+	if (readFullspinor) {
+		if (!fullspinorAvailable)
+			master_error(1, "No fullspinor data written here\n");
+		//TODO: We may implement a field data translation if the calling func does not support this layout
+	}
+	if (writeFullspinor) {
+		if (field->sec_fullspinor==NULL)
+			actionAllocFulllayout = true;
+	}
+	if (readWeyl) {
+		if (!weylAvailable)master_error(1, "No weyl data written here\n");
+		//TODO: We may implement a field data translation if the calling func does not support this layout
+
+		if (field->waitingForRecv) {
+			actionWaitForRecv = true;
+			actionDatamove = true;
+		}
+	}
+	if (writeWeyl) {
+		if (field->waitingForRecv) {
+			// The means we are overwriting data that has never been read
+			master_print("PERFORMANCE WARNING: Overwriting data not yet received from remote node, i.e. has never been used yet\n");
+			actionWaitForRecv = true;
 		}
 
-		uint8_t *weylbase = field->sec_weyl;
+		if (field->sec_weyl==NULL) {
+			actionAllocWeyllayout = true;
+			actionInitWeylPtrs = true;
+		} else if (field->isOdd != isOdd) {
+			master_print("PERFORMANCE WARNING: Performance loss by reuse of spinorfield with different oddness\n");
+			actionInitWeylPtrs = true;
+			field->isOdd = isOdd;
+		}
+	}
+	assert(!field->waitingForRecv || !(actionAllocWeyllayout || actionInitWeylPtrs)); // Do not change field while we are receiving
+
+
+	if (actionWaitForRecv) {
+		// 4. Wait for the communication to finish
+		/* SPI wait operation */
+		field->waitingForRecv = false;
+	}
+
+
+	if (actionDatamove) {
+		// 5. Move received to correct location
+		bgq_master_call(&bgq_HoppingMatrix_worker_datamove, field);
+	}
+
+
+	if (actionAllocFulllayout) {
+		size_t fullfieldsize = PHYSICAL_VOLUME * sizeof(bgq_spinorsite);
+		bgq_spinorsite *spinorsite = malloc_aligned(fullfieldsize, BGQ_ALIGNMENT_L2);
+
+		field->sec_fullspinor = spinorsite;
+		field->sec_fullspinor_surface = spinorsite;
+		spinorsite += PHYSICAL_SURFACE;
+
+		field->sec_fullspinor_body = spinorsite;
+	}
+
+
+	if (actionAllocWeyllayout) {
+		size_t displacement = bgq_weyl_section_offset(0);
+		size_t weylfieldsize = bgq_weyl_section_offset(sec_end) - bgq_weyl_section_offset(0);
+		uint8_t *weylbase = (uint8_t*)malloc_aligned(weylfieldsize, BGQ_ALIGNMENT_L2) - displacement/*such that first offset points to invalid memory; for debugging*/;
+		//TODO: Also store a proper pointer to free it later
+
+		field->sec_weyl = weylbase;
+		weylbase += displacement;
+
 		for (size_t d_cnt = 0; d_cnt < PHYSICAL_LD; d_cnt += 1) {
 			bgq_direction d = d_cnt;
 			field->sec_send[d] = (bgq_weyl_vec*) (weylbase + bgq_weyl_section_offset(bgq_direction2section(d,true)));
@@ -869,17 +994,31 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		field->sec_body = (bgq_weylsite*) (weylbase + bgq_weyl_section_offset(sec_body));
 		field->sec_end = weylbase + bgq_weyl_section_offset(sec_end);
 
+		field->destptrFromHalfvolume = malloc(PHYSICAL_VOLUME * sizeof(*field->destptrFromHalfvolume));
+		field->destptrFromSurface = malloc(PHYSICAL_SURFACE * sizeof(*field->destptrFromSurface));
+		field->destptrFromBody = malloc(PHYSICAL_SURFACE * sizeof(*field->destptrFromBody));
+
+		field->destptrFromTRecv = malloc((LOCAL_HALO_T/PHYSICAL_LP + 0 + LOCAL_HALO_T/PHYSICAL_LP) * sizeof(bgq_weyl_vec*)); // COMM_T==1
+
+		size_t offset_begin = bgq_weyl_section_offset(sec_recv_xup);
+		size_t offset_end = bgq_weyl_section_offset(sec_recv_zdown + 1);
+		size_t weylCount = (offset_end - offset_begin) / sizeof(bgq_weyl_vec);
+		field->destptrFromRecv = malloc(weylCount * sizeof(bgq_weyl_vec*));
+	}
+
+
+	if (actionInitWeylPtrs) {
+		uint8_t *weylbase = field->sec_weyl;
+		assert(weylbase);
+
 		// For 1st phase (distribute)
-		if (allocate) {
-			field->destptrFromHalfvolume = malloc(PHYSICAL_VOLUME * sizeof(*field->destptrFromHalfvolume));}
 		for (size_t ih_src = 0; ih_src < PHYSICAL_VOLUME; ih_src += 1) {
 			for (size_t d_src = 0; d_src < PHYSICAL_LD; d_src += 1) {
 				field->destptrFromHalfvolume[ih_src].d[d_src] = bgq_encodedoffset2pointer(weylbase, g_bgq_ihsrc2offsetwrite[isOdd][ih_src].d[d_src]);
 			}
 		}
 
-		if (allocate)
-			field->destptrFromSurface = malloc(PHYSICAL_SURFACE * sizeof(*field->destptrFromSurface));
+
 		for (size_t is_src = 0; is_src < PHYSICAL_SURFACE; is_src += 1) {
 			for (size_t d_src = 0; d_src < PHYSICAL_LD; d_src += 1) {
 				field->destptrFromSurface[is_src].d[d_src] = bgq_encodedoffset2pointer(weylbase, g_bgq_issrc2offsetwrite[isOdd][is_src].d[d_src]);
@@ -887,8 +1026,6 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 			}
 		}
 
-		if (allocate)
-			field->destptrFromBody = malloc(PHYSICAL_SURFACE * sizeof(*field->destptrFromBody));
 		for (size_t ib_src = 0; ib_src < PHYSICAL_BODY; ib_src += 1) {
 			for (size_t d_src = 0; d_src < PHYSICAL_LD; d_src += 1) {
 				field->destptrFromBody[ib_src].d[d_src] = bgq_encodedoffset2pointer(weylbase, g_bgq_ibsrc2offsetwrite[isOdd][ib_src].d[d_src]);
@@ -898,9 +1035,6 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 
 		// For 5th phase (datamove)
 		if (COMM_T) {
-			if (allocate)
-				field->destptrFromTRecv = malloc((LOCAL_HALO_T/PHYSICAL_LP + 0 + LOCAL_HALO_T/PHYSICAL_LP) * sizeof(bgq_weyl_vec*));
-
 			size_t beginj = 0;
 			size_t endj = 2*LOCAL_HALO_T/PHYSICAL_LP; // There should be no padding between sections
 			assert(endj == (bgq_weyl_section_offset(sec_recv_tup+1) - bgq_weyl_section_offset(sec_send_tup))/sizeof(bgq_weyl_vec));
@@ -926,10 +1060,8 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		size_t offset_begin = bgq_weyl_section_offset(sec_recv_xup);
 		size_t offset_end = bgq_weyl_section_offset(sec_recv_zdown + 1);
 		size_t weylCount = (offset_end - offset_begin) / sizeof(bgq_weyl_vec);
-		if (allocate)
-			field->destptrFromRecv = malloc(weylCount * sizeof(bgq_weyl_vec*));
 		for (size_t j = 0; j < weylCount; j+=1) {
-			size_t offset = bgq_weyl_section_offset(sec_recv_xup) + j*sizeof(bgq_weyl_vec); // Overlaps into following recv sections
+			size_t offset = offset_begin + j*sizeof(bgq_weyl_vec); // Overlaps into following recv sections
 			bgq_weylfield_section sec = bgq_sectionOfOffset(offset);
 
 			// To check that this is a recv buffer
@@ -949,38 +1081,11 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 			size_t offset_consecutive = bgq_weylfield_bufferoffset2consecutiveoffset(isOdd, offset, -1/*doesn't matter*/);
 			field->destptrFromRecv[j] = bgq_offset2pointer(weylbase, offset_consecutive);
 		}
-
 	}
 
-	field->isInitinialized = true;
-	field->isOdd = isOdd;
-	field->isSloppy = false;
-
-	if (writeFullspinor && !field->sec_fullspinor) {
-		size_t fullfieldsize = PHYSICAL_VOLUME * sizeof(bgq_spinorsite);
-		field->sec_fullspinor = malloc_aligned(fullfieldsize,BGQ_ALIGNMENT_L2);
-	}
-
-	if (readFullspinor) {
-		if (fullspinorAvailable) {
-			// Everything's fine
-		} else {
-			master_error(1, "Try to read uninitialized spinorfield in weyl format");
-		}
-	}
-	if (readWeyl) {
-		if (weylAvailable) {
-			// Everything's fine
-		} else if (fullspinorAvailable) {
-			// Do a conversion
-			master_print("PERFORMANCE WARNING: Converting fullspinor layout to weyl layout; For best performance, this should have been done in the first place\n");
-			bgq_spinorfield_fullspinor2weyl(field); // Calls bgq_spinorfield_setup recursively
-		} else {
-			master_error(1, "Try to read uninitialized spinorfield in weyl format");
-		}
-	}
 
 	if (writeWeyl || writeFullspinor) {
+		// Data is going to be written, so what actually is stored here changes
 		field->hasWeylfieldData = writeWeyl;
 		field->hasFullspinorData = writeFullspinor;
 	}

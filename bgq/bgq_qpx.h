@@ -594,6 +594,11 @@ typedef struct {
 	bgq_params(NAME2(name,c1)), \
 	bgq_params(NAME2(name,c2))
 
+#define bgq_su3_vrefparams(name) \
+	bgq_refparams(NAME2(name,c0)), \
+	bgq_refparams(NAME2(name,c1)), \
+	bgq_refparams(NAME2(name,c2))
+
 #define bgq_su3_mdecl(name)             \
 	bgq_vector4double_decl(NAME2(name,c00)); \
 	bgq_vector4double_decl(NAME2(name,c01)); \
@@ -644,6 +649,12 @@ typedef struct {
 	bgq_su3_vparams(NAME2(name,v1)), \
 	bgq_su3_vparams(NAME2(name,v2)), \
 	bgq_su3_vparams(NAME2(name,v3))
+
+#define bgq_su3_spinor_refparams(name) \
+	bgq_su3_vrefparams(NAME2(name,v0)), \
+	bgq_su3_vrefparams(NAME2(name,v1)), \
+	bgq_su3_vrefparams(NAME2(name,v2)), \
+	bgq_su3_vrefparams(NAME2(name,v3))
 
 #define bgq_su3_weyl_decl(name) \
 	bgq_su3_vdecl(NAME2(name,v0));	\

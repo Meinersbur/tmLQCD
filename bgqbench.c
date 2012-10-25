@@ -385,7 +385,7 @@ static char *kamuls_desc[] = { "dslash", "kamul" };
 static bool sloppinessess[] = { false, true };
 static char *sloppinessess_desc[] = { "double", "float" };
 
-static int omp_threads[] = { 2, 2, 4, 8, 16, 32, 33, 48, 56, 64 };
+static int omp_threads[] = { 1, 2, 4, 8, 16, 32, 33, 48, 56, 64 };
 static char *omp_threads_desc[] = { "1", "2", "4", "8", "16", "32", "33", "48", "56", "64" };
 
 
@@ -667,7 +667,7 @@ static void exec_table(benchfunc_t benchmark, bgq_hmflags additional_opts, int j
 
 static void benchmark_hopmat(bgq_hmflags flags, int k, int k_max) {
 	bgq_HoppingMatrix(false, &g_bgq_spinorfields[k+k_max], &g_bgq_spinorfields[k], flags);
-	bgq_HoppingMatrix(true, &g_bgq_spinorfields[2*k_max], &g_bgq_spinorfields[k+k_max], flags);
+	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k], &g_bgq_spinorfields[k+k_max], flags);
 }
 
 
@@ -960,7 +960,7 @@ int main(int argc,char *argv[])
       for (j=0;j<j_max;j++) {
         for (k=0;k<k_max;k++) {
           Hopping_Matrix(0, g_spinor_field[k+k_max], g_spinor_field[k]);
-          Hopping_Matrix(1, g_spinor_field[2*k_max], g_spinor_field[k+k_max]);
+          Hopping_Matrix(1, g_spinor_field[k], g_spinor_field[k+k_max]);
           antioptaway+=creal(g_spinor_field[2*k_max][0].s0.c0);
         }
       }

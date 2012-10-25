@@ -74,7 +74,7 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 			bgq_worker();
 		}
 
-		printf("%*sEXIT: tid=%u\n", (int)tid*25, "",(int)tid);
+		//printf("%*sEXIT: tid=%u\n", (int)tid*25, "",(int)tid);
 	}
 	return master_result;
 }
@@ -107,13 +107,13 @@ void bgq_worker() {
 
 		if (g_bgq_dispatch_sync) {
 			// This was meant just for synchronization between the threads, which already has been done
-			printf("%*sSYNC: tid=%u seq=%u\n", (int)tid*20, "", (int)tid, (int)g_bgq_dispatch_seq);
+			//printf("%*sSYNC: tid=%u seq=%u\n", (int)tid*20, "", (int)tid, (int)g_bgq_dispatch_seq);
 		} else if (g_bgq_dispatch_terminate) {
 			// Exit program, or at least, the parallel section
-			printf("%*sTERM: tid=%u seq=%u\n", (int)tid*20, "",(int)tid, (int)g_bgq_dispatch_seq);
+			//printf("%*sTERM: tid=%u seq=%u\n", (int)tid*20, "",(int)tid, (int)g_bgq_dispatch_seq);
 			return;
 		} else {
-			printf("%*sCALL: tid=%u seq=%u\n", (int)tid*20, "",(int)tid, (int)g_bgq_dispatch_seq);
+			//printf("%*sCALL: tid=%u seq=%u\n", (int)tid*20, "",(int)tid, (int)g_bgq_dispatch_seq);
 			assert(g_bgq_dispatch_func);
 			void *arg = g_bgq_dispatch_arg;
 			g_bgq_dispatch_func(arg, tid, threads); //TODO: Shuffle tid to load-balance work?
@@ -145,7 +145,7 @@ void bgq_master_call(bgq_worker_func func, void *arg) {
 	assert(func);
 
 	g_bgq_dispatch_seq += 1;
-	printf("MASTER CALL seq=%d--------------------------------------------------------\n", (int)g_bgq_dispatch_seq);
+	//printf("MASTER CALL seq=%d--------------------------------------------------------\n", (int)g_bgq_dispatch_seq);
 	g_bgq_dispatch_func = func;
 	g_bgq_dispatch_arg = arg;
 	g_bgq_dispatch_terminate = false;
@@ -165,7 +165,7 @@ void bgq_master_sync() {
 	assert(omp_get_thread_num()==0);
 
 	g_bgq_dispatch_seq += 1;
-	printf("MASTER SYNC seq=%d--------------------------------------------------------\n", (int)g_bgq_dispatch_seq);
+	//printf("MASTER SYNC seq=%d--------------------------------------------------------\n", (int)g_bgq_dispatch_seq);
 	g_bgq_dispatch_func = NULL;
 	g_bgq_dispatch_arg = NULL;
 	g_bgq_dispatch_sync = true;

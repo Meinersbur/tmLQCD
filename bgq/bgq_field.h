@@ -501,6 +501,7 @@ typedef struct {
 	bool isOdd;
 	bool isSloppy; // To be implemented
 	bool hasWeylfieldData;
+	bool waitingForRecv; /* true==Need to wait for SPI recv and then copy data to consecutive area; false==All data available in sec_surface and sec_body */
 	bool hasFullspinorData;
 
 	uint8_t *sec_weyl; //TODO: can be made bgq_weyl_vec // corresponds to offset 0 for the following fields
@@ -511,6 +512,8 @@ typedef struct {
 	uint8_t *sec_end;
 
 	bgq_spinorsite *sec_fullspinor;
+	bgq_spinorsite *sec_fullspinor_surface;
+	bgq_spinorsite *sec_fullspinor_body;
 
 	//TODO: We may even interleave these with the data itself, but may cause alignment issues
 	// Idea: sizeof(bgq_weyl_ptr_t)==10*8==80, so one bgq_weyl_ptr_t every 2(5;10) spinors solves the issue
