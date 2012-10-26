@@ -508,6 +508,7 @@ typedef struct {
 	uint8_t *sec_weyl; //TODO: can be made bgq_weyl_vec // corresponds to offset 0 for the following fields
 	bgq_weyl_vec *sec_send[PHYSICAL_LD];
 	bgq_weyl_vec *sec_recv[PHYSICAL_LD];
+	bgq_weylsite *sec_collapsed;
 	bgq_weylsite *sec_surface;
 	bgq_weylsite *sec_body;
 	uint8_t *sec_end;
@@ -536,6 +537,7 @@ EXTERN_FIELD size_t *g_bgq_index_body2halfvolume[PHYSICAL_LP];
 EXTERN_FIELD size_t *g_bgq_index_halfvolume2surface[PHYSICAL_LP]; // -1 if not surface
 EXTERN_FIELD size_t *g_bgq_index_halfvolume2body[PHYSICAL_LP]; // -1 if not body
 EXTERN_FIELD size_t *g_bgq_index_halfvolume2surfacebody[PHYSICAL_LP];
+//EXTERN_FIELD size_t *g_bgq_index_ordered2halfvolume[PHYSICAL_LP];
 
 // Mapping of dst weyls to memory offsets
 EXTERN_FIELD bgq_weyl_offsets_t *g_bgq_ih_dst2offset[PHYSICAL_LP];
@@ -580,6 +582,7 @@ EXTERN_INLINE size_t bgq_local2global_z(size_t z) {
 	assert(0 <= z && z < LOCAL_LZ);
 	return LOCAL_LZ*g_proc_coords[3] + z;
 }
+
 
 
 EXTERN_INLINE bool bgq_local2isOdd(size_t t, size_t x, size_t y, size_t z) {
@@ -878,6 +881,72 @@ EXTERN_INLINE size_t bgq_local2volume(size_t t, size_t x, size_t y, size_t z) {
 	size_t ih = bgq_local2halfvolume(t,x,y,z);
 	return bgq_halfvolume2volume(isOdd, ih, k);
 }
+
+EXTERN_INLINE size_t bgq_halfvolume2collapsed(bool isOdd, size_t ih) {
+	bool isSurface = bgq_halfvolume2isSurface(isOdd, ih);
+	size_t ic;
+	if (isSurface) {
+		size_t is = bgq_halfvolume2surface(isOdd, ih);
+		ic = is;
+	} else {
+		size_t ib = bgq_halfvolume2body(isOdd, ih);
+		ic = PHYSICAL_SURFACE + ib;
+	}
+	assert(0 <= ic && ic < PHYSICAL_VOLUME);
+	return ic;
+}
+
+EXTERN_INLINE bool bgq_collapsed2isSurface(size_t ic) {
+	assert(0 <= ic && ic < PHYSICAL_VOLUME);
+	return ic < PHYSICAL_SURFACE;
+}
+
+EXTERN_INLINE size_t bgq_collapsed2halfvolume(bool isOdd, size_t ic) {
+	assert(0 <= ic && ic < PHYSICAL_VOLUME);
+	size_t ih;
+	if (bgq_collapsed2isSurface(ic)) {
+		size_t is = ic;
+		ih = bgq_surface2halfvolume(isOdd, is);
+	} else {
+		size_t ib  = ic - PHYSICAL_SURFACE;
+		ih = bgq_body2halfvolume(isOdd, ib);
+	}
+	assert(0 <= ih && ih < PHYSICAL_VOLUME);
+	return ih;
+}
+
+EXTERN_INLINE size_t bgq_surface2collapsed(size_t is) {
+	assert(0 <= is && is < PHYSICAL_SURFACE);
+	return is;
+}
+EXTERN_INLINE size_t bgq_collapsed2surface(size_t ic) {
+	assert(0 <= ic && ic < PHYSICAL_VOLUME);
+	assert(bgq_collapsed2isSurface(ic));
+	return ic;
+}
+
+EXTERN_INLINE size_t bgq_body2collapsed(size_t ib) {
+	assert(0 <= ib && ib < PHYSICAL_BODY);
+	size_t ic = PHYSICAL_SURFACE + ib;
+	assert(0 <= ic && ic < PHYSICAL_VOLUME);
+	return ic;
+}
+EXTERN_INLINE size_t bgq_collapsed2body(size_t ic) {
+	assert(0 <= ic && ic < PHYSICAL_VOLUME);
+	assert(!bgq_collapsed2isSurface(ic));
+	return ic - PHYSICAL_SURFACE;
+}
+
+EXTERN_INLINE size_t bgq_local2collapsed(size_t t, size_t x, size_t y, size_t z) {
+	assert(0 <= t && t < LOCAL_LT);
+	assert(0 <= x && x < LOCAL_LX);
+	assert(0 <= y && y < LOCAL_LY);
+	assert(0 <= z && z < LOCAL_LZ);
+	bool isOdd = bgq_local2isOdd(t,x,y,z);
+	size_t ih = bgq_local2halfvolume(t,x,y,z);
+	return bgq_halfvolume2collapsed(isOdd, ih);
+}
+
 
 EXTERN_INLINE size_t bgq_local2halfvolume_neighbor(size_t t, size_t x, size_t y, size_t z, bgq_direction d) {
 	switch (d) {

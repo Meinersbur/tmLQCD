@@ -74,6 +74,7 @@
 /* BEGIN MK */
 #include "bgq/bgq_field.h"
 #include "bgq/bgq_gaugefield.h"
+#include "bgq/bgq_spinorfield.h"
 #include "bgq/bgq_HoppingMatrix.h"
 #include "bgq/bgq_qpx.h"
 #include "bgq/bgq_utils.h"
@@ -223,7 +224,42 @@ static void benchmark_setup_worker(void *argptr, size_t tid, size_t threads) {
 }
 
 
-static double runcheck(bool sloppyprec, bgq_hmflags hmflags, int k_max) {
+static void HoppingMatrix_switch(bool isOdd, spinor *l, spinor *k, bgq_hmflags hmflags) {
+	bool nocom = hmflags & hm_nocom;
+	if (nocom) {
+		Hopping_Matrix_nocom(isOdd, l, k);
+	} else {
+		Hopping_Matrix(isOdd, l, k);
+	}
+}
+
+
+static double runcheck(bgq_hmflags hmflags, size_t k_max) {
+	const int k = 0;
+	hmflags = hmflags & ~hm_nokamul;
+
+	// To ensure that zero is used in case of nocomm
+	memset(g_bgq_spinorfields[k].sec_weyl, 0, bgq_weyl_section_offset(sec_end));
+	memset(g_bgq_spinorfields[k + k_max].sec_weyl, 0, bgq_weyl_section_offset(sec_end));
+
+
+	bgq_spinorfield_transfer(false, &g_bgq_spinorfields[k], g_spinor_field[k]);
+	double compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k], g_spinor_field[k], false);
+	assert(compare_transfer == 0); // Must be exact copy
+
+	bgq_HoppingMatrix(false, &g_bgq_spinorfields[k + k_max], &g_bgq_spinorfields[k], hmflags);
+	HoppingMatrix_switch(false, g_spinor_field[k + k_max], g_spinor_field[k], hmflags);
+	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], true);
+
+
+	compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], false);
+	assert(compare_transfer == 0); // Must be exact copy
+
+	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k+2*k_max], &g_bgq_spinorfields[k + k_max], hmflags);
+	HoppingMatrix_switch(true, g_spinor_field[k+2*k_max], g_spinor_field[k+k_max], hmflags);
+	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
+
+	return max(compare_even, compare_odd);
 }
 
 

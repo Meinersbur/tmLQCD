@@ -42,10 +42,10 @@ CPPFLAGS="${CPPFLAGS} -DBGQ_REPLACE=0"
 CPPFLAGS="${CPPFLAGS} -DPAPI=0"
 
 
-#LDFLAGS="-lgomp -lblas"
-LDFLAGS=""
-LDFLAGS="${LDFLAGS} -lgomp"
-LDFLAGS="${LDFLAGS} -lblas"
+#LIBS="-lgomp -lblas"
+LIBS=""
+LIBS="${LIBS} -lgomp"
+LIBS="${LIBS} -lblas"
 
 #-./configure --with-lapack="-llapack" --with-limedir="${ROOTPATH}/lime" --enable-mpi --with-mpidimension=3 --disable-halfspinor CC="mpicc" CFLAGS="-g -O0 -ffast-math -fopenmp -Wall -Wundef -DBGQ=1 -DBGQ_QPX=0 -DBGQ_FIELD_COORDCHECK=0 -I/usr/lib/gcc/x86_64-linux-gnu/4.6/include -I/usr/include/openmpi -DBGQ_PREFETCH_EXPLICIT=0 -DBGQ_PREFETCH_STREAM=0 -DBGQ_PREFETCH_LIST=0 -DMPI=1 -DBGQ_HM_CARRY=1 -DBGQ_REPLACE=0" OPTARGS="-O0 -g eart " SOPTARGS="-O0 -g badfg" --enable-optimize=no LDFLAGS="-lgomp -lblas"
 CONFIGURE=""
@@ -66,7 +66,7 @@ CONFIGURE="${CONFIGURE} CC=mpicc"
 CONFIGURE="${CONFIGURE} CFLAGS="\"'${CFLAGS}'\"
 CONFIGURE="${CONFIGURE} CPPFLAGS="\"'${CPPFLAGS}'\"
 #CONFIGURE="${CONFIGURE} F77=bgf77"
-CONFIGURE="${CONFIGURE} LDFLAGS="\"'${LDFLAGS}'\"
+CONFIGURE="${CONFIGURE} LIBS="\"'${LIBS}'\"
 #CONFIGURE="${CONFIGURE} FC=bgxlf_r"
 
 CONFIGURE="${CONFIGURE} --enable-optimize=no"

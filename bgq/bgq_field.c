@@ -983,6 +983,7 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 			field->sec_recv[d] = (bgq_weyl_vec*) (weylbase + bgq_weyl_section_offset(bgq_direction2section(d,false)));
 		}
 		field->sec_surface = (bgq_weylsite*) (weylbase + bgq_weyl_section_offset(sec_surface));
+		field->sec_collapsed = field->sec_surface;
 		field->sec_body = (bgq_weylsite*) (weylbase + bgq_weyl_section_offset(sec_body));
 		field->sec_end = weylbase + bgq_weyl_section_offset(sec_end);
 

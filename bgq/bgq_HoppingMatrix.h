@@ -111,7 +111,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_params(*t
 	// Z- //////////////////////////////////////////////////////////////////////////
 	{
 		bgq_su3_weyl_decl(weyl_zdown);
-		bgq_su3_weyl_load_double(weyl_zdown, &spinorsite->d[ZDOWN]);
+		bgq_su3_weyl_load_double(weyl_zdown, &spinorsite->d[ZDOWN]);//TODO: Valgrind says invalid read
 		bgq_su3_accum_weyl_zdown(result, weyl_zdown);
 	}
 

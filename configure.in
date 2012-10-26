@@ -21,7 +21,7 @@ AC_C_INLINE
 AC_C_RESTRICT
 AC_F77_LIBRARY_LDFLAGS
 AC_CHECK_TOOL(AR, ar, [ar])
-LIBS="$LIBS $FLIBS -lm"
+LIBS="$FLIBS $LIBS -lm"
 
 AC_PROG_LEX
 dnl AC_PROG_LEX sets $LEX to ":" if neither lex nor flex are found! 
@@ -154,8 +154,8 @@ if test $enable_omp = yes; then
     LDFLAGS="$LDFLAGS -qsmp=omp:noauto:schedule=static" 
   else
     CFLAGS="$CFLAGS $OPENMP_CFLAGS"
-    CPPFLAGS="$CPPFLAGS $OPENMP_CFLAGS"
-    LDFLAGS="$LDFLAGS $OPENMP_CFLAGS"
+    CPPFLAGS="$CPPFLAGS $OPENMP_CPPFLAGS"
+    LDFLAGS="$LDFLAGS $OPENMP_LDFLAGS"
   fi
 else
   AC_MSG_RESULT(no)
@@ -897,7 +897,7 @@ if test ! -e tests/regressions; then
 fi
 
 
-LIBS="-lbgq -lhmc -lsolver -llinalg -lhmc -lio $LIBS"
+LIBS="-lhmc -lsolver -llinalg -lhmc -lio ${LIBS} -lbgq"
 AUTOCONF=autoconf
 
 for i in $USESUBDIRS

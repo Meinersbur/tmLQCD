@@ -12,6 +12,23 @@
 //#include <mpi.h>
 //#include "complex_c99.h"
 #include <string.h>
+#include <complex.h>
+
+#ifndef BGQ_QPX_C_
+#define EXTERN_INLINE EXTERN_INLINE_DECLARATION
+#define EXTERN_FIELD extern
+#define EXTERN_INIT(val)
+#else
+#define EXTERN_INLINE EXTERN_INLINE_DEFINITION
+#define EXTERN_FIELD
+#define EXTERN_INIT(val) = (val)
+#endif
+
+
+
+
+
+
 
 #ifndef BGQ_QPX
 #define BGQ_QPX 0
@@ -1252,6 +1269,75 @@ do {\
 
 
 
+EXTERN_INLINE complexdouble bgq_su3_spinor_getcomplex_double(bgq_su3_spinor_params(spinor), size_t v, size_t c, size_t k) {
+	assert(0 <= v && v < 4);
+	assert(0 <= c && c < 4);
+	assert(0 <= k && c < 2);
+
+	bgq_vector4double_decl(result);
+	switch (v) {
+	case 0:
+		switch (c) {
+		case 0:
+			bgq_mov(result,spinor_v0_c0);
+			break;
+		case 1:
+			bgq_mov(result,spinor_v0_c1);
+			break;
+		case 2:
+			bgq_mov(result,spinor_v0_c2);
+			break;
+		}
+		break;
+	case 1:
+		switch (c) {
+		case 0:
+			bgq_mov(result,spinor_v1_c0);
+			break;
+		case 1:
+			bgq_mov(result,spinor_v1_c1);
+			break;
+		case 2:
+			bgq_mov(result,spinor_v1_c2);
+			break;
+		}
+		break;
+	case 2:
+		switch (c) {
+		case 0:
+			bgq_mov(result,spinor_v2_c0);
+			break;
+		case 1:
+			bgq_mov(result,spinor_v2_c1);
+			break;
+		case 2:
+			bgq_mov(result,spinor_v2_c2);
+			break;
+		}
+		break;
+	case 3:
+		switch (c) {
+		case 0:
+			bgq_mov(result,spinor_v3_c0);
+			break;
+		case 1:
+			bgq_mov(result,spinor_v3_c1);
+			break;
+		case 2:
+			bgq_mov(result,spinor_v3_c2);
+			break;
+		}
+		break;
+	}
+
+	if (k==0) {
+		return bgq_elem0(result) + bgq_elem1(result) * _Complex_I;
+	} else {
+		return bgq_elem2(result) + bgq_elem3(result) * _Complex_I;
+	}
+}
+
+
 #if !BGQ_QPX
 
 // No semantic effects
@@ -1579,5 +1665,9 @@ static inline void mbar() {
 
 #endif
 
+
+#undef EXTERN_INLINE
+#undef EXTERN_FIELD
+#undef EXTERN_INIT
 
 #endif /* BGQ_QPX_H_ */
