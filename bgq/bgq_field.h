@@ -7,11 +7,10 @@
 
 #ifndef BGQ_FIELD_H_
 #define BGQ_FIELD_H_
+#include "../global.h"
 
 #include "bgq_utils.h"
 #include "bgq_qpx.h"
-
-#include "../global.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -193,6 +192,18 @@ EXTERN_FIELD size_t PHYSICAL_BODY;
 #error Unknown inter-node parallelization
 #endif
 
+#define COMM_ORD_T 0
+#define COMM_ORD_TSEND (COMM_ORD_T+0)
+#define COMM_ORD_TRECV (COMM_ORD_T+1)
+#define COMM_ORD_X (COMM_ORD_T+COMM_T)
+#define COMM_ORD_XSEND (COMM_ORD_X+0)
+#define COMM_ORD_XRECV (COMM_ORD_X+1)
+#define COMM_ORD_Y (COMM_ORD_X+COMM_X)
+#define COMM_ORD_YSEND (COMM_ORD_Y+0)
+#define COMM_ORD_YRECV (COMM_ORD_Y+1)
+#define COMM_ORD_Z (COMM_ORD_Y+COMM_Y)
+#define COMM_ORD_ZSEND (COMM_ORD_Z+0)
+#define COMM_ORD_ZRECV (COMM_ORD_X+1)
 
 #define COMPLEX_PRECISION complexdouble
 

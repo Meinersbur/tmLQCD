@@ -74,7 +74,7 @@ void create_descriptors(MUHWI_Descriptor_t * descriptors, uint64_t *, uint64_t *
 void setup_mregions_bats_counters(const int bufferSize);
 
 // global barrier using GIBarrier
-MUSPI_GIBarrier_t GIBarrier;
+MUSPI_GIBarrier_t GIBarrier; //MK: extern?
 void global_barrier();
 
 /**
