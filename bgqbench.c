@@ -73,6 +73,7 @@
 
 /* BEGIN MK */
 #include "bgq/bgq_field.h"
+#include "bgq/bgq_gaugefield.h"
 #include "bgq/bgq_HoppingMatrix.h"
 #include "bgq/bgq_qpx.h"
 #include "bgq/bgq_utils.h"
@@ -222,13 +223,9 @@ static void benchmark_setup_worker(void *argptr, size_t tid, size_t threads) {
 }
 
 
-static void ompbar() {
-#pragma omp barrier
+static double runcheck(bool sloppyprec, bgq_hmflags hmflags, int k_max) {
 }
 
-static void ompbar2() {
-	ompbar();
-}
 
 static int benchmark_master(void *argptr) {
 	master_args * const args = argptr;
@@ -673,19 +670,17 @@ static void benchmark_hopmat(bgq_hmflags flags, int k, int k_max) {
 
 static void exec_bench(int j_max, int k_max) {
 	bgq_indices_init();
-	bgq_gaugefield_init();
+
 	bgq_spinorfields_init(2*k_max+1, 0);
 
-	//bgq_update_backward_gauge();
 
 
 	// Test indices initialization
 	//bgq_spinorfield_setup(&g_bgq_spinorfields[k_max], false, false, false, false, true);
 	//bgq_spinorfield_setup(&g_bgq_spinorfields[0], true, false, false, false, true);
 
-#ifdef _GAUGE_COPY
-	//update_backward_gauge();
-#endif
+	bgq_gaugefield_init();
+	bgq_gaugefield_transferfrom(g_gauge_field);
 
 	bool done = false;
 #pragma omp parallel for schedule(static) ordered firstprivate(done)

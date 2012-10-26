@@ -25,6 +25,8 @@
 #include "su3.h"
 #include "update_backward_gauge.h"
 
+#include "bgq/bgq_gaugefield.h"
+
 
 #if defined _USE_HALFSPINOR
 void update_backward_gauge(su3 ** const gf) {
@@ -63,11 +65,12 @@ void update_backward_gauge(su3 ** const gf) {
   } /* OpenMP closing brace */
 #endif
 
+  bgq_gaugefield_transferfrom(gf);
   g_update_gauge_copy = 0;
   return;
 }
 
-#elif _USE_TSPLITPAR 
+#elif defined _USE_TSPLITPAR
 
 void update_backward_gauge(su3 ** const gf) {
 #ifdef OMP
@@ -124,6 +127,7 @@ void update_backward_gauge(su3 ** const gf) {
   } /* OpenMP closing brace */
 #endif
 
+  bgq_gaugefield_transferfrom(gf);
   g_update_gauge_copy = 0;
   return;
 }
@@ -185,6 +189,7 @@ void update_backward_gauge(su3 ** const gf) {
   } /* OpenMP closing brace */
 #endif
 
+  bgq_gaugefield_transferfrom(gf);
   g_update_gauge_copy = 0;
   return;
 }

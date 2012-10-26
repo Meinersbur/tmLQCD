@@ -9,6 +9,7 @@
 #define BGQ_HOPPINGMATRIX_H_
 
 #include "bgq_field.h"
+#include "bgq_gaugefield.h"
 #include "bgq_qpx.h"
 #include "bgq_utils.h"
 

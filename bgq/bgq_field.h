@@ -286,17 +286,7 @@ EXTERN_INLINE bgq_dimension bgq_direction2dimension(bgq_direction d) {
 }
 
 
-typedef struct {
-	COMPLEX_PRECISION c[3][3][PHYSICAL_LK]; /* 3*3*2*sizeof(COMPLEX_PRECISION) = 288;144 bytes (4.5;2.25 L1 cache lines) */
-	//COMPLEX_PRECISION padding[6];
-} bgq_gaugesu3;
-typedef struct {
-	bgq_gaugesu3 su3[8];
-} bgq_gaugesite;
-typedef struct {
-	bgq_gaugesu3 *(eodir[PHYSICAL_LP][PHYSICAL_LD]);
-} bgq_gaugeeodir;
-typedef bgq_gaugeeodir (*bgq_gaugefield);
+
 
 typedef struct {
 	COMPLEX_PRECISION s[4][3][PHYSICAL_LK]; /* 4*3*2*sizeof(COMPLEX_PRECISION) = 384;192 bytes (6;3 L1 cache lines) */
@@ -564,9 +554,7 @@ EXTERN_FIELD bgq_direction *g_bgq_index2d_src[PHYSICAL_LP];
 
 // The gaugefield as GAUGE_COPY
 EXTERN_FIELD bgq_weylfield_controlblock *g_bgq_spinorfields EXTERN_INIT(NULL);
-EXTERN_FIELD bgq_gaugesite *g_bgq_gaugefield_fromHalfvolume[PHYSICAL_LP];
-EXTERN_FIELD bgq_gaugesite *g_bgq_gaugefield_fromSurface[PHYSICAL_LP];
-EXTERN_FIELD bgq_gaugesite *g_bgq_gaugefield_fromBody[PHYSICAL_LP];
+
 
 
 EXTERN_FIELD bool g_bgq_indices_initialized EXTERN_INIT(false);
@@ -890,6 +878,71 @@ EXTERN_INLINE size_t bgq_local2volume(size_t t, size_t x, size_t y, size_t z) {
 	size_t ih = bgq_local2halfvolume(t,x,y,z);
 	return bgq_halfvolume2volume(isOdd, ih, k);
 }
+
+EXTERN_INLINE size_t bgq_local2halfvolume_neighbor(size_t t, size_t x, size_t y, size_t z, bgq_direction d) {
+	switch (d) {
+	case TUP:
+		t = (t + 1) % LOCAL_LT;
+		break;
+	case TDOWN:
+		t = (t + LOCAL_LT - 1) % LOCAL_LT;
+		break;
+	case XUP:
+		x = (x + 1) % LOCAL_LX;
+		break;
+	case XDOWN:
+		x = (x + LOCAL_LX - 1) % LOCAL_LX;
+		break;
+	case YUP:
+		y = (y + 1) % LOCAL_LY;
+		break;
+	case YDOWN:
+		y = (y + LOCAL_LY - 1) % LOCAL_LY;
+		break;
+	case ZUP:
+		z = (z + 1) % LOCAL_LZ;
+		break;
+	case ZDOWN:
+		z = (z + LOCAL_LZ - 1) % LOCAL_LZ;
+		break;
+	}
+
+	size_t ih_src = bgq_local2halfvolume(t,x,y,z);
+	return ih_src;
+}
+
+EXTERN_INLINE size_t bgq_localdst2ksrc(size_t t, size_t x, size_t y, size_t z, bgq_direction d) {
+	switch (d) {
+	case TUP:
+		t = (t + 1) % LOCAL_LT;
+		break;
+	case TDOWN:
+		t = (t + LOCAL_LT - 1) % LOCAL_LT;
+		break;
+	case XUP:
+		x = (x + 1) % LOCAL_LX;
+		break;
+	case XDOWN:
+		x = (x + LOCAL_LX - 1) % LOCAL_LX;
+		break;
+	case YUP:
+		y = (y + 1) % LOCAL_LY;
+		break;
+	case YDOWN:
+		y = (y + LOCAL_LY - 1) % LOCAL_LY;
+		break;
+	case ZUP:
+		z = (z + 1) % LOCAL_LZ;
+		break;
+	case ZDOWN:
+		z = (z + LOCAL_LZ - 1) % LOCAL_LZ;
+		break;
+	}
+
+	size_t k_src = bgq_local2k(t,x,y,z);
+	return k_src;
+}
+
 
 EXTERN_INLINE bgq_weylfield_section bgq_direction2section(bgq_direction d, bool isSend) {
 	switch (d) {
