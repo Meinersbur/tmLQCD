@@ -192,18 +192,7 @@ EXTERN_FIELD size_t PHYSICAL_BODY;
 #error Unknown inter-node parallelization
 #endif
 
-#define COMM_ORD_T 0
-#define COMM_ORD_TSEND (COMM_ORD_T+0)
-#define COMM_ORD_TRECV (COMM_ORD_T+1)
-#define COMM_ORD_X (COMM_ORD_T+COMM_T)
-#define COMM_ORD_XSEND (COMM_ORD_X+0)
-#define COMM_ORD_XRECV (COMM_ORD_X+1)
-#define COMM_ORD_Y (COMM_ORD_X+COMM_X)
-#define COMM_ORD_YSEND (COMM_ORD_Y+0)
-#define COMM_ORD_YRECV (COMM_ORD_Y+1)
-#define COMM_ORD_Z (COMM_ORD_Y+COMM_Y)
-#define COMM_ORD_ZSEND (COMM_ORD_Z+0)
-#define COMM_ORD_ZRECV (COMM_ORD_X+1)
+#define COMMDIR_COUNT 2*(COMM_T+COMM_X+COMM_Y+COMM_Z)
 
 #define COMPLEX_PRECISION complexdouble
 
@@ -248,6 +237,61 @@ typedef enum {
 } bgq_dimension;
 
 
+EXTERN_INLINE bgq_dimension bgq_direction2dimension(bgq_direction d) {
+	return d/2;
+}
+
+
+EXTERN_INLINE bool bgq_dimension_isDistributed(bgq_dimension dim) {
+	switch (dim) {
+	case DIM_T:
+		return COMM_T;
+	case DIM_X:
+		return COMM_X;
+	case DIM_Y:
+		return COMM_Y;
+	case DIM_Z:
+		return COMM_Z;
+	default:
+		UNREACHABLE
+	}
+}
+
+EXTERN_INLINE bgq_direction bgq_dimenstion2direction_up(bgq_dimension dim) {
+	switch (dim) {
+	case DIM_T:
+		return TUP;
+	case DIM_X:
+		return XUP;
+	case DIM_Y:
+		return YUP;
+	case DIM_Z:
+		return ZUP;
+	default:
+		UNREACHABLE
+	}
+}
+EXTERN_INLINE bgq_direction bgq_dimenstion2direction_down(bgq_dimension dim) {
+	switch (dim) {
+	case DIM_T:
+		return TDOWN;
+	case DIM_X:
+		return XDOWN;
+	case DIM_Y:
+		return YDOWN;
+	case DIM_Z:
+		return ZDOWN;
+	default:
+		UNREACHABLE
+	}
+}
+
+EXTERN_INLINE bool bgq_direction_isDistributed(bgq_direction d) {
+	return bgq_dimension_isDistributed(bgq_direction2dimension(d));
+}
+
+
+
 
 #if 0
 EXTERN_INLINE bgq_direction bgq_physical2direction(bgq_physical_direction pd) {
@@ -281,10 +325,6 @@ void bgq_spinorfields_init(size_t std_count, size_t chi_count);
 void bgq_gaugefield_init();
 
 
-
-EXTERN_INLINE bgq_dimension bgq_direction2dimension(bgq_direction d) {
-	return d/2;
-}
 
 
 

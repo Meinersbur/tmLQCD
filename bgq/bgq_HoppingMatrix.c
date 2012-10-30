@@ -12,6 +12,7 @@
 #include "bgq_spinorfield.h"
 #include "bgq_qpx.h"
 #include "bgq_dispatch.h"
+#include "bgq_comm.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -435,6 +436,10 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 		.spinorfield = spinorfield
 	};
 
+
+	// 0. Expect data from other neighbot node
+	bgq_comm_recv();
+
 	// 1. Distribute
 	// Compute surface and put data into the send buffers
 	if (readFullspinor) {
@@ -445,7 +450,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	}
 
 // 2. Start communication
-	/* not yet implemented */
+	bgq_comm_send();
 
 // 3. Compute the body
 	if (readFullspinor) {

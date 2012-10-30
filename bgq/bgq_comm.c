@@ -16,6 +16,153 @@
 
 
 
+static MPI_Request g_bgq_request_recv[COMMDIR_COUNT];
+static MPI_Request g_bgq_request_send[COMMDIR_COUNT];
+
+
+
+static bgq_dimension bgq_commdim2dimension(ucoord commdim) {
+	assert(0 <= commdim && commdim < COMMDIR_COUNT);
+if (COMM_T) {
+	if (commdim == 0)
+		return DIM_T;
+	commdim-=1;
+}
+if (COMM_X) {
+	if (commdim ==0)
+		return DIM_X;
+	commdim-=1;
+}
+if (COMM_Y) {
+	if (commdim == 0)
+		return DIM_Y;
+	commdim-=1;
+}
+assert(COMM_Z);
+assert(commdim==0);
+return DIM_Z;
+}
+
+#if 0
+static ucoord bgq_dimension2commdim(bgq_dimension dim) {
+	assert(bgq_dimension_isDistributed(dim));
+	switch (dim) {
+	case DIM_T:
+		assert(COMM_T);
+		return COMM_ORD_T;
+	case DIM_X:
+		assert(COMM_X);
+		return COMM_ORD_X;
+	case DIM_Y:
+		assert(COMM_Y);
+		return COMM_ORD_Y;
+	case DIM_Z:
+		assert(COMM_Z);
+		return COMM_ORD_Z;
+	}
+}
+#endif
+
+
+static ucoord bgq_direction2commdir(bgq_direction d) {
+	ucoord result = 0;
+	if (COMM_T) {
+		if (d==TUP)
+			return result;
+		result+=1;
+		if (d==TDOWN)
+			return result;
+		result+=1;
+	}
+	if (COMM_X) {
+		if(d==XUP)
+			return result;
+		result+=1;
+		if (d==XDOWN)
+			return result;
+		result+=1;
+	}
+	if (COMM_Y) {
+		if(d==YUP)
+			return result;
+		result+=1;
+		if (d==YDOWN)
+			return result;
+		result+=1;
+	}
+	if (COMM_Z) {
+		if(d==ZUP)
+			return result;
+		result+=1;
+		if (d==ZDOWN)
+			return result;
+		result+=1;
+	}
+	UNREACHABLE
+}
+
+
+static ucoord bgq_commdir2direction(ucoord commdir) {
+	if (COMM_T) {
+		if (commdir==0)
+			return TUP;
+		commdir-=1;
+		if (commdir==0)
+			return TDOWN;
+		commdir-=1;
+	}
+	if (COMM_X) {
+		if (commdir==0)
+			return XUP;
+		commdir-=1;
+		if (commdir==0)
+			return XDOWN;
+		commdir-=1;
+	}
+	if (COMM_Y) {
+		if (commdir==0)
+			return YUP;
+		commdir-=1;
+		if (commdir==0)
+			return YDOWN;
+		commdir-=1;
+	}
+	if (COMM_Z) {
+		if (commdir==0)
+			return ZUP;
+		commdir-=1;
+		if (commdir==0)
+			return ZDOWN;
+		commdir-=1;
+	}
+	UNREACHABLE
+}
+
+
+static int bgq_direction2rank(bgq_direction d) {
+	switch (d) {
+	case TUP:
+	return g_nb_t_up;
+	case TDOWN:
+	return g_nb_t_dn;
+	case XUP:
+	return g_nb_x_up;
+	case XDOWN:
+	return g_nb_x_dn;
+	case YUP:
+	return g_nb_y_up;
+	case YDOWN:
+	return g_nb_y_dn;
+	case ZUP:
+	return g_nb_z_up;
+	case ZDOWN:
+	return g_nb_z_dn;
+	default:
+	UNREACHABLE
+	}
+}
+
+
 void bgq_comm_init() {
 	size_t commbufsize = bgq_weyl_section_offset(sec_comm_end) -  bgq_weyl_section_offset(sec_comm);
 
@@ -26,6 +173,24 @@ void bgq_comm_init() {
 		g_bgq_sec_send[d] = (bgq_weyl_vec*)(buf + bgq_weyl_section_offset(sec_send));
 		bgq_weylfield_section sec_recv = bgq_direction2section(d, false);
 		g_bgq_sec_recv[d] = (bgq_weyl_vec*)(buf + bgq_weyl_section_offset(sec_recv));
+	}
+
+
+	for (ucoord d_src = 0; d_src < PHYSICAL_LD; d_src+=1) {
+		bgq_dimension dim = bgq_direction2dimension(d_src);
+		if (!bgq_direction_isDistributed(d_src))
+			continue;
+
+		ucoord commdir_src = bgq_direction2commdir(d_src);
+		bgq_weylfield_section sec_recv = bgq_direction2section(d_src, false);
+		size_t secsize = bgq_weyl_section_offset(sec_recv+1) - bgq_weyl_section_offset(sec_recv);
+		MPI_CHECK(MPI_Recv_init(g_bgq_sec_recv[d_src], secsize / sizeof(double), MPI_DOUBLE, bgq_direction2rank(d_src), d_src, g_cart_grid, &g_bgq_request_recv[d_src]));
+
+		bgq_direction d_dst = bgq_direction_revert(d_src);
+		bgq_weylfield_section sec_send = bgq_direction2section(d_dst, true);
+		ucoord commdir_dst = bgq_direction2commdir(d_dst);
+		assert(secsize == bgq_weyl_section_offset(sec_send+1) - bgq_weyl_section_offset(sec_send));
+		MPI_CHECK(MPI_Send_init(g_bgq_sec_send[d_dst], secsize / sizeof(double), MPI_DOUBLE, bgq_direction2rank(d_dst), d_dst, g_cart_grid, &g_bgq_request_send[d_dst]));
 	}
 
 
@@ -175,3 +340,34 @@ void bgq_comm_init() {
 	  }
 #endif
 }
+
+
+
+void bgq_comm_recv() {
+	MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_recv));
+}
+
+
+void bgq_comm_send() {
+	MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_send));
+}
+
+
+void bgq_comm_wait() {
+	MPI_Status recv_status[COMMDIR_COUNT];
+	MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_recv, recv_status));
+
+	MPI_Status send_status[COMMDIR_COUNT];
+	MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_send, send_status));
+
+
+#ifndef NDEBUG
+	for (ucoord commdir = 0; commdir < COMMDIR_COUNT; commdir += 1) {
+		bgq_direction d = bgq_commdir2direction(commdir);
+		bgq_weylfield_section sec = bgq_direction2section(d,false);
+		size_t size = bgq_weyl_section_offset(sec+1) - bgq_weyl_section_offset(sec);
+		assert(get_MPI_count(&recv_status[commdir]) == size);
+	}
+#endif
+}
+

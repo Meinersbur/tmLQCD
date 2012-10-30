@@ -542,7 +542,7 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 
 	if (actionWaitForRecv) {
 		// 4. Wait for the communication to finish
-		/* SPI wait operation */
+		bgq_comm_wait();
 		field->waitingForRecv = false;
 	}
 

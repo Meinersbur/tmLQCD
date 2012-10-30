@@ -9,6 +9,8 @@
 #define BGQ_UTILS_C_
 #include "bgq_utils.h"
 
+#include <mpi.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

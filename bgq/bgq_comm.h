@@ -23,6 +23,11 @@
 
 void bgq_comm_init();
 
+//TODO: inline?
+void bgq_comm_recv();
+void bgq_comm_send();
+void bgq_comm_wait();
+
 EXTERN_FIELD uint8_t *g_bgq_sec_comm;
 EXTERN_FIELD bgq_weyl_vec *g_bgq_sec_recv[PHYSICAL_LD];
 EXTERN_FIELD bgq_weyl_vec *g_bgq_sec_send[PHYSICAL_LD];
