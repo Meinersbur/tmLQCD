@@ -515,6 +515,8 @@ typedef struct {
 #define bgq_cmplxval2(name) \
 	(bgq_elem2(name) + (bgq_elem3(name) * _Complex_I))
 
+#define bgq_cmplxval(name,k) \
+	((k) ? bgq_cmplxval2(name) : bgq_cmplxval1(name))
 
 #define cvec_mul(a,b) vec_xxnpmadd(b,a,vec_xmul(a,b))
 // vec_xxnpmadd(b,a,vec_xmul(a,b))
@@ -661,6 +663,10 @@ typedef struct {
 	bgq_su3_vvars(NAME2(name,v2)), \
 	bgq_su3_vvars(NAME2(name,v3))
 
+#define bgq_su3_weyl_vars(name) \
+	bgq_su3_vvars(NAME2(name,v0)), \
+	bgq_su3_vvars(NAME2(name,v1))
+
 #define bgq_su3_spinor_params(name) \
 	bgq_su3_vparams(NAME2(name,v0)), \
 	bgq_su3_vparams(NAME2(name,v1)), \
@@ -682,8 +688,8 @@ typedef struct {
 	bgq_su3_vdecl_leftonly(NAME2(name,v1))
 
 #define bgq_su3_weyl_params(name) \
-	bgq_su3_mparams(NAME(name,v0)), \
-	bgq_su3_mparams(NAME(name,v1))
+	bgq_su3_vparams(NAME2(name,v0)), \
+	bgq_su3_vparams(NAME2(name,v1))
 
 #define bgq_su3_vzero(dst) \
 	bgq_zero(NAME2(dst,c0)); \
@@ -1266,6 +1272,8 @@ do {\
 	bgq_su3_vadd(NAME2(result,v1), NAME2(result,v1), NAME2(weyl,v1)); \
 	bgq_su3_vpiadd(NAME2(result,v2), NAME2(result,v2), NAME2(weyl,v0)); \
 	bgq_su3_vpisub(NAME2(result,v3), NAME2(result,v3), NAME2(weyl,v1))
+
+
 
 
 

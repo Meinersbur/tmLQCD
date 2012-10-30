@@ -235,31 +235,50 @@ static void HoppingMatrix_switch(bool isOdd, spinor *l, spinor *k, bgq_hmflags h
 
 
 static double runcheck(bgq_hmflags hmflags, size_t k_max) {
-	const int k = 0;
-	hmflags = hmflags & ~hm_nokamul;
-
+	const size_t k = 0;
 	// To ensure that zero is used in case of nocomm
+	bgq_spinorfield_setup(&g_bgq_spinorfields[k], true, false, false, false, true);
+
+	bgq_spinorfield_setup(&g_bgq_spinorfields[k + k_max], false, false, false, false, true);
+#ifndef BGQ_COORDCHECK
 	memset(g_bgq_spinorfields[k].sec_weyl, 0, bgq_weyl_section_offset(sec_end));
 	memset(g_bgq_spinorfields[k + k_max].sec_weyl, 0, bgq_weyl_section_offset(sec_end));
+#endif
 
 
-	bgq_spinorfield_transfer(false, &g_bgq_spinorfields[k], g_spinor_field[k]);
+	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
+#ifndef BGQ_COORDCHECK
 	double compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k], g_spinor_field[k], false);
 	assert(compare_transfer == 0); // Must be exact copy
+#endif
 
 	bgq_HoppingMatrix(false, &g_bgq_spinorfields[k + k_max], &g_bgq_spinorfields[k], hmflags);
 	HoppingMatrix_switch(false, g_spinor_field[k + k_max], g_spinor_field[k], hmflags);
+#ifndef BGQ_COORDCHECK
 	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], true);
+	assert(compare_even < 0.01);
+#endif
 
 
-	compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], false);
+#ifndef BGQ_COORDCHECK
+	bgq_spinorfield_transfer(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max]); 	// We don't want to accumulate errors
+	compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], false);
 	assert(compare_transfer == 0); // Must be exact copy
+#endif
 
 	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k+2*k_max], &g_bgq_spinorfields[k + k_max], hmflags);
 	HoppingMatrix_switch(true, g_spinor_field[k+2*k_max], g_spinor_field[k+k_max], hmflags);
+#ifndef BGQ_COORDCHECK
 	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
+	assert(compare_odd < 0.01);
+#endif
 
+
+#ifndef BGQ_COORDCHECK
 	return max(compare_even, compare_odd);
+#else
+	return 0;
+#endif
 }
 
 
@@ -280,10 +299,16 @@ static int benchmark_master(void *argptr) {
 		const bool nosurface = opts & hm_nosurface;
 		//const bool experimental = opts & hm_experimental;
 		//const bgq_hmflags implicitprefetch = opts & (hm_prefetchimplicitdisable | hm_prefetchimplicitoptimistic | hm_prefetchimplicitconfirmed);
+bool withcheck = opts & hm_withcheck;
 
 		// Setup thread options (prefetch setting etc.)
 		bgq_master_call(&benchmark_setup_worker, argptr);
 
+
+		double err = 0;
+		if (withcheck) {
+			err = runcheck(opts, k_max);
+		}
 
 		double localsumtime = 0;
 		double localsumsqtime = 0;
@@ -378,7 +403,7 @@ static int benchmark_master(void *argptr) {
 	result->globalrmstime = rmstime;
 	result->lups = lups;
 	result->flops = flops / avgtime;
-	result->error = 0;
+	result->error = err;
 	result->counters = counters;
 	result->opts = opts;
 	return EXIT_SUCCESS;
@@ -423,10 +448,11 @@ static char *omp_threads_desc[] = { "1", "2", "4", "8", "16", "32", "33", "48", 
 
 
 static bgq_hmflags flags[] = {
+		hm_withcheck
+#if 0
 //		               hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
 //		hm_nooverlap | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-		hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit};
-#if 0
+		hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
 //		hm_fixedoddness | hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
 		hm_nocom | hm_nosurface | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
 		hm_nocom | hm_nobody | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
@@ -439,8 +465,8 @@ static bgq_hmflags flags[] = {
 //		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable
 		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable | hm_l1pnonstoprecord,
 		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable | hm_experimental
-		};
 #endif
+		};
 static char* flags_desc[] = {
 //		"Com async",
 //		"Com sync",
@@ -706,14 +732,7 @@ static void benchmark_hopmat(bgq_hmflags flags, int k, int k_max) {
 
 static void exec_bench(int j_max, int k_max) {
 	bgq_indices_init();
-
 	bgq_spinorfields_init(2*k_max+1, 0);
-
-
-
-	// Test indices initialization
-	//bgq_spinorfield_setup(&g_bgq_spinorfields[k_max], false, false, false, false, true);
-	//bgq_spinorfield_setup(&g_bgq_spinorfields[0], true, false, false, false, true);
 
 	bgq_gaugefield_init();
 	bgq_gaugefield_transferfrom(g_gauge_field);
@@ -736,22 +755,7 @@ static void exec_bench(int j_max, int k_max) {
 		/*initialize the pseudo-fermion fields*/
 		random_spinor_field(g_spinor_field[k], VOLUME / 2, 0);
 		bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
-
-		//double compare_transfer = bgq_spinorfield_compare_double(true, g_spinorfields_double[k], g_spinor_field[k], false);
-		//assert(compare_transfer == 0 /* fields should be bit-identical*/);
 	}
-
-
-
-	//check_correctness_double(true);
-	//check_correctness_double(false);
-	//check_correctness_float();
-
-
-	//exec_table(&benchmark_hopmat, 0);
-	//exec_bench(bm_hopmat, false, 0);
-
-	//exec_fakebench();
 
 	exec_table(&benchmark_hopmat , 0, j_max, k_max);
 }

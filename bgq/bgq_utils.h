@@ -8,6 +8,12 @@
 #ifndef BGQ_UTILS_H_
 #define BGQ_UTILS_H_
 
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic error "-Wimplicit-int"
+#pragma GCC diagnostic error "-Wimplicit-function-declaration"
+
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>

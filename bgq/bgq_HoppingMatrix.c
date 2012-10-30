@@ -9,6 +9,7 @@
 #include "bgq_HoppingMatrix.h"
 
 #include "bgq_field.h"
+#include "bgq_spinorfield.h"
 #include "bgq_qpx.h"
 #include "bgq_dispatch.h"
 
@@ -153,7 +154,8 @@ static inline void bgq_HoppingMatrix_kernel_raw(bgq_weyl_ptr_t *targetptrs, bgq_
 
 
 typedef struct {
-	bool isOdd;
+	bool isOdd_src;
+	bool isOdd_dst;
 	bgq_weylfield_controlblock *targetfield;
 	bgq_weylfield_controlblock *spinorfield;
 } bgq_HoppingMatrix_workload;
@@ -229,7 +231,7 @@ static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t t
 
 static void bgq_HoppingMatrix_worker_surface(void *argptr, size_t tid, size_t threads) {
 	const bgq_HoppingMatrix_workload *args = argptr;
-	const bool isOdd = args->isOdd;
+	const bool isOdd = args->isOdd_src;
 	const bgq_weylfield_controlblock *targetfield = args->targetfield;
 	const bgq_weylfield_controlblock *spinorfield = args->spinorfield;
 
@@ -250,7 +252,7 @@ static void bgq_HoppingMatrix_worker_surface(void *argptr, size_t tid, size_t th
 
 static void bgq_HoppingMatrix_worker_body(void *argptr, size_t tid, size_t threads) {
 	const bgq_HoppingMatrix_workload *args = argptr;
-	const bool isOdd = args->isOdd;
+	const bool isOdd = args->isOdd_src;
 	const bgq_weylfield_controlblock *targetfield = args->targetfield;
 	const bgq_weylfield_controlblock *spinorfield = args->spinorfield;
 
@@ -274,7 +276,7 @@ static void bgq_HoppingMatrix_worker_body(void *argptr, size_t tid, size_t threa
 
 static void bgq_HoppingMatrix_worker_surface_precomm_readFulllayout(void *arg, size_t tid, size_t threads) {
 	bgq_HoppingMatrix_workload *work = arg;
-	bool isOdd = work->isOdd;
+	bool isOdd = work->isOdd_src;
 	bgq_weylfield_controlblock *spinorfield = work->spinorfield;
 	bgq_weylfield_controlblock *targetfield = work->targetfield;
 
@@ -282,24 +284,32 @@ static void bgq_HoppingMatrix_worker_surface_precomm_readFulllayout(void *arg, s
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = tid*threadload;
 	const size_t end = min(workload, begin+threadload);
-	for (size_t is = begin; is<end; is+=1) {
+	for (ucoord is = begin; is<end; is+=1) {//TODO: Check removal
+		ucoord ih = bgq_surface2halfvolume(isOdd, is);
+		ucoord ic = bgq_surface2collapsed(is);
+		ucoord t1 = bgq_halfvolume2t1(isOdd,ih);
+		ucoord t2 = bgq_halfvolume2t2(isOdd,ih);
+		ucoord x = bgq_halfvolume2x(ih);
+		ucoord y = bgq_halfvolume2y(ih);
+		ucoord z = bgq_halfvolume2z(ih);
+
 		//TODO: Check strength reduction
 		bgq_spinorsite *spinorsite = &spinorfield->sec_fullspinor_surface[is];
-		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromSurface[isOdd][is];
-		bgq_weyl_ptr_t *destptrs = &targetfield->destptrFromSurface[is];
+		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][is];
+		bgq_weyl_ptr_t *destptrs = &targetfield->sendptr[ic];
 
 		//TODO: prefetching
 		//TODO: Check inlining
 		bgq_su3_spinor_decl(spinor);
-		bgq_HoppingMatrix_loadFulllayout_raw(bgq_su3_spinor_vars(&spinor), spinorsite);
-		bgq_HoppingMatrix_compute_storeWeyllayout_raw(destptrs, gaugesite, bgq_su3_spinor_vars(spinor));
+		bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
+		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z);
 	}
 }
 
 
 static void bgq_HoppingMatrix_worker_surface_precomm_readWeyllayout(void *arg, size_t tid, size_t threads) {
 	bgq_HoppingMatrix_workload *work = arg;
-	bool isOdd = work->isOdd;
+	bool isOdd = work->isOdd_src;
 	bgq_weylfield_controlblock *spinorfield = work->spinorfield;
 	bgq_weylfield_controlblock *targetfield = work->targetfield;
 
@@ -308,23 +318,32 @@ static void bgq_HoppingMatrix_worker_surface_precomm_readWeyllayout(void *arg, s
 	const size_t begin = tid*threadload;
 	const size_t end = min(workload, begin+threadload);
 	for (size_t is = begin; is<end; is+=1) {
+		//TODO: Check optaway
+		size_t ih = bgq_surface2halfvolume(isOdd,is);
+		ucoord ic = bgq_surface2collapsed(is);
+		size_t t1 = bgq_halfvolume2t1(isOdd,ih);
+		size_t t2 = bgq_halfvolume2t2(isOdd,ih);
+		size_t x = bgq_halfvolume2x(ih);
+		size_t y = bgq_halfvolume2y(ih);
+		size_t z = bgq_halfvolume2z(ih);
+
 		//TODO: Check strength reduction
-		bgq_weylsite *weylsite = &spinorfield->sec_surface[is];
-		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromSurface[isOdd][is];
-		bgq_weyl_ptr_t *destptrs = &targetfield->destptrFromSurface[is];
+		bgq_weylsite *weylsite = &spinorfield->sec_collapsed[ic];
+		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][ic];
+		bgq_weyl_ptr_t *destptrs = &targetfield->sendptr[ic];
 
 		//TODO: prefetching
 		//TODO: Check inlining
 		bgq_su3_spinor_decl(spinor);
-		bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_vars(&spinor), weylsite);
-		bgq_HoppingMatrix_compute_storeWeyllayout_raw(destptrs, gaugesite, bgq_su3_spinor_vars(spinor));
+		bgq_HoppingMatrix_loadWeyllayout(spinor, weylsite, t1, t2, x, y, z);
+		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z);
 	}
 }
 
 
 static void bgq_HoppingMatrix_worker_body_readFulllayout(void *arg, size_t tid, size_t threads) {
 	bgq_HoppingMatrix_workload *work = arg;
-	bool isOdd = work->isOdd;
+	bool isOdd = work->isOdd_src;
 	bgq_weylfield_controlblock *spinorfield = work->spinorfield;
 	bgq_weylfield_controlblock *targetfield = work->targetfield;
 
@@ -333,23 +352,32 @@ static void bgq_HoppingMatrix_worker_body_readFulllayout(void *arg, size_t tid, 
 	const size_t begin = tid*threadload;
 	const size_t end = min(workload, begin+threadload);
 	for (size_t ib = begin; ib<end; ib+=1) {
+		//TODO: Check optaway
+		size_t ih = bgq_body2halfvolume(isOdd, ib);
+		ucoord ic = bgq_body2collapsed(ib);
+		size_t t1 = bgq_halfvolume2t1(isOdd,ih);
+		size_t t2 = bgq_halfvolume2t2(isOdd,ih);
+		size_t x = bgq_halfvolume2x(ih);
+		size_t y = bgq_halfvolume2y(ih);
+		size_t z = bgq_halfvolume2z(ih);
+
 		//TODO: Check strength reduction
-		bgq_spinorsite *spinorsite = &spinorfield->sec_fullspinor_body[ib];
-		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromBody[isOdd][ib];
-		bgq_weyl_ptr_t *destptrs = &targetfield->destptrFromBody[ib];
+		bgq_spinorsite *spinorsite = &spinorfield->sec_fullspinor[ic];
+		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][ic];
+		bgq_weyl_ptr_t *destptrs = &targetfield->sendptr[ic];
 
 		//TODO: prefetching
 		//TODO: Check inlining
 		bgq_su3_spinor_decl(spinor);
-		bgq_HoppingMatrix_loadFulllayout_raw(bgq_su3_spinor_vars(&spinor), spinorsite);
-		bgq_HoppingMatrix_compute_storeWeyllayout_raw(destptrs, gaugesite, bgq_su3_spinor_vars(spinor));
+		bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
+		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z);
 	}
 }
 
 
 static void bgq_HoppingMatrix_worker_body_readWeyllayout(void *arg, size_t tid, size_t threads) {
 	bgq_HoppingMatrix_workload *work = arg;
-	bool isOdd = work->isOdd;
+	bool isOdd = work->isOdd_src;
 	bgq_weylfield_controlblock *spinorfield = work->spinorfield;
 	bgq_weylfield_controlblock *targetfield = work->targetfield;
 
@@ -358,6 +386,14 @@ static void bgq_HoppingMatrix_worker_body_readWeyllayout(void *arg, size_t tid, 
 	const size_t begin = tid*threadload;
 	const size_t end = min(workload, begin+threadload);
 	for (size_t ib = begin; ib<end; ib+=1) {
+		//TODO: Check optaway
+		size_t ih = bgq_body2halfvolume(isOdd,ib);
+		size_t t1 = bgq_halfvolume2t1(isOdd,ih);
+		size_t t2 = bgq_halfvolume2t2(isOdd,ih);
+		size_t x = bgq_halfvolume2x(ih);
+		size_t y = bgq_halfvolume2y(ih);
+		size_t z = bgq_halfvolume2z(ih);
+
 		//TODO: Check strength reduction
 		bgq_weylsite *weylsite = &spinorfield->sec_body[ib];
 		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromBody[isOdd][ib];
@@ -366,8 +402,8 @@ static void bgq_HoppingMatrix_worker_body_readWeyllayout(void *arg, size_t tid, 
 		//TODO: prefetching
 		//TODO: Check inlining
 		bgq_su3_spinor_decl(spinor);
-		bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_vars(&spinor), weylsite);
-		bgq_HoppingMatrix_compute_storeWeyllayout_raw(destptrs, gaugesite, bgq_su3_spinor_vars(spinor));
+		bgq_HoppingMatrix_loadWeyllayout(spinor, weylsite, t1, t2, x,y,z);
+		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor,t1,t2,x,y,z);
 	}
 }
 
@@ -393,7 +429,8 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	assert(targetfield->isOdd == isOdd);
 
 	bgq_HoppingMatrix_workload work = {
-		.isOdd = isOdd,
+		.isOdd_src = !isOdd,
+		.isOdd_dst = isOdd,
 		.targetfield = targetfield,
 		.spinorfield = spinorfield
 	};
@@ -401,7 +438,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	// 1. Distribute
 	// Compute surface and put data into the send buffers
 	if (readFullspinor) {
-		bgq_master_call(&bgq_HoppingMatrix_worker_body_readFulllayout, &work);
+		bgq_master_call(&bgq_HoppingMatrix_worker_surface_precomm_readFulllayout, &work);
 	} else {
 		// readWeyl
 		bgq_master_call(&bgq_HoppingMatrix_worker_surface_precomm_readWeyllayout, &work);

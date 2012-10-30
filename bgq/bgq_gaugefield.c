@@ -13,14 +13,58 @@
 #include "geometry_eo.h"
 
 
-void bgq_gaugefield_init() {
-	bgq_indices_init();
+static bool g_bgq_gaugefield_initialized = false;
 
+void bgq_gaugefield_init() {
+	if (g_bgq_gaugefield_initialized)
+		return;
+	g_bgq_gaugefield_initialized = true;
+
+	bgq_indices_init();
 	for (size_t isOdd = false; isOdd <= true; isOdd += 1) {
-		g_bgq_gaugefield_fromHalfvolume[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromHalfvolume[isOdd]), BGQ_ALIGNMENT_L2);
-		g_bgq_gaugefield_fromSurface[isOdd] = malloc_aligned(PHYSICAL_SURFACE * sizeof(*g_bgq_gaugefield_fromSurface[isOdd]), BGQ_ALIGNMENT_L2);
-		g_bgq_gaugefield_fromBody[isOdd] = malloc_aligned(PHYSICAL_BODY * sizeof(*g_bgq_gaugefield_fromBody[isOdd]), BGQ_ALIGNMENT_L2);
+		g_bgq_gaugefield_fromCollapsed[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromCollapsed[isOdd]), BGQ_ALIGNMENT_L2);
+		//g_bgq_gaugefield_fromHalfvolume[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromHalfvolume[isOdd]), BGQ_ALIGNMENT_L2);
+		//g_bgq_gaugefield_fromSurface[isOdd] = malloc_aligned(PHYSICAL_SURFACE * sizeof(*g_bgq_gaugefield_fromSurface[isOdd]), BGQ_ALIGNMENT_L2);
+		//g_bgq_gaugefield_fromBody[isOdd] = malloc_aligned(PHYSICAL_BODY * sizeof(*g_bgq_gaugefield_fromBody[isOdd]), BGQ_ALIGNMENT_L2);
 	}
+}
+
+
+static bgq_su3matrix bgq_gauge_coord_encode(scoord t, scoord x, scoord y, scoord z, bgq_direction d, bool isSrc) {
+	size_t t_global = bgq_local2global_t(t);
+	size_t x_global = bgq_local2global_x(x);
+	size_t y_global = bgq_local2global_y(y);
+	size_t z_global = bgq_local2global_z(z);
+	if (isSrc) {
+		bgq_direction_move_global(&t_global,&x_global,&y_global,&z_global,d);
+		d = bgq_direction_revert(d);
+	}
+
+	bgq_su3matrix gauge={{{0}}};
+	gauge.c[0][0] = t_global;
+	gauge.c[0][1] = x_global;
+	gauge.c[0][2] = y_global;
+	gauge.c[1][0] = z_global;
+	gauge.c[1][1] = d;
+
+	return gauge;
+}
+
+
+static void bgq_gaugeveck_store(bgq_gaugesu3 *target, ucoord k, bgq_su3matrix data) {
+	for (size_t i = 0; i < 3; i += 1) {
+		for (size_t l = 0; l < 3; l += 1) {
+			target->c[i][l][k] = data.c[i][l];
+		}
+	}
+}
+
+
+static void bgq_gaugeveck_written(bgq_gaugesu3 *target, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
+#if BGQ_COORDCHECK
+	bgq_su3matrix coord = bgq_gauge_coord_encode(t,x,y,z,d,isSrc);
+	bgq_gaugeveck_store(target, k, coord);
+#endif
 }
 
 
@@ -44,12 +88,13 @@ static void bgq_gaugefield_worker_transferfrom(void *arg_untyped, size_t tid, si
 
 		bool isOdd_src = isOdd;
 		bool isOdd_dst = !isOdd;
+		size_t ic_src = bgq_halfvolume2collapsed(isOdd_src, ih_src);
 
 		for (size_t k_src = 0; k_src < PHYSICAL_LK; k_src += 1) {
 			size_t t_src = bgq_halfvolume2t(isOdd_src, ih_src, k_src);
 			size_t x_src = bgq_halfvolume2x(ih_src);
 			size_t y_src = bgq_halfvolume2y(ih_src);
-			size_t z_src = bgq_halfvolume2y(ih_src);
+			size_t z_src = bgq_halfvolume2z(ih_src);
 			bool isSurface = bgq_halfvolume2isSurface(isOdd_src, ih_src);
 
 			for (size_t d_src = 0; d_src < PHYSICAL_LD; d_src += 1) {
@@ -79,20 +124,39 @@ static void bgq_gaugefield_worker_transferfrom(void *arg_untyped, size_t tid, si
 				su3_array64 *m = (su3_array64*) &sourcefield[ix][dim];
 				for (size_t i = 0; i < 3; i += 1) {
 					for (size_t l = 0; l < 3; l += 1) {
-						g_bgq_gaugefield_fromHalfvolume[isOdd][ih_src].su3[d_src].c[i][l][k_src] = m->c[i][l];
-						if (isSurface) {
-							size_t is_src = bgq_halfvolume2surface(isOdd_src, ih_src);
-							g_bgq_gaugefield_fromSurface[isOdd][is_src].su3[d_src].c[i][l][k_src] = m->c[i][l];
-						} else {
-							size_t ib_src = bgq_halfvolume2body(isOdd_src, ih_src);
-							g_bgq_gaugefield_fromBody[isOdd][ib_src].su3[d_src].c[i][l][k_src] = m->c[i][l];
-						}
+						COMPLEX_PRECISION val = m->c[i][l];
+						g_bgq_gaugefield_fromCollapsed[isOdd][ic_src].su3[d_src].c[i][l][k_src] = val;
 					}
 				}
+				bgq_gaugeveck_written(&g_bgq_gaugefield_fromCollapsed[isOdd][ic_src].su3[d_src], k_src, t_src, x_src, y_src, z_src, d_src, true);
 			}
 		}
 	}
 }
 void bgq_gaugefield_transferfrom(su3 **sourcefield) {
 	bgq_master_call(&bgq_gaugefield_worker_transferfrom, sourcefield);
+}
+
+
+void bgq_gauge_expect(bgq_su3matrix gauge, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
+#ifdef BGQ_COORDCHECK
+	size_t t_global = bgq_local2global_t(t);
+	size_t x_global = bgq_local2global_x(x);
+	size_t y_global = bgq_local2global_y(y);
+	size_t z_global = bgq_local2global_z(z);
+	if (isSrc) {
+		bgq_direction_move_global(&t_global, &x_global, &y_global, &z_global, d);
+		d = bgq_direction_revert(d);
+	}
+
+	assert(gauge.c[0][0] == t_global);
+	assert(gauge.c[0][1] == x_global);
+	assert(gauge.c[0][2] == y_global);
+	assert(gauge.c[1][0] == z_global);
+	assert(gauge.c[1][1] == d);
+	assert(gauge.c[1][2] == 0);
+	assert(gauge.c[2][0] == 0);
+	assert(gauge.c[2][1] == 0);
+	assert(gauge.c[2][2] == 0);
+#endif
 }
