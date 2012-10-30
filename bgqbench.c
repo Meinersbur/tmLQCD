@@ -79,6 +79,7 @@
 #include "bgq/bgq_qpx.h"
 #include "bgq/bgq_utils.h"
 #include "bgq/bgq_dispatch.h"
+#include "bgq/bgq_comm.h"
 #include <omp.h>
 #include "bgq/mypapi.h"
 
@@ -732,6 +733,8 @@ static void benchmark_hopmat(bgq_hmflags flags, int k, int k_max) {
 
 static void exec_bench(int j_max, int k_max) {
 	bgq_indices_init();
+	bgq_comm_init();
+
 	bgq_spinorfields_init(2*k_max+1, 0);
 
 	bgq_gaugefield_init();

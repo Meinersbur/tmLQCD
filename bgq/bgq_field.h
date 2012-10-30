@@ -376,9 +376,15 @@ typedef struct {
 typedef enum {
 	// Yes, the order is important for COMM_X==1
 
+	sec_collapsed,
+	sec_surface=sec_collapsed,
+	sec_body,
+	sec_collapsed_end=sec_body,
+
+	sec_comm,
 	// k==0
 	/* BEGIN consecutive */
-	sec_send_tup,
+	sec_send_tup=sec_comm,
 	sec_recv_tup,
 	/* END consecutive */
 
@@ -405,13 +411,11 @@ typedef enum {
 	sec_recv_ydown,
 	sec_recv_zup,
 	sec_recv_zdown,
+	sec_comm_end,
 
-	sec_collapsed,
-	sec_surface=sec_collapsed,
-	sec_body,
-
-	sec_end
+	sec_end=sec_comm_end
 } bgq_weylfield_section;//TODO: rename weyllayout
+
 
 EXTERN_INLINE bgq_direction bgq_section2direction(bgq_weylfield_section sec) {
 	switch (sec) {
@@ -503,10 +507,10 @@ typedef struct {
 	bool waitingForRecv; /* true==Need to wait for SPI recv and then copy data to consecutive area; false==All data available in sec_surface and sec_body */
 	bool hasFullspinorData;
 
-	uint8_t *sec_weyl; //TODO: can be made bgq_weyl_vec // corresponds to offset 0 for the following fields
-	bgq_weyl_vec *sec_index;
-	bgq_weyl_vec *sec_send[PHYSICAL_LD];
-	bgq_weyl_vec *sec_recv[PHYSICAL_LD];
+	uint8_t *sec_weyl;
+	bgq_weyl_vec *sec_index; // obsolete
+	bgq_weyl_vec *sec_send[PHYSICAL_LD]; // obsolete
+	bgq_weyl_vec *sec_recv[PHYSICAL_LD]; // obsolete
 	bgq_weylsite *sec_collapsed;
 	bgq_weylsite *sec_surface;
 	bgq_weylsite *sec_body;
@@ -1065,12 +1069,7 @@ EXTERN_INLINE bgq_weylfield_section bgq_direction2section(bgq_direction d, bool 
 
 
 EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
-#ifdef NDEBUG
 	size_t result = 0;
-#else
-	size_t result = sizeof(bgq_weyl_vec); // Do not use the first entries; "0" should signal an error
-	//WARNING: changes alignment, better use 2*sizeof(bgq_weylsite)
-#endif
 
 	for (bgq_weylfield_section sec = 0; sec < sec_end; sec += 1) {
 		if (section == sec)

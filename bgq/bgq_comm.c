@@ -17,6 +17,18 @@
 
 
 void bgq_comm_init() {
+	size_t commbufsize = bgq_weyl_section_offset(sec_comm_end) -  bgq_weyl_section_offset(sec_comm);
+
+	uint8_t *buf = (uint8_t*)malloc_aligned(commbufsize, BGQ_ALIGNMENT_L2);
+	g_bgq_sec_comm = buf;
+	for (bgq_direction d = 0; d < PHYSICAL_LD; d+=1) {
+		bgq_weylfield_section sec_send = bgq_direction2section(d, true);
+		g_bgq_sec_send[d] = (bgq_weyl_vec*)(buf + bgq_weyl_section_offset(sec_send));
+		bgq_weylfield_section sec_recv = bgq_direction2section(d, false);
+		g_bgq_sec_recv[d] = (bgq_weyl_vec*)(buf + bgq_weyl_section_offset(sec_recv));
+	}
+
+
 #ifdef SPI
 	  // here comes the SPI initialization
 	  uint64_t messageSizes[PHYSICAL_LD];

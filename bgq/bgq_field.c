@@ -206,7 +206,7 @@ static size_t bgq_weylfield_destoffsetForWeyl(bool isOdd, size_t ih_src, bgq_dir
 		assert((sec_write!=sec_body) && (sec_write!=sec_surface));
 		offset_write = bgq_offset_recv2send(offset_read);
 	}
-	assert(offset_write);
+	//assert(offset_write);
 	assert(0 <= offset_write && offset_write < bgq_weyl_section_offset(sec_end));
 	assert(!bgq_section2isRecv(bgq_sectionOfOffset(offset_write)));
 	return offset_write;
@@ -483,9 +483,9 @@ void bgq_indices_init() {
 				ucoord ic_src= bgq_collapsed_src2dst(isOdd_dst, ic_dst, d_dst);
 				bgq_direction d_src = bgq_direction_revert(d_dst);
 
-				if (tv_dst == 1 && d_dst==TUP) {
-					int a= 0;
-				}
+
+
+
 
 				if (sec != mainsec) {
 					// If in one of the mpi buffers, also reserve some space there
@@ -535,12 +535,12 @@ void bgq_indices_init() {
 		for (size_t is_dst = 0; is_dst < PHYSICAL_SURFACE; is_dst += 1) {
 			for (size_t d_dst = 0; d_dst < PHYSICAL_LD; d_dst += 1) {
 				size_t offset_is = g_bgq_is_dst2offset[isOdd][is_dst].d[d_dst];
-				assert(offset_is);
+				//assert(offset_is);
 				// For valgrind to check initialization
 
 				size_t ih_dst = bgq_surface2halfvolume(isOdd_dst, is_dst);
 				size_t offset_ih = g_bgq_ih_dst2offset[isOdd][ih_dst].d[d_dst];
-				assert(offset_ih);
+				//assert(offset_ih);
 
 				assert(offset_is == offset_ih);
 			}

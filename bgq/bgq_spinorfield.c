@@ -11,6 +11,7 @@
 #include "bgq_HoppingMatrix.h"
 #include "bgq_qpx.h"
 #include "bgq_dispatch.h"
+#include "bgq_comm.h"
 
 #include "../geometry_eo.h"
 
@@ -258,26 +259,30 @@ void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t threads)
 
 static bgq_weyl_vec *bgq_offset2pointer(uint8_t *weylbase, size_t offset) {
 	assert(weylbase);
-	assert(offset);
-	assert(bgq_weyl_section_offset(0) <= offset && offset < bgq_weyl_section_offset(sec_end));
+	//assert(offset);
 	assert(offset % sizeof(bgq_weyl_vec) == 0);
-	return (bgq_weyl_vec *)(weylbase + offset);
+	assert(bgq_weyl_section_offset(0) <= offset && offset < bgq_weyl_section_offset(sec_end));
+
+	if (offset >= bgq_weyl_section_offset(sec_comm)) {
+		// Communication buffers
+		size_t offset_comm = offset - bgq_weyl_section_offset(sec_comm);
+		return (bgq_weyl_vec *)(g_bgq_sec_comm + offset_comm);
+	} else {
+		// Main field
+		return (bgq_weyl_vec *)(weylbase + offset);
+	}
 }
 
 
 static bgq_weyl_vec *bgq_index2pointer(void *weylbase, ucoord index) {
-	assert(weylbase);
-	assert(index);
-	assert(bgq_offset2index(bgq_weyl_section_offset(0)) <= index && index < bgq_offset2index(bgq_weyl_section_offset(sec_end)));
-	bgq_weyl_vec *typed = weylbase;
-	return &typed[index];
+	return bgq_offset2pointer(weylbase, bgq_index2offset(index));
 }
 
 
 static bgq_weyl_vec *bgq_encodedoffset2pointer(uint8_t *weylbase, size_t code) {
 	size_t offset = bgq_decode_offset(code);
 	assert(offset % sizeof(bgq_weyl_vec) == 0);
-	assert(1 <= offset && offset < bgq_weyl_section_offset(sec_end));
+	assert(bgq_weyl_section_offset(0) <= offset && offset < bgq_weyl_section_offset(sec_end));
 	return bgq_offset2pointer(weylbase,offset);
 }
 
@@ -436,27 +441,21 @@ static void bgq_spinorfield_weyllayout_clear(bgq_weylfield_controlblock *field) 
 					bool isOdd_txyz = bgq_local2isOdd(t, x, y, z);
 					ucoord ic = bgq_local2collapsed(t, x, y, z);
 					ucoord k = bgq_local2k(t, x, y, z);
-					if (k==1) {
-						int a = 0;
-					}
+
+
+
 					for (ucoord d = 0; d < PHYSICAL_LD; d += 1) {
 						if (isOdd == isOdd_txyz) {
 							bgq_weyl_nonvec coord = bgq_weyl_coord_encode(t, x, y, z, d, false);
-							//assert(field->sec_collapsed <= &field->sec_collapsed[ic].d[d]);
-							//assert(&field->sec_collapsed[ic].d[d] < field->sec_end);
 							bgq_weylveck_write(&field->sec_collapsed[ic].d[d], k, coord);
 
 							ucoord index_recv = g_bgq_collapsed2indexrecv[isOdd][ic].d[d];
-							bgq_weylveck_write(&field->sec_index[index_recv], k, coord);
+							bgq_weylveck_write(bgq_index2pointer(field->sec_weyl, index_recv), k, coord);
 						} else {
 							bgq_weyl_nonvec coord_send = bgq_weyl_coord_encode(t, x, y, z, d, true);
-							//ucoord ic_dst = bgq_collapsed_src2dst(isOdd, ic, d);
 							bgq_direction d_dst = bgq_direction_revert(d);
 							ucoord index_send = g_bgq_collapsed2indexsend[isOdd][ic].d[d];
-							assert(index_send != 0);
-							//if (index_send != index_recv) {
-							bgq_weylveck_write(&field->sec_index[index_send], k, coord_send);
-							//}
+							bgq_weylveck_write(bgq_index2pointer(field->sec_weyl, index_send), k, coord_send);
 						}
 					}
 				}
@@ -570,18 +569,14 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 
 
 	if (actionAllocWeyllayout) {
-		size_t displacement = bgq_weyl_section_offset(0);
-		size_t weylfieldsize = bgq_weyl_section_offset(sec_end) - bgq_weyl_section_offset(0);
-		uint8_t *weylbase = ((uint8_t*)malloc_aligned(weylfieldsize, BGQ_ALIGNMENT_L2)) - displacement/*such that first offset points to invalid memory; for debugging*/;
-		//TODO: Also store a proper pointer to free it later
+		size_t weylfieldsize = PHYSICAL_VOLUME * sizeof(bgq_weylsite);
+		uint8_t *weylbase = ((uint8_t*)malloc_aligned(weylfieldsize, BGQ_ALIGNMENT_L2));
 
 		field->sec_weyl = weylbase;
 		field->sec_index = (bgq_weyl_vec*)weylbase;
-		//weylbase += displacement;
-
 		for (size_t d = 0; d < PHYSICAL_LD; d += 1) {
-			field->sec_send[d] = (bgq_weyl_vec*) (weylbase + bgq_weyl_section_offset(bgq_direction2section(d,true)));
-			field->sec_recv[d] = (bgq_weyl_vec*) (weylbase + bgq_weyl_section_offset(bgq_direction2section(d,false)));
+			field->sec_send[d] = g_bgq_sec_send[d];
+			field->sec_recv[d] = g_bgq_sec_recv[d];
 		}
 		field->sec_collapsed = (bgq_weylsite*) (weylbase + bgq_weyl_section_offset(sec_collapsed));
 		field->sec_surface = (bgq_weylsite*) (weylbase + bgq_weyl_section_offset(sec_surface));
