@@ -245,6 +245,8 @@ static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 	memset(g_bgq_spinorfields[k].sec_weyl, 0, bgq_weyl_section_offset(sec_end));
 	memset(g_bgq_spinorfields[k + k_max].sec_weyl, 0, bgq_weyl_section_offset(sec_end));
 #endif
+	// Flow:
+	// [k]isOdd -> [k+k_max]isEven -> [k]isOdd
 
 
 	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);

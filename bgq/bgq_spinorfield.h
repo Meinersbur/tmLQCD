@@ -57,6 +57,20 @@ EXTERN_INLINE bgq_weyl_vec bgq_weyl_fromqpx_raw(bgq_su3_weyl_params(weyl)) {
 }
 
 
+#define bgq_weyl_fromqpxk(arg,k) bgq_weyl_fromqpxk_raw(bgq_su3_weyl_vars(arg),k)
+EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_fromqpxk_raw(bgq_su3_weyl_params(weyl),ucoord k) {
+	bgq_weyl_nonvec result;
+	result.s[0][0] = bgq_cmplxval(weyl_v0_c0,k);
+	result.s[0][1] = bgq_cmplxval(weyl_v0_c1,k);
+	result.s[0][2] = bgq_cmplxval(weyl_v0_c2,k);
+	result.s[1][0] = bgq_cmplxval(weyl_v1_c0,k);
+	result.s[1][1] = bgq_cmplxval(weyl_v1_c1,k);
+	result.s[1][2] = bgq_cmplxval(weyl_v1_c2,k);
+	return result;
+}
+
+
+
 EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_extractvec(bgq_weyl_vec weylvec, size_t k) {
 	assert(0 <= k && k < PHYSICAL_LK);
 	bgq_weyl_nonvec result;
@@ -161,8 +175,29 @@ EXTERN_INLINE void bgq_spinorvec_expect(bgq_spinor_vec spinor, scoord t1, scoord
 
 #define bgq_spinorqpx_expect(spinor,t_left,t_right,x,y,z) bgq_spinorqpx_expect_raw(bgq_su3_spinor_vars(spinor),t_left,t_right,x,y,z)
 EXTERN_INLINE void bgq_spinorqpx_expect_raw(bgq_su3_spinor_params(spinor),scoord t_left,scoord t_right,scoord x,scoord y,scoord z) {
+#ifdef BGQ_COORDCHECK
 	bgq_spinor_expect(bgq_spinor_fromqpx(spinor,0),t_left,x,y,z);
 	bgq_spinor_expect(bgq_spinor_fromqpx(spinor,1),t_right,x,y,z);
+#endif
+}
+
+
+void bgq_weyl_expect(bgq_weyl_nonvec weyl, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
+
+#define bgq_weylqpx_expect(weyl,t1,t2,x,y,z,d,isSrc) bgq_weylqpx_expect_raw(bgq_su3_weyl_vars(weyl),t1,t2,x,y,z,d,isSrc)
+EXTERN_INLINE void bgq_weylqpx_expect_raw(bgq_su3_weyl_params(weyl), ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
+#ifdef BGQ_COORDCHECK
+	bgq_weyl_expect(bgq_weyl_fromqpxk(weyl,0),t1,x,y,z,d,isSrc);
+	bgq_weyl_expect(bgq_weyl_fromqpxk(weyl,1),t2,x,y,z,d,isSrc);
+#endif
+}
+
+
+#define bgq_weylqpxk_expect(weyl,k,t,x,y,z,d,isSrc) bgq_weylqpxk_expect_raw(bgq_su3_weyl_vars(weyl),k,t,x,y,z,d,isSrc)
+EXTERN_INLINE void bgq_weylqpxk_expect_raw(bgq_su3_weyl_params(weyl), ucoord k, ucoord t,  ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
+#ifdef BGQ_COORDCHECK
+	bgq_weyl_expect(bgq_weyl_fromqpxk(weyl,k),t,x,y,z,d,isSrc);
+#endif
 }
 
 

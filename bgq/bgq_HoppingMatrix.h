@@ -62,13 +62,14 @@ EXTERN_INLINE void bgq_HoppingMatrix_loadFulllayout_raw(bgq_su3_spinor_params(*t
 
 
 #define bgq_HoppingMatrix_loadWeyllayout(target, spinorsite, t_left, t_right, x,y,z) bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_vars(&target), spinorsite, t_left, t_right, x,y,z)
-EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_params(*target), bgq_weylsite *spinorsite,size_t t_left, size_t t_right, size_t x, size_t y, size_t z) {
+EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_params(*target), bgq_weylsite *spinorsite, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z) {
 	bgq_su3_spinor_decl(result);
 
 	// T+ //////////////////////////////////////////////////////////////////////////
 	{
 		bgq_su3_weyl_decl(weyl_tup);
 		bgq_su3_weyl_load_double(weyl_tup, &spinorsite->d[TUP]);
+		bgq_weylqpx_expect(weyl_tup, t1, t2, x, y, z, TUP, false);
 		bgq_su3_expand_weyl_tup(result, weyl_tup);
 	}
 
@@ -76,6 +77,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_params(*t
 	{
 		bgq_su3_weyl_decl(weyl_tdown);
 		bgq_su3_weyl_load_double(weyl_tdown, &spinorsite->d[TDOWN]);
+		bgq_weylqpx_expect(weyl_tdown, t1, t2, x, y, z, TDOWN, false);
 		bgq_su3_accum_weyl_tdown(result, weyl_tdown);
 	}
 
@@ -83,6 +85,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_params(*t
 	{
 		bgq_su3_weyl_decl(weyl_xup);
 		bgq_su3_weyl_load_double(weyl_xup, &spinorsite->d[XUP]);
+		bgq_weylqpx_expect(weyl_xup, t1, t2, x, y, z, XUP,false);
 		bgq_su3_accum_weyl_xup(result, weyl_xup);
 	}
 
@@ -90,6 +93,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_params(*t
 	{
 		bgq_su3_weyl_decl(weyl_xdown);
 		bgq_su3_weyl_load_double(weyl_xdown, &spinorsite->d[XDOWN]);
+		bgq_weylqpx_expect(weyl_xdown, t1, t2, x, y, z, XDOWN, false);
 		bgq_su3_accum_weyl_xdown(result, weyl_xdown);
 	}
 
@@ -97,6 +101,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_params(*t
 	{
 		bgq_su3_weyl_decl(weyl_yup);
 		bgq_su3_weyl_load_double(weyl_yup, &spinorsite->d[YUP]);
+		bgq_weylqpx_expect(weyl_yup, t1, t2, x, y, z, YUP,false);
 		bgq_su3_accum_weyl_yup(result, weyl_yup);
 	}
 
@@ -104,6 +109,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_params(*t
 	{
 		bgq_su3_weyl_decl(weyl_ydown);
 		bgq_su3_weyl_load_double(weyl_ydown, &spinorsite->d[YDOWN]);
+		bgq_weylqpx_expect(weyl_ydown, t1, t2, x, y, z, YDOWN,false);
 		bgq_su3_accum_weyl_ydown(result, weyl_ydown);
 	}
 
@@ -111,13 +117,15 @@ EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_params(*t
 	{
 		bgq_su3_weyl_decl(weyl_zup);
 		bgq_su3_weyl_load_double(weyl_zup, &spinorsite->d[ZUP]);
+		bgq_weylqpx_expect(weyl_zup, t1, t2, x, y, z, ZUP,false);
 		bgq_su3_accum_weyl_zup(result, weyl_zup);
 	}
 
 	// Z- //////////////////////////////////////////////////////////////////////////
 	{
 		bgq_su3_weyl_decl(weyl_zdown);
-		bgq_su3_weyl_load_double(weyl_zdown, &spinorsite->d[ZDOWN]);//TODO: Valgrind says invalid read
+		bgq_su3_weyl_load_double(weyl_zdown, &spinorsite->d[ZDOWN]);
+		bgq_weylqpx_expect(weyl_zdown, t1, t2, x, y, z, ZDOWN,false);
 		bgq_su3_accum_weyl_zdown(result, weyl_zdown);
 	}
 
@@ -194,7 +202,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_storeWeyllayout_raw(bgq_weyl_ptr_t *targetp
 #define bgq_HoppingMatrix_compute_storeWeyllayout(targetptrs,gaugesite,spinor,t1,t2,x,y,z) bgq_HoppingMatrix_compute_storeWeyllayout_raw(targetptrs,gaugesite,bgq_su3_spinor_vars(spinor),t1,t2,x,y,z)
 EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, bgq_gaugesite *gaugesite, bgq_su3_spinor_params(spinor), ucoord t1,ucoord t2,ucoord x,ucoord y,ucoord z) {
 	//TODO: prefetch targetptrs
-	bgq_spinorqpx_expect(spinor, t1, t2, x, y, z);
+	//bgq_spinorqpx_expect(spinor, t1, t2, x, y, z);
 
 	// T+ /////////////////////////////////////////////////////////////////////////
 	{
@@ -206,7 +214,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t 
 		bgq_gaugeqpx_expect(gauge_tup, t1, t2, x, y, z, TUP, true);
 		bgq_su3_weyl_mvmul(weyl_tup, gauge_tup, weyl_tup);
 
-		bgq_weylvec_expect(*targetptrs->d[TUP], t1, t2, x, y, z, TUP, true);
+		//bgq_weylvec_expect(*targetptrs->d[TUP], t1, t2, x, y, z, TUP, true);
 		bgq_su3_weyl_store_double(targetptrs->d[TUP], weyl_tup);
 		bgq_weylvec_written(targetptrs->d[TUP], t1, t2, x, y, z, TUP, true);
 	}
@@ -221,7 +229,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t 
 		bgq_gaugeqpx_expect(gauge_tdown, t1, t2, x, y, z, TDOWN, true);
 		bgq_su3_weyl_mvmul(weyl_tdown, gauge_tdown, weyl_tdown);
 
-		bgq_weylvec_expect(*targetptrs->d[TDOWN], t1, t2, x, y, z, TDOWN, true);
+		//bgq_weylvec_expect(*targetptrs->d[TDOWN], t1, t2, x, y, z, TDOWN, true);
 		bgq_su3_weyl_store_double(targetptrs->d[TDOWN], weyl_tdown);
 		bgq_weylvec_written(targetptrs->d[TDOWN], t1, t2, x, y, z, TDOWN, true);
 	}
@@ -236,7 +244,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t 
 		bgq_gaugeqpx_expect(gauge_xup, t1, t2, x, y, z, XUP, true);
 		bgq_su3_weyl_mvmul(weyl_xup, gauge_xup, weyl_xup);
 
-		bgq_weylvec_expect(*targetptrs->d[XUP], t1, t2, x, y, z, XUP, true);
+		//bgq_weylvec_expect(*targetptrs->d[XUP], t1, t2, x, y, z, XUP, true);
 		bgq_su3_weyl_store_double(targetptrs->d[XUP], weyl_xup);
 		bgq_weylvec_written(targetptrs->d[XUP], t1, t2, x,y,z,XUP, true);
 	}
@@ -251,7 +259,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t 
 		bgq_gaugeqpx_expect(gauge_xdown, t1, t2, x, y, z, XDOWN, true);
 		bgq_su3_weyl_mvmul(weyl_xdown, gauge_xdown, weyl_xdown);
 
-		bgq_weylvec_expect(*targetptrs->d[XDOWN], t1, t2, x, y, z, XDOWN, true);
+		//bgq_weylvec_expect(*targetptrs->d[XDOWN], t1, t2, x, y, z, XDOWN, true);
 		bgq_su3_weyl_store_double(targetptrs->d[XDOWN], weyl_xdown);
 		bgq_weylvec_written(targetptrs->d[XDOWN], t1, t2, x,y,z,XDOWN, true);
 	}
@@ -266,7 +274,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t 
 		bgq_gaugeqpx_expect(gauge_yup, t1, t2, x, y, z, YUP, true);
 		bgq_su3_weyl_mvmul(weyl_yup, gauge_yup, weyl_yup);
 
-		bgq_weylvec_expect(*targetptrs->d[YUP], t1, t2, x, y, z, YUP, true);
+		//bgq_weylvec_expect(*targetptrs->d[YUP], t1, t2, x, y, z, YUP, true);
 		bgq_su3_weyl_store_double(targetptrs->d[YUP], weyl_yup);
 		bgq_weylvec_written(targetptrs->d[YUP], t1, t2, x,y,z,YUP, true);
 	}
@@ -281,7 +289,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t 
 		bgq_gaugeqpx_expect(gauge_ydown, t1, t2, x, y, z, YDOWN, true);
 		bgq_su3_weyl_mvmul(weyl_ydown, gauge_ydown, weyl_ydown);
 
-		bgq_weylvec_expect(*targetptrs->d[YDOWN], t1, t2, x, y, z, YDOWN, true);
+		//bgq_weylvec_expect(*targetptrs->d[YDOWN], t1, t2, x, y, z, YDOWN, true);
 		bgq_su3_weyl_store_double(targetptrs->d[YDOWN], weyl_ydown);
 		bgq_weylvec_written(targetptrs->d[YDOWN], t1, t2, x,y,z,YDOWN, true);
 	}
@@ -296,7 +304,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t 
 		bgq_gaugeqpx_expect(gauge_zup, t1, t2, x, y, z, ZUP, true);
 		bgq_su3_weyl_mvmul(weyl_zup, gauge_zup, weyl_zup);
 
-		bgq_weylvec_expect(*targetptrs->d[ZUP], t1, t2, x, y, z, ZUP, true);
+		//bgq_weylvec_expect(*targetptrs->d[ZUP], t1, t2, x, y, z, ZUP, true);
 		bgq_su3_weyl_store_double(targetptrs->d[ZUP], weyl_zup);
 		bgq_weylvec_written(targetptrs->d[ZUP], t1, t2, x,y,z,ZUP, true);
 	}
@@ -311,7 +319,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t 
 		bgq_gaugeqpx_expect(gauge_zdown, t1, t2, x, y, z, ZDOWN, true);
 		bgq_su3_weyl_mvmul(weyl_zdown, gauge_zdown, weyl_zdown);
 
-		bgq_weylvec_expect(*targetptrs->d[ZDOWN], t1, t2, x, y, z, ZDOWN, true);
+		//bgq_weylvec_expect(*targetptrs->d[ZDOWN], t1, t2, x, y, z, ZDOWN, true);
 		bgq_su3_weyl_store_double(targetptrs->d[ZDOWN], weyl_zdown);
 		bgq_weylvec_written(targetptrs->d[ZDOWN], t1, t2, x,y,z,ZDOWN, true);
 	}

@@ -416,15 +416,12 @@ typedef struct {
 typedef enum {
 	// Yes, the order is important for COMM_X==1
 
-	sec_collapsed,
-	sec_surface=sec_collapsed,
+	sec_surface,
 	sec_body,
-	sec_collapsed_end=sec_body,
 
-	sec_comm,
 	// k==0
 	/* BEGIN consecutive */
-	sec_send_tup=sec_comm,
+	sec_send_tup,
 	sec_recv_tup,
 	/* END consecutive */
 
@@ -433,6 +430,7 @@ typedef enum {
 	sec_recv_tdown,
 	sec_send_tdown,
 	/* END consecutive */
+
 
 	/* BEGIN consecutive */
 	sec_send_xup,
@@ -451,9 +449,12 @@ typedef enum {
 	sec_recv_ydown,
 	sec_recv_zup,
 	sec_recv_zdown,
-	sec_comm_end,
+	sec_end,
 
-	sec_end=sec_comm_end
+	sec_collapsed=sec_surface,
+	sec_collapsed_end=sec_send_tup,
+	sec_comm=sec_send_tup,
+	sec_comm_end=sec_end
 } bgq_weylfield_section;//TODO: rename weyllayout
 
 
@@ -1091,17 +1092,17 @@ EXTERN_INLINE bgq_weylfield_section bgq_direction2section(bgq_direction d, bool 
 	case TDOWN:
 		return isSend ? sec_send_tdown : sec_recv_tdown;
 	case XUP:
-		return isSend ? sec_send_tup : sec_recv_tup;
+		return isSend ? sec_send_xup : sec_recv_xup;
 	case XDOWN:
-		return isSend ? sec_send_tdown : sec_recv_tdown;
+		return isSend ? sec_send_xdown : sec_recv_xdown;
 	case YUP:
-		return isSend ? sec_send_tup : sec_recv_tup;
+		return isSend ? sec_send_yup : sec_recv_yup;
 	case YDOWN:
-		return isSend ? sec_send_tdown : sec_recv_tdown;
+		return isSend ? sec_send_ydown : sec_recv_ydown;
 	case ZUP:
-		return isSend ? sec_send_tup : sec_recv_tup;
+		return isSend ? sec_send_zup : sec_recv_zup;
 	case ZDOWN:
-		return isSend ? sec_send_tdown : sec_recv_tdown;
+		return isSend ? sec_send_zdown : sec_recv_zdown;
 	default:
 		UNREACHABLE
 	}
@@ -1337,6 +1338,8 @@ EXTERN_INLINE ucoord bgq_collapsed_src2dst(bool isOdd_src, ucoord ic_src, bgq_di
 }
 
 
+
+size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr) ;
 
 
 #undef EXTERN_INLINE

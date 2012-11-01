@@ -389,6 +389,7 @@ static void bgq_HoppingMatrix_worker_body_readWeyllayout(void *arg, size_t tid, 
 	for (size_t ib = begin; ib<end; ib+=1) {
 		//TODO: Check optaway
 		size_t ih = bgq_body2halfvolume(isOdd,ib);
+		ucoord ic = bgq_body2collapsed(ib);
 		size_t t1 = bgq_halfvolume2t1(isOdd,ih);
 		size_t t2 = bgq_halfvolume2t2(isOdd,ih);
 		size_t x = bgq_halfvolume2x(ih);
@@ -397,14 +398,14 @@ static void bgq_HoppingMatrix_worker_body_readWeyllayout(void *arg, size_t tid, 
 
 		//TODO: Check strength reduction
 		bgq_weylsite *weylsite = &spinorfield->sec_body[ib];
-		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromBody[isOdd][ib];
-		bgq_weyl_ptr_t *destptrs = &targetfield->destptrFromBody[ib];
+		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][ic];
+		bgq_weyl_ptr_t *destptrs = &targetfield->sendptr[ic];
 
 		//TODO: prefetching
 		//TODO: Check inlining
 		bgq_su3_spinor_decl(spinor);
-		bgq_HoppingMatrix_loadWeyllayout(spinor, weylsite, t1, t2, x,y,z);
-		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor,t1,t2,x,y,z);
+		bgq_HoppingMatrix_loadWeyllayout(spinor, weylsite, t1, t2, x, y, z);
+		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z);
 	}
 }
 
@@ -437,7 +438,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	};
 
 
-	// 0. Expect data from other neighbot node
+	// 0. Expect data from other neighbor node
 	bgq_comm_recv();
 
 	// 1. Distribute

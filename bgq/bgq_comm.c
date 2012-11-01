@@ -23,45 +23,25 @@ static MPI_Request g_bgq_request_send[COMMDIR_COUNT];
 
 static bgq_dimension bgq_commdim2dimension(ucoord commdim) {
 	assert(0 <= commdim && commdim < COMMDIR_COUNT);
-if (COMM_T) {
-	if (commdim == 0)
-		return DIM_T;
-	commdim-=1;
-}
-if (COMM_X) {
-	if (commdim ==0)
-		return DIM_X;
-	commdim-=1;
-}
-if (COMM_Y) {
-	if (commdim == 0)
-		return DIM_Y;
-	commdim-=1;
-}
-assert(COMM_Z);
-assert(commdim==0);
-return DIM_Z;
-}
-
-#if 0
-static ucoord bgq_dimension2commdim(bgq_dimension dim) {
-	assert(bgq_dimension_isDistributed(dim));
-	switch (dim) {
-	case DIM_T:
-		assert(COMM_T);
-		return COMM_ORD_T;
-	case DIM_X:
-		assert(COMM_X);
-		return COMM_ORD_X;
-	case DIM_Y:
-		assert(COMM_Y);
-		return COMM_ORD_Y;
-	case DIM_Z:
-		assert(COMM_Z);
-		return COMM_ORD_Z;
+	if (COMM_T) {
+		if (commdim == 0)
+			return DIM_T;
+		commdim -= 1;
 	}
+	if (COMM_X) {
+		if (commdim == 0)
+			return DIM_X;
+		commdim -= 1;
+	}
+	if (COMM_Y) {
+		if (commdim == 0)
+			return DIM_Y;
+		commdim -= 1;
+	}
+	assert(COMM_Z);
+	assert(commdim==0);
+	return DIM_Z;
 }
-#endif
 
 
 static ucoord bgq_direction2commdir(bgq_direction d) {
@@ -164,19 +144,23 @@ static int bgq_direction2rank(bgq_direction d) {
 
 
 void bgq_comm_init() {
-	size_t commbufsize = bgq_weyl_section_offset(sec_comm_end) -  bgq_weyl_section_offset(sec_comm);
+	size_t commbufsize = bgq_weyl_section_offset(sec_comm_end) - bgq_weyl_section_offset(sec_comm);
 
 	uint8_t *buf = (uint8_t*)malloc_aligned(commbufsize, BGQ_ALIGNMENT_L2);
+	uint8_t *bufend = buf + commbufsize;
 	g_bgq_sec_comm = buf;
 	for (bgq_direction d = 0; d < PHYSICAL_LD; d+=1) {
 		bgq_weylfield_section sec_send = bgq_direction2section(d, true);
-		g_bgq_sec_send[d] = (bgq_weyl_vec*)(buf + bgq_weyl_section_offset(sec_send));
+		g_bgq_sec_send[d] = (bgq_weyl_vec*)(buf + bgq_weyl_section_offset(sec_send) - bgq_weyl_section_offset(sec_comm));
+		assert((uint8_t*)g_bgq_sec_send[d] < bufend);
 		bgq_weylfield_section sec_recv = bgq_direction2section(d, false);
-		g_bgq_sec_recv[d] = (bgq_weyl_vec*)(buf + bgq_weyl_section_offset(sec_recv));
+		g_bgq_sec_recv[d] = (bgq_weyl_vec*)(buf + bgq_weyl_section_offset(sec_recv) - bgq_weyl_section_offset(sec_comm));
+		assert((uint8_t*)g_bgq_sec_recv[d] < bufend);
 	}
 
 
 	for (ucoord d_src = 0; d_src < PHYSICAL_LD; d_src+=1) {
+		bgq_direction d_dst = bgq_direction_revert(d_src);
 		bgq_dimension dim = bgq_direction2dimension(d_src);
 		if (!bgq_direction_isDistributed(d_src))
 			continue;
@@ -184,13 +168,12 @@ void bgq_comm_init() {
 		ucoord commdir_src = bgq_direction2commdir(d_src);
 		bgq_weylfield_section sec_recv = bgq_direction2section(d_src, false);
 		size_t secsize = bgq_weyl_section_offset(sec_recv+1) - bgq_weyl_section_offset(sec_recv);
-		MPI_CHECK(MPI_Recv_init(g_bgq_sec_recv[d_src], secsize / sizeof(double), MPI_DOUBLE, bgq_direction2rank(d_src), d_src, g_cart_grid, &g_bgq_request_recv[d_src]));
+		MPI_CHECK(MPI_Recv_init(g_bgq_sec_recv[d_src], secsize / sizeof(double), MPI_DOUBLE, bgq_direction2rank(d_src), d_dst, g_cart_grid, &g_bgq_request_recv[commdir_src]));
 
-		bgq_direction d_dst = bgq_direction_revert(d_src);
-		bgq_weylfield_section sec_send = bgq_direction2section(d_dst, true);
 		ucoord commdir_dst = bgq_direction2commdir(d_dst);
+		bgq_weylfield_section sec_send = bgq_direction2section(d_dst, true);
 		assert(secsize == bgq_weyl_section_offset(sec_send+1) - bgq_weyl_section_offset(sec_send));
-		MPI_CHECK(MPI_Send_init(g_bgq_sec_send[d_dst], secsize / sizeof(double), MPI_DOUBLE, bgq_direction2rank(d_dst), d_dst, g_cart_grid, &g_bgq_request_send[d_dst]));
+		MPI_CHECK(MPI_Send_init(g_bgq_sec_send[d_dst], secsize / sizeof(double), MPI_DOUBLE, bgq_direction2rank(d_dst), d_dst, g_cart_grid, &g_bgq_request_send[commdir_dst]));
 	}
 
 
@@ -342,18 +325,21 @@ void bgq_comm_init() {
 }
 
 
-
+//TODO: inline?
 void bgq_comm_recv() {
+//	return;
 	MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_recv));
 }
 
 
 void bgq_comm_send() {
+//	return;
 	MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_send));
 }
 
 
 void bgq_comm_wait() {
+//	return;
 	MPI_Status recv_status[COMMDIR_COUNT];
 	MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_recv, recv_status));
 

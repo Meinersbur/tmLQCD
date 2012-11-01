@@ -12,7 +12,7 @@
 #include "bgq_HoppingMatrix.h"
 #include "bgq_dispatch.h"
 #include "bgq_qpx.h"
-
+#include "bgq_comm.h"
 
 static bgq_weylfield_section bgq_section_commbuftran(bgq_weylfield_section sec, bool isSendSide) {
 	switch (sec) {
@@ -213,8 +213,6 @@ static size_t bgq_weylfield_destoffsetForWeyl(bool isOdd, size_t ih_src, bgq_dir
 }
 
 
-
-
 size_t bgq_weyllayout_halfvolume2consecutiveoffset(bool isOdd_dst, size_t ih_dst, bgq_direction d_dst) {
 	bool isSurface = bgq_halfvolume2isSurface(isOdd_dst, ih_dst);
 	if (isSurface) {
@@ -225,6 +223,7 @@ size_t bgq_weyllayout_halfvolume2consecutiveoffset(bool isOdd_dst, size_t ih_dst
 		return bgq_weyl_section_offset(sec_body) + ib_dst*sizeof(bgq_weylsite) + d_dst * sizeof(bgq_weyl_vec);
 	}
 }
+
 
 bgq_direction bgq_offset2ddst(size_t offset) {
 	bgq_weylfield_section sec = bgq_sectionOfOffset(offset);
@@ -699,6 +698,18 @@ void bgq_spinorfields_init(size_t std_count, size_t chi_count) {
 
 
 
+size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr) {
+	size_t commsize = bgq_weyl_section_offset(sec_comm_end) - bgq_weyl_section_offset(sec_comm);
+	size_t collapsedsize = bgq_weyl_section_offset(sec_end) - bgq_weyl_section_offset(sec_collapsed);
+	if (g_bgq_sec_comm <= (uint8_t*)ptr && (uint8_t*)ptr < g_bgq_sec_comm + commsize) {
+		return (uint8_t*)ptr - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
+	} else if ((uint8_t*)field->sec_collapsed <= (uint8_t*)ptr && (uint8_t*)ptr < (uint8_t*)field->sec_collapsed + collapsedsize) {
+		return (uint8_t*)ptr - (uint8_t*)field->sec_collapsed + bgq_weyl_section_offset(sec_collapsed);
+	} else {
+		assert(!"Pointer to non-field location");
+		UNREACHABLE;
+	}
+}
 
 
 
