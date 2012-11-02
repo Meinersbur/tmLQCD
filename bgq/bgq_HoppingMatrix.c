@@ -397,6 +397,10 @@ static void bgq_HoppingMatrix_kamul_worker_surface_precomm_readWeyllayout(void *
 		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][ic];
 		bgq_weyl_ptr_t *destptrs = &targetfield->sendptr[ic];
 
+		if (ic == 0) {
+			int b = 0;
+		}
+
 		//TODO: prefetching
 		//TODO: Check inlining
 		bgq_su3_spinor_decl(spinor);
@@ -466,6 +470,10 @@ static void bgq_HoppingMatrix_kamul_worker_body_readFulllayout(void *arg, size_t
 		bgq_spinorsite *spinorsite = &spinorfield->sec_fullspinor[ic];
 		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][ic];
 		bgq_weyl_ptr_t *destptrs = &targetfield->sendptr[ic];
+
+		if (ic == 6) {
+			int x = 0;
+		}
 
 		//TODO: prefetching
 		//TODO: Check inlining

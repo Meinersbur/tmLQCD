@@ -312,6 +312,7 @@ void bgq_setbgqvalue(int t, int x, int y, int z, bgqref idx, complexdouble val);
 void bgq_setbgqvalue_src(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bgqref idx, complexdouble val);
 void bgq_savebgqref();
 
+size_t bgq_fieldpointer2offset(void *ptr);
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

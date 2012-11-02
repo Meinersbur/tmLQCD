@@ -208,22 +208,24 @@ static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t t
 	bgq_weylfield_controlblock *spinorfield = argptr;
 	bool isOdd = spinorfield->isOdd;
 
-	const size_t workload_recvt = 2*(COMM_T ? 2*LOCAL_HALO_T/PHYSICAL_LP : LOCAL_HALO_T/PHYSICAL_LP);
+	const size_t workload_recvt = COMM_T ? 2*LOCAL_HALO_T/PHYSICAL_LP : LOCAL_HALO_T/PHYSICAL_LP;
 	const size_t workload_recv = 2*PHYSICAL_HALO_X + 2*PHYSICAL_HALO_Y + 2*PHYSICAL_HALO_Z;
-	const size_t workload = workload_recvt + workload_recv;
+	const size_t workload = 2*workload_recvt + workload_recv;
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = tid*threadload;
 	const size_t end = min(workload, begin+threadload);
 	for (size_t i = begin; i<end; ) {
 		WORKLOAD_DECL(i,workload);
 
-		if (WORKLOAD_SPLIT(workload_recvt)) {
+		if (WORKLOAD_SPLIT(2*workload_recvt)) {
 			// Do T-dimension
 
 #if COMM_T
-			// Count an T-iteration twice; better have few underloaded threads (so remaining SMT-threads have some more ressources) then few overloaded threads (so the master thread has to wait for them)
-			size_t beginj = WORKLOAD_PARAM(2*2*LOCAL_HALO_T/PHYSICAL_LP)/2;
-			size_t endj = min(2*LOCAL_HALO_T/PHYSICAL_LP,beginj+threadload/2);
+			// Count an T-iteration twice; better have few underloaded threads (so remaining SMT-threads have some more resources) then few overloaded threads (so the master thread has to wait for them)
+			size_t twobeginj = WORKLOAD_PARAM(2*workload_recvt);
+			size_t twoendj = min(2*workload_recvt,twobeginj+threadload);
+			size_t beginj = twobeginj/2;
+			size_t endj = twoendj / 2;
 			for (size_t j = beginj; j < endj; j+=1) {
 				size_t offset_left = (uint8_t*)&g_bgq_sec_recv[TDOWN][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
 				ucoord index_left = bgq_offset2index(offset_left);
@@ -274,7 +276,7 @@ static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t t
 				bgq_su3_weyl_store_double(weyladdr_dst, weyl);
 				bgq_weylvec_written(weyladdr_dst, t1, t2, x, y, z, d, false);
 			}
-			i += 2*(endj - beginj);
+			i += (twoendj - twobeginj);
 #else
 			assert(!"yet implemented");
 #endif
@@ -777,9 +779,9 @@ bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, ucoord t
 	} else if (field->hasWeylfieldData) {
 		bgq_spinorfield_setup(field, field->isOdd, false, false, true, false);
 		bgq_su3_spinor_decl(spinor);
-		size_t offset = bgq_pointer2offset(field, &field->sec_collapsed[ic].d[TDOWN]);
+		size_t offset = bgq_pointer2offset(field, &field->sec_collapsed[ic].d[XUP]);
 		ucoord index = bgq_offset2index(offset);
-		bgq_HoppingMatrix_loadWeyllayout(spinor,&field->sec_collapsed[ic], bgq_t2t(t,0), bgq_t2t(t,1), x,y,z);
+		bgq_HoppingMatrix_loadWeyllayout(spinor,&field->sec_collapsed[ic], bgq_t2t(t,0), bgq_t2t(t,1), x, y, z);
 		return bgq_spinor_fromqpx(spinor,k);
 	} else {
 		assert(!"Field contains no data");
@@ -941,3 +943,25 @@ void bgq_savebgqref() {
 
 
 
+size_t bgq_fieldpointer2offset(void *ptr) {
+	size_t commsize = bgq_weyl_section_offset(sec_comm_end) - bgq_weyl_section_offset(sec_comm);
+	size_t collapsedsize = bgq_weyl_section_offset(sec_end) - bgq_weyl_section_offset(sec_collapsed);
+	if (g_bgq_sec_comm <= (uint8_t*)ptr && (uint8_t*)ptr < g_bgq_sec_comm + commsize) {
+		return (uint8_t*)ptr - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
+	}
+
+	for (size_t i = 0; i < g_bgq_spinorfields_count; i+=1) {
+		bgq_weylfield_controlblock *field = &g_bgq_spinorfields[i];
+		if (!field->isInitinialized)
+			continue;
+		if (!field->sec_weyl)
+			continue;
+
+		if ((uint8_t*)field->sec_collapsed <= (uint8_t*)ptr && (uint8_t*)ptr < (uint8_t*)field->sec_collapsed + collapsedsize) {
+			return (uint8_t*)ptr - (uint8_t*)field->sec_collapsed + bgq_weyl_section_offset(sec_collapsed);
+		}
+	}
+
+	assert(!"not a pointer into a spinorfield");
+return -1;
+}

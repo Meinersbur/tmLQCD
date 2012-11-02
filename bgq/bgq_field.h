@@ -1297,6 +1297,9 @@ EXTERN_INLINE ucoord bgq_collapsed_src2dst(bool isOdd_src, ucoord ic_src, bgq_di
 size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr) ;
 
 
+EXTERN_FIELD size_t g_bgq_spinorfields_count;
+
+
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD
 #undef EXTERN_INIT
