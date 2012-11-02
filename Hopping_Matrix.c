@@ -155,7 +155,6 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k) {
 #    endif
 
 #    ifdef OMP
-  xdfdfgjhdfghdfghdf
 #      pragma omp parallel
   {
 #    endif
