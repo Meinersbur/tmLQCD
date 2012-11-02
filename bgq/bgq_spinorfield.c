@@ -15,7 +15,9 @@
 
 #include "../geometry_eo.h"
 
+
 #include <mpi.h>
+#include <sys/stat.h>
 
 
 
@@ -57,6 +59,7 @@ double bgq_spinorfield_compare(bool isOdd, bgq_weylfield_controlblock *bgqfield,
 					size_t k = bgq_local2k(t, x, y, z);
 					bgq_spinor bgqspinor = bgq_spinorfield_getspinor(bgqfield, t,x,y,z);
 
+					bool first = true;
 					for (size_t v = 0; v < 4; v += 1) {
 						for (size_t c = 0; c < 3; c += 1) {
 							complexdouble bgqvalue = bgqspinor.v[v].c[c];
@@ -65,9 +68,11 @@ double bgq_spinorfield_compare(bool isOdd, bgq_weylfield_controlblock *bgqfield,
 							double diff = cabs(bgqvalue - refvalue);
 
 							if (diff > 0.01) {
-								if (!silent)
+								if (!silent && first)
 									master_print("Coordinate (%zu,%zu,%zu,%zu)(%zu,%zu): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t, x, y, z, v, c, creal(refvalue), cimag(refvalue), creal(bgqvalue), cimag(bgqvalue), diff);
-								count += 1;
+								if (first)
+									count += 1;
+								first = false;
 							}
 							if (diff > diff_max) {
 								diff_max = diff;
@@ -80,8 +85,7 @@ double bgq_spinorfield_compare(bool isOdd, bgq_weylfield_controlblock *bgqfield,
 	}
 
 	double global_diff_max;
-	MPI_Allreduce(&diff_max, &global_diff_max, 2, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-	return diff_max;
+	MPI_Allreduce(&diff_max, &global_diff_max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
 	if (count > 0) {
 		if (!silent)
@@ -249,17 +253,22 @@ static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t t
 				bgq_su3_weyl_decl(weyl_left);
 				bgq_su3_weyl_load_double(weyl_left, weyladdr_left);
 				bgq_weylqpxk_expect(weyl_left, 1, t1, x, y, z, d1, false);
+				assert(bgq_elem2(weyl_left_v0_c0)!=0); // for valgrind
 
 				bgq_su3_weyl_decl(weyl_right);
 				bgq_su3_weyl_load_double(weyl_right, weyladdr_right);
 				bgq_weylqpxk_expect(weyl_right, 0, t2, x, y, z, d2, false);
+				assert(bgq_elem0(weyl_right_v0_c0)!=0);// for valgrind
 
 				bgq_su3_weyl_decl(weyl);
 				bgq_su3_weyl_merge2(weyl, weyl_left, weyl_right);
 				bgq_weylqpx_expect(weyl, t1, t2, x, y, z, d, false);
 
 				//bgq_weylvec_expect(*weyladdr_dst, t1,t2,x,y,z,d,false);
-				ucoord index = bgq_offset2index(bgq_pointer2offset(spinorfield,weyladdr_dst));
+				size_t offset = bgq_pointer2offset(spinorfield, weyladdr_dst);
+				ucoord index = bgq_offset2index(offset);
+				bgq_weylfield_section sec = bgq_sectionOfOffset(offset);
+				assert(sec==sec_body || sec==sec_surface);
 				ucoord ic_check = g_bgq_index2collapsed[isOdd][index];
 				assert(ic == ic_check);
 				bgq_su3_weyl_store_double(weyladdr_dst, weyl);
@@ -503,7 +512,7 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 	if (writeWeyl) {
 		if (field->waitingForRecv) {
 			// The means we are overwriting data that has never been read
-			master_print("PERFORMANCE WARNING: Overwriting data not yet received from remote node, i.e. has never been used yet\n");
+			//master_print("PERFORMANCE WARNING: Overwriting data not yet received from remote node, i.e. has never been used yet\n");
 			actionWaitForRecv = true;
 		}
 
@@ -700,7 +709,8 @@ static void bgq_spinorfield_fullspinor2weyl(bgq_weylfield_controlblock *field) {
 	bgq_conversion_args args = {
 			.field = field
 	};
-	bgq_master_call(&bgq_spinorfield_fullspinor2weyl_worker, &args); field->hasWeylfieldData = true;
+	bgq_master_call(&bgq_spinorfield_fullspinor2weyl_worker, &args);
+	field->hasWeylfieldData = true;
 }
 
 
@@ -722,7 +732,7 @@ void bgq_spinorfield_transfer(bool isOdd, bgq_weylfield_controlblock *targetfiel
 		ucoord ic = bgq_local2collapsed(t,x,y,z);
 		ucoord k = bgq_local2k(t,x,y,z);
 		bgq_spinorsite *targetspinor = &targetfield->sec_fullspinor[ic];
-		bgq_spinorveck_expect(*targetspinor, k, t,x,y,z);
+		//bgq_spinorveck_expect(*targetspinor, k, t,x,y,z);
 		for (int v = 0; v < 4; v+=1) {
 			for (int c = 0; c < 3; c+=1) {
 				targetspinor->s[v][c][k] = sourcespinor->v[v].c[c];
@@ -733,19 +743,42 @@ void bgq_spinorfield_transfer(bool isOdd, bgq_weylfield_controlblock *targetfiel
 }
 
 
+bgq_spinor bgq_legacy_getspinor(spinor *spinor, ucoord t, ucoord x, ucoord y, ucoord z) {
+	assert(0 <= t && t < LOCAL_LT);
+	assert(0 <= x && x < LOCAL_LX);
+	assert(0 <= y && y < LOCAL_LY);
+	assert(0 <= z && z < LOCAL_LZ);
+
+	int ix = g_ipt[t][x][y][z]; /* lexic coordinate */
+	assert(ix == Index(t,x,y,z));
+	int iy = g_lexic2eo[ix]; /* even/odd coordinate (even and odd sites in two different fields of size VOLUME/2, first even field followed by odd) */
+	assert(0 <= iy && iy < (VOLUME+RAND));
+	int icx = g_lexic2eosub[ix]; /*  even/odd coordinate relative to field base */
+	assert(0 <= icx && icx < VOLUME/2);
+
+	bgq_spinor *result = (bgq_spinor*)&spinor[icx];
+	return *result;;
+}
+
+
 bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, ucoord t, ucoord x, ucoord y, ucoord z) {
 	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
 
+	assert(bgq_local2isOdd(t,x,y,z)==field->isOdd);
 	ucoord ic = bgq_local2collapsed(t,x,y,z);
 	ucoord k = bgq_local2k(t,x,y,z);
 	if (field->hasFullspinorData) {
+		bgq_spinorfield_setup(field, field->isOdd, true, false, false, false);
 		bgq_spinorsite spinor = field->sec_fullspinor[ic];
 		return bgq_spinor_fromvec(spinor,k);
 	} else if (field->hasWeylfieldData) {
+		bgq_spinorfield_setup(field, field->isOdd, false, false, true, false);
 		bgq_su3_spinor_decl(spinor);
+		size_t offset = bgq_pointer2offset(field, &field->sec_collapsed[ic].d[TDOWN]);
+		ucoord index = bgq_offset2index(offset);
 		bgq_HoppingMatrix_loadWeyllayout(spinor,&field->sec_collapsed[ic], bgq_t2t(t,0), bgq_t2t(t,1), x,y,z);
 		return bgq_spinor_fromqpx(spinor,k);
 	} else {
@@ -753,3 +786,158 @@ bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, ucoord t
 		UNREACHABLE
 	}
 }
+
+
+
+
+
+char *(g_idxdesc[BGQREF_count]);
+complexdouble *g_bgqvalue = NULL;
+complexdouble *g_refvalue = NULL;
+
+
+void bgq_initbgqref() {
+	int datasize = sizeof(complexdouble) * VOLUME * lengthof(g_idxdesc);
+	if (g_refvalue == NULL) {
+		g_bgqvalue = malloc_aligned(datasize, BGQ_ALIGNMENT_L2);
+		g_refvalue = malloc_aligned(datasize, BGQ_ALIGNMENT_L2);
+	}
+	memset(g_bgqvalue, 0xFF, datasize);
+	memset(g_refvalue, 0xFF, datasize);
+
+	for (int idx = 0; idx <  lengthof(g_idxdesc); idx+=1) {
+		g_idxdesc[idx] = NULL;
+	}
+}
+
+
+void bgq_setdesc(int idx, char *desc){
+	g_idxdesc[idx] = desc;
+}
+
+void bgq_setrefvalue(int t, int x, int y, int z, bgqref idx, complexdouble val) {
+	if (t < 0)
+		t = 0;
+	if (t >= LOCAL_LT)
+		t = LOCAL_LT-1;
+	if (x < 0)
+		x = 0;
+	if (x >= LOCAL_LX)
+		x = LOCAL_LX-1;
+	if (y < 0)
+		y = 0;
+	if (y >= LOCAL_LY)
+		y = LOCAL_LY-1;
+	if (z < 0)
+		z = 0;
+	if (z >= LOCAL_LZ)
+		z = LOCAL_LZ-1;
+	g_refvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z] = val;
+	if (!g_idxdesc[idx])
+		g_idxdesc[idx] = "";
+}
+void bgq_setbgqvalue(int t, int x, int y, int z, bgqref idx, complexdouble val) {
+	if (idx==BGQREF_TUP && t==0 && x==0 && y==0 && z==0) {
+		int a = 0;
+	}
+
+	if (t < 0)
+		t = 0;
+	if (t >= LOCAL_LT)
+		t = LOCAL_LT-1;
+	if (x < 0)
+		x = 0;
+	if (x >= LOCAL_LX)
+		x = LOCAL_LX-1;
+	if (y < 0)
+		y = 0;
+	if (y >= LOCAL_LY)
+		y = LOCAL_LY-1;
+	if (z < 0)
+		z = 0;
+	if (z >= LOCAL_LZ)
+		z = LOCAL_LZ-1;
+	g_bgqvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z] = val;
+	if (!g_idxdesc[idx])
+		g_idxdesc[idx] = "";
+}
+
+void bgq_setbgqvalue_src(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bgqref idx, complexdouble val) {
+	bgq_direction_move_local(&t, &x, &y, &z, d);
+	bgq_setbgqvalue(t, x, y, z, idx, val);
+}
+
+void bgq_savebgqref() {
+	if (g_proc_id != 0)
+		return;
+
+	int i = 0;
+	while (true) {
+		char filename[100];
+		snprintf(filename, sizeof(filename)-1, "cmp_%d.txt", i);
+
+		struct stat buf;
+		if (stat(filename, &buf) != -1) {
+			master_print("MK file %s already exists\n", filename);
+			i += 1;
+			continue;
+		}
+
+		// Create marker file
+		FILE *file =  fopen(filename, "w");
+		fclose(file);
+
+		break;
+	}
+
+	for (int idx = 0; idx <  lengthof(g_idxdesc); idx+=1) {
+		if (!g_idxdesc[idx])
+			continue;
+
+		char reffilename[100];
+		char refdir[100];
+		snprintf(refdir, sizeof(refdir)-1, "cmpref");
+		snprintf(reffilename, sizeof(reffilename)-1, "%s/cmp_idx%02d_%s.txt", refdir, idx, g_idxdesc[idx]);
+
+		char bgqdir[100];
+		char bgqfilename[100];
+		snprintf(bgqdir, sizeof(bgqdir)-1, "cmpbgq");
+		snprintf(bgqfilename, sizeof(bgqfilename)-1, "%s/cmp_idx%02d_%s.txt", bgqdir, idx, g_idxdesc[idx]);
+		master_print("Cmp Going to write to %s and %s\n", reffilename, bgqfilename);
+
+		mkdir(refdir, S_IRWXU | S_IRWXG | S_IRWXO);
+		mkdir(bgqdir, S_IRWXU | S_IRWXG | S_IRWXO);
+
+		FILE *reffile = fopen(reffilename, "w");
+		FILE *bgqfile = fopen(bgqfilename, "w");
+
+		fprintf(reffile, "%s\n\n", g_idxdesc[idx]);
+		fprintf(bgqfile, "%s\n\n", g_idxdesc[idx]);
+
+		for (int t = 0; t < LOCAL_LT; t += 1) {
+			for (int x = 0; x < LOCAL_LX; x += 1) {
+				for (int y = 0; y < LOCAL_LY; y += 1) {
+					fprintf(reffile, "t=%d x=%d y=%d: ", t,x,y);
+					fprintf(bgqfile, "t=%d x=%d y=%d: ", t,x,y);
+					for (int z = 0; z < LOCAL_LZ; z += 1) {
+						complexdouble refval = g_refvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z];
+						complexdouble bgqval = g_bgqvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z];
+
+						fprintf(reffile, "%8f + %8fi	", creal(refval), cimag(refval));
+						fprintf(bgqfile, "%8f + %8fi	", creal(bgqval), cimag(bgqval));
+					}
+					fprintf(reffile, "\n");
+					fprintf(bgqfile, "\n");
+				}
+			}
+		}
+
+		fclose(reffile);
+		fclose(bgqfile);
+
+		master_print("Cmp data written to %s and %s\n", reffilename, bgqfilename);
+	}
+}
+
+
+

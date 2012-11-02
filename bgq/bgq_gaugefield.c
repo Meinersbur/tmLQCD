@@ -61,7 +61,7 @@ static void bgq_gaugeveck_store(bgq_gaugesu3 *target, ucoord k, bgq_su3matrix da
 
 
 static void bgq_gaugeveck_written(bgq_gaugesu3 *target, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
-#if BGQ_COORDCHECK
+#ifdef BGQ_COORDCHECK
 	bgq_su3matrix coord = bgq_gauge_coord_encode(t,x,y,z,d,isSrc);
 	bgq_gaugeveck_store(target, k, coord);
 #endif
@@ -101,23 +101,43 @@ static void bgq_gaugefield_worker_transferfrom(void *arg_untyped, size_t tid, si
 				bgq_dimension dim = bgq_direction2dimension(d_src);
 				bgq_direction d_dst = bgq_direction_revert(d_src);
 
-				size_t t = t_src;
-				size_t x = x_src;
-				size_t y = y_src;
-				size_t z = z_src;
-				switch (d_src) {
-				case TDOWN:
+				ucoord t_dst = t_src;
+				ucoord x_dst = x_src;
+				ucoord y_dst = y_src;
+				ucoord z_dst = z_src;
+				bgq_direction_move_local(&t_dst, &x_dst, &y_dst, &z_dst, d_src);
+
+				scoord t = t_src;
+				scoord x = x_src;
+				scoord y = y_src;
+				scoord z = z_src;
+				switch (d_dst) {
+				case TUP:
 					t -= 1;
 					break;
-				case XDOWN:
+				case TDOWN:
+					//t += 1;
+					break;
+				case XUP:
 					x -= 1;
 					break;
-				case YDOWN:
+				case XDOWN:
+					//x += 1;
+					break;
+				case YUP:
 					y -= 1;
 					break;
-				case ZDOWN:
+				case YDOWN:
+					//y += 1;
+					break;
+				case ZUP:
 					z -= 1;
 					break;
+				case ZDOWN:
+					//z += 1;
+					break;
+				default:
+					UNREACHABLE
 				}
 
 				size_t ix = Index(t, x, y, z);/* lexic coordinate; g_ipt[t][x][y][z] is not defined for -1 coordinates */

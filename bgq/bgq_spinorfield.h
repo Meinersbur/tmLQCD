@@ -239,7 +239,7 @@ EXTERN_INLINE void bgq_weylvec_expect(bgq_weyl_vec weyl, ucoord t1, ucoord t2, u
 
 
 
-
+bgq_spinor bgq_legacy_getspinor(spinor *spinor, ucoord t, ucoord x, ucoord y, ucoord z);
 bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, size_t t, size_t x, size_t y, size_t z) ;
 
 void bgq_weylveck_written(bgq_weyl_vec *targetweyl, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
@@ -251,6 +251,66 @@ EXTERN_INLINE void bgq_weylvec_written(bgq_weyl_vec *targetweyl, ucoord t1, ucoo
 #endif
 }
 
+
+
+
+
+typedef enum {
+	BGQREF_SOURCE,
+
+	BGQREF_TDOWN_GAUGE,
+	BGQREF_TDOWN_KAMUL,
+
+	BGQREF_TUP_SOURCE,
+	BGQREF_TUP,
+	BGQREF_TUP_GAUGE,
+	BGQREF_TUP_WEYL,
+	BGQREF_TUP_KAMUL,
+
+	BGQREF_XUP_KAMUL,
+
+	BGQREF_XDOWN,
+	BGQREF_XDOWN_GAUGE,
+	BGQREF_XDOWN_WEYL,
+	BGQREF_XDOWN_KAMUL,
+
+	BGQREF_ZUP,
+	BGQREF_ZUP_GAUGE,
+	BGQREF_ZUP_KAMUL,
+
+
+	BGQREF_TUP_RECV,
+
+	BGQREF_TDOWN_RECV,
+	BGQREF_TDOWN_ACCUM,
+
+	BGQREF_XUP_RECV,
+	BGQREF_XUP_ACCUM,
+
+	BGQREF_XDOWN_RECV,
+	BGQREF_XDOWN_ACCUM,
+
+	BGQREF_YUP_RECV,
+	BGQREF_YUP_ACCUM,
+
+	BGQREF_YDOWN_ACCUM,
+
+	BGQREF_ZUP_RECV,
+	BGQREF_ZUP_ACCUM,
+
+	BGQREF_ACCUM,
+	BGQREF_RESULT,
+
+	BGQREF_count
+} bgqref;
+
+
+void bgq_initbgqref();
+void bgq_setdesc(int idx, char *desc);
+void bgq_setrefvalue(int t, int x, int y, int z, bgqref idx, complexdouble val);
+void bgq_setbgqvalue(int t, int x, int y, int z, bgqref idx, complexdouble val);
+void bgq_setbgqvalue_src(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bgqref idx, complexdouble val);
+void bgq_savebgqref();
 
 
 #undef EXTERN_INLINE

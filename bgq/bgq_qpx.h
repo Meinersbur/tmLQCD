@@ -518,6 +518,14 @@ typedef struct {
 #define bgq_cmplxval(name,k) \
 	((k) ? bgq_cmplxval2(name) : bgq_cmplxval1(name))
 
+//TODO: There might be something more effective than setting every element independently
+#define bgq_complxval_splat(dst,cmplx) \
+	bgq_elem0(dst) = creal(cmplx); \
+	bgq_elem1(dst) = cimag(cmplx); \
+	bgq_elem2(dst) = creal(cmplx); \
+	bgq_elem3(dst) = cimag(cmplx)
+
+
 #define cvec_mul(a,b) vec_xxnpmadd(b,a,vec_xmul(a,b))
 // vec_xxnpmadd(b,a,vec_xmul(a,b))
 // vec_xxnpmadd(a,b,vec_xmul(b,a))
@@ -1134,6 +1142,10 @@ do {\
 	bgq_cmul(NAME2(dst,c1), c, NAME2(v,c1)); \
 	bgq_cmul(NAME2(dst,c2), c, NAME2(v,c2))
 
+#define bgq_su3_weyl_cmul(dst,c,weyl) \
+	bgq_su3_cvmul(NAME2(dst,v0), c, NAME2(weyl,v0)); \
+	bgq_su3_cvmul(NAME2(dst,v1), c, NAME2(weyl,v1))
+
 #define bgq_su3_mvmul(dst,m,v)                                                      \
 	{                                                                               \
 		bgq_su3_vdecl(MAKENAME4(mvmul,dst,m,v));                           \
@@ -1203,8 +1215,8 @@ do {\
 	bgq_su3_vpisub(NAME2(weyl,v1), NAME2(spinor,v1), NAME2(spinor,v2))
 
 #define bgq_su3_reduce_weyl_yup(weyl, spinor) \
-	bgq_su3_vpiadd(NAME2(weyl,v0), NAME2(spinor,v0), NAME2(spinor,v3)); \
-	bgq_su3_vpiadd(NAME2(weyl,v1), NAME2(spinor,v1), NAME2(spinor,v2))
+	bgq_su3_vadd(NAME2(weyl,v0), NAME2(spinor,v0), NAME2(spinor,v3)); \
+	bgq_su3_vsub(NAME2(weyl,v1), NAME2(spinor,v1), NAME2(spinor,v2))
 
 #define bgq_su3_reduce_weyl_ydown(weyl, spinor) \
 	bgq_su3_vsub(NAME2(weyl,v0), NAME2(spinor,v0), NAME2(spinor,v3)); \
@@ -1246,8 +1258,8 @@ do {\
 #define bgq_su3_accum_weyl_xdown(result, weyl) \
 	bgq_su3_vadd(NAME2(result,v0), NAME2(result,v0), NAME2(weyl,v0)); \
 	bgq_su3_vadd(NAME2(result,v1), NAME2(result,v1), NAME2(weyl,v1)); \
-	bgq_su3_vpisub(NAME2(result,v2), NAME2(result,v2), NAME2(weyl,v1)); \
-	bgq_su3_vpisub(NAME2(result,v3), NAME2(result,v3), NAME2(weyl,v0))
+	bgq_su3_vpiadd(NAME2(result,v2), NAME2(result,v2), NAME2(weyl,v1)); \
+	bgq_su3_vpiadd(NAME2(result,v3), NAME2(result,v3), NAME2(weyl,v0))
 
 #define bgq_su3_accum_weyl_yup(result, weyl) \
 	bgq_su3_vadd(NAME2(result,v0), NAME2(result,v0), NAME2(weyl,v0)); \
@@ -1672,6 +1684,9 @@ static inline void mbar() {
 }
 
 #endif
+
+
+
 
 
 #undef EXTERN_INLINE

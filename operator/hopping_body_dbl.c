@@ -31,6 +31,8 @@
   spinor * restrict ALIGN sp;
   spinor * restrict ALIGN sm;
   spinor * restrict ALIGN rn;
+  su3_vector psi_v0, chi_v0, rho_v0;
+  su3_vector psi_v1, chi_v1, rho_v1;
   
 #ifdef XLC
 #  pragma disjoint(*sp, *sm, *rn, *up, *um, *l)
@@ -77,6 +79,20 @@
 #ifdef _TM_SUB_HOP
     pn=p+(icx-ioff);
 #endif
+
+    const int ix/*lexic*/=g_eo2lexic[icx];
+	const int t = g_coord[ix][0];
+	const int x = g_coord[ix][1];
+	const int y = g_coord[ix][2];
+	const int z = g_coord[ix][3];
+	if ( (t==4) && (x==1) && (y==1) && (z==0) ) {
+		int a = 0;
+	}
+
+    if (t==0 && x==0 && y==0 && z==0) {
+    	int a = 0;
+    }
+
     /*********************** direction +t ************************/
 #    if (!defined _GAUGE_COPY)
     um=&g_gauge_field[(*hi)][0]; 
@@ -87,7 +103,25 @@
     sm=k+(*hi);
     hi+=2;
 
-    _hop_t_p();
+    _vector_add(psi_v0,sp->s0,sp->s2);
+    _su3_multiply(chi_v0,(*up),psi_v0);
+    _complex_times_vector(rho_v0,ka0,chi_v0);
+    _vector_assign(temp.s0,rho_v0);
+    _vector_assign(temp.s2,rho_v0);
+
+    _vector_add(psi_v1,sp->s1,sp->s3);
+    _su3_multiply(chi_v1,(*up),psi_v1);
+    _complex_times_vector(rho_v1,ka0,chi_v1);
+    _vector_assign(temp.s1,rho_v1);
+    _vector_assign(temp.s3,rho_v1);
+
+
+    bgq_setrefvalue(t,x,y,z, BGQREF_TUP_SOURCE, sp->s1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TUP, psi_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TUP_GAUGE, up->c00);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TUP_WEYL, chi_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TUP_KAMUL, rho_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TUP_RECV, rho_v1.c0);
 
     /*********************** direction -t ************************/
 #    if ((defined _GAUGE_COPY))
@@ -98,9 +132,27 @@
     sp=k+(*hi);
     hi++;
     
-    _hop_t_m();
+    _vector_sub(psi_v0,sm->s0,sm->s2);
+    _su3_inverse_multiply(chi_v0,(*um),psi_v0);
+    _complexcjg_times_vector(rho_v0,ka0,chi_v0);
+    _vector_add_assign(temp.s0,rho_v0);
+    _vector_sub_assign(temp.s2,rho_v0);
 
-    /*********************** direction +1 ************************/
+    _vector_sub(psi_v1,sm->s1,sm->s3);
+    _su3_inverse_multiply(chi_v1,(*um),psi_v1);
+    _complexcjg_times_vector(rho_v1,ka0,chi_v1);
+    _vector_add_assign(temp.s1,rho_v1);
+    _vector_sub_assign(temp.s3,rho_v1);
+
+
+    bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_GAUGE, um->c00);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_KAMUL, rho_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_RECV, rho_v1.c0);
+
+    bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_ACCUM, temp.s1.c0);
+
+
+    /*********************** direction +x ************************/
 #    ifndef _GAUGE_COPY
     um=&g_gauge_field[(*hi)][1]; 
 #    else
@@ -110,9 +162,23 @@
     sm=k+(*hi);
     hi+=2;
 
-    _hop_x_p();
+    _vector_i_add(psi_v0,sp->s0,sp->s3);
+    _su3_multiply(chi_v0,(*up),psi_v0);
+    _complex_times_vector(rho_v0,ka1,chi_v0);
+    _vector_add_assign(temp.s0,rho_v0);
+    _vector_i_sub_assign(temp.s3,rho_v0);
 
-    /*********************** direction -1 ************************/
+    _vector_i_add(psi_v1,sp->s1,sp->s2);
+    _su3_multiply(chi_v1,(*up),psi_v1);
+    _complex_times_vector(rho_v1,ka1,chi_v1);
+    _vector_add_assign(temp.s1,rho_v1);
+    _vector_i_sub_assign(temp.s2,rho_v1);
+
+    bgq_setrefvalue(t,x,y,z, BGQREF_XUP_RECV, rho_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XUP_KAMUL, rho_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XUP_ACCUM, temp.s1.c0);
+
+    /*********************** direction -x ************************/
 #    if ((defined _GAUGE_COPY))
     up=um+1;
 #    else
@@ -121,9 +187,26 @@
     sp=k+(*hi);
     hi++;
 
-    _hop_x_m();
+    _vector_i_sub(psi_v0,sm->s0,sm->s3);
+    _su3_inverse_multiply(chi_v0,(*um),psi_v0);
+    _complexcjg_times_vector(rho_v0,ka1,chi_v0);
+    _vector_add_assign(temp.s0,rho_v0);
+    _vector_i_add_assign(temp.s3,rho_v0);
 
-    /*********************** direction +2 ************************/
+    _vector_i_sub(psi_v1,sm->s1,sm->s2);
+    _su3_inverse_multiply(chi_v1,(*um),psi_v1);
+    _complexcjg_times_vector(rho_v1,ka1,chi_v1);
+    _vector_add_assign(temp.s1,rho_v1);
+    _vector_i_add_assign(temp.s2,rho_v1);
+
+    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN, psi_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN_GAUGE, um->c02);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN_WEYL, chi_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN_KAMUL, rho_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN_RECV, rho_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN_ACCUM, temp.s1.c0);
+
+    /*********************** direction +y ************************/
 #    ifndef _GAUGE_COPY
     um=&g_gauge_field[(*hi)][2]; 
 #    else
@@ -133,9 +216,22 @@
     sm=k+(*hi);
     hi+=2;
 
-    _hop_y_p();
+    _vector_add(psi_v0,sp->s0,sp->s3);
+    _su3_multiply(chi_v0,(*up),psi_v0);
+    _complex_times_vector(rho_v0,ka2,chi_v0);
+    _vector_add_assign(temp.s0,rho_v0);
+    _vector_add_assign(temp.s3,rho_v0);
 
-    /*********************** direction -2 ************************/
+    _vector_sub(psi_v1,sp->s1,sp->s2);
+    _su3_multiply(chi_v1,(*up),psi_v1);
+    _complex_times_vector(rho_v1,ka2,chi_v1);
+    _vector_add_assign(temp.s1,rho_v1);
+    _vector_sub_assign(temp.s2,rho_v1);
+
+    bgq_setrefvalue(t,x,y,z, BGQREF_YUP_RECV, rho_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_YUP_ACCUM, temp.s1.c0);
+
+    /*********************** direction -y ************************/
 #    if ((defined _GAUGE_COPY))
     up=um+1;
 #    else
@@ -146,7 +242,9 @@
 
     _hop_y_m();
 
-    /*********************** direction +3 ************************/
+    bgq_setrefvalue(t,x,y,z, BGQREF_YDOWN_ACCUM, temp.s1.c0);
+
+    /*********************** direction +z ************************/
 #    ifndef _GAUGE_COPY
     um=&g_gauge_field[(*hi)][3]; 
 #    else
@@ -156,9 +254,25 @@
     sm=k+(*hi);
     hi++;
 
-    _hop_z_p();
+    _vector_i_add(psi_v0,sp->s0,sp->s2);
+    _su3_multiply(chi_v0,(*up),psi_v0);
+    _complex_times_vector(rho_v0,ka3,chi_v0);
+    _vector_add_assign(temp.s0,rho_v0);
+    _vector_i_sub_assign(temp.s2,rho_v0);
 
-    /*********************** direction -3 ************************/
+    _vector_i_sub(psi_v1,sp->s1,sp->s3);
+    _su3_multiply(chi_v0,(*up),psi_v1);
+    _complex_times_vector(rho_v1,ka3,chi_v0);
+    _vector_add_assign(temp.s1,rho_v1);
+    _vector_i_add_assign(temp.s3,rho_v1);
+
+    bgq_setrefvalue(t,x,y,z, BGQREF_ZUP, psi_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_ZUP_GAUGE, up->c00);
+    bgq_setrefvalue(t,x,y,z, BGQREF_ZUP_KAMUL, rho_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_ZUP_RECV, rho_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_ZUP_ACCUM, temp.s1.c0);
+
+    /*********************** direction -z ************************/
 #ifndef OMP
 #  if ((defined _GAUGE_COPY))
     up=um+1;
@@ -178,4 +292,6 @@
 #else
     _store_res();
 #endif
+
+    bgq_setrefvalue(t,x,y,z, BGQREF_ACCUM, temp.s1.c0);
   }

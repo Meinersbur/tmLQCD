@@ -211,23 +211,6 @@ typedef enum {
 	DIR_DOWN = 1
 } bgq_direction;
 
-#if 0
-typedef enum {
-	P_TUP1,
-	P_TUP2,
-	P_TDOWN1,
-	P_TDOWN2,
-	P_XUP,
-	P_XDOWN,
-	P_YUP,
-	P_YDOWN,
-	P_ZUP,
-	P_ZDOWN
-} bgq_physical_direction;
-#define P_COUNT 10
-#endif
-
-
 
 typedef enum {
 	DIM_T,
@@ -374,34 +357,6 @@ typedef struct {
 	bgq_weyl_vec *d[PHYSICAL_LD];
 } bgq_weyl_ptr_t;
 
-#if 0
-EXTERN_INLINE void *bgq_weylsite_getdirection(bgq_weylsite *site, bgq_physical_direction d) {
-	switch (d) {
-	case P_TUP1:
-		return &site->tup1;
-	case P_TUP2:
-		return &site->tup2;
-	case P_TDOWN1:
-		return &site->tdown1;
-	case P_TDOWN2:
-		return &site->tdown2;
-	case P_XUP:
-		return &site->xup;
-	case P_XDOWN:
-		return &site->xdown;
-	case P_YUP:
-		return &site->yup;
-	case P_YDOWN :
-		return &site->ydown;
-	case P_ZUP:
-		return &site->zup;
-	case P_ZDOWN:
-		return &site->zdown;
-	}
-	assert(!"Unreachable");
-	exit(1);
-}
-#endif
 
 typedef struct {
 	COMPLEX_PRECISION s[2];

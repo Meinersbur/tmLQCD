@@ -72,6 +72,7 @@
 #  include"DirectPut.h"
 #endif
 #include "Hopping_Matrix.h"
+#include "bgq/bgq_spinorfield.h"
 
 #if defined _USE_HALFSPINOR
 #  include "operator/halfspinor_hopping.h"
@@ -154,6 +155,7 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k) {
 #    endif
 
 #    ifdef OMP
+  xdfdfgjhdfghdfghdf
 #      pragma omp parallel
   {
 #    endif

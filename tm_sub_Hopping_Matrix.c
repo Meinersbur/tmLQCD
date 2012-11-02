@@ -51,6 +51,7 @@
 #include "init_dirac_halfspinor.h"
 #include "update_backward_gauge.h"
 #include "tm_sub_Hopping_Matrix.h"
+#include "bgq/bgq_spinorfield.h"
 
 // now comes the definition of tm_times_Hopping_Matrix
 // which does (a + g5 i b - Hopping_Matrix)

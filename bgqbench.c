@@ -239,26 +239,21 @@ static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 	const size_t k = 0;
 	// To ensure that zero is used in case of nocomm
 	bgq_spinorfield_setup(&g_bgq_spinorfields[k], true, false, false, false, true);
-
 	bgq_spinorfield_setup(&g_bgq_spinorfields[k + k_max], false, false, false, false, true);
-#ifndef BGQ_COORDCHECK
-	memset(g_bgq_spinorfields[k].sec_weyl, 0, bgq_weyl_section_offset(sec_end));
-	memset(g_bgq_spinorfields[k + k_max].sec_weyl, 0, bgq_weyl_section_offset(sec_end));
-#endif
 	// Flow:
 	// [k]isOdd -> [k+k_max]isEven -> [k]isOdd
 
 
 	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 #ifndef BGQ_COORDCHECK
-	double compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k], g_spinor_field[k], false);
+	double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], false);
 	assert(compare_transfer == 0); // Must be exact copy
 #endif
 
 	bgq_HoppingMatrix(false, &g_bgq_spinorfields[k + k_max], &g_bgq_spinorfields[k], hmflags);
 	HoppingMatrix_switch(false, g_spinor_field[k + k_max], g_spinor_field[k], hmflags);
 #ifndef BGQ_COORDCHECK
-	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], true);
+	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], false);
 	assert(compare_even < 0.01);
 #endif
 
@@ -272,8 +267,10 @@ static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k+2*k_max], &g_bgq_spinorfields[k + k_max], hmflags);
 	HoppingMatrix_switch(true, g_spinor_field[k+2*k_max], g_spinor_field[k+k_max], hmflags);
 #ifndef BGQ_COORDCHECK
-	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k + 2*k_max], g_spinor_field[k + 2*k_max], true);
+	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k + 2*k_max], g_spinor_field[k + 2*k_max], false);
 	assert(compare_odd < 0.01);
+#else
+	bgq_spinorfield_setup(&g_bgq_spinorfields[k + 2*k_max], true, false, false, true, false); // Wait for data transmission
 #endif
 
 
@@ -292,113 +289,108 @@ static int benchmark_master(void *argptr) {
 	const benchfunc_t benchfunc = args->benchfunc;
 	const bgq_hmflags opts = args->opts;
 	//const bool nocom = opts & hm_nocom;
-		//const bool nooverlap = opts & hm_nooverlap;
-		const bool nokamul = opts & hm_nokamul;
-		//const bool noprefetchlist = opts & hm_noprefetchlist;
-		//const bool noprefetchstream = opts & hm_noprefetchstream;
-		//const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
-		const bool noweylsend = opts & hm_noweylsend;
-		const bool nobody = opts & hm_nobody;
-		const bool nosurface = opts & hm_nosurface;
-		//const bool experimental = opts & hm_experimental;
-		//const bgq_hmflags implicitprefetch = opts & (hm_prefetchimplicitdisable | hm_prefetchimplicitoptimistic | hm_prefetchimplicitconfirmed);
-bool withcheck = opts & hm_withcheck;
+	//const bool nooverlap = opts & hm_nooverlap;
+	const bool nokamul = opts & hm_nokamul;
+	//const bool noprefetchlist = opts & hm_noprefetchlist;
+	//const bool noprefetchstream = opts & hm_noprefetchstream;
+	//const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
+	const bool noweylsend = opts & hm_noweylsend;
+	const bool nobody = opts & hm_nobody;
+	const bool nosurface = opts & hm_nosurface;
+	//const bool experimental = opts & hm_experimental;
+	//const bgq_hmflags implicitprefetch = opts & (hm_prefetchimplicitdisable | hm_prefetchimplicitoptimistic | hm_prefetchimplicitconfirmed);
+	bool withcheck = opts & hm_withcheck;
 
-		// Setup thread options (prefetch setting etc.)
-		bgq_master_call(&benchmark_setup_worker, argptr);
+	// Setup thread options (prefetch setting etc.)
+	bgq_master_call(&benchmark_setup_worker, argptr);
 
+	double err = 0;
+	if (withcheck) {
+		err = runcheck(opts, k_max);
+	}
 
-		double err = 0;
-		if (withcheck) {
-			err = runcheck(opts, k_max);
+	double localsumtime = 0;
+	double localsumsqtime = 0;
+	mypapi_counters counters;
+	counters.init = false;
+	int iterations = 1; // Warmup phase
+	iterations += j_max;
+	if (iterations < 1 + MYPAPI_SETS)
+		iterations = 1 + MYPAPI_SETS;
+
+	for (int i = 0; i < iterations; i += 1) {
+		//master_print("Starting iteration %d of %d\n", j+1, iterations);
+		bool isWarmup = (i == 0);
+		int j = i - 1;
+		bool isPapi = !isWarmup && (i >= iterations - MYPAPI_SETS);
+		int papiSet = i - (iterations - MYPAPI_SETS);
+		bool isJMax = (0 <= j) && (j < j_max);
+
+		double start_time;
+		if (isJMax) {
+			start_time = MPI_Wtime();
+		}
+		if (isPapi) {
+			mypapi_start(papiSet);
 		}
 
-		double localsumtime = 0;
-		double localsumsqtime = 0;
-		mypapi_counters counters;
-		counters.init = false;
-		int iterations = 1; // Warmup phase
-		iterations += j_max;
-		if (iterations < 1 + MYPAPI_SETS)
-			iterations = 1 + MYPAPI_SETS;
-
-		for (int i = 0; i < iterations; i += 1) {
-			//master_print("Starting iteration %d of %d\n", j+1, iterations);
-			bool isWarmup = (i == 0);
-			int j = i - 1;
-			bool isPapi = !isWarmup && (i >= iterations - MYPAPI_SETS);
-			int papiSet = i - (iterations - MYPAPI_SETS);
-			bool isJMax =(0 <= j) && (j < j_max);
-			//bool isFirstJMax = (j==0);
-			//bool isLastJMax = (j==j_max-1);
-
-			double start_time;
-			if (isJMax) {
-				start_time = MPI_Wtime();
+		{
+			// The main benchmark
+			for (int k = 0; k < k_max; k += 1) {
+				benchfunc(opts, k, k_max);
 			}
-			if (isPapi) {
-				mypapi_start(papiSet);
-			}
-
-			{
-				// The main benchmark
-				for (int k = 0; k < k_max; k += 1) {
-					benchfunc(opts, k, k_max);
-				}
-				bgq_master_sync(); // Wait for all threads to finish, to get worst thread timing
-			}
-
-			if (isPapi) {
-				mypapi_counters curcounters = mypapi_stop();
-				counters = mypapi_merge_counters(&counters, &curcounters);
-			}
-			if (isJMax) {
-				double end_time = MPI_Wtime();
-				double duration = end_time - start_time;
-				localsumtime += duration;
-				localsumsqtime += sqr(duration);
-			}
+			bgq_master_sync(); // Wait for all threads to finish, to get worst thread timing
 		}
 
-
-		double localavgtime = localsumtime / j_max;
-		double localavgsqtime = sqr(localavgtime);
-		double localrmstime = sqrt((localsumsqtime / j_max) - localavgsqtime);
-
-		double localtime[] = { localavgtime, localavgsqtime, localrmstime };
-		double sumreduce[3] = { -1, -1, -1 };
-		MPI_Allreduce(&localtime, &sumreduce, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-		double sumtime = sumreduce[0];
-		double sumsqtime = sumreduce[1];
-		double sumrmstime = sumreduce[2];
-
-		double avgtime = sumtime / g_nproc;
-		double avglocalrms = sumrmstime / g_nproc;
-		double rmstime = sqrt((sumsqtime / g_nproc) - sqr(avgtime));
-
-		int lups = LOCAL_LT * LOCAL_LX * LOCAL_LY * LOCAL_LZ;
-		int lups_body= PHYSICAL_BODY*PHYSICAL_LP*PHYSICAL_LK;
-		int lups_surface=PHYSICAL_SURFACE*PHYSICAL_LP*PHYSICAL_LK;
-		assert(lups == lups_body + lups_surface);
-		assert(lups == VOLUME);
-
-		int flops_per_lup_body = 0;
-		if (!nobody) {
-			flops_per_lup_body += 1320;
-			if (!nokamul)
-				flops_per_lup_body += 8 * 2 * 3 * 6;
+		if (isPapi) {
+			mypapi_counters curcounters = mypapi_stop();
+			counters = mypapi_merge_counters(&counters, &curcounters);
 		}
-
-		int flops_per_lup_surface = 0;
-		if (!noweylsend)
-			flops_per_lup_surface += 6 * 2 * 2;
-		if (!nosurface) {
-			flops_per_lup_surface += 1320 - (6*2*2);
-			if (!nokamul)
-				flops_per_lup_surface += 8 * 2 * 3 * 6;
+		if (isJMax) {
+			double end_time = MPI_Wtime();
+			double duration = end_time - start_time;
+			localsumtime += duration;
+			localsumsqtime += sqr(duration);
 		}
-		double flops = ((double)flops_per_lup_body * (double)lups_body) + ((double)flops_per_lup_surface * (double)lups_surface);
+	}
 
+	double localavgtime = localsumtime / j_max;
+	double localavgsqtime = sqr(localavgtime);
+	double localrmstime = sqrt((localsumsqtime / j_max) - localavgsqtime);
+
+	double localtime[] = { localavgtime, localavgsqtime, localrmstime };
+	double sumreduce[3] = { -1, -1, -1 };
+	MPI_Allreduce(&localtime, &sumreduce, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	double sumtime = sumreduce[0];
+	double sumsqtime = sumreduce[1];
+	double sumrmstime = sumreduce[2];
+
+	double avgtime = sumtime / g_nproc;
+	double avglocalrms = sumrmstime / g_nproc;
+	double rmstime = sqrt((sumsqtime / g_nproc) - sqr(avgtime));
+
+	int lups = LOCAL_LT * LOCAL_LX * LOCAL_LY * LOCAL_LZ;
+	int lups_body = PHYSICAL_BODY * PHYSICAL_LP * PHYSICAL_LK;
+	int lups_surface = PHYSICAL_SURFACE * PHYSICAL_LP * PHYSICAL_LK;
+	assert(lups == lups_body + lups_surface);
+	assert(lups == VOLUME);
+
+	int flops_per_lup_body = 0;
+	if (!nobody) {
+		flops_per_lup_body += 1320;
+		if (!nokamul)
+			flops_per_lup_body += 8 * 2 * 3 * 6;
+	}
+
+	int flops_per_lup_surface = 0;
+	if (!noweylsend)
+		flops_per_lup_surface += 6 * 2 * 2;
+	if (!nosurface) {
+		flops_per_lup_surface += 1320 - (6 * 2 * 2);
+		if (!nokamul)
+			flops_per_lup_surface += 8 * 2 * 3 * 6;
+	}
+	double flops = ((double) flops_per_lup_body * (double) lups_body) + ((double) flops_per_lup_surface * (double) lups_surface);
 
 	benchstat *result = &args->result;
 	result->avgtime = avgtime;
@@ -733,9 +725,78 @@ static void benchmark_hopmat(bgq_hmflags flags, int k, int k_max) {
 }
 
 
+
+
+typedef struct {
+	size_t k_max;
+} checkargs_t;
+
+static int check_hopmat(void *arg_untyped) {
+	checkargs_t *args = arg_untyped;
+	ucoord k_max  = args->k_max;
+	ucoord k = 0;
+	bgq_hmflags hmflags = 0;
+
+
+
+	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
+	double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], false);
+	assert(compare_transfer == 0); // Must be exact copy
+
+	for (ucoord z = 0; z < LOCAL_LZ; z+=1) {
+			for (ucoord y = 0; y < LOCAL_LY; y+=1) {
+				for (ucoord x = 0; x < LOCAL_LX; x+=1) {
+					for (ucoord t = 0; t < LOCAL_LT; t+=1) {
+						if (bgq_local2isOdd(t,x,y,z)!=g_bgq_spinorfields[k].isOdd)
+							continue;
+
+						bgq_spinor ref = bgq_legacy_getspinor(g_spinor_field[k], t,x,y,z);
+						bgq_spinor bgq = bgq_spinorfield_getspinor(&g_bgq_spinorfields[k], t,x,y,z);
+
+						bgq_setdesc(BGQREF_SOURCE,"BGQREF_SOURCE");
+						bgq_setrefvalue(t,x,y,z,BGQREF_SOURCE,ref.v[1].c[0]);
+						bgq_setbgqvalue(t,x,y,z,BGQREF_SOURCE,bgq.v[1].c[0]);
+					}
+				}
+			}
+		}
+
+
+	bgq_HoppingMatrix(false, &g_bgq_spinorfields[k + k_max], &g_bgq_spinorfields[k], hmflags);
+	HoppingMatrix_switch(false, g_spinor_field[k + k_max], g_spinor_field[k], hmflags);
+
+
+
+	for (ucoord z = 0; z < LOCAL_LZ; z+=1) {
+		for (ucoord y = 0; y < LOCAL_LY; y+=1) {
+			for (ucoord x = 0; x < LOCAL_LX; x+=1) {
+				for (ucoord t = 0; t < LOCAL_LT; t+=1) {
+					if (bgq_local2isOdd(t,x,y,z) != g_bgq_spinorfields[k+k_max].isOdd)
+						continue;
+
+					bgq_spinor ref = bgq_legacy_getspinor(g_spinor_field[k + k_max], t,x,y,z);
+					bgq_spinor bgq = bgq_spinorfield_getspinor(&g_bgq_spinorfields[k + k_max], t,x,y,z);
+
+					bgq_setdesc(BGQREF_RESULT, "BGQREF_RESULT");
+					bgq_setrefvalue(t,x,y,z,BGQREF_RESULT,ref.v[1].c[0]);
+					bgq_setbgqvalue(t,x,y,z,BGQREF_RESULT,bgq.v[1].c[0]);
+				}
+			}
+		}
+	}
+
+	bgq_savebgqref();
+	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], false);
+	assert(compare_even < 0.01);
+
+	return EXIT_SUCCESS;
+}
+
+
 static void exec_bench(int j_max, int k_max) {
 	bgq_indices_init();
 	bgq_comm_init();
+	bgq_initbgqref();
 
 	bgq_spinorfields_init(2*k_max+1, 0);
 
@@ -755,14 +816,18 @@ static void exec_bench(int j_max, int k_max) {
 		}
 	}
 
-
 	for (int k = 0; k < k_max; k+=1) {
 		/*initialize the pseudo-fermion fields*/
 		random_spinor_field(g_spinor_field[k], VOLUME / 2, 0);
 		bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 	}
 
-	exec_table(&benchmark_hopmat , 0, j_max, k_max);
+	checkargs_t checkargs = {
+			.k_max = k_max
+	};
+	bgq_parallel(&check_hopmat, &checkargs);
+
+	exec_table(&benchmark_hopmat, 0, j_max, k_max);
 }
 
 
@@ -785,6 +850,7 @@ static void exec_bench_all() {
 
 	if (g_proc_id == 0) printf("Benchmark done\n");
 }
+
 
 int main(int argc,char *argv[])
 {
