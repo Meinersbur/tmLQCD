@@ -257,23 +257,11 @@ void bgq_comm_init() {
 					  g_bgq_sec_send[i]->s[v][c][k] = (double)g_cart_id;
 	  }
 
-	  // Initialize the barrier, resetting the hardware.
-	  rc = MUSPI_GIBarrierInit(&GIBarrier, 0 /*comm world class route */);
-	  if(rc) {
-	    printf("MUSPI_GIBarrierInit returned rc = %d\n", rc);
-	    exit(__LINE__);
-	  }
-	  // reset the recv counter
-	  recvCounter = totalMessageSize/2;
-	  global_barrier(); // make sure everybody is set recv counter
+	  bgq_comm_recv();
+	  bgq_comm_send();
 
-	  //#pragma omp for nowait
-	  for (size_t j = 0; j < COMMDIR_COUNT; j++) {
-	    descCount[j] = msg_InjFifoInject(injFifoHandle, j, &SPIDescriptors[j]);
-	  }
 	  // wait for receive completion
-	  while(recvCounter > 0);
-	  _bgq_msync();
+	  bgq_comm_wait();
 
 
 	  for (size_t i = 0; i < COMMDIR_COUNT; i+=1) {
@@ -302,25 +290,43 @@ void bgq_comm_init() {
 
 //TODO: inline?
 void bgq_comm_recv() {
-//	return;
+#ifdef SPI
+#else
 	MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_recv));
+#endif
 }
 
 
 void bgq_comm_send() {
-//	return;
+#ifdef SPI
+    // Initialize the barrier, resetting the hardware.
+    int rc = MUSPI_GIBarrierInit(&GIBarrier, 0 /*comm world class route */);
+    assert(rc && "MUSPI_GIBarrierInit returned rc");
+
+    // reset the recv counter
+    recvCounter = totalMessageSize;
+    global_barrier(); // make sure everybody is set recv counter
+
+    //#pragma omp for nowait
+    for (size_t j = 0; j < COMMDIR_COUNT; j+=1) {
+      descCount[j] = msg_InjFifoInject(injFifoHandle, j, &SPIDescriptors[j]);
+    }
+#else
 	MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_send));
+#endif
 }
 
 
 void bgq_comm_wait() {
-//	return;
+#ifdef SPI
+	 while(recvCounter > 0);
+	_bgq_msync();
+#else
 	MPI_Status recv_status[COMMDIR_COUNT];
 	MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_recv, recv_status));
 
 	MPI_Status send_status[COMMDIR_COUNT];
 	MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_send, send_status));
-
 
 #ifndef NDEBUG
 	for (ucoord commdir = 0; commdir < COMMDIR_COUNT; commdir += 1) {
@@ -329,6 +335,7 @@ void bgq_comm_wait() {
 		size_t size = bgq_weyl_section_offset(sec+1) - bgq_weyl_section_offset(sec);
 		assert(get_MPI_count(&recv_status[commdir]) == size);
 	}
+#endif
 #endif
 }
 
