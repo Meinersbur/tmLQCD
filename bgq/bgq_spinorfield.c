@@ -15,7 +15,6 @@
 
 #include "../geometry_eo.h"
 
-
 #include <mpi.h>
 #include <sys/stat.h>
 
@@ -208,79 +207,18 @@ static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t t
 	bgq_weylfield_controlblock *spinorfield = argptr;
 	bool isOdd = spinorfield->isOdd;
 
-	const size_t workload_recvt = COMM_T ? 2*LOCAL_HALO_T/PHYSICAL_LP : LOCAL_HALO_T/PHYSICAL_LP;
+	//const size_t workload_recvt = COMM_T ? 2*LOCAL_HALO_T/PHYSICAL_LP : LOCAL_HALO_T/PHYSICAL_LP;
+	const size_t workload_recv_tup = LOCAL_HALO_T/PHYSICAL_LP;
+	const size_t workload_recv_tdown = workload_recv_tup;
 	const size_t workload_recv = 2*PHYSICAL_HALO_X + 2*PHYSICAL_HALO_Y + 2*PHYSICAL_HALO_Z;
-	const size_t workload = 2*workload_recvt + workload_recv;
+	const size_t workload = workload_recv + 2*workload_recv_tup + 2*workload_recv_tdown;
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = tid*threadload;
 	const size_t end = min(workload, begin+threadload);
 	for (size_t i = begin; i<end; ) {
 		WORKLOAD_DECL(i,workload);
 
-		if (WORKLOAD_SPLIT(2*workload_recvt)) {
-			// Do T-dimension
-
-#if COMM_T
-			// Count an T-iteration twice; better have few underloaded threads (so remaining SMT-threads have some more resources) then few overloaded threads (so the master thread has to wait for them)
-			size_t twobeginj = WORKLOAD_PARAM(2*workload_recvt);
-			size_t twoendj = min(2*workload_recvt,twobeginj+threadload);
-			size_t beginj = twobeginj/2;
-			size_t endj = twoendj / 2;
-			for (size_t j = beginj; j < endj; j+=1) {
-				size_t offset_left = (uint8_t*)&g_bgq_sec_recv[TDOWN][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
-				ucoord index_left = bgq_offset2index(offset_left);
-				size_t offset_right = (uint8_t*)&g_bgq_sec_send[TUP][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
-				ucoord index_right = bgq_offset2index(offset_right);
-				ucoord ic_left = g_bgq_index2collapsed[isOdd][index_left];
-				ucoord ic_right = g_bgq_index2collapsed[isOdd][index_right];
-				assert(ic_left == ic_right);
-				ucoord ic = ic_left;
-				ucoord t1 = bgq_collapsed2t(isOdd, ic_left, 0);
-				ucoord t2 = bgq_collapsed2t(isOdd, ic_right, 1);
-				ucoord x = bgq_collapsed2x(isOdd, ic);
-				ucoord y = bgq_collapsed2y(isOdd, ic);
-				ucoord z = bgq_collapsed2z(isOdd, ic);
-				bgq_direction d1 = bgq_offset2ddst(offset_left);
-				bgq_direction d2 = bgq_offset2ddst(offset_right);
-				assert(d1==d2);
-				bgq_direction d = d1;
-
-				//TODO: Check strength reduction
-				//TODO: Prefetch
-				//TODO: Inline assembler
-				bgq_weyl_vec *weyladdr_left = &g_bgq_sec_recv[TDOWN][j]; // Note: Overlaps into sec_send_tdown
-				bgq_weyl_vec *weyladdr_right = &g_bgq_sec_send[TUP][j]; // Note: Overlaps into sec_recv_tup
-				bgq_weyl_vec *weyladdr_dst = spinorfield->destptrFromTRecv[j];
-
-				bgq_su3_weyl_decl(weyl_left);
-				bgq_su3_weyl_load_double(weyl_left, weyladdr_left);
-				bgq_weylqpxk_expect(weyl_left, 1, t1, x, y, z, d1, false);
-				assert(bgq_elem2(weyl_left_v0_c0)!=0); // for valgrind
-
-				bgq_su3_weyl_decl(weyl_right);
-				bgq_su3_weyl_load_double(weyl_right, weyladdr_right);
-				bgq_weylqpxk_expect(weyl_right, 0, t2, x, y, z, d2, false);
-				assert(bgq_elem0(weyl_right_v0_c0)!=0);// for valgrind
-
-				bgq_su3_weyl_decl(weyl);
-				bgq_su3_weyl_merge2(weyl, weyl_left, weyl_right);
-				bgq_weylqpx_expect(weyl, t1, t2, x, y, z, d, false);
-
-				//bgq_weylvec_expect(*weyladdr_dst, t1,t2,x,y,z,d,false);
-				size_t offset = bgq_pointer2offset(spinorfield, weyladdr_dst);
-				ucoord index = bgq_offset2index(offset);
-				bgq_weylfield_section sec = bgq_sectionOfOffset(offset);
-				assert(sec==sec_body || sec==sec_surface);
-				ucoord ic_check = g_bgq_index2collapsed[isOdd][index];
-				assert(ic == ic_check);
-				bgq_su3_weyl_store_double(weyladdr_dst, weyl);
-				bgq_weylvec_written(weyladdr_dst, t1, t2, x, y, z, d, false);
-			}
-			i += (twoendj - twobeginj);
-#else
-			assert(!"yet implemented");
-#endif
-		} else {
+		if (WORKLOAD_SPLIT(workload_recv)) {
 			// Do other dimensions
 
 			size_t beginj = WORKLOAD_PARAM(workload_recv);
@@ -312,7 +250,125 @@ static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t t
 				bgq_weylvec_written(weyladdr_dst, t1, t2, x, y, z, d, false);
 			}
 			i += (endj - beginj);
+		} else if (WORKLOAD_SPLIT(2*workload_recv_tup)) {
+			// Count an T-iteration twice; better have few underloaded threads (so remaining SMT-threads have some more resources) then few overloaded threads (so the master thread has to wait for them)
+			size_t twobeginj = WORKLOAD_PARAM(2*workload_recv_tup);
+			size_t twoendj = min(2*workload_recv_tup,twobeginj+threadload);
+			size_t beginj = twobeginj / 2;
+			size_t endj = twoendj / 2;
+			for (size_t j = beginj; j < endj; j+=1) {
+				//TODO: Check optaway
+				size_t offset_left =  (uint8_t*)&g_bgq_sec_send[TDOWN][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
+				ucoord index_left = bgq_offset2index(offset_left);
+				size_t offset_right =(uint8_t*)&g_bgq_sec_recv[TUP][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
+				ucoord index_right = bgq_offset2index(offset_right);
+				ucoord ic_left = g_bgq_index2collapsed[isOdd][index_left];
+				ucoord ic_right = g_bgq_index2collapsed[isOdd][index_right];
+				assert(ic_left == ic_right);
+				ucoord ic = ic_left;
+				ucoord t1 = bgq_collapsed2t(isOdd, ic_left, 0);
+				ucoord t2 = bgq_collapsed2t(isOdd, ic_right, 1);
+				ucoord x = bgq_collapsed2x(isOdd, ic);
+				ucoord y = bgq_collapsed2y(isOdd, ic);
+				ucoord z = bgq_collapsed2z(isOdd, ic);
+				bgq_direction d1 = bgq_offset2ddst(offset_left);
+				bgq_direction d2 = bgq_offset2ddst(offset_right);
+				assert(d1==d2);
+				bgq_direction d = d1;
+
+				//TODO: Check strength reduction
+				//TODO: Prefetch
+				//TODO: Inline assembler
+				bgq_weyl_vec *weyladdr_left = &g_bgq_sec_send[TDOWN][j];
+				bgq_weyl_vec *weyladdr_right = &g_bgq_sec_recv[TUP][j];
+				bgq_weyl_vec *weyladdr_dst = spinorfield->consptr_recvtup[j];
+
+				bgq_su3_weyl_decl(weyl_left);
+				bgq_su3_weyl_load_double(weyl_left, weyladdr_left);
+				bgq_weylqpxk_expect(weyl_left, 1, t1, x, y, z, d1, false);
+				assert(bgq_elem2(weyl_left_v0_c0)!=0); // for valgrind
+
+				bgq_su3_weyl_decl(weyl_right);
+				bgq_su3_weyl_load_double(weyl_right, weyladdr_right);
+				bgq_weylqpxk_expect(weyl_right, 0, t2, x, y, z, d2, false);
+				assert(bgq_elem0(weyl_right_v0_c0)!=0);// for valgrind
+
+				bgq_su3_weyl_decl(weyl);
+				bgq_su3_weyl_merge2(weyl, weyl_left, weyl_right);
+				bgq_weylqpx_expect(weyl, t1, t2, x, y, z, d, false);
+
+				//bgq_weylvec_expect(*weyladdr_dst, t1,t2,x,y,z,d,false);
+				size_t offset = bgq_pointer2offset(spinorfield, weyladdr_dst);
+				ucoord index = bgq_offset2index(offset);
+				bgq_weylfield_section sec = bgq_sectionOfOffset(offset);
+				assert(sec==sec_body || sec==sec_surface);
+				ucoord ic_check = g_bgq_index2collapsed[isOdd][index];
+				assert(ic == ic_check);
+				bgq_su3_weyl_store_double(weyladdr_dst, weyl);
+				bgq_weylvec_written(weyladdr_dst, t1, t2, x, y, z, d, false);
+			}
+			i += (twoendj - twobeginj);
+		} else if (WORKLOAD_SPLIT(2*workload_recv_tdown)) {
+			// Count an T-iteration twice; better have few underloaded threads (so remaining SMT-threads have some more resources) then few overloaded threads (so the master thread has to wait for them)
+			size_t twobeginj = WORKLOAD_PARAM(2*workload_recv_tdown);
+			size_t twoendj = min(2*workload_recv_tdown,twobeginj+threadload);
+			size_t beginj = twobeginj/2;
+			size_t endj = twoendj / 2;
+			for (size_t j = beginj; j < endj; j+=1) {
+				size_t offset_left = (uint8_t*)&g_bgq_sec_recv[TDOWN][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
+				ucoord index_left = bgq_offset2index(offset_left);
+				size_t offset_right = (uint8_t*)&g_bgq_sec_send[TUP][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
+				ucoord index_right = bgq_offset2index(offset_right);
+				ucoord ic_left = g_bgq_index2collapsed[isOdd][index_left];
+				ucoord ic_right = g_bgq_index2collapsed[isOdd][index_right];
+				assert(ic_left == ic_right);
+				ucoord ic = ic_left;
+				ucoord t1 = bgq_collapsed2t(isOdd, ic_left, 0);
+				ucoord t2 = bgq_collapsed2t(isOdd, ic_right, 1);
+				ucoord x = bgq_collapsed2x(isOdd, ic);
+				ucoord y = bgq_collapsed2y(isOdd, ic);
+				ucoord z = bgq_collapsed2z(isOdd, ic);
+				bgq_direction d1 = bgq_offset2ddst(offset_left);
+				bgq_direction d2 = bgq_offset2ddst(offset_right);
+				assert(d1==d2);
+				bgq_direction d = d1;
+
+				//TODO: Check strength reduction
+				//TODO: Prefetch
+				//TODO: Inline assembler
+				bgq_weyl_vec *weyladdr_left = &g_bgq_sec_recv[TDOWN][j];
+				bgq_weyl_vec *weyladdr_right = &g_bgq_sec_send[TUP][j];
+				bgq_weyl_vec *weyladdr_dst = spinorfield->consptr_recvtdown[j];
+
+				bgq_su3_weyl_decl(weyl_left);
+				bgq_su3_weyl_load_double(weyl_left, weyladdr_left);
+				bgq_weylqpxk_expect(weyl_left, 1, t1, x, y, z, d1, false);
+				assert(bgq_elem2(weyl_left_v0_c0)!=0); // for valgrind
+
+				bgq_su3_weyl_decl(weyl_right);
+				bgq_su3_weyl_load_double(weyl_right, weyladdr_right);
+				bgq_weylqpxk_expect(weyl_right, 0, t2, x, y, z, d2, false);
+				assert(bgq_elem0(weyl_right_v0_c0)!=0);// for valgrind
+
+				bgq_su3_weyl_decl(weyl);
+				bgq_su3_weyl_merge2(weyl, weyl_left, weyl_right);
+				bgq_weylqpx_expect(weyl, t1, t2, x, y, z, d, false);
+
+				//bgq_weylvec_expect(*weyladdr_dst, t1,t2,x,y,z,d,false);
+				size_t offset = bgq_pointer2offset(spinorfield, weyladdr_dst);
+				ucoord index = bgq_offset2index(offset);
+				bgq_weylfield_section sec = bgq_sectionOfOffset(offset);
+				assert(sec==sec_body || sec==sec_surface);
+				ucoord ic_check = g_bgq_index2collapsed[isOdd][index];
+				assert(ic == ic_check);
+				bgq_su3_weyl_store_double(weyladdr_dst, weyl);
+				bgq_weylvec_written(weyladdr_dst, t1, t2, x, y, z, d, false);
+			}
+			i += (twoendj - twobeginj);
+		} else {
+		UNREACHABLE
 		}
+
 		WORKLOAD_CHECK
 	}
 }
@@ -576,12 +632,19 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		field->destptrFromSurface = malloc(PHYSICAL_SURFACE * sizeof(*field->destptrFromSurface));
 		field->destptrFromBody = malloc(PHYSICAL_SURFACE * sizeof(*field->destptrFromBody));
 
-		field->destptrFromTRecv = malloc((LOCAL_HALO_T/PHYSICAL_LP + 0 + LOCAL_HALO_T/PHYSICAL_LP) * sizeof(bgq_weyl_vec*)); // COMM_T==1
+
+		//field->destptrFromTRecv = malloc((LOCAL_HALO_T/PHYSICAL_LP + 0 + LOCAL_HALO_T/PHYSICAL_LP) * sizeof(bgq_weyl_vec*)); // COMM_T==1
 
 		size_t offset_begin = bgq_weyl_section_offset(sec_recv_xup);
 		size_t offset_end = bgq_weyl_section_offset(sec_recv_zdown + 1);
 		size_t weylCount = (offset_end - offset_begin) / sizeof(bgq_weyl_vec);
 		field->destptrFromRecv = malloc(weylCount * sizeof(bgq_weyl_vec*));
+
+		offset_begin = bgq_weyl_section_offset(sec_recv_tup);
+		offset_end = bgq_weyl_section_offset(sec_recv_tup+1);
+		weylCount = (offset_end - offset_begin) / sizeof(bgq_weyl_vec);
+		field->consptr_recvtdown = malloc(weylCount * sizeof(*field->consptr_recvtdown));
+		field->consptr_recvtup = malloc(weylCount * sizeof(*field->consptr_recvtup));
 	}
 
 	if (actionInitWeylPtrs) {
@@ -591,7 +654,14 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		// For 1st phase (distribute)
 		for (ucoord ic_src=0; ic_src < PHYSICAL_VOLUME; ic_src+=1) {
 			for (size_t d_src = 0; d_src < PHYSICAL_LD; d_src += 1) {
-				field->sendptr[ic_src].d[d_src] = bgq_index2pointer(weylbase, g_bgq_collapsed2indexsend[isOdd][ic_src].d[d_src]);
+				ucoord index = g_bgq_collapsed2indexsend[isOdd][ic_src].d[d_src];
+				bgq_weyl_vec *ptr =  bgq_index2pointer(weylbase, index);
+				assert(bgq_pointer2offset(field,ptr)==bgq_index2offset(index));
+				if (bgq_fieldpointer2offset(ptr)!=bgq_index2offset(index)) {
+					bgq_fieldpointer2offset(ptr);
+				}
+				assert(bgq_fieldpointer2offset(ptr)==bgq_index2offset(index));
+				field->sendptr[ic_src].d[d_src] = ptr;
 			}
 		}
 
@@ -618,14 +688,12 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 
 		// For 5th phase (datamove)
 		if (COMM_T) {
-			size_t beginj = 0;
-			size_t endj = 2*LOCAL_HALO_T/PHYSICAL_LP; // There should be no padding between sections
-			assert(endj ==  bgq_offset2index(bgq_weyl_section_offset(sec_recv_tup+1) - bgq_weyl_section_offset(sec_send_tup)));
-			for (int j = beginj; j < endj; j+=1) {
-				size_t offset_left = bgq_weyl_section_offset(sec_recv_tdown) + j*sizeof(bgq_weyl_vec); // Overlap into sec_recv_tup
+			ucoord endj = bgq_offset2index(bgq_section_size(sec_recv_tup));
+			for (int j = 0; j < endj; j+=1) {
+				size_t offset_left = bgq_weyl_section_offset(sec_send_tdown) + j*sizeof(bgq_weyl_vec);
 				ucoord index_left = bgq_offset2index(offset_left);
 				bgq_weylfield_section sec_left = bgq_sectionOfOffset(offset_left);
-				size_t offset_right = bgq_weyl_section_offset(sec_send_tup) + j*sizeof(bgq_weyl_vec); // Overlap into sec_send_tdown
+				size_t offset_right = bgq_weyl_section_offset(sec_recv_tup) + j*sizeof(bgq_weyl_vec);
 				ucoord index_right = bgq_offset2index(offset_right);
 				bgq_weylfield_section sec_right = bgq_sectionOfOffset(offset_right);
 				assert(((sec_right==sec_send_tup)&&(sec_left==sec_recv_tdown)) || ((sec_right==sec_recv_tup)&&(sec_left==sec_send_tdown)));
@@ -636,11 +704,31 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 				ucoord index_consecutive_right = bgq_offset2index(consecutive_right);
 				assert(consecutive_left == consecutive_right);
 
-				field->destptrFromTRecv[j] = bgq_offset2pointer(weylbase, consecutive_left);
+				field->consptr_recvtup[j] = bgq_offset2pointer(weylbase, consecutive_left);
+			}
+
+
+			endj =  bgq_offset2index(bgq_section_size(sec_recv_tdown));
+			for (int j = 0; j < endj; j+=1) {
+				size_t offset_left = bgq_weyl_section_offset(sec_recv_tdown) + j*sizeof(bgq_weyl_vec);
+				ucoord index_left = bgq_offset2index(offset_left);
+				bgq_weylfield_section sec_left = bgq_sectionOfOffset(offset_left);
+				size_t offset_right = bgq_weyl_section_offset(sec_send_tup) + j*sizeof(bgq_weyl_vec);
+				ucoord index_right = bgq_offset2index(offset_right);
+				bgq_weylfield_section sec_right = bgq_sectionOfOffset(offset_right);
+				assert(((sec_right==sec_send_tup)&&(sec_left==sec_recv_tdown)) || ((sec_right==sec_recv_tup)&&(sec_left==sec_send_tdown)));
+
+				size_t consecutive_left = bgq_weylfield_bufferoffset2consecutiveoffset(isOdd, offset_left, 1);
+				ucoord index_consecutive_left = bgq_offset2index(consecutive_left);
+				size_t consecutive_right = bgq_weylfield_bufferoffset2consecutiveoffset(isOdd, offset_right, 0);
+				ucoord index_consecutive_right = bgq_offset2index(consecutive_right);
+				assert(consecutive_left == consecutive_right);
+
+				field->consptr_recvtdown[j] = bgq_offset2pointer(weylbase, consecutive_left);
 			}
 		} else {
 			assert(!"Not yet implemented");
-			exit(0);
+			exit(1);
 		}
 
 		size_t offset_begin = bgq_weyl_section_offset(sec_recv_xup);
@@ -945,23 +1033,25 @@ void bgq_savebgqref() {
 
 size_t bgq_fieldpointer2offset(void *ptr) {
 	size_t commsize = bgq_weyl_section_offset(sec_comm_end) - bgq_weyl_section_offset(sec_comm);
-	size_t collapsedsize = bgq_weyl_section_offset(sec_end) - bgq_weyl_section_offset(sec_collapsed);
+	size_t collapsedsize = bgq_weyl_section_offset(sec_collapsed_end) - bgq_weyl_section_offset(sec_collapsed);
+	size_t result = -1;
 	if (g_bgq_sec_comm <= (uint8_t*)ptr && (uint8_t*)ptr < g_bgq_sec_comm + commsize) {
-		return (uint8_t*)ptr - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
-	}
+		result = (uint8_t*)ptr - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
+	} else {
+		for (size_t i = 0; i < g_bgq_spinorfields_count; i+=1) {
+			bgq_weylfield_controlblock *field = &g_bgq_spinorfields[i];
+			if (!field->isInitinialized)
+				continue;
+			if (!field->sec_weyl)
+				continue;
 
-	for (size_t i = 0; i < g_bgq_spinorfields_count; i+=1) {
-		bgq_weylfield_controlblock *field = &g_bgq_spinorfields[i];
-		if (!field->isInitinialized)
-			continue;
-		if (!field->sec_weyl)
-			continue;
-
-		if ((uint8_t*)field->sec_collapsed <= (uint8_t*)ptr && (uint8_t*)ptr < (uint8_t*)field->sec_collapsed + collapsedsize) {
-			return (uint8_t*)ptr - (uint8_t*)field->sec_collapsed + bgq_weyl_section_offset(sec_collapsed);
+			if ((uint8_t*)field->sec_collapsed <= (uint8_t*)ptr && (uint8_t*)ptr < (uint8_t*)field->sec_collapsed + collapsedsize) {
+				result = (uint8_t*)ptr - (uint8_t*)field->sec_collapsed + bgq_weyl_section_offset(sec_collapsed);
+			}
 		}
 	}
 
-	assert(!"not a pointer into a spinorfield");
-return -1;
+	assert(result%sizeof(bgq_weyl_vec)==0);
+assert(result!=-1);
+	return result;
 }

@@ -112,12 +112,12 @@ EXTERN_INLINE int get_MPI_count(MPI_Status *status) {
 }
 
 #define WORKLOAD_DECL(COUNTER, TOTAL) \
-	int xyz_counter = (COUNTER);       \
-	int xyz_isntance = xyz_counter;    \
-	int xyz_orig;                      \
-	int xyz_torig;                     \
-	int xyz_total = (TOTAL);           \
-	int xyz_param;                     \
+	size_t xyz_counter = (COUNTER);       \
+	size_t xyz_isntance = xyz_counter;    \
+	size_t xyz_orig;                      \
+	size_t xyz_torig;                     \
+	size_t xyz_total = (TOTAL);           \
+	size_t xyz_param;                     \
 	assert(xyz_counter >= 0);          \
 	assert(xyz_counter < xyz_total)
 
@@ -260,7 +260,7 @@ if (xyz_counter==0) { \
 
 #define WORKLOAD_CHECK \
 	if (xyz_counter!=0 && g_proc_id==0) { \
-		fprintf(stderr, "xyz_counter=%d xyz_total=%d xyz_isntance=%d\n", xyz_counter, xyz_total, xyz_isntance); \
+		fprintf(stderr, "xyz_counter=%zu xyz_total=%zu xyz_isntance=%zu\n", xyz_counter, xyz_total, xyz_isntance); \
 	} \
 	assert(xyz_counter==0); \
 	assert(xyz_total==1);
