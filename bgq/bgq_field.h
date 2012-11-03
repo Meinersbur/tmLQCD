@@ -376,17 +376,18 @@ typedef enum {
 
 	// k==0
 	/* BEGIN consecutive */
-	sec_send_tup,
-	sec_recv_tup,
+	//sec_send_tup,
+	//sec_recv_tup,
 	/* END consecutive */
 
 	// k==1
 	/* BEGIN consecutive */
-	sec_recv_tdown,
-	sec_send_tdown,
+	//sec_recv_tdown,
+	//sec_send_tdown,
 	/* END consecutive */
 
-
+	sec_send_tup,
+	sec_send_tdown,
 	/* BEGIN consecutive */
 	sec_send_xup,
 	sec_send_xdown,
@@ -398,12 +399,17 @@ typedef enum {
 
 	// Recv sections are unused without inter-node communication
 	// However, keep the here in order not to break code
+	sec_recv_tup,
+	sec_recv_tdown,
+	/* BEGIN consecutive */
 	sec_recv_xup,
 	sec_recv_xdown,
 	sec_recv_yup,
 	sec_recv_ydown,
 	sec_recv_zup,
 	sec_recv_zdown,
+	/* END consecutive */
+
 	sec_end,
 
 	sec_collapsed=sec_surface,
@@ -525,7 +531,9 @@ typedef struct {
 	bgq_weyl_ptr_t *sendptr;
 
 
-	bgq_weyl_vec **destptrFromTRecv;
+	bgq_weyl_vec **consptr_recvtup;
+	bgq_weyl_vec **consptr_recvtdown;
+	//bgq_weyl_vec **destptrFromTRecv;
 	bgq_weyl_vec **destptrFromRecv;
 
 	//bgq_weyl_vec **destptrFromRecv[PHYSICAL_LD];
@@ -1298,6 +1306,15 @@ size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr) ;
 
 
 EXTERN_FIELD size_t g_bgq_spinorfields_count;
+
+
+EXTERN_INLINE size_t bgq_section_size(bgq_weylfield_section sec) {
+	return bgq_weyl_section_offset(sec+1) - bgq_weyl_section_offset(sec);
+}
+
+EXTERN_INLINE size_t bgq_sectionrange_size(bgq_weylfield_section sec_begin, bgq_weylfield_section sec_stop/*inclusive*/) {
+	return bgq_weyl_section_offset(sec_stop+1) - bgq_weyl_section_offset(sec_stop);
+}
 
 
 #undef EXTERN_INLINE

@@ -373,6 +373,10 @@ EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t 
 
 		//bgq_weylvec_expect(*targetptrs->d[XDOWN], t1, t2, x, y, z, XDOWN, true);
 		size_t offset = bgq_fieldpointer2offset(targetptrs->d[XDOWN]);
+		if (offset == 280192) {
+			int c = 0;
+		}
+		offset = bgq_fieldpointer2offset(targetptrs->d[XDOWN]);
 		ucoord index = bgq_offset2index(offset);
 		if (index == 50) {
 			int a = 0;

@@ -162,73 +162,6 @@ typedef struct {
 } bgq_HoppingMatrix_workload;
 
 
-static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t threads) {
-	const bgq_HoppingMatrix_workload *args = argptr;
-	const bgq_weylfield_controlblock *spinorfield = args->spinorfield;
-
-
-	const size_t workload_recvt = 2*(COMM_T ? 2*LOCAL_HALO_T/PHYSICAL_LP : LOCAL_HALO_T/PHYSICAL_LP);
-	const size_t workload_recv = 2*PHYSICAL_HALO_X + 2*PHYSICAL_HALO_Y + 2*PHYSICAL_HALO_Z;
-	const size_t workload = workload_recvt + workload_recv;
-	const size_t threadload = (workload+threads-1)/threads;
-	const size_t begin = tid*threadload;
-	const size_t end = min(workload, begin+threadload);
-	for (size_t i = begin; i<end; ) {
-		WORKLOAD_DECL(i,workload);
-
-		if (WORKLOAD_SPLIT(workload_recvt)) {
-			// Do T-dimension
-			(void)WORKLOAD_PARAM(2); // Count an T-iteration twice; better have few underloaded threads (so remaining SMT-threads have some more ressources) then few overloaded threads (so the master thread has to wait for them)
-
-#if COMM_T
-			size_t beginj = WORKLOAD_PARAM(2*LOCAL_HALO_T/PHYSICAL_LP);
-			size_t endj = min(2*LOCAL_HALO_T/PHYSICAL_LP,beginj+threadload/2);
-			for (size_t j = beginj; j < endj; j+=1) {
-				//TODO: Check strength reduction
-				//TODO: Prefetch
-				//TODO: Inline assembler
-				bgq_weyl_vec *weyladdr_left = &spinorfield->sec_recv[TDOWN][j]; // Note: Overlaps into sec_send_tdown
-				bgq_weyl_vec *weyladdr_right = &spinorfield->sec_send[TUP][j]; // Note: Overlaps into sec_recv_tup
-				bgq_weyl_vec *weyladdr_dst = spinorfield->destptrFromTRecv[j];
-
-				bgq_su3_weyl_decl(weyl_left);
-				bgq_su3_weyl_load_left_double(weyl_left, weyladdr_left);
-				bgq_su3_weyl_decl(weyl_right);
-				bgq_su3_weyl_load_right_double(weyl_right, weyladdr_right);
-
-				bgq_su3_weyl_decl(weyl);
-				bgq_su3_weyl_merge2(weyl, weyl_left, weyl_right);
-
-				bgq_su3_weyl_store_double(weyladdr_dst, weyl);
-			}
-			i += 2*(endj - beginj);
-#else
-			assert(!"yet implemented");
-#endif
-
-		} else {
-			// Do other dimensions
-
-			size_t beginj = WORKLOAD_PARAM(workload_recv);
-			size_t endj = min(workload_recv,beginj+threadload);
-			for (size_t j = beginj; j < endj; j+=1) {
-				//TODO: Check strength reduction
-				//TODO: Prefetch
-				//TODO: Inline assembler
-				bgq_weyl_vec *weyladdr_src= &spinorfield->sec_recv[XUP][j]; // Note: overlaps into following sections
-				bgq_weyl_vec *weyladdr_dst = spinorfield->destptrFromRecv[j];
-				assert((bgq_weyl_vec *)spinorfield->sec_weyl <= weyladdr_dst && weyladdr_dst <  (bgq_weyl_vec *)spinorfield->sec_end);
-
-				bgq_su3_weyl_decl(weyl);
-				bgq_su3_weyl_load_double(weyl, weyladdr_src);
-				bgq_su3_weyl_store_double(weyladdr_dst, weyl);
-			}
-			i += (endj - beginj);
-		}
-		WORKLOAD_CHECK
-	}
-}
-
 
 static void bgq_HoppingMatrix_worker_surface(void *argptr, size_t tid, size_t threads) {
 	const bgq_HoppingMatrix_workload *args = argptr;
@@ -307,6 +240,7 @@ static void bgq_HoppingMatrix_worker_surface_precomm_readFulllayout(void *arg, s
 	}
 }
 
+
 static void bgq_HoppingMatrix_kamul_worker_surface_precomm_readFulllayout(void *arg, size_t tid, size_t threads) {
 	bgq_HoppingMatrix_workload *work = arg;
 	bool isOdd = work->isOdd_src;
@@ -338,6 +272,7 @@ static void bgq_HoppingMatrix_kamul_worker_surface_precomm_readFulllayout(void *
 		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, true);
 	}
 }
+
 
 static void bgq_HoppingMatrix_worker_surface_precomm_readWeyllayout(void *arg, size_t tid, size_t threads) {
 	bgq_HoppingMatrix_workload *work = arg;
@@ -548,6 +483,7 @@ static void bgq_HoppingMatrix_kamul_worker_body_readWeyllayout(void *arg, size_t
 		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, true);
 	}
 }
+
 
 void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield, bgq_hmflags opts) {
 	assert(targetfield);
