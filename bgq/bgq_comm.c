@@ -179,45 +179,40 @@ void bgq_comm_init() {
 
 #ifdef SPI
 	  // here comes the SPI initialization
-	  uint64_t messageSizes[PHYSICAL_LD];
-	  uint64_t roffsets[PHYSICAL_LD];
-	  uint64_t soffsets[PHYSICAL_LD];
+	  uint64_t messageSizes[COMMDIR_COUNT];
+	  uint64_t roffsets[COMMDIR_COUNT];
+	  uint64_t soffsets[COMMDIR_COUNT];
 
-	 spi_num_dirs = 2*(COMM_T+COMM_X+COMM_Y+COMM_Z);
-	 size_t i = 0;
-	 if (COMM_T) {
-		 messageSizes[COMM_ORD_TSEND] = LOCAL_HALO_T * sizeof(bgq_weyl_vec) / PHYSICAL_LP;
-		 messageSizes[COMM_ORD_TRECV] = LOCAL_HALO_T * sizeof(bgq_weyl_vec) / PHYSICAL_LP;
-	 }
-	 if (COMM_X) {
-		 messageSizes[COMM_ORD_XSEND] = PHYSICAL_HALO_X * sizeof(bgq_weyl_vec);
-		 messageSizes[COMM_ORD_XRECV] = PHYSICAL_HALO_X * sizeof(bgq_weyl_vec);
-	 }
-	 if (COMM_Y) {
-		 messageSizes[COMM_ORD_YSEND] = PHYSICAL_HALO_Y * sizeof(bgq_weyl_vec);
-		 messageSizes[COMM_ORD_YRECV] = PHYSICAL_HALO_Y * sizeof(bgq_weyl_vec);
-	 	 }
-	 if (COMM_Z) {
-		 messageSizes[COMM_ORD_ZSEND] = PHYSICAL_HALO_Z * sizeof(bgq_weyl_vec);
-		 messageSizes[COMM_ORD_ZRECV] = PHYSICAL_HALO_Z * sizeof(bgq_weyl_vec);
-	 	 }
+	  spi_num_dirs = 2*(COMM_T+COMM_X+COMM_Y+COMM_Z);
+	  size_t totalMessageSize = 0;
+	for (ucoord d_src = 0; d_src < PHYSICAL_LD; d_src+=1) {
+		bgq_direction d_dst = bgq_direction_revert(d_src);
+		bgq_dimension dim = bgq_direction2dimension(d_src);
+		if (!bgq_direction_isDistributed(d_src))
+			continue;
 
-	 totalMessageSize = 0;
-	 for(size_t i = 0; i < spi_num_dirs; i++) {
-		 soffsets[i] = totalMessageSize;
-		 totalMessageSize += messageSizes[i];
-	 }
+		ucoord commdir_src = bgq_direction2commdir(d_src);
+		bgq_weylfield_section sec_recv = bgq_direction2section(d_src, false);
+		size_t secsize = bgq_weyl_section_offset(sec_recv+1) - bgq_weyl_section_offset(sec_recv);
 
-	  for(size_t i = 0; i < spi_num_dirs; i++) {
-	    // forward here is backward on the right neighbour
-	    // and the other way around...
-	    if(i%2 == 0) {
-	      roffsets[i] = soffsets[i] + messageSizes[i];
-	    }
-	    else {
-	      roffsets[i] = soffsets[i] - messageSizes[i-1];
-	    }
-	  }
+		ucoord commdir_dst = bgq_direction2commdir(d_dst);
+		bgq_weylfield_section sec_send = bgq_direction2section(d_dst, true);
+		assert(secsize == bgq_weyl_section_offset(sec_send+1) - bgq_weyl_section_offset(sec_send));
+
+		messageSizes[commdir_src] = secsize;
+		soffsets[commdir_src] = totalMessageSize;
+		totalMessageSize += secsize;
+
+		// forward here is backward on the right neighbor
+		// and the other way around...
+		if(commdir_src%2 == 0)
+		  roffsets[commdir_src] = soffsets[commdir_src] + messageSizes[commdir_src];
+		else
+		  roffsets[commdir_src] = soffsets[commdir_src] - messageSizes[commdir_src-1];
+	}
+
+
+
 
 	  Personality_t pers;
 	  int rc = 0;
@@ -233,11 +228,11 @@ void bgq_comm_init() {
 	  get_destinations(mypers);
 
 	  // adjust the SPI pointers to the send and receive buffers
-	  SPIrecvBuffers = (char *)(recvBuffer);
-	  SPIsendBuffers = (char *)(sendBuffer);
+	  SPIrecvBuffers = (char*)recvBuffer;
+	  SPIsendBuffers = (char*)sendBuffer;
 
 	  // Setup the FIFO handles
-	  rc = msg_InjFifoInit ( &injFifoHandle,
+	  rc = msg_InjFifoInit (&injFifoHandle,
 				 0,                      /* startingSubgroupId */
 				 0,                      /* startingFifoId     */
 				 spi_num_dirs,           /* numFifos   */
@@ -254,8 +249,7 @@ void bgq_comm_init() {
 
 	  // Create descriptors
 	  // Injection Direct Put Descriptor, one for each neighbour
-	  SPIDescriptors =
-	    ( MUHWI_Descriptor_t *)(((uint64_t)SPIDescriptorsMemory+64)&~(64-1));
+	  SPIDescriptors = (MUHWI_Descriptor_t*)(((uint64_t)SPIDescriptorsMemory+64)&~(64-1));
 	  create_descriptors(SPIDescriptors, messageSizes, soffsets, roffsets, spi_num_dirs);
 
 	  // test communication

@@ -18,7 +18,7 @@
 
 #include <mpi.h>
 #include <sys/stat.h>
-
+#include <stddef.h>
 
 
 
@@ -137,7 +137,7 @@ static bgq_weyl_nonvec bgq_weyl_coord_encode(ucoord t, ucoord x, ucoord y, ucoor
 
 static void bgq_weylveck_write(bgq_weyl_vec *target, ucoord k, bgq_weyl_nonvec data) {
 	ptrdiff_t offset = (uint8_t*)target - g_bgq_sec_comm;
-	size_t offend = bgq_weyl_section_offset(sec_comm_end) ;
+	size_t offend = bgq_weyl_section_offset(sec_comm_end);
 	if (offset > 0 && offset < offend) {
 		offset += bgq_weyl_section_offset(sec_comm);
 		ucoord index = bgq_offset2index(offset);

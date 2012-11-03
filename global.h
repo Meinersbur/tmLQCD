@@ -22,6 +22,7 @@
 
 #ifndef _GLOBAL_H
 #define _GLOBAL_H
+
 /***************************************************************
  *
  * File global.h
@@ -31,7 +32,7 @@
  *
  ***************************************************************/
 #ifdef HAVE_CONFIG_H
-# include<config.h>
+#include "config.h"
 #endif
 #include <stdlib.h>
 #include <stdio.h>

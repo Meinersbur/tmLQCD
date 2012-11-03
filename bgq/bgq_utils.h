@@ -8,12 +8,6 @@
 #ifndef BGQ_UTILS_H_
 #define BGQ_UTILS_H_
 
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
-#pragma GCC diagnostic ignored "-Wunused-function"
-#pragma GCC diagnostic error "-Wimplicit-int"
-#pragma GCC diagnostic error "-Wimplicit-function-declaration"
-
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
@@ -39,20 +33,17 @@
 #endif
 
 
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic error "-Wimplicit-int"
+#pragma GCC diagnostic error "-Wimplicit-function-declaration"
+#endif
+
+
 typedef _Complex double complexdouble;
 typedef _Complex float complexfloat;
-
-#if 0
-#define cs2c99(cs) \
-	((cs).re + _Complex_I*(cs).im)
-
-EXTERN_INLINE complex c992cs(double _Complex c99) {
-	complex result = { creal(c99), cimag(c99) };
-	//result.re = __creal(c99);
-	//result.im = __cimag(c99);
-	return result;
-}
-#endif
 
 #define _CONCAT(X,Y) X##Y
 #define CONCAT(X,Y) _CONCAT(X,Y)

@@ -56,7 +56,7 @@ typedef struct {
 	_Complex float q[2];
 } v2cf;
 
-#ifdef XLC
+#ifdef __IBMC__
 	#define BGQ_VECTOR4DOUBLE_SUBSCRIPT(addr,idx) ( (*((vector4double*)(addr)))[(idx)] ) /* allows subscript like an array */
 #else
 	typedef v4d vector4double;
@@ -343,7 +343,7 @@ typedef struct {
 	name
 
 #define bgq_params(name) \
-	double (name)
+	vector4double (name)
 
 #define bgq_vector4double_decl(name) \
 	vector4double name
@@ -903,18 +903,18 @@ do {\
 do {\
 	bgq_lda_double(NAME2(dst,c00),   0, addr); /* qvlfdxa */ \
 	void *ptr = (addr); \
-	bgq_qvlfduxa(NAME2(dst,c00), addr, 32); \
-	bgq_qvlfduxa(NAME2(dst,c01), addr, 32); \
-	bgq_qvlfduxa(NAME2(dst,c02), addr, 32); \
-	bgq_qvlfduxa(NAME2(dst,c10), addr, 32); \
-	bgq_qvlfduxa(NAME2(dst,c11), addr, 32); \
-	bgq_qvlfduxa(NAME2(dst,c12), addr, 32); \
-	bgq_qvlfduxa(NAME2(dst,c20), addr, 32); \
-	bgq_qvlfduxa(NAME2(dst,c21), addr, 32); \
-	bgq_qvlfduxa(NAME2(dst,c22), addr, 32); \
+	bgq_qvlfduxa(NAME2(dst,c00), ptr, 32); \
+	bgq_qvlfduxa(NAME2(dst,c01), ptr, 32); \
+	bgq_qvlfduxa(NAME2(dst,c02), ptr, 32); \
+	bgq_qvlfduxa(NAME2(dst,c10), ptr, 32); \
+	bgq_qvlfduxa(NAME2(dst,c11), ptr, 32); \
+	bgq_qvlfduxa(NAME2(dst,c12), ptr, 32); \
+	bgq_qvlfduxa(NAME2(dst,c20), ptr, 32); \
+	bgq_qvlfduxa(NAME2(dst,c21), ptr, 32); \
+	bgq_qvlfduxa(NAME2(dst,c22), ptr, 32); \
 } while (0)
 #else
-#define bgq_su3_matrix_load_double(dest, addr) \
+#define bgq_su3_matrix_load_double(dest, addr) \W
 	bgq_lda_double(NAME2(dest,c00),   0, addr); \
 	bgq_lda_double(NAME2(dest,c01),  32, addr); \
 	bgq_lda_double(NAME2(dest,c02),  64, addr); \
@@ -1288,7 +1288,7 @@ do {\
 
 
 
-
+#if 0
 EXTERN_INLINE complexdouble bgq_su3_spinor_getcomplex_double(bgq_su3_spinor_params(spinor), size_t v, size_t c, size_t k) {
 	assert(0 <= v && v < 4);
 	assert(0 <= c && c < 4);
@@ -1356,6 +1356,7 @@ EXTERN_INLINE complexdouble bgq_su3_spinor_getcomplex_double(bgq_su3_spinor_para
 		return bgq_elem2(result) + bgq_elem3(result) * _Complex_I;
 	}
 }
+#endif
 
 
 #if !BGQ_QPX
