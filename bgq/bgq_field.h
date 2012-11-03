@@ -269,39 +269,12 @@ EXTERN_INLINE bgq_direction bgq_dimenstion2direction_down(bgq_dimension dim) {
 	}
 }
 
+
 EXTERN_INLINE bool bgq_direction_isDistributed(bgq_direction d) {
 	return bgq_dimension_isDistributed(bgq_direction2dimension(d));
 }
 
 
-
-
-#if 0
-EXTERN_INLINE bgq_direction bgq_physical2direction(bgq_physical_direction pd) {
-	switch (pd) {
-	case P_TUP1:
-	case P_TUP2:
-		return TUP;
-	case P_TDOWN1:
-	case P_TDOWN2:
-		return TDOWN;
-	case P_XUP:
-		return XUP;
-	case P_XDOWN:
-		return XDOWN;
-	case P_YUP:
-		return YUP;
-	case P_YDOWN:
-		return YDOWN;
-	case P_ZUP:
-		return ZUP;
-	case P_ZDOWN:
-		return ZDOWN;
-	}
-	assert(!"Unreachable");
-	return -1;
-}
-#endif
 
 void bgq_indices_init();
 void bgq_spinorfields_init(size_t std_count, size_t chi_count);
@@ -326,34 +299,13 @@ typedef struct {
 
 typedef struct {
 	bgq_weyl_vec d[PHYSICAL_LD];
-#if 0
-	bgq_weyl_nonvec tup1;
-	bgq_weyl_nonvec tup2;
-	bgq_weyl_nonvec tdown1;
-	bgq_weyl_nonvec tdown2;
-	bgq_weyl_vec xup;
-	bgq_weyl_vec xdown;
-	bgq_weyl_vec yup;
-	bgq_weyl_vec ydown;
-	bgq_weyl_vec zup;
-	bgq_weyl_vec zdown;
-#endif
 } bgq_weylsite;
-#if 0
-EXTERN_FIELD size_t bgq_offsetof_weylsite[P_COUNT]
-EXTERN_INIT((
-		{offsetof(bgq_weylsite,tup1),offsetof(bgq_weylsite,tup2),offsetof(bgq_weylsite,tdown1),offsetof(bgq_weylsite,tdown2),
-		offsetof(bgq_weylsite,xup),offsetof(bgq_weylsite,xdown),offsetof(bgq_weylsite,yup),offsetof(bgq_weylsite,ydown),offsetof(bgq_weylsite,zup),offsetof(bgq_weylsite,zdown)}
-	));
-#endif
 
 typedef struct {
-	//uint32_t pd[P_COUNT];
 	uint32_t d[PHYSICAL_LD];
 } bgq_weyl_offsets_t;
 
 typedef struct {
-	//void *pd[P_COUNT];
 	bgq_weyl_vec *d[PHYSICAL_LD];
 } bgq_weyl_ptr_t;
 

@@ -29,7 +29,7 @@ static inline void bgq_HoppingMatrix_kernel_raw(bgq_weyl_ptr_t *targetptrs, bgq_
 	bgq_su3_spinor_decl(result);
 	//bgq_su3_spinor_zero(result);
 
-	bgq_su3_weyl_prefetch(&spinorsite->tdown1); //TODO: currently has one cacheline more
+	bgq_su3_weyl_prefetch(&spinorsite->d[TDOWN]); //TODO: currently has one cacheline more
 	bgq_su3_matrix_prefetch(&gaugesite->su3[TDOWN]);
 
 	// T+ //////////////////////////////////////////////////////////////////////////
@@ -44,7 +44,7 @@ static inline void bgq_HoppingMatrix_kernel_raw(bgq_weyl_ptr_t *targetptrs, bgq_
 		bgq_su3_expand_weyl_tup(result, weyl_tup);
 	}
 
-	bgq_su3_weyl_prefetch(&spinorsite->xup);
+	bgq_su3_weyl_prefetch(&spinorsite->d[XUP]);
 	bgq_su3_matrix_prefetch(&gaugesite->su3[XUP]);
 
 	// T- //////////////////////////////////////////////////////////////////////////
@@ -59,7 +59,7 @@ static inline void bgq_HoppingMatrix_kernel_raw(bgq_weyl_ptr_t *targetptrs, bgq_
 		bgq_su3_accum_weyl_tdown(result, weyl_tdown);
 	}
 
-	bgq_su3_weyl_prefetch(&spinorsite->xdown);
+	bgq_su3_weyl_prefetch(&spinorsite->d[XDOWN]);
 	bgq_su3_matrix_prefetch(&gaugesite->su3[XDOWN]);
 
 	// X+ //////////////////////////////////////////////////////////////////////////
@@ -74,7 +74,7 @@ static inline void bgq_HoppingMatrix_kernel_raw(bgq_weyl_ptr_t *targetptrs, bgq_
 		bgq_su3_accum_weyl_xup(result, weyl_xup);
 	}
 
-	bgq_su3_weyl_prefetch(&spinorsite->yup);
+	bgq_su3_weyl_prefetch(&spinorsite->d[YUP]);
 	bgq_su3_matrix_prefetch(&gaugesite->su3[YUP]);
 
 	// X- //////////////////////////////////////////////////////////////////////////
@@ -89,7 +89,7 @@ static inline void bgq_HoppingMatrix_kernel_raw(bgq_weyl_ptr_t *targetptrs, bgq_
 		bgq_su3_accum_weyl_xdown(result, weyl_xdown);
 	}
 
-	bgq_su3_weyl_prefetch(&spinorsite->ydown);
+	bgq_su3_weyl_prefetch(&spinorsite->d[YDOWN]);
 	bgq_su3_matrix_prefetch(&gaugesite->su3[YDOWN]);
 
 	// Y+ //////////////////////////////////////////////////////////////////////////
@@ -104,7 +104,7 @@ static inline void bgq_HoppingMatrix_kernel_raw(bgq_weyl_ptr_t *targetptrs, bgq_
 		bgq_su3_accum_weyl_yup(result, weyl_yup);
 	}
 
-	bgq_su3_weyl_prefetch(&spinorsite->zup);
+	bgq_su3_weyl_prefetch(&spinorsite->d[ZUP]);
 	bgq_su3_matrix_prefetch(&gaugesite->su3[ZUP]);
 
 	// Y- //////////////////////////////////////////////////////////////////////////
@@ -119,7 +119,7 @@ static inline void bgq_HoppingMatrix_kernel_raw(bgq_weyl_ptr_t *targetptrs, bgq_
 		bgq_su3_accum_weyl_ydown(result, weyl_ydown);
 	}
 
-	bgq_su3_weyl_prefetch(&spinorsite->zdown);
+	bgq_su3_weyl_prefetch(&spinorsite->d[ZDOWN]);
 	bgq_su3_matrix_prefetch(&gaugesite->su3[ZDOWN]);
 
 	// Z+ //////////////////////////////////////////////////////////////////////////
@@ -134,7 +134,7 @@ static inline void bgq_HoppingMatrix_kernel_raw(bgq_weyl_ptr_t *targetptrs, bgq_
 		bgq_su3_accum_weyl_zup(result, weyl_zup);
 	}
 
-	bgq_su3_weyl_prefetch(&(spinorsite + 1)->tup1); // next iteration; TODO: currently t-direction is 1 cacheline more of data
+	bgq_su3_weyl_prefetch(&(spinorsite + 1)->d[TUP]); // next iteration; TODO: currently t-direction is 1 cacheline more of data
 	bgq_su3_matrix_prefetch(&(gaugesite + 1)->su3[TUP]);
 
 	// Z- //////////////////////////////////////////////////////////////////////////
