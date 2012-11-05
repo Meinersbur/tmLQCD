@@ -1023,7 +1023,7 @@ do {\
 #define bgq_su3_spinor_store_double(addr, spinor) \
 	do {\
 		void *ptr = (addr); \
-		bgq_sta_double(NAME3(spinor,v0,c0),   0, addr); /* qvstfdxa */ \
+		bgq_qvstfduxa(NAME3(spinor,v0,c0), ptr, 0); /*bgq_sta_double(NAME3(spinor,v0,c0),   0, addr); /* qvstfdxa */ \
 		bgq_qvstfduxa(NAME3(spinor,v0,c1), ptr, 32); \
 		bgq_qvstfduxa(NAME3(spinor,v0,c2), ptr, 32); \
 		bgq_qvstfduxa(NAME3(spinor,v1,c0), ptr, 32); \

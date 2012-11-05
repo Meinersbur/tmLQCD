@@ -95,7 +95,7 @@ distclean: clean
 	rm -f Makefile
 
 
-disasm: asm1.dS asm1.s asm1.as asm2.dS asm2.s asm2.as
+disasm: asm1.ds asm1.s asm1.as asm2.ds asm2.s asm2.as
 
 asm1.s: asm1.o
 	if [ -e $@ ]; then cp -f $@ ${@}_; fi
