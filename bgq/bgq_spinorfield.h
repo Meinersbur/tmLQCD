@@ -184,16 +184,22 @@ EXTERN_INLINE void bgq_spinorqpx_expect_raw(bgq_su3_spinor_params(spinor),scoord
 
 void bgq_weyl_expect(bgq_weyl_nonvec weyl, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
 
-#define bgq_weylqpx_expect(weyl,t1,t2,x,y,z,d,isSrc) bgq_weylqpx_expect_raw(bgq_su3_weyl_vars(weyl),t1,t2,x,y,z,d,isSrc)
-EXTERN_INLINE void bgq_weylqpx_expect_raw(bgq_su3_weyl_params(weyl), ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 #ifdef BGQ_COORDCHECK
+#define bgq_weylqpx_expect(weyl,t1,t2,x,y,z,d,isSrc) bgq_weylqpx_expect_raw(bgq_su3_weyl_vars(weyl),t1,t2,x,y,z,d,isSrc)
+#else
+#define bgq_weylqpx_expect(weyl,t1,t2,x,y,z,d,isSrc)
+#endif
+EXTERN_INLINE void bgq_weylqpx_expect_raw(bgq_su3_weyl_params(weyl), ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 	bgq_weyl_expect(bgq_weyl_fromqpxk(weyl,0),t1,x,y,z,d,isSrc);
 	bgq_weyl_expect(bgq_weyl_fromqpxk(weyl,1),t2,x,y,z,d,isSrc);
-#endif
 }
 
 
+#ifdef BGQ_COORDCHECK
 #define bgq_weylqpxk_expect(weyl,k,t,x,y,z,d,isSrc) bgq_weylqpxk_expect_raw(bgq_su3_weyl_vars(weyl),k,t,x,y,z,d,isSrc)
+#else
+#define bgq_weylqpxk_expect(weyl,k,t,x,y,z,d,isSrc)
+#endif
 EXTERN_INLINE void bgq_weylqpxk_expect_raw(bgq_su3_weyl_params(weyl), ucoord k, ucoord t,  ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 #ifdef BGQ_COORDCHECK
 	bgq_weyl_expect(bgq_weyl_fromqpxk(weyl,k),t,x,y,z,d,isSrc);

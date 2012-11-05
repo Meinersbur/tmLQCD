@@ -451,7 +451,7 @@ EXTERN_INLINE size_t lcm_sizet(size_t a, size_t b) {
 #define UNREACHABLE \
 	{ \
 	assert(!"Unreachable"); \
-	abort(); \
+	/*abort();*/ \
 	}
 #endif
 

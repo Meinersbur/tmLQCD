@@ -227,7 +227,7 @@ static void bgq_HoppingMatrix_worker_surface_precomm_readFulllayout(void *arg, s
 	const size_t workload = PHYSICAL_SURFACE;
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = tid*threadload;
-	const size_t end = min(workload, begin+threadload);
+	const size_t end = min_sizet(workload, begin+threadload);
 	for (ucoord is = begin; is<end; is+=1) {//TODO: Check removal
 		ucoord ih = bgq_surface2halfvolume(isOdd, is);
 		ucoord ic = bgq_surface2collapsed(is);
@@ -275,7 +275,7 @@ static void bgq_HoppingMatrix_kamul_worker_surface_precomm_readFulllayout(void *
 	const size_t workload = PHYSICAL_SURFACE;
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = tid*threadload;
-	const size_t end = min(workload, begin+threadload);
+	const size_t end = min_sizet(workload, begin+threadload);
 	for (ucoord is = begin; is<end; is+=1) {//TODO: Check removal
 		ucoord ih = bgq_surface2halfvolume(isOdd, is);
 		ucoord ic = bgq_surface2collapsed(is);
@@ -319,7 +319,7 @@ static void bgq_HoppingMatrix_worker_surface_precomm_readWeyllayout(void *arg, s
 	const size_t workload = PHYSICAL_SURFACE;
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = tid*threadload;
-	const size_t end = min(workload, begin+threadload);
+	const size_t end = min_sizet(workload, begin+threadload);
 	for (size_t is = begin; is<end; is+=1) {
 		//TODO: Check optaway
 		size_t ih = bgq_surface2halfvolume(isOdd,is);
@@ -363,7 +363,7 @@ static void bgq_HoppingMatrix_kamul_worker_surface_precomm_readWeyllayout(void *
 	const size_t workload = PHYSICAL_SURFACE;
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = tid*threadload;
-	const size_t end = min(workload, begin+threadload);
+	const size_t end = min_sizet(workload, begin+threadload);
 	for (size_t is = begin; is<end; is+=1) {
 		//TODO: Check optaway
 		size_t ih = bgq_surface2halfvolume(isOdd,is);
@@ -408,7 +408,7 @@ static void bgq_HoppingMatrix_worker_body_readFulllayout(void *arg, size_t tid, 
 	const size_t workload = PHYSICAL_BODY;
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = tid*threadload;
-	const size_t end = min(workload, begin+threadload);
+	const size_t end = min_sizet(workload, begin+threadload);
 	for (size_t ib = begin; ib<end; ib+=1) {
 		//TODO: Check optaway
 		size_t ih = bgq_body2halfvolume(isOdd, ib);
@@ -455,7 +455,7 @@ static void bgq_HoppingMatrix_kamul_worker_body_readFulllayout(void *arg, size_t
 	const size_t workload = PHYSICAL_BODY;
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = tid*threadload;
-	const size_t end = min(workload, begin+threadload);
+	const size_t end = min_sizet(workload, begin+threadload);
 	for (size_t ib = begin; ib<end; ib+=1) {
 		//TODO: Check optaway
 		size_t ih = bgq_body2halfvolume(isOdd, ib);
@@ -499,7 +499,7 @@ static void bgq_HoppingMatrix_worker_body_readWeyllayout(void *arg, size_t tid, 
 	const size_t workload = PHYSICAL_BODY;
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = tid*threadload;
-	const size_t end = min(workload, begin+threadload);
+	const size_t end = min_sizet(workload, begin+threadload);
 	for (size_t ib = begin; ib<end; ib+=1) {
 		//TODO: Check optaway
 		size_t ih = bgq_body2halfvolume(isOdd,ib);
@@ -543,7 +543,7 @@ static void bgq_HoppingMatrix_kamul_worker_body_readWeyllayout(void *arg, size_t
 	const size_t workload = PHYSICAL_BODY;
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = tid*threadload;
-	const size_t end = min(workload, begin+threadload);
+	const size_t end = min_sizet(workload, begin+threadload);
 	for (size_t ib = begin; ib<end; ib+=1) {
 		//TODO: Check optaway
 		size_t ih = bgq_body2halfvolume(isOdd,ib);

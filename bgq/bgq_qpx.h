@@ -405,7 +405,8 @@ typedef struct {
 // returns the middle part of both arguments concatenated, i.e.
 // a_q0 a_q1 (a_q2 a_q3 b_q0 b_q1) b_q2 b_q3
 #define bgq_merge2(dst, a23_to01, b01_to23) \
-	(dst) = vec_perm(a23_to01, b01_to23, vec_gpci(02345))
+	asm ("qvaligni %[qrt],%[qra],%[qrb],2" : [qrt] "=v" (dst) : [qra] "v" (a23_to01), [qrb] "v" (b01_to23))
+//	(dst) = vec_perm(a23_to01, b01_to23, vec_gpci(02345))
 
 // returns the left complex part of both arguments, i.e.
 // (a_q0 a_q1 b_q0 b_q1)
@@ -816,6 +817,18 @@ do {\
 	bgq_lda_float(NAME3(dst,v3,c2), 176, addr)
 
 #define bgq_su3_weyl_load NAME2(bgq_su3_weyl_load,PRECISION)
+#if BGQ_QPX
+#define bgq_su3_weyl_load_double(dst, addr) \
+	do {\
+		void *ptr = (addr); \
+		bgq_qvlfduxa(NAME3(dst,v0,c0), ptr, 0); \
+		bgq_qvlfduxa(NAME3(dst,v0,c1), ptr, 32); \
+		bgq_qvlfduxa(NAME3(dst,v0,c2), ptr, 32); \
+		bgq_qvlfduxa(NAME3(dst,v1,c0), ptr, 32); \
+		bgq_qvlfduxa(NAME3(dst,v1,c1), ptr, 32); \
+		bgq_qvlfduxa(NAME3(dst,v1,c2), ptr, 32); \
+	} while (0)
+#else
 #define bgq_su3_weyl_load_double(dest, addr) \
 	bgq_lda_double(NAME3(dest,v0,c0),   0, addr);        \
 	bgq_lda_double(NAME3(dest,v0,c1),  32, addr);        \
@@ -823,6 +836,7 @@ do {\
 	bgq_lda_double(NAME3(dest,v1,c0),  96, addr);        \
 	bgq_lda_double(NAME3(dest,v1,c1), 128, addr);        \
 	bgq_lda_double(NAME3(dest,v1,c2), 160, addr)
+#endif
 
 #define bgq_su3_weyl_load_float(dest, addr) \
 	bgq_lda_float(NAME3(dest,v0,c0),   0, addr);        \
@@ -1471,10 +1485,26 @@ do { \
 
 
 #define bgq_su3_weyl_prefetch NAME2(bgq_su3_weyl_prefetch,PRECISION)
+#if BGQ_QPX
+#define bgq_su3_weyl_prefetch_double(addr)      \
+	do { \
+		void *ptr = (addr); \
+		asm ( \
+			"dcbt      0 ,%[ptr]  \n" \
+			"dcbt  %[c64],%[ptr]  \n" \
+			"dcbt %[c128],%[ptr]  \n" \
+			: : \
+			 [ptr] "r" (ptr), \
+			 [c64] "b" (64), \
+			 [c128] "b" (128) \
+		); \
+	} while (0)
+#else
 #define bgq_su3_weyl_prefetch_double(addr)      \
 	bgq_prefetch((char*)(addr) +   0);    \
 	bgq_prefetch((char*)(addr) +  64);    \
 	bgq_prefetch((char*)(addr) + 128)
+#endif
 
 #define bgq_su3_weyl_prefetch_float(addr)      \
 	bgq_prefetch((char*)(addr) +   0);    \

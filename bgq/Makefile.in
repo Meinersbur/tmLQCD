@@ -95,24 +95,31 @@ distclean: clean
 	rm -f Makefile
 
 
-disasm: asm1.dS asm1.s asm2.dS asm2.s
-
-disasm: asm1.dS asm1.s asm2.dS asm2.s
-
-asm1.dS: asm1.o
-	if [ -e $@ ]; then cp -f $@ ${@}_; fi
-	bgq-objdump -dS asm1.o | perl -pe 's/^\s+\w+\:\s+[^\t]*\t(.*)$$/\1/' > $@
+disasm: asm1.dS asm1.s asm1.as asm2.dS asm2.s asm2.as
 
 asm1.s: asm1.o
 	if [ -e $@ ]; then cp -f $@ ${@}_; fi
 	bgq-objdump -d asm1.o | perl -pe 's/^\s+\w+\:\s+[^\t]*\t(.*)$$/\1/' > $@
 
-asm2.dS: asm2.o
+asm1.ds: asm1.o
+	if [ -e $@ ]; then cp -f $@ ${@}_; fi
+	bgq-objdump -dS asm1.o | perl -pe 's/^\s+\w+\:\s+[^\t]*\t(.*)$$/\1/' > $@
+
+asm1.as: asm1.o
+	if [ -e $@ ]; then cp -f $@ ${@}_; fi
+	bgq-objdump -d asm1.o > $@
+
+
+asm2.ds: asm2.o
 	if [ -e $@ ]; then cp -f $@ ${@}_; fi
 	bgq-objdump -dS asm2.o | perl -pe 's/^\s+\w+\:\s+[^\t]*\t(.*)$$/\1/' > $@
 
 asm2.s: asm2.o
 	if [ -e $@ ]; then cp -f $@ ${@}_; fi
 	bgq-objdump -d asm2.o | perl -pe 's/^\s+\w+\:\s+[^\t]*\t(.*)$$/\1/' > $@
+
+asm2.as: asm2.o
+	if [ -e $@ ]; then cp -f $@ ${@}_; fi
+	bgq-objdump -d asm2.o > $@
 
 .PHONY: all dep clean compile-clean distclean profile all-profile debug all-debug disasm FORCE
