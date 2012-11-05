@@ -202,10 +202,192 @@ static bgq_spinor_vec bgq_spinor_mergevec(bgq_spinor_nonvec s_left, bgq_spinor_n
 	return result;
 }
 
+static inline bgq_HoppingMatrix_worker_datamove_recvxyz(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
+	if (!noprefetchstream) {
+		bgq_prefetch_forward(&spinorfield->sec_recv[XUP][beginj]);
+		bgq_prefetch_forward(&spinorfield->destptrFromRecv[beginj]);
+	}
 
-static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t threads) {
-	bgq_weylfield_controlblock *spinorfield = argptr;
+	for (size_t j = beginj; j < endj; j+=1) {
+#ifndef NDEBUG
+		size_t offset = (uint8_t*)&g_bgq_sec_recv[XUP][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
+		ucoord index = bgq_offset2index(offset);
+		ucoord ic = g_bgq_index2collapsed[isOdd][index];
+		ucoord t1 = bgq_collapsed2t(isOdd, ic, 0);
+		ucoord t2 = bgq_collapsed2t(isOdd, ic, 1);
+		ucoord x = bgq_collapsed2x(isOdd, ic);
+		ucoord y = bgq_collapsed2y(isOdd, ic);
+		ucoord z = bgq_collapsed2z(isOdd, ic);
+		bgq_direction d = bgq_offset2ddst(offset);
+#endif
+
+		//TODO: Check strength reduction
+		//TODO: Prefetch
+		//TODO: Inline assembler
+		bgq_weyl_vec *weyladdr_src= &spinorfield->sec_recv[XUP][j]; // Note: overlaps into following sections
+		bgq_weyl_vec *weyladdr_dst = spinorfield->destptrFromRecv[j];
+		assert((bgq_weyl_vec *)spinorfield->sec_weyl <= weyladdr_dst && weyladdr_dst <  (bgq_weyl_vec *)spinorfield->sec_end);
+
+		bgq_prefetch(&spinorfield->destptrFromRecv[j+1]);
+		bgq_su3_weyl_prefetch_double(&spinorfield->sec_recv[XUP][j+1]);
+
+		bgq_su3_weyl_decl(weyl);
+		bgq_su3_weyl_load_double(weyl, weyladdr_src);
+		bgq_weylqpx_expect(weyl, t1, t2, x, y, z, d, false);
+
+		//bgq_weylvec_expect(*weyladdr_dst, t1,t2,x,y,z,d,false);
+		bgq_su3_weyl_store_double(weyladdr_dst, weyl);
+		bgq_weylvec_written(weyladdr_dst, t1, t2, x, y, z, d, false);
+	}
+}
+
+
+static inline bgq_HoppingMatrix_worker_datamove_recvtup(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
+	if (!noprefetchstream) {
+		bgq_prefetch_forward(&g_bgq_sec_send[TDOWN][beginj]);
+		bgq_prefetch_forward(&g_bgq_sec_recv[TUP][beginj]);
+		bgq_prefetch_forward(&spinorfield->consptr_recvtup[beginj]);
+	}
+
+	for (size_t j = beginj; j < endj; j+=1) {
+#ifndef NDEBUG
+		size_t offset_left =  (uint8_t*)&g_bgq_sec_send[TDOWN][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
+		ucoord index_left = bgq_offset2index(offset_left);
+		size_t offset_right =(uint8_t*)&g_bgq_sec_recv[TUP][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
+		ucoord index_right = bgq_offset2index(offset_right);
+		ucoord ic_left = g_bgq_index2collapsed[isOdd][index_left];
+		ucoord ic_right = g_bgq_index2collapsed[isOdd][index_right];
+		assert(ic_left == ic_right);
+		ucoord ic = ic_left;
+		ucoord t1 = bgq_collapsed2t(isOdd, ic_left, 0);
+		ucoord t2 = bgq_collapsed2t(isOdd, ic_right, 1);
+		ucoord x = bgq_collapsed2x(isOdd, ic);
+		ucoord y = bgq_collapsed2y(isOdd, ic);
+		ucoord z = bgq_collapsed2z(isOdd, ic);
+		bgq_direction d1 = bgq_offset2ddst(offset_left);
+		bgq_direction d2 = bgq_offset2ddst(offset_right);
+		assert(d1==d2);
+		bgq_direction d = d1;
+#endif
+
+		//TODO: Check strength reduction
+		//TODO: Inline assembler
+		//TODO: Is reading just the 16 used bytes faster?
+		bgq_weyl_vec *weyladdr_left = &g_bgq_sec_send[TDOWN][j];
+		bgq_weyl_vec *weyladdr_right = &g_bgq_sec_recv[TUP][j];
+		bgq_weyl_vec *weyladdr_dst = spinorfield->consptr_recvtup[j];
+
+		bgq_prefetch(&spinorfield->consptr_recvtup[j+1]);
+		bgq_su3_weyl_prefetch_double(&g_bgq_sec_send[TDOWN][j+1]);
+		bgq_su3_weyl_prefetch_double(&g_bgq_sec_recv[TUP][j+1]);
+
+		bgq_su3_weyl_decl(weyl_left);
+		bgq_su3_weyl_load_double(weyl_left, weyladdr_left);
+		bgq_weylqpxk_expect(weyl_left, 1, t1, x, y, z, d1, false);
+
+		bgq_su3_weyl_decl(weyl_right);
+		bgq_su3_weyl_load_double(weyl_right, weyladdr_right);
+		bgq_weylqpxk_expect(weyl_right, 0, t2, x, y, z, d2, false);
+
+		bgq_su3_weyl_decl(weyl);
+		bgq_su3_weyl_merge2(weyl, weyl_left, weyl_right);
+		bgq_weylqpx_expect(weyl, t1, t2, x, y, z, d, false);
+
+#ifndef NDEBUG
+		//bgq_weylvec_expect(*weyladdr_dst, t1,t2,x,y,z,d,false);
+		size_t offset = bgq_pointer2offset(spinorfield, weyladdr_dst);
+		ucoord index = bgq_offset2index(offset);
+		bgq_weylfield_section sec = bgq_sectionOfOffset(offset);
+		assert(sec==sec_body || sec==sec_surface);
+		ucoord ic_check = g_bgq_index2collapsed[isOdd][index];
+		assert(ic == ic_check);
+#endif
+		bgq_su3_weyl_store_double(weyladdr_dst, weyl);
+		bgq_weylvec_written(weyladdr_dst, t1, t2, x, y, z, d, false);
+	}
+}
+
+
+static inline bgq_HoppingMatrix_worker_datamove_recvtdown(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
+	if (!noprefetchstream) {
+		bgq_prefetch_forward(&g_bgq_sec_recv[TDOWN][beginj]);
+		bgq_prefetch_forward(&g_bgq_sec_send[TUP][beginj]);
+		bgq_prefetch_forward(&spinorfield->consptr_recvtup[beginj]);
+	}
+
+	for (size_t j = beginj; j < endj; j+=1) {
+#ifndef NDEBUG
+		size_t offset_left = (uint8_t*)&g_bgq_sec_recv[TDOWN][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
+		ucoord index_left = bgq_offset2index(offset_left);
+		size_t offset_right = (uint8_t*)&g_bgq_sec_send[TUP][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
+		ucoord index_right = bgq_offset2index(offset_right);
+		ucoord ic_left = g_bgq_index2collapsed[isOdd][index_left];
+		ucoord ic_right = g_bgq_index2collapsed[isOdd][index_right];
+		assert(ic_left == ic_right);
+		ucoord ic = ic_left;
+		ucoord t1 = bgq_collapsed2t(isOdd, ic_left, 0);
+		ucoord t2 = bgq_collapsed2t(isOdd, ic_right, 1);
+		ucoord x = bgq_collapsed2x(isOdd, ic);
+		ucoord y = bgq_collapsed2y(isOdd, ic);
+		ucoord z = bgq_collapsed2z(isOdd, ic);
+		bgq_direction d1 = bgq_offset2ddst(offset_left);
+		bgq_direction d2 = bgq_offset2ddst(offset_right);
+		assert(d1==d2);
+		bgq_direction d = d1;
+#endif
+
+		//TODO: Check strength reduction
+		//TODO: Prefetch
+		//TODO: Inline assembler
+		bgq_weyl_vec *weyladdr_left = &g_bgq_sec_recv[TDOWN][j];
+		bgq_weyl_vec *weyladdr_right = &g_bgq_sec_send[TUP][j];
+		bgq_weyl_vec *weyladdr_dst = spinorfield->consptr_recvtdown[j];
+
+		bgq_prefetch(&spinorfield->consptr_recvtdown[j+1]);
+		bgq_su3_weyl_prefetch_double(&g_bgq_sec_recv[TDOWN][j+1]);
+		bgq_su3_weyl_prefetch_double(&g_bgq_sec_send[TUP][j+1]);
+
+		bgq_su3_weyl_decl(weyl_left);
+		bgq_su3_weyl_load_double(weyl_left, weyladdr_left);
+		bgq_weylqpxk_expect(weyl_left, 1, t1, x, y, z, d1, false);
+		assert(bgq_elem2(weyl_left_v0_c0)!=0); // for valgrind
+
+		bgq_su3_weyl_decl(weyl_right);
+		bgq_su3_weyl_load_double(weyl_right, weyladdr_right);
+		bgq_weylqpxk_expect(weyl_right, 0, t2, x, y, z, d2, false);
+		assert(bgq_elem0(weyl_right_v0_c0)!=0);// for valgrind
+
+		bgq_su3_weyl_decl(weyl);
+		bgq_su3_weyl_merge2(weyl, weyl_left, weyl_right);
+		bgq_weylqpx_expect(weyl, t1, t2, x, y, z, d, false);
+
+#ifndef NDEBUG
+		//bgq_weylvec_expect(*weyladdr_dst, t1,t2,x,y,z,d,false);
+		size_t offset = bgq_pointer2offset(spinorfield, weyladdr_dst);
+		ucoord index = bgq_offset2index(offset);
+		bgq_weylfield_section sec = bgq_sectionOfOffset(offset);
+		assert(sec==sec_body || sec==sec_surface);
+		ucoord ic_check = g_bgq_index2collapsed[isOdd][index];
+		assert(ic == ic_check);
+#endif
+		bgq_su3_weyl_store_double(weyladdr_dst, weyl);
+		bgq_weylvec_written(weyladdr_dst, t1, t2, x, y, z, d, false);
+	}
+}
+
+typedef struct {
+	bgq_weylfield_controlblock *spinorfield;
+	bgq_hmflags opts;
+} bgq_work_datamove;
+
+
+void bgq_HoppingMatrix_worker_datamove(void *arg_untyped, size_t tid, size_t threads) {
+	bgq_work_datamove *arg = arg_untyped;
+	bgq_weylfield_controlblock *spinorfield = arg->spinorfield;
+	bgq_hmflags opts = arg->opts;
 	bool isOdd = spinorfield->isOdd;
+
+	bool noprefetchstream = opts & hm_noprefetchstream;
 
 	//const size_t workload_recvt = COMM_T ? 2*LOCAL_HALO_T/PHYSICAL_LP : LOCAL_HALO_T/PHYSICAL_LP;
 	const size_t workload_recv_tup = LOCAL_HALO_T/PHYSICAL_LP;
@@ -214,164 +396,40 @@ static void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t t
 	const size_t workload = workload_recv + 2*workload_recv_tup + 2*workload_recv_tdown;
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = tid*threadload;
-	const size_t end = min(workload, begin+threadload);
+	const size_t end = min_sizet(workload, begin+threadload);
 	for (size_t i = begin; i<end; ) {
 		WORKLOAD_DECL(i,workload);
 
 		if (WORKLOAD_SPLIT(workload_recv)) {
 			// Do other dimensions
-
 			size_t beginj = WORKLOAD_PARAM(workload_recv);
-			size_t endj = min(workload_recv,beginj+threadload);
-			for (size_t j = beginj; j < endj; j+=1) {
-				size_t offset = (uint8_t*)&g_bgq_sec_recv[XUP][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
-				ucoord index = bgq_offset2index(offset);
-				ucoord ic = g_bgq_index2collapsed[isOdd][index];
-				ucoord t1 = bgq_collapsed2t(isOdd, ic, 0);
-				ucoord t2 = bgq_collapsed2t(isOdd, ic, 1);
-				ucoord x = bgq_collapsed2x(isOdd, ic);
-				ucoord y = bgq_collapsed2y(isOdd, ic);
-				ucoord z = bgq_collapsed2z(isOdd, ic);
-				bgq_direction d = bgq_offset2ddst(offset);
-
-				//TODO: Check strength reduction
-				//TODO: Prefetch
-				//TODO: Inline assembler
-				bgq_weyl_vec *weyladdr_src= &spinorfield->sec_recv[XUP][j]; // Note: overlaps into following sections
-				bgq_weyl_vec *weyladdr_dst = spinorfield->destptrFromRecv[j];
-				assert((bgq_weyl_vec *)spinorfield->sec_weyl <= weyladdr_dst && weyladdr_dst <  (bgq_weyl_vec *)spinorfield->sec_end);
-
-				bgq_su3_weyl_decl(weyl);
-				bgq_su3_weyl_load_double(weyl, weyladdr_src);
-				bgq_weylqpx_expect(weyl, t1, t2, x, y, z, d, false);
-
-				//bgq_weylvec_expect(*weyladdr_dst, t1,t2,x,y,z,d,false);
-				bgq_su3_weyl_store_double(weyladdr_dst, weyl);
-				bgq_weylvec_written(weyladdr_dst, t1, t2, x, y, z, d, false);
-			}
+			size_t endj = min_sizet(workload_recv,beginj+threadload);
+			bgq_HoppingMatrix_worker_datamove_recvxyz(spinorfield,isOdd,beginj,endj,noprefetchstream);
 			i += (endj - beginj);
 		} else if (WORKLOAD_SPLIT(2*workload_recv_tup)) {
 			// Count an T-iteration twice; better have few underloaded threads (so remaining SMT-threads have some more resources) then few overloaded threads (so the master thread has to wait for them)
 			size_t twobeginj = WORKLOAD_PARAM(2*workload_recv_tup);
-			size_t twoendj = min(2*workload_recv_tup,twobeginj+threadload);
+			size_t twoendj = min_sizet(2*workload_recv_tup,twobeginj+threadload);
 			size_t beginj = twobeginj / 2;
 			size_t endj = twoendj / 2;
-			for (size_t j = beginj; j < endj; j+=1) {
-				//TODO: Check optaway
-				size_t offset_left =  (uint8_t*)&g_bgq_sec_send[TDOWN][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
-				ucoord index_left = bgq_offset2index(offset_left);
-				size_t offset_right =(uint8_t*)&g_bgq_sec_recv[TUP][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
-				ucoord index_right = bgq_offset2index(offset_right);
-				ucoord ic_left = g_bgq_index2collapsed[isOdd][index_left];
-				ucoord ic_right = g_bgq_index2collapsed[isOdd][index_right];
-				assert(ic_left == ic_right);
-				ucoord ic = ic_left;
-				ucoord t1 = bgq_collapsed2t(isOdd, ic_left, 0);
-				ucoord t2 = bgq_collapsed2t(isOdd, ic_right, 1);
-				ucoord x = bgq_collapsed2x(isOdd, ic);
-				ucoord y = bgq_collapsed2y(isOdd, ic);
-				ucoord z = bgq_collapsed2z(isOdd, ic);
-				bgq_direction d1 = bgq_offset2ddst(offset_left);
-				bgq_direction d2 = bgq_offset2ddst(offset_right);
-				assert(d1==d2);
-				bgq_direction d = d1;
-
-				//TODO: Check strength reduction
-				//TODO: Prefetch
-				//TODO: Inline assembler
-				bgq_weyl_vec *weyladdr_left = &g_bgq_sec_send[TDOWN][j];
-				bgq_weyl_vec *weyladdr_right = &g_bgq_sec_recv[TUP][j];
-				bgq_weyl_vec *weyladdr_dst = spinorfield->consptr_recvtup[j];
-
-				bgq_su3_weyl_decl(weyl_left);
-				bgq_su3_weyl_load_double(weyl_left, weyladdr_left);
-				bgq_weylqpxk_expect(weyl_left, 1, t1, x, y, z, d1, false);
-				assert(bgq_elem2(weyl_left_v0_c0)!=0); // for valgrind
-
-				bgq_su3_weyl_decl(weyl_right);
-				bgq_su3_weyl_load_double(weyl_right, weyladdr_right);
-				bgq_weylqpxk_expect(weyl_right, 0, t2, x, y, z, d2, false);
-				assert(bgq_elem0(weyl_right_v0_c0)!=0);// for valgrind
-
-				bgq_su3_weyl_decl(weyl);
-				bgq_su3_weyl_merge2(weyl, weyl_left, weyl_right);
-				bgq_weylqpx_expect(weyl, t1, t2, x, y, z, d, false);
-
-				//bgq_weylvec_expect(*weyladdr_dst, t1,t2,x,y,z,d,false);
-				size_t offset = bgq_pointer2offset(spinorfield, weyladdr_dst);
-				ucoord index = bgq_offset2index(offset);
-				bgq_weylfield_section sec = bgq_sectionOfOffset(offset);
-				assert(sec==sec_body || sec==sec_surface);
-				ucoord ic_check = g_bgq_index2collapsed[isOdd][index];
-				assert(ic == ic_check);
-				bgq_su3_weyl_store_double(weyladdr_dst, weyl);
-				bgq_weylvec_written(weyladdr_dst, t1, t2, x, y, z, d, false);
-			}
+			bgq_HoppingMatrix_worker_datamove_recvtup(spinorfield,isOdd,beginj,endj,noprefetchstream);
 			i += (twoendj - twobeginj);
 		} else if (WORKLOAD_SPLIT(2*workload_recv_tdown)) {
 			// Count an T-iteration twice; better have few underloaded threads (so remaining SMT-threads have some more resources) then few overloaded threads (so the master thread has to wait for them)
 			size_t twobeginj = WORKLOAD_PARAM(2*workload_recv_tdown);
-			size_t twoendj = min(2*workload_recv_tdown,twobeginj+threadload);
+			size_t twoendj = min_sizet(2*workload_recv_tdown,twobeginj+threadload);
 			size_t beginj = twobeginj/2;
 			size_t endj = twoendj / 2;
-			for (size_t j = beginj; j < endj; j+=1) {
-				size_t offset_left = (uint8_t*)&g_bgq_sec_recv[TDOWN][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
-				ucoord index_left = bgq_offset2index(offset_left);
-				size_t offset_right = (uint8_t*)&g_bgq_sec_send[TUP][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
-				ucoord index_right = bgq_offset2index(offset_right);
-				ucoord ic_left = g_bgq_index2collapsed[isOdd][index_left];
-				ucoord ic_right = g_bgq_index2collapsed[isOdd][index_right];
-				assert(ic_left == ic_right);
-				ucoord ic = ic_left;
-				ucoord t1 = bgq_collapsed2t(isOdd, ic_left, 0);
-				ucoord t2 = bgq_collapsed2t(isOdd, ic_right, 1);
-				ucoord x = bgq_collapsed2x(isOdd, ic);
-				ucoord y = bgq_collapsed2y(isOdd, ic);
-				ucoord z = bgq_collapsed2z(isOdd, ic);
-				bgq_direction d1 = bgq_offset2ddst(offset_left);
-				bgq_direction d2 = bgq_offset2ddst(offset_right);
-				assert(d1==d2);
-				bgq_direction d = d1;
-
-				//TODO: Check strength reduction
-				//TODO: Prefetch
-				//TODO: Inline assembler
-				bgq_weyl_vec *weyladdr_left = &g_bgq_sec_recv[TDOWN][j];
-				bgq_weyl_vec *weyladdr_right = &g_bgq_sec_send[TUP][j];
-				bgq_weyl_vec *weyladdr_dst = spinorfield->consptr_recvtdown[j];
-
-				bgq_su3_weyl_decl(weyl_left);
-				bgq_su3_weyl_load_double(weyl_left, weyladdr_left);
-				bgq_weylqpxk_expect(weyl_left, 1, t1, x, y, z, d1, false);
-				assert(bgq_elem2(weyl_left_v0_c0)!=0); // for valgrind
-
-				bgq_su3_weyl_decl(weyl_right);
-				bgq_su3_weyl_load_double(weyl_right, weyladdr_right);
-				bgq_weylqpxk_expect(weyl_right, 0, t2, x, y, z, d2, false);
-				assert(bgq_elem0(weyl_right_v0_c0)!=0);// for valgrind
-
-				bgq_su3_weyl_decl(weyl);
-				bgq_su3_weyl_merge2(weyl, weyl_left, weyl_right);
-				bgq_weylqpx_expect(weyl, t1, t2, x, y, z, d, false);
-
-				//bgq_weylvec_expect(*weyladdr_dst, t1,t2,x,y,z,d,false);
-				size_t offset = bgq_pointer2offset(spinorfield, weyladdr_dst);
-				ucoord index = bgq_offset2index(offset);
-				bgq_weylfield_section sec = bgq_sectionOfOffset(offset);
-				assert(sec==sec_body || sec==sec_surface);
-				ucoord ic_check = g_bgq_index2collapsed[isOdd][index];
-				assert(ic == ic_check);
-				bgq_su3_weyl_store_double(weyladdr_dst, weyl);
-				bgq_weylvec_written(weyladdr_dst, t1, t2, x, y, z, d, false);
-			}
+			bgq_HoppingMatrix_worker_datamove_recvtdown(spinorfield,isOdd,beginj,endj,noprefetchstream);
 			i += (twoendj - twobeginj);
 		} else {
-		UNREACHABLE
+			UNREACHABLE
 		}
 
 		WORKLOAD_CHECK
 	}
 }
+
 
 
 static bgq_weyl_vec *bgq_offset2pointer(uint8_t *weylbase, size_t offset) {
@@ -562,9 +620,12 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 			master_error(1, "No weyl data written here\n");
 		//TODO: We may implement a field data translation if the calling func does not support this layout
 
-		if (field->waitingForRecv) {
-			actionWaitForRecv = true;
+		if (field->pendingDatamove) {
 			actionDatamove = true;
+		}
+		if (field->waitingForRecv) {
+			assert(actionDatamove);
+			actionWaitForRecv = true;
 		}
 	}
 	if (writeWeyl) {
@@ -587,13 +648,19 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 
 
 	if (actionWaitForRecv) {
+		bool nospi = field->hmflags & hm_nospi;
+
 		// 4. Wait for the communication to finish
-		bgq_comm_wait();
+		bgq_comm_wait(nospi);
 		field->waitingForRecv = false;
 	}
 	if (actionDatamove) {
 		// 5. Move received to correct location
-		bgq_master_call(&bgq_HoppingMatrix_worker_datamove, field);
+		bgq_master_sync();
+		static bgq_work_datamove work;
+		work.spinorfield = field;
+		work.opts = field->hmflags;
+		bgq_master_call(&bgq_HoppingMatrix_worker_datamove, &work);
 	}
 
 
@@ -886,7 +953,7 @@ complexdouble *g_bgqvalue = NULL;
 complexdouble *g_refvalue = NULL;
 
 
-void bgq_initbgqref() {
+void bgq_initbgqref_impl() {
 	int datasize = sizeof(complexdouble) * VOLUME * lengthof(g_idxdesc);
 	if (g_refvalue == NULL) {
 		g_bgqvalue = malloc_aligned(datasize, BGQ_ALIGNMENT_L2);
@@ -901,11 +968,12 @@ void bgq_initbgqref() {
 }
 
 
-void bgq_setdesc(int idx, char *desc){
+void bgq_setdesc_impl(int idx, char *desc){
 	g_idxdesc[idx] = desc;
 }
 
-void bgq_setrefvalue(int t, int x, int y, int z, bgqref idx, complexdouble val) {
+
+void bgq_setrefvalue_impl(int t, int x, int y, int z, bgqref idx, complexdouble val) {
 	if (t < 0)
 		t = 0;
 	if (t >= LOCAL_LT)
@@ -926,7 +994,7 @@ void bgq_setrefvalue(int t, int x, int y, int z, bgqref idx, complexdouble val) 
 	if (!g_idxdesc[idx])
 		g_idxdesc[idx] = "";
 }
-void bgq_setbgqvalue(int t, int x, int y, int z, bgqref idx, complexdouble val) {
+void bgq_setbgqvalue_impl(int t, int x, int y, int z, bgqref idx, complexdouble val) {
 	if (idx==BGQREF_TUP && t==0 && x==0 && y==0 && z==0) {
 		int a = 0;
 	}
@@ -952,12 +1020,12 @@ void bgq_setbgqvalue(int t, int x, int y, int z, bgqref idx, complexdouble val) 
 		g_idxdesc[idx] = "";
 }
 
-void bgq_setbgqvalue_src(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bgqref idx, complexdouble val) {
+void bgq_setbgqvalue_src_impl(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bgqref idx, complexdouble val) {
 	bgq_direction_move_local(&t, &x, &y, &z, d);
 	bgq_setbgqvalue(t, x, y, z, idx, val);
 }
 
-void bgq_savebgqref() {
+void bgq_savebgqref_impl() {
 	if (g_proc_id != 0)
 		return;
 

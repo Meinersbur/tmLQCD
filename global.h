@@ -284,6 +284,7 @@ EXTERN int ** g_idn3d;
 /* #undef ALIGN */
 
 void fatal_error(char const *error, char const *function);
+void *rpl_malloc(size_t n);
 
 #ifdef MAIN_PROGRAM
 #endif

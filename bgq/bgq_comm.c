@@ -13,12 +13,13 @@
 #include "DirectPut.h"
 #endif
 
+#include "../global.h"
 
+#include <mpi.h>
 
 
 static MPI_Request g_bgq_request_recv[COMMDIR_COUNT];
 static MPI_Request g_bgq_request_send[COMMDIR_COUNT];
-
 
 
 static bgq_dimension bgq_commdim2dimension(ucoord commdim) {
@@ -122,28 +123,28 @@ static ucoord bgq_commdir2direction(ucoord commdir) {
 static int bgq_direction2rank(bgq_direction d) {
 	switch (d) {
 	case TUP:
-	return g_nb_t_up;
+		return g_nb_t_up;
 	case TDOWN:
-	return g_nb_t_dn;
+		return g_nb_t_dn;
 	case XUP:
-	return g_nb_x_up;
+		return g_nb_x_up;
 	case XDOWN:
-	return g_nb_x_dn;
+		return g_nb_x_dn;
 	case YUP:
-	return g_nb_y_up;
+		return g_nb_y_up;
 	case YDOWN:
-	return g_nb_y_dn;
+		return g_nb_y_dn;
 	case ZUP:
-	return g_nb_z_up;
+		return g_nb_z_up;
 	case ZDOWN:
-	return g_nb_z_dn;
+		return g_nb_z_dn;
 	default:
-	UNREACHABLE
+		UNREACHABLE
 	}
 }
 
 
-void bgq_comm_init() {
+void bgq_comm_init(void) {
 	size_t commbufsize = bgq_weyl_section_offset(sec_comm_end) - bgq_weyl_section_offset(sec_comm);
 
 	uint8_t *buf = (uint8_t*)malloc_aligned(commbufsize, BGQ_ALIGNMENT_L2);
@@ -213,7 +214,6 @@ void bgq_comm_init() {
 
 
 
-
 	  Personality_t pers;
 	  int rc = 0;
 	  // get the CNK personality
@@ -224,12 +224,12 @@ void bgq_comm_init() {
 	  mypers[2] = pers.Network_Config.Ccoord;
 	  mypers[3] = pers.Network_Config.Dcoord;
 	  mypers[4] = pers.Network_Config.Ecoord;
-
 	  get_destinations(mypers);
 
+
 	  // adjust the SPI pointers to the send and receive buffers
-	  SPIrecvBuffers = (char*)recvBuffer;
-	  SPIsendBuffers = (char*)sendBuffer;
+	  SPIrecvBuffers = (char*)g_bgq_sec_recv[0];
+	  SPIsendBuffers = (char*)g_bgq_sec_send[0];
 
 	  // Setup the FIFO handles
 	  rc = msg_InjFifoInit (&injFifoHandle,
@@ -245,7 +245,7 @@ void bgq_comm_init() {
 	  }
 
 	  // Set up base address table for reception counter and buffer
-	  setup_mregions_bats_counters(totalMessageSize);
+	  setup_mregions_bats_counters(totalMessageSize/2);
 
 	  // Create descriptors
 	  // Injection Direct Put Descriptor, one for each neighbour
@@ -253,93 +253,96 @@ void bgq_comm_init() {
 	  create_descriptors(SPIDescriptors, messageSizes, soffsets, roffsets, spi_num_dirs);
 
 	  // test communication
-	  for(unsigned int i = 0; i < RAND/2; i++) {
-	    sendBuffer[i].s0.c0 = (double)g_cart_id;
-	    sendBuffer[i].s0.c1 = (double)g_cart_id;
-	    sendBuffer[i].s0.c2 = (double)g_cart_id;
-	    sendBuffer[i].s1.c0 = (double)g_cart_id;
-	    sendBuffer[i].s1.c1 = (double)g_cart_id;
-	    sendBuffer[i].s1.c2 = (double)g_cart_id;
+	  for(size_t i = 0; i < commbufsize/(2*sizeof(bgq_weyl_vec)); i+=1) {
+		  for (ucoord v = 0; v < 2; v+=1)
+			  for (ucoord c = 0; c < 3; c+=1)
+				  for (ucoord k = 0; k < 2; k+=1)
+					  g_bgq_sec_send[i]->s[v][c][k] = (double)g_cart_id;
 	  }
 
-	  // Initialize the barrier, resetting the hardware.
-	  rc = MUSPI_GIBarrierInit ( &GIBarrier, 0 /*comm world class route */);
-	  if(rc) {
-	    printf("MUSPI_GIBarrierInit returned rc = %d\n", rc);
-	    exit(__LINE__);
-	  }
-	  // reset the recv counter
-	  recvCounter = totalMessageSize;
-	  global_barrier(); // make sure everybody is set recv counter
+	  bgq_comm_recv(false);
+	  bgq_comm_send(false);
 
-	  //#pragma omp for nowait
-	  for (unsigned int j = 0; j < spi_num_dirs; j++) {
-	    descCount[ j ] =
-	      msg_InjFifoInject ( injFifoHandle,
-				  j,
-				  &SPIDescriptors[j]);
-	  }
 	  // wait for receive completion
-	  while ( recvCounter > 0 );
+	  bgq_comm_wait(false);
 
-	  _bgq_msync();
 
-	  j = 0;
-	  for(unsigned int i = 0; i < spi_num_dirs; i++) {
-	    if(i == 0) k = g_nb_t_up;
-	    if(i == 1) k = g_nb_t_dn;
-	    if(i == 2) k = g_nb_x_up;
-	    if(i == 3) k = g_nb_x_dn;
-	    if(i == 4) k = g_nb_y_up;
-	    if(i == 5) k = g_nb_y_dn;
-	    if(i == 6) k = g_nb_z_up;
-	    if(i == 7) k = g_nb_z_dn;
-	    for(int mu = 0; mu < messageSizes[i]/sizeof(halfspinor); mu++) {
-	      if(k != (int)creal(recvBuffer[ soffsets[i]/sizeof(halfspinor) + mu ].s0.c0) ||
-		 k != (int)creal(recvBuffer[ soffsets[i]/sizeof(halfspinor) + mu ].s0.c1) ||
-		 k != (int)creal(recvBuffer[ soffsets[i]/sizeof(halfspinor) + mu ].s0.c2) ||
-		 k != (int)creal(recvBuffer[ soffsets[i]/sizeof(halfspinor) + mu ].s1.c0) ||
-		 k != (int)creal(recvBuffer[ soffsets[i]/sizeof(halfspinor) + mu ].s1.c1) ||
-		 k != (int)creal(recvBuffer[ soffsets[i]/sizeof(halfspinor) + mu ].s1.c2)) {
-		if(g_cart_id == 0) {
-		  printf("SPI exchange doesn't work for dir %d: %d != %d at point %d\n",
-			 i, k ,(int)creal(recvBuffer[ soffsets[i]/sizeof(halfspinor) + mu ].s0.c0), mu);
-		}
-		j++;
-	      }
-	    }
-	  }
-	  if(j > 0) {
-	    printf("hmm, SPI exchange failed on proc %d...\n!", g_cart_id);
-	  }
-	  else {
-	    if(g_cart_id == 0) printf("# SPI exchange successfully tested\n");
+	  for (size_t i = 0; i < COMMDIR_COUNT; i+=1) {
+		  bgq_direction d = bgq_commdir2direction(i);
+		  int rank_neighbor = bgq_direction2rank(d);
+		  bgq_weylfield_section sec_recv = bgq_direction2section(d, false);
+		  bgq_weylfield_section sec_send = bgq_direction2section(d, true);
+		  size_t secsize = bgq_section_size(sec_recv);
+		  assert(secsize == bgq_section_size(sec_send));
+		  for (size_t mu = 0; mu < secsize/sizeof(halfspinor); mu+=1) {
+			  for (ucoord v = 0; v < 2; v+=1) {
+				  for (ucoord c = 0; c < 3; c+=1) {
+					  for (ucoord k = 0; k < 2; k+=1) {
+						  if (g_bgq_sec_recv[i]->s[v][c][k] != rank_neighbor) {
+							  printf("SPI exchange doesn't work for dir %d: %d != %f at point %d\n", i, rank_neighbor ,creal(g_bgq_sec_recv[i]->s[v][c][k]), mu);
+							  exit(1);
+						  }
+					  }
+				  }
+			  }
+	  	  }
 	  }
 #endif
 }
 
 
+
+
 //TODO: inline?
-void bgq_comm_recv() {
-//	return;
+void bgq_comm_recv(bool nospi) {
+#ifdef SPI
+	if (!nospi) {
+		return;
+	}
+#endif
+
 	MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_recv));
 }
 
 
-void bgq_comm_send() {
-//	return;
+void bgq_comm_send(bool nospi) {
+#ifdef SPI
+	if (!nospi) {
+	    // Initialize the barrier, resetting the hardware.
+	    int rc = MUSPI_GIBarrierInit(&GIBarrier, 0 /*comm world class route */);
+	    assert(rc && "MUSPI_GIBarrierInit returned rc");
+
+	    // reset the recv counter
+	    recvCounter = totalMessageSize;
+	    global_barrier(); // make sure everybody is set recv counter
+
+	    //#pragma omp for nowait
+	    for (size_t j = 0; j < COMMDIR_COUNT; j+=1) {
+	      descCount[j] = msg_InjFifoInject(injFifoHandle, j, &SPIDescriptors[j]);
+	    }
+		return;
+	}
+#endif
+
 	MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_send));
 }
 
 
-void bgq_comm_wait() {
-//	return;
+void bgq_comm_wait(bool nospi) {
+#ifdef SPI
+	if (!nospi) {
+		 while(recvCounter > 0);
+			_bgq_msync();
+			return;
+	}
+#endif
+
+
 	MPI_Status recv_status[COMMDIR_COUNT];
 	MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_recv, recv_status));
 
 	MPI_Status send_status[COMMDIR_COUNT];
 	MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_send, send_status));
-
 
 #ifndef NDEBUG
 	for (ucoord commdir = 0; commdir < COMMDIR_COUNT; commdir += 1) {

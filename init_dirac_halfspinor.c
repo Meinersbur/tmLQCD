@@ -226,7 +226,7 @@ int init_dirac_halfspinor() {
       }
     }
   }
-#if (defined SPI && defined MPI)
+#if 0//(defined SPI && defined MPI)
   // here comes the SPI initialisation
   uint64_t messageSizes[NUM_DIRS];
   uint64_t roffsets[NUM_DIRS], soffsets[NUM_DIRS];
@@ -498,7 +498,7 @@ int init_dirac_halfspinor32() {
 #endif
     }
   }
-#if (defined SPI && defined MPI)
+#if 0//(defined SPI && defined MPI)
   // here comes the SPI initialisation
   uint64_t messageSizes[NUM_DIRS];
   uint64_t roffsets[NUM_DIRS], soffsets[NUM_DIRS];

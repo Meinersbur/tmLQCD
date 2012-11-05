@@ -184,16 +184,22 @@ EXTERN_INLINE void bgq_spinorqpx_expect_raw(bgq_su3_spinor_params(spinor),scoord
 
 void bgq_weyl_expect(bgq_weyl_nonvec weyl, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
 
-#define bgq_weylqpx_expect(weyl,t1,t2,x,y,z,d,isSrc) bgq_weylqpx_expect_raw(bgq_su3_weyl_vars(weyl),t1,t2,x,y,z,d,isSrc)
-EXTERN_INLINE void bgq_weylqpx_expect_raw(bgq_su3_weyl_params(weyl), ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 #ifdef BGQ_COORDCHECK
+#define bgq_weylqpx_expect(weyl,t1,t2,x,y,z,d,isSrc) bgq_weylqpx_expect_raw(bgq_su3_weyl_vars(weyl),t1,t2,x,y,z,d,isSrc)
+#else
+#define bgq_weylqpx_expect(weyl,t1,t2,x,y,z,d,isSrc)
+#endif
+EXTERN_INLINE void bgq_weylqpx_expect_raw(bgq_su3_weyl_params(weyl), ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 	bgq_weyl_expect(bgq_weyl_fromqpxk(weyl,0),t1,x,y,z,d,isSrc);
 	bgq_weyl_expect(bgq_weyl_fromqpxk(weyl,1),t2,x,y,z,d,isSrc);
-#endif
 }
 
 
+#ifdef BGQ_COORDCHECK
 #define bgq_weylqpxk_expect(weyl,k,t,x,y,z,d,isSrc) bgq_weylqpxk_expect_raw(bgq_su3_weyl_vars(weyl),k,t,x,y,z,d,isSrc)
+#else
+#define bgq_weylqpxk_expect(weyl,k,t,x,y,z,d,isSrc)
+#endif
 EXTERN_INLINE void bgq_weylqpxk_expect_raw(bgq_su3_weyl_params(weyl), ucoord k, ucoord t,  ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 #ifdef BGQ_COORDCHECK
 	bgq_weyl_expect(bgq_weyl_fromqpxk(weyl,k),t,x,y,z,d,isSrc);
@@ -244,11 +250,15 @@ bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, size_t t
 
 void bgq_weylveck_written(bgq_weyl_vec *targetweyl, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
 
-EXTERN_INLINE void bgq_weylvec_written(bgq_weyl_vec *targetweyl, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
+
 #ifdef BGQ_COORDCHECK
+#define bgq_weylvec_written(targetweyl, t1, t2, x, y, z, d, isSrc) bgq_weylvec_written_impl(targetweyl, t1, t2, x, y, z, d, isSrc)
+#else
+#define bgq_weylvec_written(targetweyl, t1, t2, x, y, z, d, isSrc)
+#endif
+EXTERN_INLINE void bgq_weylvec_written_impl(bgq_weyl_vec *targetweyl, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 	bgq_weylveck_written(targetweyl, 0, t1, x,y,z,d,isSrc);
 	bgq_weylveck_written(targetweyl, 1, t2, x,y,z,d,isSrc);
-#endif
 }
 
 
@@ -305,12 +315,28 @@ typedef enum {
 } bgqref;
 
 
-void bgq_initbgqref();
-void bgq_setdesc(int idx, char *desc);
-void bgq_setrefvalue(int t, int x, int y, int z, bgqref idx, complexdouble val);
-void bgq_setbgqvalue(int t, int x, int y, int z, bgqref idx, complexdouble val);
-void bgq_setbgqvalue_src(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bgqref idx, complexdouble val);
-void bgq_savebgqref();
+#ifdef NDEBUG
+#define bgq_initbgqref()
+#define bgq_setdesc(idx,desc)
+#define bgq_setrefvalue( t,  x,  y,  z,  idx,  val)
+#define bgq_setbgqvalue( t,  x,  y,  z,  idx,  val)
+#define bgq_setbgqvalue_src( t,  x,  y,  z,  d,  idx,  val)
+#define bgq_savebgqref()
+#else
+#define bgq_initbgqref() bgq_initbgqref_impl()
+#define bgq_setdesc(idx,desc) bgq_setdesc_impl(idx,desc)
+#define bgq_setrefvalue( t,  x,  y,  z,  idx,  val) bgq_setrefvalue_impl( t,  x,  y,  z,  idx,  val)
+#define bgq_setbgqvalue( t,  x,  y,  z,  idx,  val) bgq_setbgqvalue_impl( t,  x,  y,  z,  idx,  val)
+#define bgq_setbgqvalue_src( t,  x,  y,  z,  d,  idx,  val) bgq_setbgqvalue_src_impl( t,  x,  y,  z,  d,  idx,  val)
+#define bgq_savebgqref() bgq_savebgqref_impl()
+#endif
+
+void bgq_initbgqref_impl();
+void bgq_setdesc_impl(int idx, char *desc);
+void bgq_setrefvalue_impl(int t, int x, int y, int z, bgqref idx, complexdouble val);
+void bgq_setbgqvalue_impl(int t, int x, int y, int z, bgqref idx, complexdouble val);
+void bgq_setbgqvalue_src_impl(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bgqref idx, complexdouble val);
+void bgq_savebgqref_impl();
 
 size_t bgq_fieldpointer2offset(void *ptr);
 

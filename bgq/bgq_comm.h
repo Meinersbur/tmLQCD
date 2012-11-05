@@ -1,10 +1,3 @@
-/*
- * bgq_comm.h
- *
- *  Created on: Oct 25, 2012
- *      Author: meinersbur
- */
-
 #ifndef BGQ_COMM_H_
 #define BGQ_COMM_H_
 
@@ -21,16 +14,18 @@
 #define EXTERN_INIT(val) = (val)
 #endif
 
-void bgq_comm_init();
+
+void bgq_comm_init(void);
 
 //TODO: inline?
-void bgq_comm_recv();
-void bgq_comm_send();
-void bgq_comm_wait();
+void bgq_comm_recv(bool nospi);
+void bgq_comm_send(bool nospi);
+void bgq_comm_wait(bool nospi);
 
 EXTERN_FIELD uint8_t *g_bgq_sec_comm;
 EXTERN_FIELD bgq_weyl_vec *g_bgq_sec_recv[PHYSICAL_LD];
 EXTERN_FIELD bgq_weyl_vec *g_bgq_sec_send[PHYSICAL_LD];
+
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

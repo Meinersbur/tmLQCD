@@ -82,6 +82,7 @@
 #include "bgq/bgq_comm.h"
 #include <omp.h>
 #include "bgq/mypapi.h"
+#include <getopt.h>
 
 #ifdef XLC
 #include <l1p/pprefetch.h>
@@ -163,6 +164,45 @@ typedef struct {
 	bgq_hmflags opts;
 	benchstat result;
 } master_args;
+
+
+static ucoord flops_per_bodysite(bgq_hmflags opts) {
+	ucoord result = 0;
+
+	if (!(opts & hm_nobody)) {
+		result += 8/*dirs*/ * (2*3)/*cmplx per weyl*/ * 2/*flops*/;
+		result += 8/*dirs*/ * 2/*su3vec per weyl*/ * (6*9)/*flop su3 mv-mul*/;
+
+		// Assuming readWeyllayout:
+		result += 7/*dirs*/ * (2*3)/*cmplx per weyl*/ * 2/*flops accumm*/;
+		assert(result == 1320);
+		if (!(opts & hm_nokamul)) {
+			result += 6/*flops cmplx mul*/ * (2*3)/*cmplx per weyl*/ * 8/*dirs*/;
+		}
+	}
+
+	return result;
+}
+
+
+static ucoord flops_per_surfacesite(bgq_hmflags opts) {
+	ucoord result = 0;
+
+	if (!(opts & hm_nodistribute)) {
+	result += 8/*dirs*/ * (2*3)/*cmplx per weyl*/ * 2/*flops*/;
+	result += 8/*dirs*/ * 2/*su3vec per weyl*/ * (6*9)/*flop su3 mv-mul*/;
+
+	// Assuming readWeyllayout:
+	result += 7/*dirs*/ * (2*3)/*cmplx per weyl*/ * 2/*flops accumm*/;
+	}
+
+	if (!(opts & hm_nokamul)) {
+		result += 6/*flops cmpl mul*/ * (2*3)/*cmpl per weyl*/ * 8/*dirs*/;
+	}
+
+	return result;
+}
+
 
 static void benchmark_setup_worker(void *argptr, size_t tid, size_t threads) {
 #ifdef BGQ
@@ -885,9 +925,28 @@ int main(int argc,char *argv[])
 
   g_rgi_C1 = 1.;
 
+  char *input_filename = "benchmark.input";
+  int c = 0;
+	while ((c = getopt(argc, argv, "vh?f:")) != -1) {
+		switch (c) {
+		case 'f':
+			input_filename = malloc(strlen(optarg)+1);
+			strcpy(input_filename, optarg);
+			break;
+		case 'v':
+			verbose = 1;
+			break;
+		case 'h':
+		case '?':
+		default:
+			//usage();
+			exit(0);
+		}
+	}
+
     /* Read the input file */
-  if((status = read_input("benchmark.input")) != 0) {
-    fprintf(stderr, "Could not find input file: benchmark.input\nAborting...\n");
+  if((status = read_input(input_filename)) != 0) {
+    fprintf(stderr, "Could not find input file: %s\nAborting...\n", input_filename);
     exit(-1);
   }
 

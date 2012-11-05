@@ -382,6 +382,12 @@ EXTERN_INLINE double min(double const lhs, double const rhs) {
 	return lhs;
 }
 
+EXTERN_INLINE size_t min_sizet(size_t lhs, size_t rhs) {
+	if (lhs > rhs)
+		return rhs;
+	return lhs;
+}
+
 // from stackoverflow
 // log_2(_v)
 EXTERN_INLINE int ilog(unsigned int _v) {
@@ -434,13 +440,20 @@ EXTERN_INLINE size_t lcm_sizet(size_t a, size_t b) {
 	return (a*b) /  gcd_sizet(a,b);
 }
 
-
+#ifdef __GNUC__
 #define UNREACHABLE \
 	{ \
 	assert(!"Unreachable"); \
 	__builtin_unreachable(); \
 	abort(); \
 	}
+#else
+#define UNREACHABLE \
+	{ \
+	assert(!"Unreachable"); \
+	abort(); \
+	}
+#endif
 
 
 #undef EXTERN_INLINE
