@@ -914,7 +914,7 @@ do {\
 	bgq_qvlfduxa(NAME2(dst,c22), ptr, 32); \
 } while (0)
 #else
-#define bgq_su3_matrix_load_double(dest, addr) \W
+#define bgq_su3_matrix_load_double(dest, addr) \
 	bgq_lda_double(NAME2(dest,c00),   0, addr); \
 	bgq_lda_double(NAME2(dest,c01),  32, addr); \
 	bgq_lda_double(NAME2(dest,c02),  64, addr); \
