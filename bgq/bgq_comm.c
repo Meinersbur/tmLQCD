@@ -123,23 +123,23 @@ static ucoord bgq_commdir2direction(ucoord commdir) {
 static int bgq_direction2rank(bgq_direction d) {
 	switch (d) {
 	case TUP:
-	return g_nb_t_up;
+		return g_nb_t_up;
 	case TDOWN:
-	return g_nb_t_dn;
+		return g_nb_t_dn;
 	case XUP:
-	return g_nb_x_up;
+		return g_nb_x_up;
 	case XDOWN:
-	return g_nb_x_dn;
+		return g_nb_x_dn;
 	case YUP:
-	return g_nb_y_up;
+		return g_nb_y_up;
 	case YDOWN:
-	return g_nb_y_dn;
+		return g_nb_y_dn;
 	case ZUP:
-	return g_nb_z_up;
+		return g_nb_z_up;
 	case ZDOWN:
-	return g_nb_z_dn;
+		return g_nb_z_dn;
 	default:
-	UNREACHABLE
+		UNREACHABLE
 	}
 }
 
@@ -260,11 +260,11 @@ void bgq_comm_init(void) {
 					  g_bgq_sec_send[i]->s[v][c][k] = (double)g_cart_id;
 	  }
 
-	  bgq_comm_recv();
-	  bgq_comm_send();
+	  bgq_comm_recv(false);
+	  bgq_comm_send(false);
 
 	  // wait for receive completion
-	  bgq_comm_wait();
+	  bgq_comm_wait(false);
 
 
 	  for (size_t i = 0; i < COMMDIR_COUNT; i+=1) {

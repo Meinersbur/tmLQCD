@@ -722,6 +722,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 
 // 2. Start communication
 	if (!nocomm) {
+		//TODO: ensure there are no other communications pending
 		bgq_comm_send(nospi);
 		targetfield->waitingForRecv = true;
 	}

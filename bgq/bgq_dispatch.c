@@ -35,6 +35,20 @@ static volatile bool g_bgq_dispatch_terminate;
 static volatile bool g_bgq_dispatch_sync;
 static volatile size_t g_bgq_dispatch_seq;
 
+static bool g_bgq_dispatch_pendingsync = false; // Accessed by master only
+
+
+static void bgq_thread_barrier() {
+#ifdef BGQ
+	uint64_t ppc32 = mfspr(SPRN_PPR32);
+	ThreadPriority_Low(); // Lower thread priority, so if busy waiting is used, do not impact other threads on core
+#endif
+#pragma omp barrier
+#ifdef BGQ
+	mtspr(SPRN_PPR32, ppc32); // Restore original priority
+#endif
+}
+
 
 int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 	for (int i = 0; i < 64*25; i+=1)
@@ -79,6 +93,7 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 	return master_result;
 }
 
+
 //static size_t count = 0;
 //#pragma omp threadvar(count)
 
@@ -93,14 +108,9 @@ void bgq_worker() {
 		// This doesn't need to be a barrier, waiting for submission of some work from the master is ok too
 		// TODO: Hope OpenMP has a good implementation without busy waiting; if not, do some own work
 
-#ifdef BGQ
-		uint64_t ppc32 = mfspr(SPRN_PPR32);
-		ThreadPriority_Low(); // Lower thread priority, so if busy waiting is used, do not impact other threads on core
-#endif
-#pragma omp barrier
-#ifdef BGQ
-		mtspr(SPRN_PPR32, ppc32); // Restore original priority
-#endif
+		// Master thread may write shared variables before this barrier
+		bgq_thread_barrier();
+		// Worker threads read common variables after this barrier
 
 		//count += 1;
 		// All threads should be here at the same time, including the master thread, which has issued some work, namely, calling a function
@@ -119,23 +129,18 @@ void bgq_worker() {
 			g_bgq_dispatch_func(arg, tid, threads); //TODO: Shuffle tid to load-balance work?
 		}
 
+		if (tid==0) {
+			// Let master thread continue the program
+			// Hint: master thread must call bgq_thread_barrier() sometime to release the workers from the following barrier
+			return;
+		}
+		// All others, wait for the next command
+
 		// Guarantee that work is finished
 		//TODO: can we implement this without this second barrier?
 		// Required to ensure consistency of g_bgq_dispatch_sync, g_bgq_dispatch_terminate, g_bgq_dispatch_func
-#ifdef BGQ
-	uint64_t ppc32 = mfspr(SPRN_PPR32);
-	ThreadPriority_Low(); // Lower thread priority, so if busy waiting is used, do not impact other threads on core
-#endif
-#pragma omp barrier
-#ifdef BGQ
-	mtspr(SPRN_PPR32, ppc32); // Restore original priority
-#endif
-
-		if (tid==0) {
-			// Let master thread continue the program
-			break;
-		}
-		// All others, wait for the next command
+		g_bgq_dispatch_pendingsync = true;
+		bgq_thread_barrier();
 	}
 }
 
@@ -143,6 +148,12 @@ void bgq_worker() {
 void bgq_master_call(bgq_worker_func func, void *arg) {
 	assert(omp_get_thread_num()==0);
 	assert(func);
+
+	if (g_bgq_dispatch_pendingsync) {
+		bgq_thread_barrier();
+		g_bgq_dispatch_pendingsync = false;
+		return;
+	}
 
 	g_bgq_dispatch_seq += 1;
 	//printf("MASTER CALL seq=%d--------------------------------------------------------\n", (int)g_bgq_dispatch_seq);
@@ -152,6 +163,7 @@ void bgq_master_call(bgq_worker_func func, void *arg) {
 	g_bgq_dispatch_sync = false;
 	mbar();
 #pragma omp flush
+
 	bgq_worker();
 
 	g_bgq_dispatch_func = NULL;
@@ -163,6 +175,12 @@ void bgq_master_call(bgq_worker_func func, void *arg) {
 
 void bgq_master_sync() {
 	assert(omp_get_thread_num()==0);
+
+	if (g_bgq_dispatch_pendingsync) {
+		bgq_thread_barrier();
+		g_bgq_dispatch_pendingsync = false;
+		return;
+	}
 
 	g_bgq_dispatch_seq += 1;
 	//printf("MASTER SYNC seq=%d--------------------------------------------------------\n", (int)g_bgq_dispatch_seq);
