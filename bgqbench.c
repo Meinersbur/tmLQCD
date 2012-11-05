@@ -82,6 +82,7 @@
 #include "bgq/bgq_comm.h"
 #include <omp.h>
 #include "bgq/mypapi.h"
+#include <getopt.h>
 
 #ifdef XLC
 #include <l1p/pprefetch.h>
@@ -885,9 +886,28 @@ int main(int argc,char *argv[])
 
   g_rgi_C1 = 1.;
 
+  char *input_filename = "benchmark.input";
+  int c = 0;
+	while ((c = getopt(argc, argv, "vh?f:")) != -1) {
+		switch (c) {
+		case 'f':
+			input_filename = malloc(strlen(optarg)+1);
+			strcpy(input_filename, optarg);
+			break;
+		case 'v':
+			verbose = 1;
+			break;
+		case 'h':
+		case '?':
+		default:
+			//usage();
+			exit(0);
+		}
+	}
+
     /* Read the input file */
-  if((status = read_input("benchmark.input")) != 0) {
-    fprintf(stderr, "Could not find input file: benchmark.input\nAborting...\n");
+  if((status = read_input(input_filename)) != 0) {
+    fprintf(stderr, "Could not find input file: %s\nAborting...\n", input_filename);
     exit(-1);
   }
 
