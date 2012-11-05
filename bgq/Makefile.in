@@ -31,7 +31,7 @@ LDADD =
 COMPILE = ${CC} $(DEFS) ${INCLUDES} ${CPPFLAGS} ${CFLAGS}
 
 LIBRARIES = libbgq
-libbgq_TARGETS = bgq_qpx bgq_gaugefield bgq_spinorfield bgq_comm bgq_utils bgq_field bgq_HoppingMatrix bgq_dispatch mypapi
+libbgq_TARGETS = asm1 asm2 bgq_qpx bgq_gaugefield bgq_spinorfield bgq_comm bgq_utils bgq_field bgq_HoppingMatrix bgq_dispatch mypapi
 libbgq_STARGETS = 
 
 libbgq_OBJECTS = $(addsuffix .o, ${libbgq_TARGETS})
@@ -39,7 +39,7 @@ libbgq_SOBJECTS = $(addsuffix .o, ${libbgq_STARGETS})
 
 # default rule
 
-all: Makefile dep libbgq.a
+all: Makefile dep libbgq.a disasm
 
 # rules for debugging
 debug all-debug: CFLAGS := $(CFLAGS) @DEBUG_FLAG@
@@ -94,4 +94,25 @@ clean: compile-clean
 distclean: clean
 	rm -f Makefile
 
-.PHONY: all dep clean compile-clean distclean profile all-profile debug all-debug FORCE
+
+disasm: asm1.dS asm1.s asm2.dS asm2.s
+
+disasm: asm1.dS asm1.s asm2.dS asm2.s
+
+asm1.dS: asm1.o
+	if [ -e $@ ]; then cp -f $@ ${@}_; fi
+	bgq-objdump -dS asm1.o | perl -pe 's/^\s+\w+\:\s+[^\t]*\t(.*)$$/\1/' > $@
+
+asm1.s: asm1.o
+	if [ -e $@ ]; then cp -f $@ ${@}_; fi
+	bgq-objdump -d asm1.o | perl -pe 's/^\s+\w+\:\s+[^\t]*\t(.*)$$/\1/' > $@
+
+asm2.dS: asm2.o
+	if [ -e $@ ]; then cp -f $@ ${@}_; fi
+	bgq-objdump -dS asm2.o | perl -pe 's/^\s+\w+\:\s+[^\t]*\t(.*)$$/\1/' > $@
+
+asm2.s: asm2.o
+	if [ -e $@ ]; then cp -f $@ ${@}_; fi
+	bgq-objdump -d asm2.o | perl -pe 's/^\s+\w+\:\s+[^\t]*\t(.*)$$/\1/' > $@
+
+.PHONY: all dep clean compile-clean distclean profile all-profile debug all-debug disasm FORCE

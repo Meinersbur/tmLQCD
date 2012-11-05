@@ -276,9 +276,9 @@ EXTERN_INLINE bool bgq_direction_isDistributed(bgq_direction d) {
 
 
 
-void bgq_indices_init();
+void bgq_indices_init(void);
 void bgq_spinorfields_init(size_t std_count, size_t chi_count);
-void bgq_gaugefield_init();
+void bgq_gaugefield_init(void);
 
 
 
@@ -528,10 +528,10 @@ EXTERN_FIELD bgq_weylfield_controlblock *g_bgq_spinorfields EXTERN_INIT(NULL);
 
 
 EXTERN_FIELD bool g_bgq_indices_initialized EXTERN_INIT(false);
-void bgq_indices_init();
+void bgq_indices_init(void);
 void bgq_spinorfields_init(size_t std_count, size_t chi_count);
 //void bgq_spinorfield_reset(bgq_weylfield_controlblock *field, bool isOdd, bool activateWeyl, bool activateFull);
-void bgq_gaugefield_init();
+void bgq_gaugefield_init(void);
 
 EXTERN_INLINE ucoord bgq_local2global_t(scoord t) {
 	assert(0 <= t && t < LOCAL_LT);

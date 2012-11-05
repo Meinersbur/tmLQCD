@@ -213,6 +213,16 @@ static void bgq_HoppingMatrix_worker_surface_precomm_readFulllayout(void *arg, s
 	bool isOdd = work->isOdd_src;
 	bgq_weylfield_controlblock *spinorfield = work->spinorfield;
 	bgq_weylfield_controlblock *targetfield = work->targetfield;
+	const bool kamul = false;
+
+	bgq_vector4double_decl(qka0);
+	bgq_complxval_splat(qka0,ka0);
+	bgq_vector4double_decl(qka1);
+	bgq_complxval_splat(qka1,ka1);
+	bgq_vector4double_decl(qka2);
+	bgq_complxval_splat(qka2,ka2);
+	bgq_vector4double_decl(qka3);
+	bgq_complxval_splat(qka3,ka3);
 
 	const size_t workload = PHYSICAL_SURFACE;
 	const size_t threadload = (workload+threads-1)/threads;
@@ -236,7 +246,12 @@ static void bgq_HoppingMatrix_worker_surface_precomm_readFulllayout(void *arg, s
 		//TODO: Check inlining
 		bgq_su3_spinor_decl(spinor);
 		bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
-		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, false);
+
+		//bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, false);
+		bgq_HoppingMatrix_compute_storeWeyllayout_alldir(destptrs, gaugesite, spinor, t1, t2, x, y, z, qka0,qka1,qka2,qka3,kamul);
+//#define BGQ_COMPUTEWEYL_INC_
+//#include "bgq_ComputeWeyl.inc.c"
+//#undef BGQ_COMPUTEWEYL_INC_
 	}
 }
 
@@ -246,6 +261,16 @@ static void bgq_HoppingMatrix_kamul_worker_surface_precomm_readFulllayout(void *
 	bool isOdd = work->isOdd_src;
 	bgq_weylfield_controlblock *spinorfield = work->spinorfield;
 	bgq_weylfield_controlblock *targetfield = work->targetfield;
+	const bool kamul = true;
+
+	bgq_vector4double_decl(qka0);
+	bgq_complxval_splat(qka0,ka0);
+	bgq_vector4double_decl(qka1);
+	bgq_complxval_splat(qka1,ka1);
+	bgq_vector4double_decl(qka2);
+	bgq_complxval_splat(qka2,ka2);
+	bgq_vector4double_decl(qka3);
+	bgq_complxval_splat(qka3,ka3);
 
 	const size_t workload = PHYSICAL_SURFACE;
 	const size_t threadload = (workload+threads-1)/threads;
@@ -269,7 +294,8 @@ static void bgq_HoppingMatrix_kamul_worker_surface_precomm_readFulllayout(void *
 		//TODO: Check inlining
 		bgq_su3_spinor_decl(spinor);
 		bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
-		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, true);
+		//bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, true);
+		bgq_HoppingMatrix_compute_storeWeyllayout_alldir(destptrs, gaugesite, spinor, t1, t2, x, y, z, qka0,qka1,qka2,qka3,kamul);
 	}
 }
 
@@ -279,6 +305,16 @@ static void bgq_HoppingMatrix_worker_surface_precomm_readWeyllayout(void *arg, s
 	bool isOdd = work->isOdd_src;
 	bgq_weylfield_controlblock *spinorfield = work->spinorfield;
 	bgq_weylfield_controlblock *targetfield = work->targetfield;
+	const bool kamul = false;
+
+	bgq_vector4double_decl(qka0);
+	bgq_complxval_splat(qka0,ka0);
+	bgq_vector4double_decl(qka1);
+	bgq_complxval_splat(qka1,ka1);
+	bgq_vector4double_decl(qka2);
+	bgq_complxval_splat(qka2,ka2);
+	bgq_vector4double_decl(qka3);
+	bgq_complxval_splat(qka3,ka3);
 
 	const size_t workload = PHYSICAL_SURFACE;
 	const size_t threadload = (workload+threads-1)/threads;
@@ -303,7 +339,8 @@ static void bgq_HoppingMatrix_worker_surface_precomm_readWeyllayout(void *arg, s
 		//TODO: Check inlining
 		bgq_su3_spinor_decl(spinor);
 		bgq_HoppingMatrix_loadWeyllayout(spinor, weylsite, t1, t2, x, y, z);
-		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, false);
+		//bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, false);
+		bgq_HoppingMatrix_compute_storeWeyllayout_alldir(destptrs, gaugesite, spinor, t1, t2, x, y, z, qka0,qka1,qka2,qka3,kamul);
 	}
 }
 
@@ -312,6 +349,16 @@ static void bgq_HoppingMatrix_kamul_worker_surface_precomm_readWeyllayout(void *
 	bool isOdd = work->isOdd_src;
 	bgq_weylfield_controlblock *spinorfield = work->spinorfield;
 	bgq_weylfield_controlblock *targetfield = work->targetfield;
+	const bool kamul = true;
+
+	bgq_vector4double_decl(qka0);
+	bgq_complxval_splat(qka0,ka0);
+	bgq_vector4double_decl(qka1);
+	bgq_complxval_splat(qka1,ka1);
+	bgq_vector4double_decl(qka2);
+	bgq_complxval_splat(qka2,ka2);
+	bgq_vector4double_decl(qka3);
+	bgq_complxval_splat(qka3,ka3);
 
 	const size_t workload = PHYSICAL_SURFACE;
 	const size_t threadload = (workload+threads-1)/threads;
@@ -332,15 +379,12 @@ static void bgq_HoppingMatrix_kamul_worker_surface_precomm_readWeyllayout(void *
 		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][ic];
 		bgq_weyl_ptr_t *destptrs = &targetfield->sendptr[ic];
 
-		if (ic == 0) {
-			int b = 0;
-		}
-
 		//TODO: prefetching
 		//TODO: Check inlining
 		bgq_su3_spinor_decl(spinor);
 		bgq_HoppingMatrix_loadWeyllayout(spinor, weylsite, t1, t2, x, y, z);
-		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, true);
+		//bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, true);
+		bgq_HoppingMatrix_compute_storeWeyllayout_alldir(destptrs, gaugesite, spinor, t1, t2, x, y, z, qka0,qka1,qka2,qka3,kamul);
 	}
 }
 
@@ -350,6 +394,16 @@ static void bgq_HoppingMatrix_worker_body_readFulllayout(void *arg, size_t tid, 
 	bool isOdd = work->isOdd_src;
 	bgq_weylfield_controlblock *spinorfield = work->spinorfield;
 	bgq_weylfield_controlblock *targetfield = work->targetfield;
+	const bool kamul = false;
+
+	bgq_vector4double_decl(qka0);
+	bgq_complxval_splat(qka0,ka0);
+	bgq_vector4double_decl(qka1);
+	bgq_complxval_splat(qka1,ka1);
+	bgq_vector4double_decl(qka2);
+	bgq_complxval_splat(qka2,ka2);
+	bgq_vector4double_decl(qka3);
+	bgq_complxval_splat(qka3,ka3);
 
 	const size_t workload = PHYSICAL_BODY;
 	const size_t threadload = (workload+threads-1)/threads;
@@ -374,7 +428,8 @@ static void bgq_HoppingMatrix_worker_body_readFulllayout(void *arg, size_t tid, 
 		//TODO: Check inlining
 		bgq_su3_spinor_decl(spinor);
 		bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
-		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, false);
+		//bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, false);
+		bgq_HoppingMatrix_compute_storeWeyllayout_alldir(destptrs, gaugesite, spinor, t1, t2, x, y, z, qka0,qka1,qka2,qka3,kamul);
 	}
 }
 
@@ -386,6 +441,16 @@ static void bgq_HoppingMatrix_kamul_worker_body_readFulllayout(void *arg, size_t
 	bool isOdd = work->isOdd_src;
 	bgq_weylfield_controlblock *spinorfield = work->spinorfield;
 	bgq_weylfield_controlblock *targetfield = work->targetfield;
+	const bool kamul = true;
+
+	bgq_vector4double_decl(qka0);
+	bgq_complxval_splat(qka0,ka0);
+	bgq_vector4double_decl(qka1);
+	bgq_complxval_splat(qka1,ka1);
+	bgq_vector4double_decl(qka2);
+	bgq_complxval_splat(qka2,ka2);
+	bgq_vector4double_decl(qka3);
+	bgq_complxval_splat(qka3,ka3);
 
 	const size_t workload = PHYSICAL_BODY;
 	const size_t threadload = (workload+threads-1)/threads;
@@ -406,15 +471,12 @@ static void bgq_HoppingMatrix_kamul_worker_body_readFulllayout(void *arg, size_t
 		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][ic];
 		bgq_weyl_ptr_t *destptrs = &targetfield->sendptr[ic];
 
-		if (ic == 6) {
-			int x = 0;
-		}
-
 		//TODO: prefetching
 		//TODO: Check inlining
 		bgq_su3_spinor_decl(spinor);
 		bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
-		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, true);
+		//bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, true);
+		bgq_HoppingMatrix_compute_storeWeyllayout_alldir(destptrs, gaugesite, spinor, t1, t2, x, y, z, qka0,qka1,qka2,qka3,kamul);
 	}
 }
 
@@ -423,6 +485,16 @@ static void bgq_HoppingMatrix_worker_body_readWeyllayout(void *arg, size_t tid, 
 	bool isOdd = work->isOdd_src;
 	bgq_weylfield_controlblock *spinorfield = work->spinorfield;
 	bgq_weylfield_controlblock *targetfield = work->targetfield;
+	const bool kamul = false;
+
+	bgq_vector4double_decl(qka0);
+	bgq_complxval_splat(qka0,ka0);
+	bgq_vector4double_decl(qka1);
+	bgq_complxval_splat(qka1,ka1);
+	bgq_vector4double_decl(qka2);
+	bgq_complxval_splat(qka2,ka2);
+	bgq_vector4double_decl(qka3);
+	bgq_complxval_splat(qka3,ka3);
 
 	const size_t workload = PHYSICAL_BODY;
 	const size_t threadload = (workload+threads-1)/threads;
@@ -447,7 +519,8 @@ static void bgq_HoppingMatrix_worker_body_readWeyllayout(void *arg, size_t tid, 
 		//TODO: Check inlining
 		bgq_su3_spinor_decl(spinor);
 		bgq_HoppingMatrix_loadWeyllayout(spinor, weylsite, t1, t2, x, y, z);
-		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, false);
+		//bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, false);
+		bgq_HoppingMatrix_compute_storeWeyllayout_alldir(destptrs, gaugesite, spinor, t1, t2, x, y, z, qka0,qka1,qka2,qka3,kamul);
 	}
 }
 
@@ -456,6 +529,16 @@ static void bgq_HoppingMatrix_kamul_worker_body_readWeyllayout(void *arg, size_t
 	bool isOdd = work->isOdd_src;
 	bgq_weylfield_controlblock *spinorfield = work->spinorfield;
 	bgq_weylfield_controlblock *targetfield = work->targetfield;
+	const bool kamul = true;
+
+	bgq_vector4double_decl(qka0);
+	bgq_complxval_splat(qka0,ka0);
+	bgq_vector4double_decl(qka1);
+	bgq_complxval_splat(qka1,ka1);
+	bgq_vector4double_decl(qka2);
+	bgq_complxval_splat(qka2,ka2);
+	bgq_vector4double_decl(qka3);
+	bgq_complxval_splat(qka3,ka3);
 
 	const size_t workload = PHYSICAL_BODY;
 	const size_t threadload = (workload+threads-1)/threads;
@@ -480,7 +563,8 @@ static void bgq_HoppingMatrix_kamul_worker_body_readWeyllayout(void *arg, size_t
 		//TODO: Check inlining
 		bgq_su3_spinor_decl(spinor);
 		bgq_HoppingMatrix_loadWeyllayout(spinor, weylsite, t1, t2, x, y, z);
-		bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, true);
+		//bgq_HoppingMatrix_compute_storeWeyllayout(destptrs, gaugesite, spinor, t1, t2, x, y, z, true);
+		bgq_HoppingMatrix_compute_storeWeyllayout_alldir(destptrs, gaugesite, spinor, t1, t2, x, y, z, qka0,qka1,qka2,qka3,kamul);
 	}
 }
 

@@ -886,7 +886,7 @@ complexdouble *g_bgqvalue = NULL;
 complexdouble *g_refvalue = NULL;
 
 
-void bgq_initbgqref() {
+void bgq_initbgqref_impl() {
 	int datasize = sizeof(complexdouble) * VOLUME * lengthof(g_idxdesc);
 	if (g_refvalue == NULL) {
 		g_bgqvalue = malloc_aligned(datasize, BGQ_ALIGNMENT_L2);
@@ -901,11 +901,12 @@ void bgq_initbgqref() {
 }
 
 
-void bgq_setdesc(int idx, char *desc){
+void bgq_setdesc_impl(int idx, char *desc){
 	g_idxdesc[idx] = desc;
 }
 
-void bgq_setrefvalue(int t, int x, int y, int z, bgqref idx, complexdouble val) {
+
+void bgq_setrefvalue_impl(int t, int x, int y, int z, bgqref idx, complexdouble val) {
 	if (t < 0)
 		t = 0;
 	if (t >= LOCAL_LT)
@@ -926,7 +927,7 @@ void bgq_setrefvalue(int t, int x, int y, int z, bgqref idx, complexdouble val) 
 	if (!g_idxdesc[idx])
 		g_idxdesc[idx] = "";
 }
-void bgq_setbgqvalue(int t, int x, int y, int z, bgqref idx, complexdouble val) {
+void bgq_setbgqvalue_impl(int t, int x, int y, int z, bgqref idx, complexdouble val) {
 	if (idx==BGQREF_TUP && t==0 && x==0 && y==0 && z==0) {
 		int a = 0;
 	}
@@ -952,12 +953,12 @@ void bgq_setbgqvalue(int t, int x, int y, int z, bgqref idx, complexdouble val) 
 		g_idxdesc[idx] = "";
 }
 
-void bgq_setbgqvalue_src(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bgqref idx, complexdouble val) {
+void bgq_setbgqvalue_src_impl(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bgqref idx, complexdouble val) {
 	bgq_direction_move_local(&t, &x, &y, &z, d);
 	bgq_setbgqvalue(t, x, y, z, idx, val);
 }
 
-void bgq_savebgqref() {
+void bgq_savebgqref_impl() {
 	if (g_proc_id != 0)
 		return;
 
