@@ -8,7 +8,7 @@
 #@ notification = error
 #@ notify_user = juqueen@meinersbur.de
 #@ job_type = bluegene
-#@ bg_size = 128
+#@ bg_size = 256
 ##@ bg_shape = 1x1x1x1
 #@ bg_connectivity = TORUS
 #@ queue

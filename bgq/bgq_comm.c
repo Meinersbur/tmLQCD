@@ -13,6 +13,9 @@
 #include "DirectPut.h"
 #endif
 
+#include "../global.h"
+
+#include <mpi.h>
 
 
 static MPI_Request g_bgq_request_recv[COMMDIR_COUNT];
@@ -141,7 +144,7 @@ static int bgq_direction2rank(bgq_direction d) {
 }
 
 
-void bgq_comm_init() {
+void bgq_comm_init(void) {
 	size_t commbufsize = bgq_weyl_section_offset(sec_comm_end) - bgq_weyl_section_offset(sec_comm);
 
 	uint8_t *buf = (uint8_t*)malloc_aligned(commbufsize, BGQ_ALIGNMENT_L2);
@@ -291,39 +294,50 @@ void bgq_comm_init() {
 
 
 //TODO: inline?
-void bgq_comm_recv() {
+void bgq_comm_recv(bool nospi) {
 #ifdef SPI
-#else
+	if (!nospi) {
+		return;
+	}
+#endif
+
 	MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_recv));
-#endif
 }
 
 
-void bgq_comm_send() {
+void bgq_comm_send(bool nospi) {
 #ifdef SPI
-    // Initialize the barrier, resetting the hardware.
-    int rc = MUSPI_GIBarrierInit(&GIBarrier, 0 /*comm world class route */);
-    assert(rc && "MUSPI_GIBarrierInit returned rc");
+	if (!nospi) {
+	    // Initialize the barrier, resetting the hardware.
+	    int rc = MUSPI_GIBarrierInit(&GIBarrier, 0 /*comm world class route */);
+	    assert(rc && "MUSPI_GIBarrierInit returned rc");
 
-    // reset the recv counter
-    recvCounter = totalMessageSize;
-    global_barrier(); // make sure everybody is set recv counter
+	    // reset the recv counter
+	    recvCounter = totalMessageSize;
+	    global_barrier(); // make sure everybody is set recv counter
 
-    //#pragma omp for nowait
-    for (size_t j = 0; j < COMMDIR_COUNT; j+=1) {
-      descCount[j] = msg_InjFifoInject(injFifoHandle, j, &SPIDescriptors[j]);
-    }
-#else
+	    //#pragma omp for nowait
+	    for (size_t j = 0; j < COMMDIR_COUNT; j+=1) {
+	      descCount[j] = msg_InjFifoInject(injFifoHandle, j, &SPIDescriptors[j]);
+	    }
+		return;
+	}
+#endif
+
 	MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_send));
-#endif
 }
 
 
-void bgq_comm_wait() {
+void bgq_comm_wait(bool nospi) {
 #ifdef SPI
-	 while(recvCounter > 0);
-	_bgq_msync();
-#else
+	if (!nospi) {
+		 while(recvCounter > 0);
+			_bgq_msync();
+			return;
+	}
+#endif
+
+
 	MPI_Status recv_status[COMMDIR_COUNT];
 	MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_recv, recv_status));
 
@@ -337,7 +351,6 @@ void bgq_comm_wait() {
 		size_t size = bgq_weyl_section_offset(sec+1) - bgq_weyl_section_offset(sec);
 		assert(get_MPI_count(&recv_status[commdir]) == size);
 	}
-#endif
 #endif
 }
 

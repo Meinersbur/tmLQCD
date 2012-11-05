@@ -3,7 +3,7 @@
 #include "bgq_comm.h"
 
 void *somewhere;
-bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, ucoord t, ucoord x, ucoord y, ucoord z) {
+bgq_spinor bgq_spinorfield_getspinor2(bgq_weylfield_controlblock *field, ucoord t, ucoord x, ucoord y, ucoord z) {
 	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);

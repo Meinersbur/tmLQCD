@@ -202,7 +202,12 @@ static bgq_spinor_vec bgq_spinor_mergevec(bgq_spinor_nonvec s_left, bgq_spinor_n
 	return result;
 }
 
-static inline bgq_HoppingMatrix_worker_datamove_recvxyz(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj) {
+static inline bgq_HoppingMatrix_worker_datamove_recvxyz(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
+	if (!noprefetchstream) {
+		bgq_prefetch_forward(&spinorfield->sec_recv[XUP][beginj]);
+		bgq_prefetch_forward(&spinorfield->destptrFromRecv[beginj]);
+	}
+
 	for (size_t j = beginj; j < endj; j+=1) {
 #ifndef NDEBUG
 		size_t offset = (uint8_t*)&g_bgq_sec_recv[XUP][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
@@ -237,7 +242,13 @@ static inline bgq_HoppingMatrix_worker_datamove_recvxyz(bgq_weylfield_controlblo
 }
 
 
-static inline bgq_HoppingMatrix_worker_datamove_recvtup(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj) {
+static inline bgq_HoppingMatrix_worker_datamove_recvtup(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
+	if (!noprefetchstream) {
+		bgq_prefetch_forward(&g_bgq_sec_send[TDOWN][beginj]);
+		bgq_prefetch_forward(&g_bgq_sec_recv[TUP][beginj]);
+		bgq_prefetch_forward(&spinorfield->consptr_recvtup[beginj]);
+	}
+
 	for (size_t j = beginj; j < endj; j+=1) {
 #ifndef NDEBUG
 		size_t offset_left =  (uint8_t*)&g_bgq_sec_send[TDOWN][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
@@ -261,6 +272,7 @@ static inline bgq_HoppingMatrix_worker_datamove_recvtup(bgq_weylfield_controlblo
 
 		//TODO: Check strength reduction
 		//TODO: Inline assembler
+		//TODO: Is reading just the 16 used bytes faster?
 		bgq_weyl_vec *weyladdr_left = &g_bgq_sec_send[TDOWN][j];
 		bgq_weyl_vec *weyladdr_right = &g_bgq_sec_recv[TUP][j];
 		bgq_weyl_vec *weyladdr_dst = spinorfield->consptr_recvtup[j];
@@ -296,7 +308,13 @@ static inline bgq_HoppingMatrix_worker_datamove_recvtup(bgq_weylfield_controlblo
 }
 
 
-static inline bgq_HoppingMatrix_worker_datamove_recvtdown(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj) {
+static inline bgq_HoppingMatrix_worker_datamove_recvtdown(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
+	if (!noprefetchstream) {
+		bgq_prefetch_forward(&g_bgq_sec_recv[TDOWN][beginj]);
+		bgq_prefetch_forward(&g_bgq_sec_send[TUP][beginj]);
+		bgq_prefetch_forward(&spinorfield->consptr_recvtup[beginj]);
+	}
+
 	for (size_t j = beginj; j < endj; j+=1) {
 #ifndef NDEBUG
 		size_t offset_left = (uint8_t*)&g_bgq_sec_recv[TDOWN][j] - g_bgq_sec_comm + bgq_weyl_section_offset(sec_comm);
@@ -357,10 +375,19 @@ static inline bgq_HoppingMatrix_worker_datamove_recvtdown(bgq_weylfield_controlb
 	}
 }
 
+typedef struct {
+	bgq_weylfield_controlblock *spinorfield;
+	bgq_hmflags opts;
+} bgq_work_datamove;
 
-void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t threads) {
-	bgq_weylfield_controlblock *spinorfield = argptr;
+
+void bgq_HoppingMatrix_worker_datamove(void *arg_untyped, size_t tid, size_t threads) {
+	bgq_work_datamove *arg = arg_untyped;
+	bgq_weylfield_controlblock *spinorfield = arg->spinorfield;
+	bgq_hmflags opts = arg->opts;
 	bool isOdd = spinorfield->isOdd;
+
+	bool noprefetchstream = opts & hm_noprefetchstream;
 
 	//const size_t workload_recvt = COMM_T ? 2*LOCAL_HALO_T/PHYSICAL_LP : LOCAL_HALO_T/PHYSICAL_LP;
 	const size_t workload_recv_tup = LOCAL_HALO_T/PHYSICAL_LP;
@@ -377,7 +404,7 @@ void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t threads)
 			// Do other dimensions
 			size_t beginj = WORKLOAD_PARAM(workload_recv);
 			size_t endj = min_sizet(workload_recv,beginj+threadload);
-			bgq_HoppingMatrix_worker_datamove_recvxyz(spinorfield,isOdd,beginj,endj);
+			bgq_HoppingMatrix_worker_datamove_recvxyz(spinorfield,isOdd,beginj,endj,noprefetchstream);
 			i += (endj - beginj);
 		} else if (WORKLOAD_SPLIT(2*workload_recv_tup)) {
 			// Count an T-iteration twice; better have few underloaded threads (so remaining SMT-threads have some more resources) then few overloaded threads (so the master thread has to wait for them)
@@ -385,7 +412,7 @@ void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t threads)
 			size_t twoendj = min_sizet(2*workload_recv_tup,twobeginj+threadload);
 			size_t beginj = twobeginj / 2;
 			size_t endj = twoendj / 2;
-			bgq_HoppingMatrix_worker_datamove_recvtup(spinorfield,isOdd,beginj,endj);
+			bgq_HoppingMatrix_worker_datamove_recvtup(spinorfield,isOdd,beginj,endj,noprefetchstream);
 			i += (twoendj - twobeginj);
 		} else if (WORKLOAD_SPLIT(2*workload_recv_tdown)) {
 			// Count an T-iteration twice; better have few underloaded threads (so remaining SMT-threads have some more resources) then few overloaded threads (so the master thread has to wait for them)
@@ -393,7 +420,7 @@ void bgq_HoppingMatrix_worker_datamove(void *argptr, size_t tid, size_t threads)
 			size_t twoendj = min_sizet(2*workload_recv_tdown,twobeginj+threadload);
 			size_t beginj = twobeginj/2;
 			size_t endj = twoendj / 2;
-			bgq_HoppingMatrix_worker_datamove_recvtdown(spinorfield,isOdd,beginj,endj);
+			bgq_HoppingMatrix_worker_datamove_recvtdown(spinorfield,isOdd,beginj,endj,noprefetchstream);
 			i += (twoendj - twobeginj);
 		} else {
 			UNREACHABLE
@@ -593,9 +620,12 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 			master_error(1, "No weyl data written here\n");
 		//TODO: We may implement a field data translation if the calling func does not support this layout
 
-		if (field->waitingForRecv) {
-			actionWaitForRecv = true;
+		if (field->pendingDatamove) {
 			actionDatamove = true;
+		}
+		if (field->waitingForRecv) {
+			assert(actionDatamove);
+			actionWaitForRecv = true;
 		}
 	}
 	if (writeWeyl) {
@@ -618,13 +648,19 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 
 
 	if (actionWaitForRecv) {
+		bool nospi = field->hmflags & hm_nospi;
+
 		// 4. Wait for the communication to finish
-		bgq_comm_wait();
+		bgq_comm_wait(nospi);
 		field->waitingForRecv = false;
 	}
 	if (actionDatamove) {
 		// 5. Move received to correct location
-		bgq_master_call(&bgq_HoppingMatrix_worker_datamove, field);
+		bgq_master_sync();
+		static bgq_work_datamove work;
+		work.spinorfield = field;
+		work.opts = field->hmflags;
+		bgq_master_call(&bgq_HoppingMatrix_worker_datamove, &work);
 	}
 
 

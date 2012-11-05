@@ -165,6 +165,45 @@ typedef struct {
 	benchstat result;
 } master_args;
 
+
+static ucoord flops_per_bodysite(bgq_hmflags opts) {
+	ucoord result = 0;
+
+	if (!(opts & hm_nobody)) {
+		result += 8/*dirs*/ * (2*3)/*cmplx per weyl*/ * 2/*flops*/;
+		result += 8/*dirs*/ * 2/*su3vec per weyl*/ * (6*9)/*flop su3 mv-mul*/;
+
+		// Assuming readWeyllayout:
+		result += 7/*dirs*/ * (2*3)/*cmplx per weyl*/ * 2/*flops accumm*/;
+		assert(result == 1320);
+		if (!(opts & hm_nokamul)) {
+			result += 6/*flops cmplx mul*/ * (2*3)/*cmplx per weyl*/ * 8/*dirs*/;
+		}
+	}
+
+	return result;
+}
+
+
+static ucoord flops_per_surfacesite(bgq_hmflags opts) {
+	ucoord result = 0;
+
+	if (!(opts & hm_nodistribute)) {
+	result += 8/*dirs*/ * (2*3)/*cmplx per weyl*/ * 2/*flops*/;
+	result += 8/*dirs*/ * 2/*su3vec per weyl*/ * (6*9)/*flop su3 mv-mul*/;
+
+	// Assuming readWeyllayout:
+	result += 7/*dirs*/ * (2*3)/*cmplx per weyl*/ * 2/*flops accumm*/;
+	}
+
+	if (!(opts & hm_nokamul)) {
+		result += 6/*flops cmpl mul*/ * (2*3)/*cmpl per weyl*/ * 8/*dirs*/;
+	}
+
+	return result;
+}
+
+
 static void benchmark_setup_worker(void *argptr, size_t tid, size_t threads) {
 #ifdef BGQ
 	const master_args *args = argptr;

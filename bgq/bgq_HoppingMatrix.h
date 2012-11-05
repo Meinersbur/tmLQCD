@@ -29,29 +29,8 @@
 #endif
 
 
-typedef enum {
-	hm_nocom = 1 << 0,
-	hm_nooverlap = 1 << 1,
-	hm_nokamul = 1 << 2,
-	hm_fixedoddness = 1 << 3,
 
-	hm_noprefetchexplicit = 1 << 4,
-	hm_noprefetchlist = 1 << 5,
-	hm_noprefetchstream = 1 << 6,
 
-	hm_noweylsend = 1 << 7,
-	hm_nobody = 1 << 8,
-	hm_nosurface = 1 << 9,
-
-	hm_l1pnonstoprecord = 1 << 10,
-	hm_experimental = 1 << 11,
-
-	hm_prefetchimplicitdisable = 1 << 12,
-	hm_prefetchimplicitoptimistic = 2 << 12,
-	hm_prefetchimplicitconfirmed = 3 << 12,
-
-	hm_withcheck = 1 << 14
-} bgq_hmflags;
 
 void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield, bgq_hmflags opts);
 
@@ -64,7 +43,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_loadFulllayout_raw(bgq_su3_spinor_params(* 
 
 
 #define bgq_HoppingMatrix_loadWeyllayout(target, spinorsite, t1, t2, x,y,z) bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_vars(&target), spinorsite, t1, t2, x, y, z)
-EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_params(*target), bgq_weylsite *spinorsite, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z) {
+EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_params(* restrict target), bgq_weylsite * restrict spinorsite, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z) {
 	bgq_su3_spinor_decl(result);
 
 	bgq_su3_weyl_prefetch_double(&spinorsite->d[TDOWN]);
@@ -460,6 +439,7 @@ EXTERN_INLINE bgq_HoppingMatrix_compute_storeWeyllayout_zdown_raw(bgq_weyl_ptr_t
 
 #define bgq_HoppingMatrix_compute_storeWeyllayout_alldir(targetptrs,gaugesite,spinor,t1,t2,x,y,z,qka0,qka1,qka2,qka3,kamul) bgq_HoppingMatrix_compute_storeWeyllayout_alldir_raw(targetptrs,gaugesite,bgq_su3_spinor_vars(spinor),t1,t2,x,y,z,bgq_vars(qka0),bgq_vars(qka1),bgq_vars(qka2),bgq_vars(qka3),kamul)
 inline void bgq_HoppingMatrix_compute_storeWeyllayout_alldir_raw(bgq_weyl_ptr_t * restrict targetptrs, bgq_gaugesite * restrict gaugesite, bgq_su3_spinor_params(spinor), ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_params(qka0), bgq_params(qka1),bgq_params(qka2),bgq_params(qka3), bool kamul) {
+	//TODO: There is some spilling that can proberbly be avoided
 
 	bgq_su3_matrix_prefetch_double(&gaugesite->su3[TDOWN]);
 	bgq_prefetch(&targetptrs->d[TDOWN]);
