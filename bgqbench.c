@@ -17,11 +17,11 @@
  * along with tmLQCD.  If not, see <http://www.gnu.org/licenses/>.
  ***********************************************************************/
 /*******************************************************************************
-*
-* Benchmark program for the even-odd preconditioned Wilson-Dirac operator
-*
-*
-*******************************************************************************/
+ *
+ * Benchmark program for the even-odd preconditioned Wilson-Dirac operator
+ *
+ *
+ *******************************************************************************/
 
 #define MAIN_PROGRAM
 #ifdef HAVE_CONFIG_H
@@ -70,7 +70,6 @@
 #include "phmc.h"
 #include "mpi_init.h"
 
-
 /* BEGIN MK */
 #include "bgq/bgq_field.h"
 #include "bgq/bgq_gaugefield.h"
@@ -101,8 +100,6 @@ typedef bgq_gaugesite bgq_gaugesite_float;
 typedef void (*benchfunc_t)(bgq_hmflags flags, int k, int k_max);
 /* END MK */
 
-
-
 #ifdef PARALLELT
 #  define SLICE (LX*LY*LZ/2)
 #elif defined PARALLELXT
@@ -121,41 +118,25 @@ typedef void (*benchfunc_t)(bgq_hmflags flags, int k, int k_max);
 
 int check_xchange();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 typedef struct {
 	double avgtime;
 	double localrmstime;
 	double globalrmstime;
 
-	double lups;
-	double flops;
+	ucoord sites_body;
+	ucoord sites_surface;
+	ucoord sites;
+
+	ucoord lup_body;
+	ucoord lup_surface;
+	ucoord lup;
+	//double flops;
 
 	double error;
 
 	mypapi_counters counters;
 	bgq_hmflags opts;
 } benchstat;
-
-
-
-
-
 
 typedef struct {
 	int j_max;
@@ -165,19 +146,18 @@ typedef struct {
 	benchstat result;
 } master_args;
 
-
-static ucoord flops_per_bodysite(bgq_hmflags opts) {
+static ucoord flop_per_bodysite(bgq_hmflags opts) {
 	ucoord result = 0;
 
 	if (!(opts & hm_nobody)) {
-		result += 8/*dirs*/ * (2*3)/*cmplx per weyl*/ * 2/*flops*/;
-		result += 8/*dirs*/ * 2/*su3vec per weyl*/ * (6*9)/*flop su3 mv-mul*/;
+		result += 8/*dirs*/* (2 * 3)/*cmplx per weyl*/* 2/*flops*/;
+		result += 8/*dirs*/* 2/*su3vec per weyl*/* (6 * 9)/*flop su3 mv-mul*/;
 
 		// Assuming readWeyllayout:
-		result += 7/*dirs*/ * (2*3)/*cmplx per weyl*/ * 2/*flops accumm*/;
+		result += 7/*dirs*/* (2 * 3)/*cmplx per weyl*/* 2/*flops accumm*/;
 		assert(result == 1320);
 		if (!(opts & hm_nokamul)) {
-			result += 6/*flops cmplx mul*/ * (2*3)/*cmplx per weyl*/ * 8/*dirs*/;
+			result += 6/*flops cmplx mul*/* (2 * 3)/*cmplx per weyl*/* 8/*dirs*/;
 		}
 	}
 
@@ -185,22 +165,30 @@ static ucoord flops_per_bodysite(bgq_hmflags opts) {
 }
 
 
-static ucoord flops_per_surfacesite(bgq_hmflags opts) {
+static ucoord flop_per_surfacesite(bgq_hmflags opts) {
 	ucoord result = 0;
 
 	if (!(opts & hm_nodistribute)) {
-	result += 8/*dirs*/ * (2*3)/*cmplx per weyl*/ * 2/*flops*/;
-	result += 8/*dirs*/ * 2/*su3vec per weyl*/ * (6*9)/*flop su3 mv-mul*/;
+		result += 8/*dirs*/* (2 * 3)/*cmplx per weyl*/* 2/*flops*/;
+		result += 8/*dirs*/* 2/*su3vec per weyl*/* (6 * 9)/*flop su3 mv-mul*/;
 
-	// Assuming readWeyllayout:
-	result += 7/*dirs*/ * (2*3)/*cmplx per weyl*/ * 2/*flops accumm*/;
+		// Assuming readWeyllayout:
+		result += 7/*dirs*/* (2 * 3)/*cmplx per weyl*/* 2/*flops accumm*/;
 	}
 
 	if (!(opts & hm_nokamul)) {
-		result += 6/*flops cmpl mul*/ * (2*3)/*cmpl per weyl*/ * 8/*dirs*/;
+		result += 6/*flops cmpl mul*/* (2 * 3)/*cmpl per weyl*/* 8/*dirs*/;
 	}
 
 	return result;
+}
+
+
+
+static uint64_t compute_flop(bgq_hmflags opts, uint64_t lup_body, uint64_t lup_surface) {
+	uint64_t flop_body = flop_per_bodysite(opts) * lup_body;
+	uint64_t flop_surface =  flop_per_surfacesite(opts) * lup_surface;
+	return flop_body+flop_surface;
 }
 
 
@@ -225,45 +213,42 @@ static void benchmark_setup_worker(void *argptr, size_t tid, size_t threads) {
 
 	L1P_StreamPolicy_t pol;
 	switch (implicitprefetch) {
-	case hm_prefetchimplicitdisable:
+		case hm_prefetchimplicitdisable:
 		pol = noprefetchstream ? L1P_stream_disable : L1P_confirmed_or_dcbt/*No option to selectively disable implicit stream*/;
 		break;
-	case hm_prefetchimplicitoptimistic:
+		case hm_prefetchimplicitoptimistic:
 		pol = L1P_stream_optimistic;
 		break;
-	case hm_prefetchimplicitconfirmed:
+		case hm_prefetchimplicitconfirmed:
 		pol = noprefetchstream ? L1P_stream_confirmed : L1P_confirmed_or_dcbt;
 		break;
-	default:
+		default:
 		// Default setting
 		pol = L1P_confirmed_or_dcbt;
 		break;
 	}
 
+	L1P_CHECK(L1P_SetStreamPolicy(pol));
 
-		L1P_CHECK(L1P_SetStreamPolicy(pol));
+	// Test whether it persists between parallel sections
+	//L1P_StreamPolicy_t getpol = 0;
+	//L1P_CHECK(L1P_GetStreamPolicy(&getpol));
+	//if (getpol != pol)
+	//	fprintf(stderr, "MK StreamPolicy not accepted\n");
 
-		// Test whether it persists between parallel sections
-		//L1P_StreamPolicy_t getpol = 0;
-		//L1P_CHECK(L1P_GetStreamPolicy(&getpol));
-		//if (getpol != pol)
-		//	fprintf(stderr, "MK StreamPolicy not accepted\n");
+	//L1P_CHECK(L1P_SetStreamDepth());
+	//L1P_CHECK(L1P_SetStreamTotalDepth());
 
-		//L1P_CHECK(L1P_SetStreamDepth());
-		//L1P_CHECK(L1P_SetStreamTotalDepth());
+	//L1P_GetStreamDepth
+	//L1P_GetStreamTotalDepth
 
-		//L1P_GetStreamDepth
-		//L1P_GetStreamTotalDepth
-
-
-		// Peter Boyle's setting
-		// Note: L1P_CFG_PF_USR_pf_stream_establish_enable is never set in L1P_SetStreamPolicy
-		//uint64_t *addr = ((uint64_t*)(Kernel_L1pBaseAddress() + L1P_CFG_PF_USR_ADJUST));
-		//*addr |=  L1P_CFG_PF_USR_pf_stream_est_on_dcbt | L1P_CFG_PF_USR_pf_stream_optimistic | L1P_CFG_PF_USR_pf_stream_prefetch_enable | L1P_CFG_PF_USR_pf_stream_establish_enable; // Enable everything???
+	// Peter Boyle's setting
+	// Note: L1P_CFG_PF_USR_pf_stream_establish_enable is never set in L1P_SetStreamPolicy
+	//uint64_t *addr = ((uint64_t*)(Kernel_L1pBaseAddress() + L1P_CFG_PF_USR_ADJUST));
+	//*addr |=  L1P_CFG_PF_USR_pf_stream_est_on_dcbt | L1P_CFG_PF_USR_pf_stream_optimistic | L1P_CFG_PF_USR_pf_stream_prefetch_enable | L1P_CFG_PF_USR_pf_stream_establish_enable; // Enable everything???
 
 #endif
 }
-
 
 static void HoppingMatrix_switch(bool isOdd, spinor *l, spinor *k, bgq_hmflags hmflags) {
 	bool nocom = hmflags & hm_nocom;
@@ -274,7 +259,6 @@ static void HoppingMatrix_switch(bool isOdd, spinor *l, spinor *k, bgq_hmflags h
 	}
 }
 
-
 static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 	const size_t k = 0;
 	// To ensure that zero is used in case of nocomm
@@ -283,11 +267,11 @@ static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 	// Flow:
 	// [k]isOdd -> [k+k_max]isEven -> [k]isOdd
 
-
 	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 #ifndef BGQ_COORDCHECK
 	double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], false);
-	assert(compare_transfer == 0); // Must be exact copy
+	assert(compare_transfer == 0);
+	// Must be exact copy
 #endif
 
 	bgq_HoppingMatrix(false, &g_bgq_spinorfields[k + k_max], &g_bgq_spinorfields[k], hmflags);
@@ -297,22 +281,21 @@ static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 	assert(compare_even < 0.01);
 #endif
 
-
 #ifndef BGQ_COORDCHECK
 	bgq_spinorfield_transfer(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max]); 	// We don't want to accumulate errors
 	compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], false);
-	assert(compare_transfer == 0); // Must be exact copy
+	assert(compare_transfer == 0);
+	// Must be exact copy
 #endif
 
-	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k+2*k_max], &g_bgq_spinorfields[k + k_max], hmflags);
-	HoppingMatrix_switch(true, g_spinor_field[k+2*k_max], g_spinor_field[k+k_max], hmflags);
+	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k + 2 * k_max], &g_bgq_spinorfields[k + k_max], hmflags);
+	HoppingMatrix_switch(true, g_spinor_field[k + 2 * k_max], g_spinor_field[k + k_max], hmflags);
 #ifndef BGQ_COORDCHECK
-	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k + 2*k_max], g_spinor_field[k + 2*k_max], false);
+	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k + 2 * k_max], g_spinor_field[k + 2 * k_max], false);
 	assert(compare_odd < 0.01);
 #else
 	bgq_spinorfield_setup(&g_bgq_spinorfields[k + 2*k_max], true, false, false, true, false); // Wait for data transmission
 #endif
-
 
 #ifndef BGQ_COORDCHECK
 	return max(compare_even, compare_odd);
@@ -320,7 +303,6 @@ static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 	return 0;
 #endif
 }
-
 
 static int benchmark_master(void *argptr) {
 	master_args * const args = argptr;
@@ -330,13 +312,13 @@ static int benchmark_master(void *argptr) {
 	const bgq_hmflags opts = args->opts;
 	//const bool nocom = opts & hm_nocom;
 	//const bool nooverlap = opts & hm_nooverlap;
-	const bool nokamul = opts & hm_nokamul;
+	//const bool nokamul = opts & hm_nokamul;
 	//const bool noprefetchlist = opts & hm_noprefetchlist;
 	//const bool noprefetchstream = opts & hm_noprefetchstream;
 	//const bool noprefetchexplicit = opts & hm_noprefetchexplicit;
-	const bool noweylsend = opts & hm_noweylsend;
-	const bool nobody = opts & hm_nobody;
-	const bool nosurface = opts & hm_nosurface;
+	//const bool noweylsend = opts & hm_noweylsend;
+	//const bool nobody = opts & hm_nobody;
+	//const bool nosurface = opts & hm_nosurface;
 	//const bool experimental = opts & hm_experimental;
 	//const bgq_hmflags implicitprefetch = opts & (hm_prefetchimplicitdisable | hm_prefetchimplicitoptimistic | hm_prefetchimplicitconfirmed);
 	bool withcheck = opts & hm_withcheck;
@@ -377,8 +359,10 @@ static int benchmark_master(void *argptr) {
 		{
 			// The main benchmark
 			for (int k = 0; k < k_max; k += 1) {
+				// Note that flops computation assumes that readWeyllayout is used
 				benchfunc(opts, k, k_max);
 			}
+
 			bgq_master_sync(); // Wait for all threads to finish, to get worst thread timing
 		}
 
@@ -394,13 +378,14 @@ static int benchmark_master(void *argptr) {
 		}
 	}
 
-	double localavgtime = localsumtime / j_max;
+	ucoord its = j_max;
+	double localavgtime = localsumtime / its;
 	double localavgsqtime = sqr(localavgtime);
-	double localrmstime = sqrt((localsumsqtime / j_max) - localavgsqtime);
+	double localrmstime = sqrt((localsumsqtime / its) - localavgsqtime);
 
 	double localtime[] = { localavgtime, localavgsqtime, localrmstime };
 	double sumreduce[3] = { -1, -1, -1 };
-	MPI_Allreduce(&localtime, &sumreduce, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	MPI_Allreduce(&localtime, &sumreduce, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
 	double sumtime = sumreduce[0];
 	double sumsqtime = sumreduce[1];
 	double sumrmstime = sumreduce[2];
@@ -409,49 +394,59 @@ static int benchmark_master(void *argptr) {
 	double avglocalrms = sumrmstime / g_nproc;
 	double rmstime = sqrt((sumsqtime / g_nproc) - sqr(avgtime));
 
-	int lups = LOCAL_LT * LOCAL_LX * LOCAL_LY * LOCAL_LZ;
-	int lups_body = PHYSICAL_BODY * PHYSICAL_LP * PHYSICAL_LK;
-	int lups_surface = PHYSICAL_SURFACE * PHYSICAL_LP * PHYSICAL_LK;
-	assert(lups == lups_body + lups_surface);
-	assert(lups == VOLUME);
+	// Assume k_max lattice site updates, even+odd sites
+	ucoord sites = LOCAL_LT * LOCAL_LX * LOCAL_LY * LOCAL_LZ;
+	ucoord sites_body = PHYSICAL_BODY * PHYSICAL_LK * PHYSICAL_LP;
+	ucoord sites_surface = PHYSICAL_SURFACE * PHYSICAL_LK * PHYSICAL_LP;
+	assert(sites == sites_body+sites_surface);
 
+	ucoord lup_body = k_max * sites_body;
+	ucoord lup_surface = k_max * sites_surface;
+	ucoord lup = lup_body + lup_surface;
+
+#if 0
 	int flops_per_lup_body = 0;
 	if (!nobody) {
 		flops_per_lup_body += 1320;
 		if (!nokamul)
-			flops_per_lup_body += 8 * 2 * 3 * 6;
+		flops_per_lup_body += 8 * 2 * 3 * 6;
 	}
 
 	int flops_per_lup_surface = 0;
 	if (!noweylsend)
-		flops_per_lup_surface += 6 * 2 * 2;
+	flops_per_lup_surface += 6 * 2 * 2;
 	if (!nosurface) {
 		flops_per_lup_surface += 1320 - (6 * 2 * 2);
 		if (!nokamul)
-			flops_per_lup_surface += 8 * 2 * 3 * 6;
+		flops_per_lup_surface += 8 * 2 * 3 * 6;
 	}
 	double flops = ((double) flops_per_lup_body * (double) lups_body) + ((double) flops_per_lup_surface * (double) lups_surface);
+#endif
 
 	benchstat *result = &args->result;
 	result->avgtime = avgtime;
 	result->localrmstime = avglocalrms;
 	result->globalrmstime = rmstime;
-	result->lups = lups;
-	result->flops = flops / avgtime;
+	result->sites_surface = sites_surface;
+	result->sites_body = sites_body;
+	result->sites = sites;
+	result->lup_surface = lup_surface;
+	result->lup_body = lup_body;
+	result->lup = lup;
+	//result->flops = flops / avgtime;
 	result->error = err;
 	result->counters = counters;
 	result->opts = opts;
 	return EXIT_SUCCESS;
 }
 
-
 static benchstat runbench(benchfunc_t benchfunc, bgq_hmflags opts, int k_max, int j_max, int ompthreads) {
 	omp_set_num_threads(ompthreads);
 	master_args args = {
-			.j_max = j_max,
-			.k_max = k_max,
-			.benchfunc = benchfunc,
-			.opts = opts
+	        .j_max = j_max,
+	        .k_max = k_max,
+	        .benchfunc = benchfunc,
+	        .opts = opts
 	};
 	int retcode = bgq_parallel(&benchmark_master, &args);
 	assert(retcode == EXIT_SUCCESS);
@@ -462,7 +457,6 @@ static benchstat runbench(benchfunc_t benchfunc, bgq_hmflags opts, int k_max, in
 	return args.result;
 }
 
-
 static void print_repeat(const char * const str, const int count) {
 	if (g_proc_id == 0) {
 		for (int i = 0; i < count; i += 1) {
@@ -471,27 +465,25 @@ static void print_repeat(const char * const str, const int count) {
 	}
 }
 
-
 static bool kamuls[] = { false, true };
 static char *kamuls_desc[] = { "dslash", "kamul" };
 
 static bool sloppinessess[] = { false, true };
 static char *sloppinessess_desc[] = { "double", "float" };
 
-static int omp_threads[] = {  4, 8, 16, 32, 33, 48, 56, 64 };
+static int omp_threads[] = { 4, 8, 16, 32, 33, 48, 56, 64 };
 static char *omp_threads_desc[] = { "4", "8", "16", "32", "33", "48", "56", "64" };
 
 #define DEFOPTS (hm_noprefetchlist | hm_nokamul)
 
-
 static bgq_hmflags flags[] = {
-		DEFOPTS & ~hm_nokamul,
-		DEFOPTS,
+        DEFOPTS & ~hm_nokamul,
+        DEFOPTS,
 		DEFOPTS | hm_nospi,
 		DEFOPTS | hm_nooverlap,
 		DEFOPTS | hm_nocom,
-		DEFOPTS | hm_nocom             | hm_nodistribute | hm_nodatamove,
-		DEFOPTS | hm_nocom | hm_nobody                   | hm_nodatamove,
+		DEFOPTS | hm_nocom | hm_nodistribute | hm_nodatamove,
+		DEFOPTS | hm_nocom | hm_nobody | hm_nodatamove,
 		DEFOPTS | hm_nocom | hm_nobody | hm_nodistribute,
 		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitdisable,
 		DEFOPTS | hm_prefetchimplicitconfirmed,
@@ -500,59 +492,56 @@ static bgq_hmflags flags[] = {
 #if 0
 //		               hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
 //		hm_nooverlap | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-		hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
+        hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
 //		hm_fixedoddness | hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-		hm_nocom | hm_nosurface | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-		hm_nocom | hm_nobody | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
-		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitconfirmed,
-		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitoptimistic,
+        hm_nocom | hm_nosurface | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
+        hm_nocom | hm_nobody | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
+        hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
+        hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
+        hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitconfirmed,
+        hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitoptimistic,
 //		hm_nocom | hm_noweylsend | hm_noprefetchlist                       | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
-		hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream                         | hm_prefetchimplicitdisable,
+        hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_prefetchimplicitdisable,
 //		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable
-		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable | hm_l1pnonstoprecord,
-		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable | hm_experimental
+        hm_nocom | hm_noweylsend | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable | hm_l1pnonstoprecord,
+        hm_nocom | hm_noweylsend | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable | hm_experimental
 #endif
-		};
+    };
 static char* flags_desc[] = {
-		"kamul"
-		"+nokamul",
-		"MPI",
-		"+nooverlap"
-		"+nocom",
-		"bodyonly",
-		"distronly",
-		"datamovonly",
-		"pf disable",
-		"pf explisit",
-		"pf confirmed",
-		"pf optimistic"
-
+        "kamul"
+		        "+nokamul",
+        "MPI",
+        "+nooverlap"
+		        "+nocom",
+        "bodyonly",
+        "distronly",
+        "datamovonly",
+        "pf disable",
+        "pf explisit",
+        "pf confirmed",
+        "pf optimistic"
 
 //		"Com async",
 //		"Com sync",
-		"Com off",
+//		"Com off",
 //		"^fixedodd",
-		"bodyonly",
-		"surfaceonly",
-		"pf def",
-		"pf disable",
-		"pf confirmed",
-		"pf optimistic",
+//		"bodyonly",
+//		"surfaceonly",
+//		"pf def",
+//		"pf disable",
+//		"pf confirmed",
+//		"pf optimistic",
 //		"pf stream",
-		"pf explicit",
+//		"pf explicit",
 //		"pf list",
-		"pf list nonstop",
-		"pf list exp"
-		};
-
-
+//		"pf list nonstop",
+//		"pf list exp"
+        };
 
 #define CELLWIDTH 15
 #define SCELLWIDTH TOSTRING(CELLWIDTH)
 
-static void print_stats(benchstat *stats, int bodySites, int surfaceSites, int haloSites) {
+static void print_stats(benchstat *stats) {
 #if PAPI
 	int threads = omp_get_num_threads();
 
@@ -566,9 +555,10 @@ static void print_stats(benchstat *stats, int bodySites, int surfaceSites, int h
 			benchstat *stat = &stats[i3];
 			bgq_hmflags opts = stat->opts;
 
-			//uint64_t bodySites = BODY_SITES*4;
-			//uint64_t surfaceSites = SURFACE_SITES*4;
-			uint64_t sites = bodySites + surfaceSites;
+			uint64_t flop = compute_flop(opts, stat->lup_body, stat->lup_surface);
+			double flops = (double)flop/stat->avgtime;
+			double localrms = stat->localrms / stat->avgtime;
+			double globalrms = stat->globalrms / stat->avgtime;
 
 			double nCycles = stats[i3].counters.native[PEVT_CYCLES];
 			double nCoreCycles = stats[i3].counters.corecycles;
@@ -603,13 +593,13 @@ static void print_stats(benchstat *stats, int bodySites, int surfaceSites, int h
 
 			double nNecessaryInstr = 0;
 			if (!(opts & hm_nobody))
-				nNecessaryInstr += bodySites * (240/*QFMA*/ + 180/*QMUL+QADD*/ + 180/*LD+ST*/)/2;
+			nNecessaryInstr += bodySites * (240/*QFMA*/+ 180/*QMUL+QADD*/+ 180/*LD+ST*/)/2;
 			if (!(opts & hm_noweylsend))
-				nNecessaryInstr += haloSites * (2*3*2/*QMUL+QADD*/ + 4*3/*LD*/ + 2*3/*ST*/)/2;
+			nNecessaryInstr += haloSites * (2*3*2/*QMUL+QADD*/+ 4*3/*LD*/+ 2*3/*ST*/)/2;
 			if (!(opts & hm_nosurface))
-				nNecessaryInstr += surfaceSites * (240/*QFMA*/ + 180/*QMUL+QADD*/ + 180/*LD+ST*/ - 2*3*2/*QMUL+QADD*/ - 4*3/*LD*/ + 2*3/*LD*/)/2;
+			nNecessaryInstr += surfaceSites * (240/*QFMA*/+ 180/*QMUL+QADD*/+ 180/*LD+ST*/- 2*3*2/*QMUL+QADD*/- 4*3/*LD*/+ 2*3/*LD*/)/2;
 			if (!(opts & hm_nokamul))
-				nNecessaryInstr += sites * (8*2*3*1/*QFMA*/ + 8*2*3*1/*QMUL*/)/2;
+			nNecessaryInstr += sites * (8*2*3*1/*QFMA*/+ 8*2*3*1/*QMUL*/)/2;
 
 			uint64_t nL1PListStarted = stats[i3].counters.native[PEVT_L1P_LIST_STARTED];
 			uint64_t nL1PListAbandoned= stats[i3].counters.native[PEVT_L1P_LIST_ABANDON];
@@ -626,91 +616,103 @@ static void print_stats(benchstat *stats, int bodySites, int surfaceSites, int h
 			double nL1PStreamHits = stats[i3].counters.native[PEVT_L1P_STRM_HIT_LIST];
 
 			switch (j) {
-			case pi_detstreams:
+				case pi_flops:
+					desc = "Flop/s";
+					snprintf(str, sizeof(str), "%.0f", flops/MEGA);
+					break;
+				case pi_localrms:
+					desc = "Thread RMS";
+					snprintf(str, sizeof(str), "%.1f %%", 100.0*localrms);
+					break;
+				case pi_localrms:
+					desc = "Node RMS";
+					snprintf(str, sizeof(str), "%.1f %%", 100.0*globalrms);
+					break;
+				case pi_detstreams:
 				desc = "Detected streams";
 				snprintf(str, sizeof(str), "%llu", nStreamDetectedStreams);
 				break;
-			case pi_l1pstreamunusedlines:
+				case pi_l1pstreamunusedlines:
 				desc = "Unused (partially) lines";
 				snprintf(str, sizeof(str), "%.2f%% (%.2f%%)", 100.0 * nL1PSteamUnusedLines / nL1PStreamLines, 100.0 * nL1PStreamPartiallyUsedLines / nL1PStreamLines);
 				break;
-			case pi_l1pstreamhitinl1p:
+				case pi_l1pstreamhitinl1p:
 				desc = "Loads that hit in L1P stream";
 				snprintf(str, sizeof(str), "%.2f %%", 100.0 * nL1PStreamHits / nCachableLoads);
 				break;
-			case pi_cpi:
+				case pi_cpi:
 				desc = "Cycles per instruction (Thread)";
 				snprintf(str, sizeof(str), "%.3f", nCycles / nInstructions);
 				break;
-			case pi_corecpi:
+				case pi_corecpi:
 				desc = "Cycles per instruction (Core)";
 				snprintf(str, sizeof(str), "%.3f", nCoreCycles / nInstructions);
 				break;
-			case pi_l1istalls:
+				case pi_l1istalls:
 				desc = "Empty instr buffer";
 				snprintf(str, sizeof(str), "%.2f %%", nL1IBuffEmpty / nCycles);
 				break;
-			case pi_is1stalls:
+				case pi_is1stalls:
 				desc = "IS1 Stalls (dependency)";
 				snprintf(str, sizeof(str), "%.2f %%", 100 * nIS1Stalls / nCycles);
 				break;
-			case pi_is2stalls:
+				case pi_is2stalls:
 				desc = "IS2 Stalls (func unit)";
 				snprintf(str, sizeof(str), "%.2f %%", 100 * nIS2Stalls / nCycles);
 				break;
-			case pi_hitinl1:
+				case pi_hitinl1:
 				desc = "Loads that hit in L1";
-				snprintf(str, sizeof(str), "%.2f %%",  100 * nL1Hits / nCachableLoads);
+				snprintf(str, sizeof(str), "%.2f %%", 100 * nL1Hits / nCachableLoads);
 				break;
-			case pi_l1phitrate:
+				case pi_l1phitrate:
 				desc = "L1P hit rate";
-				snprintf(str, sizeof(str), "%.2f %%",  100 * nL1PHits / nL1PAccesses);
+				snprintf(str, sizeof(str), "%.2f %%", 100 * nL1PHits / nL1PAccesses);
 				break;
-			case pi_overhead:
+				case pi_overhead:
 				desc = "Instr overhead";
 				snprintf(str, sizeof(str), "%.2f %%", 100 * (nInstructions - nNecessaryInstr) / nInstructions);
 				break;
-			//case pi_hitinl1p:
-			//	desc = "Loads that hit in L1P";
-			//	snprintf(str, sizeof(str), "%f %%" ,  100 * nL1PHits / nCachableLoads);
-			//	break;
-			case pi_l2hitrate:
+				//case pi_hitinl1p:
+				//	desc = "Loads that hit in L1P";
+				//	snprintf(str, sizeof(str), "%f %%" ,  100 * nL1PHits / nCachableLoads);
+				//	break;
+				case pi_l2hitrate:
 				desc = "L2 hit rate";
 				snprintf(str, sizeof(str), "%.2f %%", 100 * nL2Hits / nL2Accesses);
 				break;
-			case pi_dcbthitrate:
+				case pi_dcbthitrate:
 				desc = "dcbt hit rate";
 				snprintf(str, sizeof(str), "%.2f %%", 100 * nDcbtHits / nDcbtAccesses);
 				break;
-			case pi_axufraction:
+				case pi_axufraction:
 				desc = "FXU instrs";
 				snprintf(str, sizeof(str), "%.2f %%", 100 * nAXUInstr / nXUAXUInstr);
 				break;
-			case pi_l1pliststarted:
+				case pi_l1pliststarted:
 				desc = "List prefetch started";
 				snprintf(str, sizeof(str), "%llu", nL1PListStarted);
 				break;
-			case pi_l1plistabandoned:
+				case pi_l1plistabandoned:
 				desc = "List prefetch abandoned";
 				snprintf(str, sizeof(str), "%llu", nL1PListAbandoned);
 				break;
-			case pi_l1plistmismatch:
+				case pi_l1plistmismatch:
 				desc = "List prefetch mismatch";
 				snprintf(str, sizeof(str), "%llu", nL1PListMismatch);
 				break;
-			case pi_l1plistskips:
+				case pi_l1plistskips:
 				desc = "List prefetch skip";
 				snprintf(str, sizeof(str), "%llu", nL1PListSkips);
 				break;
-			case pi_l1plistoverruns:
+				case pi_l1plistoverruns:
 				desc = "List prefetch overrun";
 				snprintf(str, sizeof(str), "%llu", nL1PListOverruns);
 				break;
-			case pi_l1plistlatestalls:
+				case pi_l1plistlatestalls:
 				desc = "Stalls list prefetch behind";
 				snprintf(str, sizeof(str), "%.2f", nL1PLatePrefetchStalls / nCoreCycles);
 				break;
-			default:
+				default:
 				continue;
 			}
 
@@ -721,8 +723,6 @@ static void print_stats(benchstat *stats, int bodySites, int surfaceSites, int h
 	}
 #endif
 }
-
-
 
 static void exec_table(benchfunc_t benchmark, bgq_hmflags additional_opts, int j_max, int k_max) {
 //static void exec_table(bool sloppiness, hm_func_double hm_double, hm_func_float hm_float, bgq_hmflags additional_opts) {
@@ -758,7 +758,7 @@ static void exec_table(benchfunc_t benchmark, bgq_hmflags additional_opts, int j
 			}
 
 			char str[80] = { 0 };
-			snprintf(str, sizeof(str), "%.0f mflop/s%s", result.flops / MEGA, (result.error > 0.001) ? "X" : "");
+			snprintf(str, sizeof(str), "%.0f lup/s%s", (double) result.lup / (result.avgtime * MEGA), (result.error > 0.001) ? "X" : "");
 			if (g_proc_id == 0)
 				printf("%"SCELLWIDTH"s|", str);
 			if (g_proc_id == 0)
@@ -768,8 +768,7 @@ static void exec_table(benchfunc_t benchmark, bgq_hmflags additional_opts, int j
 			printf("\n");
 
 		if (g_proc_id == 0) {
-			//print_stats(stats, BODY_SITES*4, SURFACE_SITES*4, HALO_SITES*4);
-			print_stats(stats, 0, 0, 0);
+			print_stats(stats);
 		}
 
 		print_repeat("-", 10 + 1 + (CELLWIDTH + 1) * lengthof(flags));
@@ -785,14 +784,10 @@ static void exec_table(benchfunc_t benchmark, bgq_hmflags additional_opts, int j
 		printf("\n");
 }
 
-
 static void benchmark_hopmat(bgq_hmflags flags, int k, int k_max) {
-	bgq_HoppingMatrix(false, &g_bgq_spinorfields[k+k_max], &g_bgq_spinorfields[k], flags);
-	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k], &g_bgq_spinorfields[k+k_max], flags);
+	bgq_HoppingMatrix(false, &g_bgq_spinorfields[k + k_max], &g_bgq_spinorfields[k], flags);
+	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k], &g_bgq_spinorfields[k + k_max], flags);
 }
-
-
-
 
 typedef struct {
 	size_t k_max;
@@ -804,51 +799,47 @@ static int check_hopmat(void *arg_untyped) {
 	ucoord k = 0;
 	bgq_hmflags hmflags = 0;
 
-
-
 	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 	double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], false);
-	assert(compare_transfer == 0); // Must be exact copy
+	assert(compare_transfer == 0);
+	// Must be exact copy
 
-	for (ucoord z = 0; z < LOCAL_LZ; z+=1) {
-		for (ucoord y = 0; y < LOCAL_LY; y+=1) {
-			for (ucoord x = 0; x < LOCAL_LX; x+=1) {
-				for (ucoord t = 0; t < LOCAL_LT; t+=1) {
-					if (bgq_local2isOdd(t,x,y,z)!=g_bgq_spinorfields[k].isOdd)
+	for (ucoord z = 0; z < LOCAL_LZ ; z += 1) {
+		for (ucoord y = 0; y < LOCAL_LY ; y += 1) {
+			for (ucoord x = 0; x < LOCAL_LX ; x += 1) {
+				for (ucoord t = 0; t < LOCAL_LT ; t += 1) {
+					if (bgq_local2isOdd(t, x, y, z) != g_bgq_spinorfields[k].isOdd)
 						continue;
 
-					bgq_spinor ref = bgq_legacy_getspinor(g_spinor_field[k], t,x,y,z);
-					bgq_spinor bgq = bgq_spinorfield_getspinor(&g_bgq_spinorfields[k], t,x,y,z);
+					bgq_spinor ref = bgq_legacy_getspinor(g_spinor_field[k], t, x, y, z);
+					bgq_spinor bgq = bgq_spinorfield_getspinor(&g_bgq_spinorfields[k], t, x, y, z);
 
-					bgq_setdesc(BGQREF_SOURCE,"BGQREF_SOURCE");
-					bgq_setrefvalue(t,x,y,z,BGQREF_SOURCE,ref.v[1].c[0]);
-					bgq_setbgqvalue(t,x,y,z,BGQREF_SOURCE,bgq.v[1].c[0]);
+					bgq_setdesc(BGQREF_SOURCE, "BGQREF_SOURCE");
+					bgq_setrefvalue(t, x, y, z, BGQREF_SOURCE, ref.v[1].c[0]);
+					bgq_setbgqvalue(t, x, y, z, BGQREF_SOURCE, bgq.v[1].c[0]);
 				}
 			}
 		}
 	}
 
-
 	bgq_HoppingMatrix(false, &g_bgq_spinorfields[k + k_max], &g_bgq_spinorfields[k], hmflags);
 	HoppingMatrix_switch(false, g_spinor_field[k + k_max], g_spinor_field[k], hmflags);
 
-
-
-	for (ucoord z = 0; z < LOCAL_LZ; z+=1) {
-		for (ucoord y = 0; y < LOCAL_LY; y+=1) {
-			for (ucoord x = 0; x < LOCAL_LX; x+=1) {
-				for (ucoord t = 0; t < LOCAL_LT; t+=1) {
-					if (bgq_local2isOdd(t,x,y,z) != g_bgq_spinorfields[k+k_max].isOdd)
+	for (ucoord z = 0; z < LOCAL_LZ ; z += 1) {
+		for (ucoord y = 0; y < LOCAL_LY ; y += 1) {
+			for (ucoord x = 0; x < LOCAL_LX ; x += 1) {
+				for (ucoord t = 0; t < LOCAL_LT ; t += 1) {
+					if (bgq_local2isOdd(t, x, y, z) != g_bgq_spinorfields[k + k_max].isOdd)
 						continue;
 
-					bgq_spinor ref = bgq_legacy_getspinor(g_spinor_field[k + k_max], t,x,y,z);
-					bgq_spinor bgq = bgq_spinorfield_getspinor(&g_bgq_spinorfields[k + k_max], t,x,y,z);
+					bgq_spinor ref = bgq_legacy_getspinor(g_spinor_field[k + k_max], t, x, y, z);
+					bgq_spinor bgq = bgq_spinorfield_getspinor(&g_bgq_spinorfields[k + k_max], t, x, y, z);
 
 					bgq_setdesc(BGQREF_RESULT, "BGQREF_RESULT");
 					assert(ref.v[1].c[0]!=0);
-					bgq_setrefvalue(t,x,y,z,BGQREF_RESULT,ref.v[1].c[0]);
+					bgq_setrefvalue(t, x, y, z, BGQREF_RESULT, ref.v[1].c[0]);
 					assert(bgq.v[1].c[0]!=0);
-					bgq_setbgqvalue(t,x,y,z,BGQREF_RESULT,bgq.v[1].c[0]);
+					bgq_setbgqvalue(t, x, y, z, BGQREF_RESULT, bgq.v[1].c[0]);
 				}
 			}
 		}
@@ -867,15 +858,15 @@ static void exec_bench(int j_max, int k_max) {
 	bgq_comm_init();
 	bgq_initbgqref();
 
-	bgq_spinorfields_init(2*k_max+1, 0);
+	bgq_spinorfields_init(2 * k_max + 1, 0);
 
 	bgq_gaugefield_init();
 	bgq_gaugefield_transferfrom(g_gauge_field);
 
 	bool done = false;
 #pragma omp parallel for schedule(static) ordered firstprivate(done)
-	for (int j = 0; j < omp_get_max_threads(); j+=1)
-	{
+	for (int j = 0; j < omp_get_max_threads(); j += 1)
+	        {
 		if (g_proc_id == 0 && !done) {
 #pragma omp ordered
 			{
@@ -885,14 +876,14 @@ static void exec_bench(int j_max, int k_max) {
 		}
 	}
 
-	for (int k = 0; k < k_max; k+=1) {
+	for (int k = 0; k < k_max; k += 1) {
 		/*initialize the pseudo-fermion fields*/
 		random_spinor_field(g_spinor_field[k], VOLUME / 2, 0);
 		bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 	}
 
 	checkargs_t checkargs = {
-			.k_max = k_max
+	        .k_max = k_max
 	};
 	bgq_parallel(&check_hopmat, &checkargs);
 	//bgq_parallel(&check_hopmat, &checkargs);
@@ -906,358 +897,356 @@ static void exec_bench_all() {
 
 	for (int i0 = 0; i0 < lengthof(kamuls); i0 += 1) {
 		//bool kamul = kamuls[i0];
-		if (g_proc_id == 0) printf("Benchmark: %s\n", kamuls_desc[i0]);
+		if (g_proc_id == 0)
+			printf("Benchmark: %s\n", kamuls_desc[i0]);
 
 		for (int i1 = 0; i1 < lengthof(sloppinessess); i1 += 1) {
 			//bool sloppiness = sloppinessess[i1];
 
-			if (g_proc_id == 0) printf("Benchmarking precision: %s\n", sloppinessess_desc[i1]);
+			if (g_proc_id == 0)
+				printf("Benchmarking precision: %s\n", sloppinessess_desc[i1]);
 			//exec_table(sloppiness, bgq_HoppingMatrix_double, bgq_HoppingMatrix_float, !kamul * hm_nokamul);
 		}
 
-		if (g_proc_id == 0) printf("\n");
+		if (g_proc_id == 0)
+			printf("\n");
 	}
 
-	if (g_proc_id == 0) printf("Benchmark done\n");
+	if (g_proc_id == 0)
+		printf("Benchmark done\n");
 }
 
 
-int main(int argc,char *argv[])
-{
-  int j,j_max=5,k,k_max = 1;
+int main(int argc, char *argv[]) {
+	int j, j_max = 5, k, k_max = 1;
 #ifdef HAVE_LIBLEMON
-  paramsXlfInfo *xlfInfo;
+	paramsXlfInfo *xlfInfo;
 #endif
-  int status = 0;
+	int status = 0;
 
-  static double t1,t2,dt,sdt,dts,qdt,sqdt;
-  double antioptaway=0.0;
+	static double t1, t2, dt, sdt, dts, qdt, sqdt;
+	double antioptaway = 0.0;
 
 #ifdef MPI
-  static double dt2;
+	static double dt2;
 
-  DUM_DERI = 6;
-  DUM_SOLVER = DUM_DERI+2;
-  DUM_MATRIX = DUM_SOLVER+6;
-  NO_OF_SPINORFIELDS = DUM_MATRIX+2;
+	DUM_DERI = 6;
+	DUM_SOLVER = DUM_DERI+2;
+	DUM_MATRIX = DUM_SOLVER+6;
+	NO_OF_SPINORFIELDS = DUM_MATRIX+2;
 
 //#  ifdef OMP
-  int mpi_thread_provided;
-  MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &mpi_thread_provided);
+	int mpi_thread_provided;
+	MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &mpi_thread_provided);
 //#  else
 //  MPI_Init(&argc, &argv);
 //#  endif
-  MPI_Comm_rank(MPI_COMM_WORLD, &g_proc_id);
+	MPI_Comm_rank(MPI_COMM_WORLD, &g_proc_id);
 
 #else
-  g_proc_id = 0;
+	g_proc_id = 0;
 #endif
 
-  g_rgi_C1 = 1.;
+	g_rgi_C1 = 1.;
 
-  char *input_filename = "benchmark.input";
-  int c = 0;
+	char *input_filename = "benchmark.input";
+	int c = 0;
 	while ((c = getopt(argc, argv, "vh?f:")) != -1) {
 		switch (c) {
 		case 'f':
-			input_filename = malloc(strlen(optarg)+1);
+			input_filename = malloc(strlen(optarg) + 1);
 			strcpy(input_filename, optarg);
 			break;
 		case 'v':
 			verbose = 1;
 			break;
 		case 'h':
-		case '?':
-		default:
+			case '?':
+			default:
 			//usage();
 			exit(0);
 		}
 	}
 
-    /* Read the input file */
-  if((status = read_input(input_filename)) != 0) {
-    fprintf(stderr, "Could not find input file: %s\nAborting...\n", input_filename);
-    exit(-1);
-  }
+	/* Read the input file */
+	if ((status = read_input(input_filename)) != 0) {
+		fprintf(stderr, "Could not find input file: %s\nAborting...\n", input_filename);
+		exit(-1);
+	}
 
 #ifdef OMP
-  if(omp_num_threads > 0)
-  {
-     omp_set_num_threads(omp_num_threads);
-  }
-  else {
-    if( g_proc_id == 0 )
-      printf("# No value provided for OmpNumThreads, using default (OMP_NUM_THREADS=%d)\n", omp_get_max_threads());
+	if(omp_num_threads > 0)
+	{
+		omp_set_num_threads(omp_num_threads);
+	}
+	else {
+		if( g_proc_id == 0 )
+		printf("# No value provided for OmpNumThreads, using default (OMP_NUM_THREADS=%d)\n", omp_get_max_threads());
 
-    //omp_num_threads = 1;
-    //omp_set_num_threads(omp_num_threads);
-  }
+		//omp_num_threads = 1;
+		//omp_set_num_threads(omp_num_threads);
+	}
 
-  init_omp_accumulators(omp_num_threads);
+	init_omp_accumulators(omp_num_threads);
 #endif
 
-  tmlqcd_mpi_init(argc, argv);
+	tmlqcd_mpi_init(argc, argv);
 
-  if(g_proc_id==0) {
+	if (g_proc_id == 0) {
 #ifdef SSE
-    printf("# The code was compiled with SSE instructions\n");
+		printf("# The code was compiled with SSE instructions\n");
 #endif
 #ifdef SSE2
-    printf("# The code was compiled with SSE2 instructions\n");
+		printf("# The code was compiled with SSE2 instructions\n");
 #endif
 #ifdef SSE3
-    printf("# The code was compiled with SSE3 instructions\n");
+		printf("# The code was compiled with SSE3 instructions\n");
 #endif
 #ifdef P4
-    printf("# The code was compiled for Pentium4\n");
+		printf("# The code was compiled for Pentium4\n");
 #endif
 #ifdef OPTERON
-    printf("# The code was compiled for AMD Opteron\n");
+		printf("# The code was compiled for AMD Opteron\n");
 #endif
 #ifdef _GAUGE_COPY
-    printf("# The code was compiled with -D_GAUGE_COPY\n");
+		printf("# The code was compiled with -D_GAUGE_COPY\n");
 #endif
 #ifdef BGL
-    printf("# The code was compiled for Blue Gene/L\n");
+		printf("# The code was compiled for Blue Gene/L\n");
 #endif
 #ifdef BGP
-    printf("# The code was compiled for Blue Gene/P\n");
+		printf("# The code was compiled for Blue Gene/P\n");
 #endif
 #ifdef _USE_HALFSPINOR
-    printf("# The code was compiled with -D_USE_HALFSPINOR\n");
+		printf("# The code was compiled with -D_USE_HALFSPINOR\n");
 #endif
 #ifdef _USE_SHMEM
-    printf("# The code was compiled with -D_USE_SHMEM\n");
+		printf("# The code was compiled with -D_USE_SHMEM\n");
 #  ifdef _PERSISTENT
-    printf("# The code was compiled for persistent MPI calls (halfspinor only)\n");
+		printf("# The code was compiled for persistent MPI calls (halfspinor only)\n");
 #  endif
 #endif
 #ifdef MPI
 #  ifdef _NON_BLOCKING
-    printf("# The code was compiled for non-blocking MPI calls (spinor and gauge)\n");
+		printf("# The code was compiled for non-blocking MPI calls (spinor and gauge)\n");
 #  endif
 #endif
-    printf("\n");
-    fflush(stdout);
-  }
-
+		printf("\n");
+		fflush(stdout);
+	}
 
 #ifdef _GAUGE_COPY
-  init_gauge_field(VOLUMEPLUSRAND + g_dbw2rand, 1);
+	init_gauge_field(VOLUMEPLUSRAND + g_dbw2rand, 1);
 #else
-  init_gauge_field(VOLUMEPLUSRAND + g_dbw2rand, 0);
+	init_gauge_field(VOLUMEPLUSRAND + g_dbw2rand, 0);
 #endif
-  init_geometry_indices(VOLUMEPLUSRAND + g_dbw2rand);
+	init_geometry_indices(VOLUMEPLUSRAND + g_dbw2rand);
 
-  if(even_odd_flag) {
-    j = init_spinor_field(VOLUMEPLUSRAND/2, 2*k_max+1);
-  }
-  else {
-    j = init_spinor_field(VOLUMEPLUSRAND, 2*k_max);
-  }
+	if (even_odd_flag) {
+		j = init_spinor_field(VOLUMEPLUSRAND / 2, 2 * k_max + 1);
+	}
+	else {
+		j = init_spinor_field(VOLUMEPLUSRAND, 2 * k_max);
+	}
 
-  if ( j!= 0) {
-    fprintf(stderr, "Not enough memory for spinor fields! Aborting...\n");
-    exit(0);
-  }
-  j = init_moment_field(VOLUME, VOLUMEPLUSRAND + g_dbw2rand);
-  if ( j!= 0) {
-    fprintf(stderr, "Not enough memory for moment fields! Aborting...\n");
-    exit(0);
-  }
+	if (j != 0) {
+		fprintf(stderr, "Not enough memory for spinor fields! Aborting...\n");
+		exit(0);
+	}
+	j = init_moment_field(VOLUME, VOLUMEPLUSRAND + g_dbw2rand);
+	if (j != 0) {
+		fprintf(stderr, "Not enough memory for moment fields! Aborting...\n");
+		exit(0);
+	}
 
-  if(g_proc_id == 0) {
-    fprintf(stdout,"# The number of processes is %d \n",g_nproc);
-    printf("# The lattice size is %d x %d x %d x %d\n",
-	   (int)(T*g_nproc_t), (int)(LX*g_nproc_x), (int)(LY*g_nproc_y), (int)(g_nproc_z*LZ));
-    printf("# The local lattice size is %d x %d x %d x %d\n",
-	   (int)(T), (int)(LX), (int)(LY),(int) LZ);
-    if(even_odd_flag) {
-      printf("# benchmarking the even/odd preconditioned Dirac operator\n");
-    }
-    else {
-      printf("# benchmarking the standard Dirac operator\n");
-    }
-    fflush(stdout);
-  }
+	if (g_proc_id == 0) {
+		fprintf(stdout, "# The number of processes is %d \n", g_nproc);
+		printf("# The lattice size is %d x %d x %d x %d\n",
+		        (int) (T * g_nproc_t), (int) (LX * g_nproc_x), (int) (LY * g_nproc_y), (int) (g_nproc_z * LZ));
+		printf("# The local lattice size is %d x %d x %d x %d\n",
+		        (int) (T), (int) (LX), (int) (LY), (int) LZ);
+		if (even_odd_flag) {
+			printf("# benchmarking the even/odd preconditioned Dirac operator\n");
+		}
+		else {
+			printf("# benchmarking the standard Dirac operator\n");
+		}
+		fflush(stdout);
+	}
 
-  /* define the geometry */
-  geometry();
-  /* define the boundary conditions for the fermion fields */
-  boundary(g_kappa);
+	/* define the geometry */
+	geometry();
+	/* define the boundary conditions for the fermion fields */
+	boundary(g_kappa);
 
 #ifdef _USE_HALFSPINOR
-  j = init_dirac_halfspinor();
-  if ( j!= 0) {
-    fprintf(stderr, "Not enough memory for halfspinor fields! Aborting...\n");
-    exit(0);
-  }
-  if(g_sloppy_precision_flag == 1) {
-    g_sloppy_precision = 1;
-    j = init_dirac_halfspinor32();
-    if ( j!= 0) {
-      fprintf(stderr, "Not enough memory for 32-Bit halfspinor fields! Aborting...\n");
-      exit(0);
-    }
-  }
+	j = init_dirac_halfspinor();
+	if ( j!= 0) {
+		fprintf(stderr, "Not enough memory for halfspinor fields! Aborting...\n");
+		exit(0);
+	}
+	if(g_sloppy_precision_flag == 1) {
+		g_sloppy_precision = 1;
+		j = init_dirac_halfspinor32();
+		if ( j!= 0) {
+			fprintf(stderr, "Not enough memory for 32-Bit halfspinor fields! Aborting...\n");
+			exit(0);
+		}
+	}
 #  if (defined _PERSISTENT)
-  init_xchange_halffield();
+	init_xchange_halffield();
 #  endif
 #endif
 
-  status = check_geometry();
-  if (status != 0) {
-    fprintf(stderr, "Checking of geometry failed. Unable to proceed.\nAborting....\n");
-    exit(1);
-  }
+	status = check_geometry();
+	if (status != 0) {
+		fprintf(stderr, "Checking of geometry failed. Unable to proceed.\nAborting....\n");
+		exit(1);
+	}
 #if (defined MPI && !(defined _USE_SHMEM))
-  check_xchange();
+	check_xchange();
 #endif
 
-  start_ranlux(1, 123456);
-  random_gauge_field(reproduce_randomnumber_flag);
+	start_ranlux(1, 123456);
+	random_gauge_field(reproduce_randomnumber_flag);
 
 #ifdef MPI
-  /*For parallelization: exchange the gaugefield */
-  xchange_gauge(g_gauge_field);
+	/*For parallelization: exchange the gaugefield */
+	xchange_gauge(g_gauge_field);
 #endif
 
-/* BEGIN MK */
+	/* BEGIN MK */
 #if 0
-  for (int t = 0; t <= 64; t+=1) {
-  omp_set_num_threads(t);
+	for (int t = 0; t <= 64; t+=1) {
+		omp_set_num_threads(t);
 #pragma omp parallel
-  {
-	  size_t tid = omp_get_thread_num();
-	  for (int k = 0; k < 100; k+=1)
-	  if (tid==0) {
-		  ompbar();
-	  } else {
-		  ompbar2();
-	  }
-  }
-  }
+		{
+			size_t tid = omp_get_thread_num();
+			for (int k = 0; k < 100; k+=1)
+			if (tid==0) {
+				ompbar();
+			} else {
+				ompbar2();
+			}
+		}
+	}
 #endif
 
-  assert(even_odd_flag);
-  exec_bench(j_max, k_max);
-  return 0;
-/* END MK */
+	assert(even_odd_flag);
+	exec_bench(j_max, k_max);
+	return 0;
+	/* END MK */
 
-
-
-    while(sdt < 30.) {
+	while (sdt < 30.) {
 #ifdef MPI
-      MPI_Barrier(MPI_COMM_WORLD);
+		MPI_Barrier(MPI_COMM_WORLD);
 #endif
-      t1 = gettime();
-      antioptaway=0.0;
-      for (j=0;j<j_max;j++) {
-        for (k=0;k<k_max;k++) {
-          Hopping_Matrix(0, g_spinor_field[k+k_max], g_spinor_field[k]);
-          Hopping_Matrix(1, g_spinor_field[k], g_spinor_field[k+k_max]);
-          antioptaway+=creal(g_spinor_field[2*k_max][0].s0.c0);
-        }
-      }
-      t2 = gettime();
-      dt = t2-t1;
+		t1 = gettime();
+		antioptaway = 0.0;
+		for (j = 0; j < j_max; j++) {
+			for (k = 0; k < k_max; k++) {
+				Hopping_Matrix(0, g_spinor_field[k + k_max], g_spinor_field[k]);
+				Hopping_Matrix(1, g_spinor_field[k], g_spinor_field[k + k_max]);
+				antioptaway += creal(g_spinor_field[2 * k_max][0].s0.c0);
+			}
+		}
+		t2 = gettime();
+		dt = t2 - t1;
 #ifdef MPI
-      MPI_Allreduce (&dt, &sdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		MPI_Allreduce (&dt, &sdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 #else
-      sdt = dt;
+		sdt = dt;
 #endif
-      qdt=dt*dt;
+		qdt = dt * dt;
 #ifdef MPI
-      MPI_Allreduce (&qdt, &sqdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		MPI_Allreduce (&qdt, &sqdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 #else
-      sqdt = qdt;
+		sqdt = qdt;
 #endif
-      sdt=sdt/((double)g_nproc);
-      sqdt=sqrt(sqdt/g_nproc-sdt*sdt);
-      j_max*=2;
-    }
-    j_max=j_max/2;
-    dts=dt;
-    sdt=1.0e6f*sdt/((double)(k_max*j_max*(VOLUME)));
-    sqdt=1.0e6f*sqdt/((double)(k_max*j_max*(VOLUME)));
+		sdt = sdt / ((double) g_nproc);
+		sqdt = sqrt(sqdt / g_nproc - sdt * sdt);
+		j_max *= 2;
+	}
+	j_max = j_max / 2;
+	dts = dt;
+	sdt = 1.0e6f * sdt / ((double) (k_max * j_max * (VOLUME)));
+	sqdt = 1.0e6f * sqdt / ((double) (k_max * j_max * (VOLUME)));
 
-    if(g_proc_id==0) {
-      printf("# The following result is just to make sure that the calculation is not optimized away: %e\n", antioptaway);
-      printf("# Total compute time %e sec, variance of the time %e sec. (%d iterations).\n", sdt, sqdt, j_max);
-      printf("# Communication switched on:\n# (%d Mflops [%d bit arithmetic])\n", (int)(1608.0f/sdt),(int)sizeof(spinor)/3);
+	if (g_proc_id == 0) {
+		printf("# The following result is just to make sure that the calculation is not optimized away: %e\n", antioptaway);
+		printf("# Total compute time %e sec, variance of the time %e sec. (%d iterations).\n", sdt, sqdt, j_max);
+		printf("# Communication switched on:\n# (%d Mflops [%d bit arithmetic])\n", (int) (1608.0f / sdt), (int) sizeof(spinor) / 3);
 #ifdef OMP
-      printf("# Mflops per OpenMP thread ~ %d\n",(int)(1608.0f/(omp_num_threads*sdt)));
+		printf("# Mflops per OpenMP thread ~ %d\n",(int)(1608.0f/(omp_num_threads*sdt)));
 #endif
-      printf("\n");
-      fflush(stdout);
-    }
+		printf("\n");
+		fflush(stdout);
+	}
 
 #ifdef MPI
-    /* isolated computation */
-    t1 = gettime();
-    antioptaway=0.0;
-    for (j=0;j<j_max;j++) {
-      for (k=0;k<k_max;k++) {
-        Hopping_Matrix_nocom(0, g_spinor_field[k+k_max], g_spinor_field[k]);
-        Hopping_Matrix_nocom(1, g_spinor_field[2*k_max], g_spinor_field[k+k_max]);
-        antioptaway += creal(g_spinor_field[2*k_max][0].s0.c0);
-      }
-    }
-    t2 = gettime();
-    dt2 = t2-t1;
-    /* compute the bandwidth */
-    dt=dts-dt2;
-    MPI_Allreduce (&dt, &sdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    sdt=sdt/((double)g_nproc);
-    MPI_Allreduce (&dt2, &dt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    dt=dt/((double)g_nproc);
-    dt=1.0e6f*dt/((double)(k_max*j_max*(VOLUME)));
-    if(g_proc_id==0) {
-      printf("# The following result is printed just to make sure that the calculation is not optimized away: %e\n",antioptaway);
-      printf("# Communication switched off: \n# (%d Mflops [%d bit arithmetic])\n", (int)(1608.0f/dt),(int)sizeof(spinor)/3);
+	/* isolated computation */
+	t1 = gettime();
+	antioptaway=0.0;
+	for (j=0;j<j_max;j++) {
+		for (k=0;k<k_max;k++) {
+			Hopping_Matrix_nocom(0, g_spinor_field[k+k_max], g_spinor_field[k]);
+			Hopping_Matrix_nocom(1, g_spinor_field[2*k_max], g_spinor_field[k+k_max]);
+			antioptaway += creal(g_spinor_field[2*k_max][0].s0.c0);
+		}
+	}
+	t2 = gettime();
+	dt2 = t2-t1;
+	/* compute the bandwidth */
+	dt=dts-dt2;
+	MPI_Allreduce (&dt, &sdt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	sdt=sdt/((double)g_nproc);
+	MPI_Allreduce (&dt2, &dt, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	dt=dt/((double)g_nproc);
+	dt=1.0e6f*dt/((double)(k_max*j_max*(VOLUME)));
+	if(g_proc_id==0) {
+		printf("# The following result is printed just to make sure that the calculation is not optimized away: %e\n",antioptaway);
+		printf("# Communication switched off: \n# (%d Mflops [%d bit arithmetic])\n", (int)(1608.0f/dt),(int)sizeof(spinor)/3);
 #ifdef OMP
-      printf("# Mflops per OpenMP thread ~ %d\n",(int)(1608.0f/(omp_num_threads*dt)));
+		printf("# Mflops per OpenMP thread ~ %d\n",(int)(1608.0f/(omp_num_threads*dt)));
 #endif
-      printf("\n");
-      fflush(stdout);
-    }
-    sdt=sdt/((double)k_max);
-    sdt=sdt/((double)j_max);
-    sdt=sdt/((double)(2*SLICE));
-    if(g_proc_id==0) {
-      printf("# The size of the package is %d bytes.\n",(SLICE)*192);
+		printf("\n");
+		fflush(stdout);
+	}
+	sdt=sdt/((double)k_max);
+	sdt=sdt/((double)j_max);
+	sdt=sdt/((double)(2*SLICE));
+	if(g_proc_id==0) {
+		printf("# The size of the package is %d bytes.\n",(SLICE)*192);
 #ifdef _USE_HALFSPINOR
-      printf("# The bandwidth is %5.2f + %5.2f MB/sec\n", 192./sdt/1024/1024, 192./sdt/1024./1024);
+		printf("# The bandwidth is %5.2f + %5.2f MB/sec\n", 192./sdt/1024/1024, 192./sdt/1024./1024);
 #else
-      printf("# The bandwidth is %5.2f + %5.2f MB/sec\n", 2.*192./sdt/1024/1024, 2.*192./sdt/1024./1024);
+		printf("# The bandwidth is %5.2f + %5.2f MB/sec\n", 2.*192./sdt/1024/1024, 2.*192./sdt/1024./1024);
 #endif
-    }
+	}
 #endif
-    fflush(stdout);
-
+	fflush(stdout);
 
 #ifdef HAVE_LIBLEMON
-  if(g_proc_id==0) {
-    printf("# Performing parallel IO test ...\n");
-  }
-  xlfInfo = construct_paramsXlfInfo(0.5, 0);
-  write_gauge_field( "conf.test", 64, xlfInfo);
-  free(xlfInfo);
-  if(g_proc_id==0) {
-    printf("# done ...\n");
-  }
+	if(g_proc_id==0) {
+		printf("# Performing parallel IO test ...\n");
+	}
+	xlfInfo = construct_paramsXlfInfo(0.5, 0);
+	write_gauge_field( "conf.test", 64, xlfInfo);
+	free(xlfInfo);
+	if(g_proc_id==0) {
+		printf("# done ...\n");
+	}
 #endif
-
 
 #ifdef MPI
-  MPI_Finalize();
+	MPI_Finalize();
 #endif
 #ifdef OMP
-  free_omp_accumulators();
+	free_omp_accumulators();
 #endif
-  free_gauge_field();
-  free_geometry_indices();
-  free_spinor_field();
-  free_moment_field();
-  return(0);
+	free_gauge_field();
+	free_geometry_indices();
+	free_spinor_field();
+	free_moment_field();
+	return (0);
 }

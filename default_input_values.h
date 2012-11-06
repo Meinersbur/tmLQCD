@@ -37,9 +37,9 @@
 #define _default_LX 0
 #define _default_LY 0
 #define _default_LZ 0
-#define _default_N_PROC_X 1
-#define _default_N_PROC_Y 1
-#define _default_N_PROC_Z 1
+#define _default_N_PROC_X 0
+#define _default_N_PROC_Y 0
+#define _default_N_PROC_Z 0
 #define _default_g_kappa 0.125
 #define _default_g_acc_Ptilde 1.e-06
 #define _default_g_acc_Hfin 1.e-04

@@ -25,6 +25,7 @@
 									<listOptionValue builtIn="false" value="PARALLELXYZT=1"/>
 									<listOptionValue builtIn="false" value="BGQ_QPX=1"/>
 									<listOptionValue builtIn="false" value="SPI=1"/>
+									<listOptionValue builtIn="false" value="MPI=1"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.include.paths.99280228" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="/usr/include/openmpi"/>
@@ -36,6 +37,7 @@
 									<listOptionValue builtIn="false" value="PARALLELXYZT=1"/>
 									<listOptionValue builtIn="false" value="BGQ_QPX=1"/>
 									<listOptionValue builtIn="false" value="SPI=1"/>
+									<listOptionValue builtIn="false" value="MPI=1"/>
 								</option>
 								<option id="gnu.c.compiler.option.include.paths.318363256" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="/usr/include/openmpi"/>

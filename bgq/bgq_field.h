@@ -1264,12 +1264,10 @@ EXTERN_INLINE ucoord bgq_halfvolume_src2dst(bool isOdd_src, ucoord ih_src, bgq_d
 	ucoord y_src = bgq_halfvolume2y(ih_src);
 	ucoord z_src = bgq_halfvolume2z(ih_src);
 
-	bool isOdd_dst = !isOdd_src;
 	ucoord tv_dst = tv_src;
 	ucoord x_dst = x_src;
 	ucoord y_dst = y_src;
 	ucoord z_dst = z_src;
-	bgq_direction d_dst = bgq_direction_revert(d_src);
 	bgq_direction_move_physical(isOdd_src, &tv_dst, &x_dst, &y_dst, &z_dst, d_src);
 	ucoord ih_dst = bgq_physical2halfvolume(tv_dst, x_dst, y_dst, z_dst);
 	return ih_dst;
