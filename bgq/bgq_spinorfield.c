@@ -843,37 +843,6 @@ typedef struct {
 } bgq_conversion_args;
 
 
-static void bgq_spinorfield_fullspinor2weyl_worker(void *args_untyped, size_t tid, size_t threads) {
-	bgq_conversion_args *args = args_untyped;
-	bgq_weylfield_controlblock *field = args->field;
-	bool isOdd = field->isOdd;
-
-	const size_t workload = PHYSICAL_VOLUME;
-	const size_t threadload = (workload + threads - 1) / threads;
-	const size_t begin = tid * threadload;
-	const size_t end = min(workload, begin + threadload);
-	for (size_t ih = begin; ih < end; ih += 1) {
-		bgq_spinorsite *fullspinoraddr = &field->sec_fullspinor[ih];
-		bgq_su3_spinor_decl(fullspinor);
-		bgq_su3_spinor_load_double(fullspinor, fullspinoraddr);
-
-		bgq_spinorfield_weyl_store_fromHalfvolume(field, isOdd, ih, bgq_su3_spinor_vars(fullspinor));
-	}
-}
-
-
-static void bgq_spinorfield_fullspinor2weyl(bgq_weylfield_controlblock *field) {
-	assert(field->isInitinialized);
-	assert(field->hasFullspinorData);
-
-	bgq_spinorfield_setup(field, field->isOdd, true, false, false, true);
-	bgq_conversion_args args = {
-			.field = field
-	};
-	bgq_master_call(&bgq_spinorfield_fullspinor2weyl_worker, &args);
-	field->hasWeylfieldData = true;
-}
-
 
 void bgq_spinorfield_transfer(bool isOdd, bgq_weylfield_controlblock *targetfield, spinor *sourcefield) {
 	bgq_spinorfield_setup(targetfield, isOdd, false, true, false, false);

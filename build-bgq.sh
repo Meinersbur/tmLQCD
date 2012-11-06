@@ -20,6 +20,7 @@ CPPFLAGS="${CPPFLAGS} -DPAPI=1"
 CFLAGS=""
 CFLAGS="${CFLAGS} -g"
 CFLAGS="${CFLAGS} -O5"
+CFLAGS="${CFLAGS} -qlibmpi"
 #CFLAGS="${CFLAGS} -qprefetch=aggressive"
 CFLAGS="${CFLAGS} -qarch=qp"
 CFLAGS="${CFLAGS} -qtune=qp"
@@ -42,22 +43,25 @@ LIBS="${LIBS} -lxlf90_r"
 LIBS="${LIBS} -lxlfmath"
 LIBS="${LIBS} -lxlsmp"
 LIBS="${LIBS} -lpthread"
+LIBS="${LIBS} -lbgq"
 LIBS="${LIBS} -lSPI_l1p"
-
+LIBS="${LIBS} -lSPI"
+LIBS="${LIBS} -lbgpm"
 
 LDFLAGS=""
+LDFLAGS="${LDFLAGS} -qipa=level=2"
 LDFLAGS="${LDFLAGS} -L/opt/ibmcmp/xlf/bg/14.1/lib64"
-LDFLAGS="${LDFLAGS} -L/usr/local/bg_soft/lapack/3.3.0"
-LDFLAGS="${LDFLAGS} -L/bgsys/drivers/ppcfloor/bgpm/lib/"
 LDFLAGS="${LDFLAGS} -L/opt/ibmcmp/xlsmp/bg/3.1/bglib64"
+LDFLAGS="${LDFLAGS} -L/usr/local/bg_soft/lapack/3.3.0"
 LDFLAGS="${LDFLAGS} -L/bgsys/ibm_essl/prod/opt/ibmmath/lib64"
 LDFLAGS="${LDFLAGS} -L/bgsys/drivers/ppcfloor/spi/lib"
+LDFLAGS="${LDFLAGS} -L/bgsys/drivers/ppcfloor/bgpm/lib/"
 #LDFLAGS="${LDFLAGS} -qipa=level=2"
 #LDFLAGS="${LDFLAGS} -L/opt/ibmcmp/xlsmp/bg/3.1/bglib64"
 #LDFLAGS="${LDFLAGS} -L/bgsys/ibm_essl/prod/opt/ibmmath/lib64"
 #LDFLAGS="${LDFLAGS} -L/usr/local/bg_soft/lapack/3.3.0/lib"
 #LDFLAGS="${LDFLAGS} -L/bgsys/local/lib/"
-LDFLAGS="${LDFLAGS} -L$HOME/usr/lib -lpapi"
+#LDFLAGS="${LDFLAGS} -L$HOME/usr/lib -lpapi"
 
 
 module load lapack
@@ -114,6 +118,6 @@ eval ./configure ${CONFIGURE}
 
 echo 
 echo Making tmLQCD
-make -j bgqbench benchmark invert hmc_tm
+make -j32 bgqbench benchmark invert hmc_tm
 
 
