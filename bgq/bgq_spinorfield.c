@@ -35,6 +35,7 @@ double bgq_spinorfield_compare(bool isOdd, bgq_weylfield_controlblock *bgqfield,
 
 	bool readFulllayout = bgqfield->hasFullspinorData;
 	bgq_spinorfield_setup(bgqfield, isOdd, readFulllayout, false, !readFulllayout, false);
+	bgq_master_sync(); // Necessary after bgq_spinorfield_setup if field is accessed without bgq_master_call (which does this implicitely)
 
 	double diff_max = 0;
 	size_t count = 0;
@@ -202,7 +203,7 @@ static bgq_spinor_vec bgq_spinor_mergevec(bgq_spinor_nonvec s_left, bgq_spinor_n
 	return result;
 }
 
-static inline bgq_HoppingMatrix_worker_datamove_recvxyz(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
+static inline void bgq_HoppingMatrix_worker_datamove_recvxyz(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
 	if (!noprefetchstream) {
 		bgq_prefetch_forward(&spinorfield->sec_recv[XUP][beginj]);
 		bgq_prefetch_forward(&spinorfield->destptrFromRecv[beginj]);
@@ -242,7 +243,7 @@ static inline bgq_HoppingMatrix_worker_datamove_recvxyz(bgq_weylfield_controlblo
 }
 
 
-static inline bgq_HoppingMatrix_worker_datamove_recvtup(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
+static inline void bgq_HoppingMatrix_worker_datamove_recvtup(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
 	if (!noprefetchstream) {
 		bgq_prefetch_forward(&g_bgq_sec_send[TDOWN][beginj]);
 		bgq_prefetch_forward(&g_bgq_sec_recv[TUP][beginj]);
@@ -283,10 +284,12 @@ static inline bgq_HoppingMatrix_worker_datamove_recvtup(bgq_weylfield_controlblo
 
 		bgq_su3_weyl_decl(weyl_left);
 		bgq_su3_weyl_load_double(weyl_left, weyladdr_left);
+		assert(bgq_cmplxval2(weyl_left_v0_c0)!=0); // for valgrind
 		bgq_weylqpxk_expect(weyl_left, 1, t1, x, y, z, d1, false);
 
 		bgq_su3_weyl_decl(weyl_right);
 		bgq_su3_weyl_load_double(weyl_right, weyladdr_right);
+		assert(bgq_cmplxval1(weyl_left_v0_c0)!=0); // for valgrind
 		bgq_weylqpxk_expect(weyl_right, 0, t2, x, y, z, d2, false);
 
 		bgq_su3_weyl_decl(weyl);
@@ -308,7 +311,7 @@ static inline bgq_HoppingMatrix_worker_datamove_recvtup(bgq_weylfield_controlblo
 }
 
 
-static inline bgq_HoppingMatrix_worker_datamove_recvtdown(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
+static inline void bgq_HoppingMatrix_worker_datamove_recvtdown(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
 	if (!noprefetchstream) {
 		bgq_prefetch_forward(&g_bgq_sec_recv[TDOWN][beginj]);
 		bgq_prefetch_forward(&g_bgq_sec_send[TUP][beginj]);
@@ -418,7 +421,7 @@ void bgq_HoppingMatrix_worker_datamove(void *arg_untyped, size_t tid, size_t thr
 			// Count an T-iteration twice; better have few underloaded threads (so remaining SMT-threads have some more resources) then few overloaded threads (so the master thread has to wait for them)
 			size_t twobeginj = WORKLOAD_PARAM(2*workload_recv_tdown);
 			size_t twoendj = min_sizet(2*workload_recv_tdown,twobeginj+threadload);
-			size_t beginj = twobeginj/2;
+			size_t beginj = twobeginj / 2;
 			size_t endj = twoendj / 2;
 			bgq_HoppingMatrix_worker_datamove_recvtdown(spinorfield,isOdd,beginj,endj,noprefetchstream);
 			i += (twoendj - twobeginj);
@@ -661,6 +664,7 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		work.spinorfield = field;
 		work.opts = field->hmflags;
 		bgq_master_call(&bgq_HoppingMatrix_worker_datamove, &work);
+		field->pendingDatamove = false;
 	}
 
 

@@ -154,7 +154,8 @@ static void bgq_gaugefield_worker_transferfrom(void *arg_untyped, size_t tid, si
 	}
 }
 void bgq_gaugefield_transferfrom(su3 **sourcefield) {
-	bgq_master_call(&bgq_gaugefield_worker_transferfrom, sourcefield);
+	bgq_gaugefield_worker_transferfrom(sourcefield, 0, 1);
+	//bgq_master_call(&bgq_gaugefield_worker_transferfrom, sourcefield);
 }
 
 

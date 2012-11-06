@@ -68,7 +68,7 @@ EXTERN_INLINE bgq_su3matrix bgq_gauge_fromqpx_raw(bgq_su3_mparams(gaugeqpx), uco
 
 void bgq_gauge_expect(bgq_su3matrix gauge,ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
 
-#if BGQ_COORDCHECK
+#ifdef BGQ_COORDCHECK
 #define bgq_gaugeqpx_expect(gaugeqpx,t1,t2,x,y,z,d,isSrc) bgq_gaugeqpx_expect_raw(bgq_su3_mvars(gaugeqpx),t1,t2,x,y,z,d,isSrc)
 #else
 #define bgq_gaugeqpx_expect(gaugeqpx,t1,t2,x,y,z,d,isSrc)

@@ -233,7 +233,7 @@ static inline void bgq_HoppingMatrix_worker_readFulllayout(void * restrict arg, 
 	const size_t workload = ic_end - ic_begin;
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = ic_begin + tid*threadload;
-	const size_t end = ic_end + min_sizet(workload, begin+threadload);
+	const size_t end = min_sizet(ic_end, begin+threadload);
 
 	if (!noprefetchstream) {
 		bgq_prefetch_forward(&g_bgq_gaugefield_fromCollapsed[isOdd][begin]);
@@ -262,10 +262,12 @@ static inline void bgq_HoppingMatrix_worker_readFulllayout(void * restrict arg, 
 		bgq_su3_spinor_decl(spinor);
 		if (readFulllayout) {
 			bgq_spinorsite *spinorsite = &spinorfield->sec_fullspinor[ic];
+			assert(spinorsite->s[1][0][0]!=0);
 			bgq_su3_spinor_prefetch_double(&spinorfield->sec_fullspinor[ic+1]); // TODO: This prefetch is too early
 			bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
 		} else {
 			bgq_weylsite *weylsite = &spinorfield->sec_collapsed[ic];
+			assert(weylsite->d[TUP].s[1][0][0]!=0);
 			bgq_HoppingMatrix_loadWeyllayout(spinor, weylsite, t1, t2, x, y, z);
 		}
 		bgq_HoppingMatrix_compute_storeWeyllayout_alldir(destptrs, gaugesite, spinor, t1, t2, x, y, z, qka0,qka1,qka2,qka3,kamul);
@@ -650,12 +652,12 @@ static void bgq_HoppingMatrix_kamul_worker_body_readWeyllayout(void *arg, size_t
 
 
 void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield, bgq_hmflags opts) {
-	assert(targetfield);
+	assert(targetfield); // to be initialized
 
 	assert(spinorfield);
 	assert(spinorfield->isInitinialized);
 	assert(spinorfield->isSloppy == false);
-	assert(spinorfield->isOdd == isOdd);
+	assert(spinorfield->isOdd == !isOdd);
 	bool readFullspinor;
 	if (spinorfield->hasFullspinorData) {
 		readFullspinor = true;
@@ -673,6 +675,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	bool nodatamove = opts & hm_nodatamove;
 	bool nobody = opts & hm_nobody;
 	bool nospi = opts & hm_nospi;
+	bool noprefetchstream = opts & hm_noprefetchstream;
 
 	bgq_spinorfield_setup(targetfield, isOdd, false, false, false, true);
 	bgq_spinorfield_setup(spinorfield, !isOdd, readFullspinor, false, !readFullspinor, false);
@@ -692,16 +695,18 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	work_surface.isOdd_dst = isOdd;
 	work_surface.targetfield = targetfield;
 	work_surface.spinorfield = spinorfield;
-	work_surface.ic_begin=bgq_surface2collapsed(0);
-	work_surface.ic_end=bgq_surface2collapsed(PHYSICAL_SURFACE);
+	work_surface.ic_begin = bgq_surface2collapsed(0);
+	work_surface.ic_end = bgq_surface2collapsed(PHYSICAL_SURFACE-1)+1;
+	work_surface.noprefetchstream = noprefetchstream;
 
 	static bgq_HoppingMatrix_workload work_body ;
 	work_body.isOdd_src = !isOdd;
 	work_body.isOdd_dst = isOdd;
 	work_body.targetfield = targetfield;
 	work_body.spinorfield = spinorfield;
-	work_body.ic_begin=bgq_body2collapsed(0);
-	work_body.ic_end=bgq_body2collapsed(PHYSICAL_BODY);
+	work_body.ic_begin = bgq_body2collapsed(0);
+	work_body.ic_end = bgq_body2collapsed(PHYSICAL_BODY-1)+1;
+	work_body.noprefetchstream = noprefetchstream;
 
 	// Compute surface and put data into the send buffers
 	if (!nodistribute) {
@@ -722,6 +727,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 
 // 2. Start communication
 	if (!nocomm) {
+		bgq_master_sync(); // Wait for threads to finish surface before sending it
 		//TODO: ensure there are no other communications pending
 		bgq_comm_send(nospi);
 		targetfield->waitingForRecv = true;

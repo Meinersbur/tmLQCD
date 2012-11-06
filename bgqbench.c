@@ -478,8 +478,8 @@ static char *kamuls_desc[] = { "dslash", "kamul" };
 static bool sloppinessess[] = { false, true };
 static char *sloppinessess_desc[] = { "double", "float" };
 
-static int omp_threads[] = { 1, 2, 4, 8, 16, 32, 33, 48, 56, 64 };
-static char *omp_threads_desc[] = { "1", "2", "4", "8", "16", "32", "33", "48", "56", "64" };
+static int omp_threads[] = {  4, 8, 16, 32, 33, 48, 56, 64 };
+static char *omp_threads_desc[] = { "4", "8", "16", "32", "33", "48", "56", "64" };
 
 
 static bgq_hmflags flags[] = {
@@ -773,7 +773,7 @@ typedef struct {
 
 static int check_hopmat(void *arg_untyped) {
 	checkargs_t *args = arg_untyped;
-	ucoord k_max  = args->k_max;
+	ucoord k_max = args->k_max;
 	ucoord k = 0;
 	bgq_hmflags hmflags = 0;
 
@@ -784,22 +784,22 @@ static int check_hopmat(void *arg_untyped) {
 	assert(compare_transfer == 0); // Must be exact copy
 
 	for (ucoord z = 0; z < LOCAL_LZ; z+=1) {
-			for (ucoord y = 0; y < LOCAL_LY; y+=1) {
-				for (ucoord x = 0; x < LOCAL_LX; x+=1) {
-					for (ucoord t = 0; t < LOCAL_LT; t+=1) {
-						if (bgq_local2isOdd(t,x,y,z)!=g_bgq_spinorfields[k].isOdd)
-							continue;
+		for (ucoord y = 0; y < LOCAL_LY; y+=1) {
+			for (ucoord x = 0; x < LOCAL_LX; x+=1) {
+				for (ucoord t = 0; t < LOCAL_LT; t+=1) {
+					if (bgq_local2isOdd(t,x,y,z)!=g_bgq_spinorfields[k].isOdd)
+						continue;
 
-						bgq_spinor ref = bgq_legacy_getspinor(g_spinor_field[k], t,x,y,z);
-						bgq_spinor bgq = bgq_spinorfield_getspinor(&g_bgq_spinorfields[k], t,x,y,z);
+					bgq_spinor ref = bgq_legacy_getspinor(g_spinor_field[k], t,x,y,z);
+					bgq_spinor bgq = bgq_spinorfield_getspinor(&g_bgq_spinorfields[k], t,x,y,z);
 
-						bgq_setdesc(BGQREF_SOURCE,"BGQREF_SOURCE");
-						bgq_setrefvalue(t,x,y,z,BGQREF_SOURCE,ref.v[1].c[0]);
-						bgq_setbgqvalue(t,x,y,z,BGQREF_SOURCE,bgq.v[1].c[0]);
-					}
+					bgq_setdesc(BGQREF_SOURCE,"BGQREF_SOURCE");
+					bgq_setrefvalue(t,x,y,z,BGQREF_SOURCE,ref.v[1].c[0]);
+					bgq_setbgqvalue(t,x,y,z,BGQREF_SOURCE,bgq.v[1].c[0]);
 				}
 			}
 		}
+	}
 
 
 	bgq_HoppingMatrix(false, &g_bgq_spinorfields[k + k_max], &g_bgq_spinorfields[k], hmflags);
@@ -818,7 +818,9 @@ static int check_hopmat(void *arg_untyped) {
 					bgq_spinor bgq = bgq_spinorfield_getspinor(&g_bgq_spinorfields[k + k_max], t,x,y,z);
 
 					bgq_setdesc(BGQREF_RESULT, "BGQREF_RESULT");
+					assert(ref.v[1].c[0]!=0);
 					bgq_setrefvalue(t,x,y,z,BGQREF_RESULT,ref.v[1].c[0]);
+					assert(bgq.v[1].c[0]!=0);
 					bgq_setbgqvalue(t,x,y,z,BGQREF_RESULT,bgq.v[1].c[0]);
 				}
 			}
@@ -866,6 +868,7 @@ static void exec_bench(int j_max, int k_max) {
 			.k_max = k_max
 	};
 	bgq_parallel(&check_hopmat, &checkargs);
+	//bgq_parallel(&check_hopmat, &checkargs);
 
 	exec_table(&benchmark_hopmat, 0, j_max, k_max);
 }
@@ -957,10 +960,10 @@ int main(int argc,char *argv[])
   }
   else {
     if( g_proc_id == 0 )
-      printf("# No value provided for OmpNumThreads, running in single-threaded mode!\n");
+      printf("# No value provided for OmpNumThreads, using default (OMP_NUM_THREADS=%d)\n", omp_get_max_threads());
 
-    omp_num_threads = 1;
-    omp_set_num_threads(omp_num_threads);
+    //omp_num_threads = 1;
+    //omp_set_num_threads(omp_num_threads);
   }
 
   init_omp_accumulators(omp_num_threads);

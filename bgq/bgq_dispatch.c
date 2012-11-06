@@ -32,8 +32,8 @@ static char space[64*25+1]= {' '};
 static volatile bgq_worker_func g_bgq_dispatch_func;
 static void * volatile g_bgq_dispatch_arg;
 static volatile bool g_bgq_dispatch_terminate;
-static volatile bool g_bgq_dispatch_sync;
-static volatile size_t g_bgq_dispatch_seq;
+static volatile bool g_bgq_dispatch_sync; // obsolete
+//static volatile size_t g_bgq_dispatch_seq; // obsolete
 
 static bool g_bgq_dispatch_pendingsync = false; // Accessed by master only
 
@@ -59,7 +59,7 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 	g_bgq_dispatch_arg = NULL;
 	g_bgq_dispatch_terminate = false;
 	g_bgq_dispatch_sync = false;
-	g_bgq_dispatch_seq = 0;
+	//g_bgq_dispatch_seq = 0;
 	int master_result = 0;
 	// We use OpenMP only to start the threads
 	// Overhead of using OpenMP is too large
@@ -69,6 +69,7 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 
 		// Start workers
 		if (tid != 0) {
+			g_bgq_dispatch_pendingsync = false;
 			bgq_worker();
 		}
 
@@ -76,6 +77,7 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 		if (tid == 0) {
 			master_result = master_func(master_arg);
 
+			bgq_master_sync();
 			// After program finishes, set flag so worker threads can terminate
 			g_bgq_dispatch_func = NULL;
 			g_bgq_dispatch_arg = NULL;
@@ -111,6 +113,10 @@ void bgq_worker() {
 		// Master thread may write shared variables before this barrier
 		bgq_thread_barrier();
 		// Worker threads read common variables after this barrier
+		if (tid==0) {
+			assert(!g_bgq_dispatch_pendingsync);
+			g_bgq_dispatch_pendingsync = true;
+		}
 
 		//count += 1;
 		// All threads should be here at the same time, including the master thread, which has issued some work, namely, calling a function
@@ -133,14 +139,14 @@ void bgq_worker() {
 			// Let master thread continue the program
 			// Hint: master thread must call bgq_thread_barrier() sometime to release the workers from the following barrier
 			return;
-		}
+		} else {
 		// All others, wait for the next command
 
 		// Guarantee that work is finished
 		//TODO: can we implement this without this second barrier?
 		// Required to ensure consistency of g_bgq_dispatch_sync, g_bgq_dispatch_terminate, g_bgq_dispatch_func
-		g_bgq_dispatch_pendingsync = true;
-		bgq_thread_barrier();
+		bgq_thread_barrier(); // the sync barrier
+		}
 	}
 }
 
@@ -149,13 +155,9 @@ void bgq_master_call(bgq_worker_func func, void *arg) {
 	assert(omp_get_thread_num()==0);
 	assert(func);
 
-	if (g_bgq_dispatch_pendingsync) {
-		bgq_thread_barrier();
-		g_bgq_dispatch_pendingsync = false;
-		return;
-	}
+	bgq_master_sync();
 
-	g_bgq_dispatch_seq += 1;
+	//g_bgq_dispatch_seq += 1;
 	//printf("MASTER CALL seq=%d--------------------------------------------------------\n", (int)g_bgq_dispatch_seq);
 	g_bgq_dispatch_func = func;
 	g_bgq_dispatch_arg = arg;
@@ -165,11 +167,6 @@ void bgq_master_call(bgq_worker_func func, void *arg) {
 #pragma omp flush
 
 	bgq_worker();
-
-	g_bgq_dispatch_func = NULL;
-	g_bgq_dispatch_arg = NULL;
-	g_bgq_dispatch_sync = false;
-	g_bgq_dispatch_terminate = false;
 }
 
 
@@ -178,10 +175,17 @@ void bgq_master_sync() {
 
 	if (g_bgq_dispatch_pendingsync) {
 		bgq_thread_barrier();
+		//fflush(stdout);
+		//printf("MASTER SYNC seq=%d--------------------------------------------------------\n", (int)g_bgq_dispatch_seq);
+		//fflush(stdout);
 		g_bgq_dispatch_pendingsync = false;
+		return;
+	} else {
+		// Threads already at sync barrier
 		return;
 	}
 
+#if 0
 	g_bgq_dispatch_seq += 1;
 	//printf("MASTER SYNC seq=%d--------------------------------------------------------\n", (int)g_bgq_dispatch_seq);
 	g_bgq_dispatch_func = NULL;
@@ -193,6 +197,7 @@ void bgq_master_sync() {
 	bgq_worker();
 
 	g_bgq_dispatch_sync = false;
+#endif
 }
 
 

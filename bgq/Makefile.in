@@ -39,7 +39,7 @@ libbgq_SOBJECTS = $(addsuffix .o, ${libbgq_STARGETS})
 
 # default rule
 
-all: Makefile dep libbgq.a disasm
+all: Makefile dep libbgq.a
 
 # rules for debugging
 debug all-debug: CFLAGS := $(CFLAGS) @DEBUG_FLAG@
