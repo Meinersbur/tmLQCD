@@ -32,6 +32,13 @@ missing
 
 *.i
 *.lst
+*.o.optdbg
+/bgq/asm?.s
+/bgq/asm?.s_
+/bgq/asm?.as
+/bgq/asm?.as_
+/bgq/asm?.ds
+/bgq/asm?.ds_
 
 /Debug/
 /invert

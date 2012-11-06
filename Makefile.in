@@ -68,7 +68,7 @@ MODULES = read_input gamma hybrid_update measure_gauge_action start \
 	xchange_field_tslice temporalgauge spinor_fft X_psi P_M_eta \
 	xchange_jacobi jacobi init_jacobi_field \
 	fatal_error invert_clover_eo gettime @SPI_FILES@ init_omp_accumulators \
-	rpl_malloc
+	rpl_malloc mypapi
 
 ## the GPU modules (all .cu files in $GPUDIR)
 GPUSOURCES := $(wildcard $(srcdir)/$(GPUDIR)/*.cu)

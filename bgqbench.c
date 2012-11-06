@@ -481,9 +481,22 @@ static char *sloppinessess_desc[] = { "double", "float" };
 static int omp_threads[] = {  4, 8, 16, 32, 33, 48, 56, 64 };
 static char *omp_threads_desc[] = { "4", "8", "16", "32", "33", "48", "56", "64" };
 
+#define DEFOPTS (hm_noprefetchlist | hm_nokamul)
+
 
 static bgq_hmflags flags[] = {
-		hm_withcheck
+		DEFOPTS & ~hm_nokamul,
+		DEFOPTS,
+		DEFOPTS | hm_nospi,
+		DEFOPTS | hm_nooverlap,
+		DEFOPTS | hm_nocom,
+		DEFOPTS | hm_nocom             | hm_nodistribute | hm_nodatamove,
+		DEFOPTS | hm_nocom | hm_nobody                   | hm_nodatamove,
+		DEFOPTS | hm_nocom | hm_nobody | hm_nodistribute,
+		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitdisable,
+		DEFOPTS | hm_prefetchimplicitconfirmed,
+		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitconfirmed,
+		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitoptimistic
 #if 0
 //		               hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
 //		hm_nooverlap | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
@@ -503,6 +516,20 @@ static bgq_hmflags flags[] = {
 #endif
 		};
 static char* flags_desc[] = {
+		"kamul"
+		"+nokamul",
+		"MPI",
+		"+nooverlap"
+		"+nocom",
+		"bodyonly",
+		"distronly",
+		"datamovonly",
+		"pf disable",
+		"pf explisit",
+		"pf confirmed",
+		"pf optimistic"
+
+
 //		"Com async",
 //		"Com sync",
 		"Com off",

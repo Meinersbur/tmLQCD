@@ -463,7 +463,7 @@ typedef enum {
 	hm_noprefetchlist = 1 << 5,
 	hm_noprefetchstream = 1 << 6,
 
-	hm_noweylsend = 1 << 7,
+	hm_noweylsend = 1 << 7, // obsolete
 	hm_nobody = 1 << 8,
 	hm_nosurface = 1 << 9, // obsolete (->hm_nodistribute)
 
