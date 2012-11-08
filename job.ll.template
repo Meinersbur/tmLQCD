@@ -53,10 +53,10 @@ env
 
 
 echo ================================================================================
-runjob --ranks-per-node 1 --env-all : ./bgqbench -h -f ${INPUT_FILE_SMALL} 
+#runjob --ranks-per-node 1 --env-all : ./bgqbench -h -f ${INPUT_FILE_SMALL} 
 echo ================================================================================
 runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_SMALL} 
 echo ================================================================================
-runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_BIG} 
+#runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_BIG} 
 echo ================================================================================
 

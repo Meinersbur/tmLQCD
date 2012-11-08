@@ -952,7 +952,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 	g_rgi_C1 = 1.;
-bool legacy_spi = false;
+	bool legacy_spi = true;
 	char *input_filename = "benchmark.input";
 	int c = 0;
 	while ((c = getopt(argc, argv, "vh?f:")) != -1) {
@@ -965,7 +965,7 @@ bool legacy_spi = false;
 			verbose = 1;
 			break;
 		case 'h':
-			legacy_spi = true;
+			legacy_spi = false;
 			break;
 			case '?':
 			default:

@@ -74,7 +74,7 @@ g_sloppy_precision = 0;
 if(g_sloppy_precision == 1 && g_sloppy_precision_flag == 1) {
   phi32 = NBPointer32[ieo];
 
-#ifdef SPI
+#if 0//def SPI
 
 /* compute the surface terms to be sent first */
 
@@ -168,7 +168,7 @@ if(g_sloppy_precision == 1 && g_sloppy_precision_flag == 1) {
 #endif // SPI
   
 #ifdef OMP
-#  ifdef SPI
+#  if 0//def SPI
 #pragma omp single nowait
 #  else
 #pragma omp single
@@ -177,7 +177,7 @@ if(g_sloppy_precision == 1 && g_sloppy_precision_flag == 1) {
 #endif
     
 #    if (defined MPI && !defined _NO_COMM)
-#      ifdef SPI
+#      if 0//def SPI
 
      // Initialize the barrier, resetting the hardware.
      int rc = MUSPI_GIBarrierInit ( &GIBarrier, 0 /*comm world class route */);
@@ -205,7 +205,7 @@ if(g_sloppy_precision == 1 && g_sloppy_precision_flag == 1) {
   }
 #endif
 
-#ifdef SPI
+#if 0//def SPI
 
 /* compute the body while the communication is in progress 
    the barrier at the end of this for loop will also catch the
@@ -341,7 +341,7 @@ if(g_sloppy_precision == 1 && g_sloppy_precision_flag == 1) {
 
   phi = NBPointer[ieo];
 
-#ifdef SPI
+#if 0//def SPI
 
 /* compute the surface terms to be sent first */
 
@@ -443,7 +443,7 @@ if(g_sloppy_precision == 1 && g_sloppy_precision_flag == 1) {
    so we don't wait for the communication to complete */
 
 #ifdef OMP
-# ifdef SPI
+# if 0//def SPI
 #pragma omp single nowait
 # else
 #pragma omp single
@@ -452,7 +452,7 @@ if(g_sloppy_precision == 1 && g_sloppy_precision_flag == 1) {
 #endif // OMP
      
 #    if (defined MPI && !defined _NO_COMM)
-#      ifdef SPI
+#      if 0//def SPI
 
      // Initialize the barrier, resetting the hardware.
      int rc = MUSPI_GIBarrierInit ( &GIBarrier, 0 /*comm world class route */);
@@ -481,7 +481,7 @@ if(g_sloppy_precision == 1 && g_sloppy_precision_flag == 1) {
 #endif
 
 
-#ifdef SPI
+#if 0//def SPI
 
 /* compute the body while the communication is in progress 
    the barrier at the end of this for loop will also catch the

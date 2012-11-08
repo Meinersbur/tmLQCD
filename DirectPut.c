@@ -58,12 +58,7 @@ unsigned stayOnBubbleFlag = 0;
 char * SPIrecvBuffers;
 char * SPIsendBuffers;
 
-// neighbour destination cache
-struct { 
-  MUHWI_Destination_t dest;
-  uint8_t             hintsABCD;
-  uint8_t             hintsE;
-} nb2dest[NUM_DIRS];
+nb2test_t nb2dest[NUM_DIRS];
 
 // receive counter
 volatile uint64_t recvCounter;
@@ -456,4 +451,21 @@ void global_barrier() {
     exit(1);
   }
   return;
+}
+
+
+unsigned msg_InjFifoCheckCompletion(msg_InjFifoHandle_t injFifoHandle,
+                                    uint32_t            relativeFifoId,
+                                    uint64_t            desc_count)
+{
+  msg_InjFifoInfo_t *info = (msg_InjFifoInfo_t*)injFifoHandle.pOpaqueObject;
+
+  uint32_t globalFifoId = (info->startingSubgroupId * BGQ_MU_NUM_INJ_FIFOS_PER_SUBGROUP) +
+    info->startingFifoId + relativeFifoId;
+
+  uint32_t subgroupId   = globalFifoId / BGQ_MU_NUM_INJ_FIFOS_PER_SUBGROUP;
+
+  return MUSPI_CheckDescComplete(MUSPI_IdToInjFifo( globalFifoId % BGQ_MU_NUM_INJ_FIFOS_PER_SUBGROUP,
+                                                    &info->subgroup[subgroupId] ),
+                                 desc_count);
 }

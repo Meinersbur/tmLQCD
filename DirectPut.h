@@ -40,6 +40,19 @@
 // we have four directions and forward/backward
 #  define INJ_MEMORY_FIFO_SIZE  ((64*NUM_DIRS) -1)
 
+
+// struct to hold torus coordinates or dimensions data
+typedef struct { uint8_t a,b,c,d,e; } torus_t;
+
+// neighbour destination cache
+typedef struct {
+  MUHWI_Destination_t dest;
+  uint8_t             hintsABCD;
+  uint8_t             hintsE;
+  torus_t             tcoord;
+} nb2test_t;
+extern nb2test_t nb2dest[NUM_DIRS];
+
 // total message size summed over all directions
 extern uint64_t totalMessageSize;
 
@@ -129,6 +142,10 @@ uint64_t msg_InjFifoInject ( msg_InjFifoHandle_t injFifoHandle,
                              MUHWI_Descriptor_t *descPtr );
 
 int do_dynamic;
+
+unsigned msg_InjFifoCheckCompletion(msg_InjFifoHandle_t injFifoHandle,
+                                    uint32_t            relativeFifoId,
+                                    uint64_t            desc_count);
 
 #  endif // SPI
 #endif
