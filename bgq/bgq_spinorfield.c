@@ -956,10 +956,10 @@ void bgq_spinorfield_transfer(bool isOdd, bgq_weylfield_controlblock *targetfiel
 	for (size_t i_eosub = 0; i_eosub < VOLUME/2; i_eosub+=1) {
 		size_t i_eo = i_eosub + ioff;
 		size_t i_lexic = g_eo2lexic[i_eo];
-		int t = g_coord[i_lexic][0];
-		int x = g_coord[i_lexic][1];
-		int y = g_coord[i_lexic][2];
-		int z = g_coord[i_lexic][3];
+		int t = g_coord[i_lexic][0] - g_proc_coords[0]*T;
+		int x = g_coord[i_lexic][1] - g_proc_coords[1]*LX;
+		int y = g_coord[i_lexic][2] - g_proc_coords[2]*LY;
+		int z = g_coord[i_lexic][3] - g_proc_coords[3]*LZ;
 		spinor_array64 *sourcespinor = (spinor_array64*)&sourcefield[i_eosub];
 		assert(bgq_local2isOdd(t,x,y,z)==isOdd);
 

@@ -367,7 +367,7 @@ void bgq_indices_init() {
 	assert(g_comm_y == (g_nb_y_up != g_proc_id));
 	assert(g_comm_z == (g_nb_z_up != g_proc_id));
 	g_bgq_dimension_isDistributed[DIM_T] = g_comm_t;
-	g_bgq_dimension_isDistributed[DIM_Z] = g_comm_x;
+	g_bgq_dimension_isDistributed[DIM_X] = g_comm_x;
 	g_bgq_dimension_isDistributed[DIM_Y] = g_comm_y;
 	g_bgq_dimension_isDistributed[DIM_Z] = g_comm_z;
 	g_bgq_dimension_hasHalo[DIM_T] = true;
