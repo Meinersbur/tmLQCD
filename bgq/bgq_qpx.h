@@ -1415,6 +1415,9 @@ EXTERN_INLINE complexdouble bgq_su3_spinor_getcomplex_double(bgq_su3_spinor_para
 	#define bgq_prefetch(addr) \
 		__dcbt(addr)
 // __prefetch_by_load(addr) generates an lbz instruction, which is 'blocking'
+// #include <spi/mu/Util.h>
+// muspi_dcbt(vaddr,inc)
+// muspi_dcbt_l2(vaddr,inc)
 	#define bgq_prefetchforwrite(addr) \
 		__dcbtst(addr)
 	#define bgq_prefetch_forward(addr) \
@@ -1423,6 +1426,7 @@ EXTERN_INLINE complexdouble bgq_su3_spinor_getcomplex_double(bgq_su3_spinor_para
 		__prefetch_by_stream(3/*backward*/,(addr))
 	#define bgq_l1_zero(addr) \
 		__dcbz(addr) /* sets 128 bytes (L2 cache line size) to zero */
+//#define muspi_dcbz(vaddr,inc)
 	#define bgq_flush(addr) \
 		__dcbf(addr)
 #elif defined(__GNUC__)
@@ -1698,23 +1702,6 @@ do { \
 
 
 
-#if BGQ_QPX
-#define bgq_10ptrs_prefetch(addr)     \
-do { \
-	void *ptr = (addr); \
-	bgq_prefetch(ptr); \
-	asm ( \
-		"dcbt  %[c64],%[ptr]  \n" \
-		: [ptr] "+r" (ptr) \
-		: [c64] "b" (64), \
-	); \
-	} while (0) /* make it consume a semicolon */
-#else
-#define bgq_10ptrs_prefetch(addr)      \
-	bgq_prefetch((uint8_t*)(addr) +   0);    \
-	bgq_prefetch((uint8_t*)(addr) +  64);    \
-	// 10 pointers = 80 byte
-#endif
 
 
 

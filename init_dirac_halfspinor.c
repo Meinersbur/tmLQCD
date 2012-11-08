@@ -226,7 +226,7 @@ int init_dirac_halfspinor() {
       }
     }
   }
-#if 0//(defined SPI && defined MPI)
+#if (defined SPI && defined MPI)
   // here comes the SPI initialisation
   uint64_t messageSizes[NUM_DIRS];
   uint64_t roffsets[NUM_DIRS], soffsets[NUM_DIRS];
@@ -270,7 +270,7 @@ int init_dirac_halfspinor() {
   int rc = 0;
   // get the CNK personality
   Kernel_GetPersonality(&pers, sizeof(pers));
-  int mypers[6];
+  unsigned int mypers[6];
   mypers[0] = pers.Network_Config.Acoord;
   mypers[1] = pers.Network_Config.Bcoord;
   mypers[2] = pers.Network_Config.Ccoord;
@@ -366,9 +366,9 @@ int init_dirac_halfspinor() {
     printf("hmm, SPI exchange failed on proc %d...\n!", g_cart_id);
   }
   else {
-    if(g_cart_id == 0) printf("# SPI exchange successfully tested\n");
+    if(g_proc_id == 0) printf("# SPI exchange successfully tested\n");
   }
-  
+
 #endif // SPI
   return(0);
 }

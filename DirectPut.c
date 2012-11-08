@@ -39,8 +39,8 @@ unsigned int spi_num_dirs = NUM_DIRS;
 // in bytes!
 uint64_t totalMessageSize;
 // Allocate static memory for descriptors
-char SPIDescriptorsMemory[ NUM_DIRS * sizeof(MUHWI_Descriptor_t) + 64 ];
-char SPIDescriptorsMemory32[ NUM_DIRS * sizeof(MUHWI_Descriptor_t) + 64 ];
+char SPIDescriptorsMemory[ NUM_DIRS * sizeof(MUHWI_Descriptor_t) + 64/*for alignment*/];
+char SPIDescriptorsMemory32[ NUM_DIRS * sizeof(MUHWI_Descriptor_t) + 64/*for alignment*/];
 // pointer to descriptor array
 MUHWI_Descriptor_t *SPIDescriptors;
 MUHWI_Descriptor_t *SPIDescriptors32;
@@ -79,10 +79,10 @@ uint64_t sendBufPAddr;
 
 msg_InjFifoHandle_t injFifoHandle;
 
-void setup_mregions_bats_counters(const int bufferSize) {
-  const uint64_t buffersSize =  bufferSize;
+void setup_mregions_bats_counters(uint64_t bufferSize) {
+  const uint64_t buffersSize = bufferSize;
 
-  // allocate bat entries for the recive buffer and the receive counter
+  // allocate bat entries for the receive buffer and the receive counter
   
   uint32_t batIds[2] = { recvBufBatId, recvCntrBatId };
   MUSPI_BaseAddressTableSubGroup_t batSubGrp;
@@ -203,34 +203,22 @@ void create_descriptors(MUHWI_Descriptor_t * descriptors, uint64_t * messageSize
     dinfo.Pt2Pt.Hints_ABCD = nb2dest[i].hintsABCD; 
 
     if(do_dynamic) {	  
-      dinfo.Pt2Pt.Misc1 =
-	nb2dest[i].hintsE |
-	MUHWI_PACKET_USE_DYNAMIC_ROUTING |  
-	MUHWI_PACKET_DO_NOT_ROUTE_TO_IO_NODE;
+      dinfo.Pt2Pt.Misc1 = nb2dest[i].hintsE | MUHWI_PACKET_USE_DYNAMIC_ROUTING | MUHWI_PACKET_DO_NOT_ROUTE_TO_IO_NODE;
       
-      dinfo.Pt2Pt.Misc2 = 
-	MUHWI_PACKET_VIRTUAL_CHANNEL_DYNAMIC | 
-	zoneRoutingMask | 
-	stayOnBubbleMask;
+      dinfo.Pt2Pt.Misc2 = MUHWI_PACKET_VIRTUAL_CHANNEL_DYNAMIC | zoneRoutingMask | stayOnBubbleMask;
       if ( (g_cart_id ==0) && (did_print ==0)) 
 	printf("# SPI using dynamic routing  zoneRoutingMask=%d stayOnBubbleMask=%d\n",
 	       zoneRoutingMask, stayOnBubbleMask);
     }
     else {	    	    
-      dinfo.Pt2Pt.Misc1 =
-	nb2dest[i].hintsE |
-	MUHWI_PACKET_USE_DETERMINISTIC_ROUTING |  
-	MUHWI_PACKET_DO_NOT_ROUTE_TO_IO_NODE;
+      dinfo.Pt2Pt.Misc1 = nb2dest[i].hintsE | MUHWI_PACKET_USE_DETERMINISTIC_ROUTING | MUHWI_PACKET_DO_NOT_ROUTE_TO_IO_NODE;
 	
-      dinfo.Pt2Pt.Misc2 = 
-	MUHWI_PACKET_VIRTUAL_CHANNEL_DETERMINISTIC | 
-	zoneRoutingMask | 
-	stayOnBubbleMask;
+      dinfo.Pt2Pt.Misc2 = MUHWI_PACKET_VIRTUAL_CHANNEL_DETERMINISTIC | zoneRoutingMask | stayOnBubbleMask;
       if ( (g_cart_id ==0) && (did_print ==0)) printf("# SPI using deterministic routing\n");
     }
     did_print++;
     
-    dinfo.Pt2Pt.Skip  = 8; // for checksumming, skip the header 	      
+    dinfo.Pt2Pt.Skip = 8; // for checksumming, skip the header
     dinfo.DirectPut.Rec_Payload_Base_Address_Id = recvBufBatId;
     dinfo.DirectPut.Rec_Payload_Offset          = roffsets[i];
     dinfo.DirectPut.Rec_Counter_Base_Address_Id = recvCntrBatId;
@@ -238,8 +226,7 @@ void create_descriptors(MUHWI_Descriptor_t * descriptors, uint64_t * messageSize
       
     dinfo.DirectPut.Pacing = MUHWI_PACKET_DIRECT_PUT_IS_NOT_PACED;
       
-    int rc = MUSPI_CreatePt2PtDirectPutDescriptor(&descriptors[i],
-						  &dinfo );
+    int rc = MUSPI_CreatePt2PtDirectPutDescriptor(&descriptors[i], &dinfo );
     if (rc != 0) {
       fprintf(stderr, "MUSPI_CreatePt2PtDirectPutDescriptor failed with rc=%d\n",rc);
       exit(1);
@@ -248,28 +235,28 @@ void create_descriptors(MUHWI_Descriptor_t * descriptors, uint64_t * messageSize
 }
 
 
-int get_destinations(int * mypers) {
+int get_destinations(unsigned int *mypers) {
 
   int tmp[6];
 #if (defined PARALLELT || defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT)
   MPI_Status mstatus;
   MPI_Sendrecv((void*)mypers, 6, MPI_INT, g_nb_t_up, 0, 
 	       (void*)tmp, 6, MPI_INT, g_nb_t_dn, 0,
-	       g_cart_grid, &mstatus);
+	       g_cart_grid, &mstatus); //TDOWN
   MUSPI_SetUpDestination( &nb2dest[1].dest, tmp[0], tmp[1], tmp[2], tmp[3], tmp[4] );
   MPI_Sendrecv((void*)mypers, 6, MPI_INT, g_nb_t_dn, 1, 
 	       (void*)tmp, 6, MPI_INT, g_nb_t_up, 1, 
-	       g_cart_grid, &mstatus);
+	       g_cart_grid, &mstatus); //TUP
   MUSPI_SetUpDestination( &nb2dest[0].dest, tmp[0], tmp[1], tmp[2], tmp[3], tmp[4] );
 #endif
 #if (defined PARALLELXT || defined PARALLELXYT || defined PARALLELXYZT)
   MPI_Sendrecv((void*)mypers, 6, MPI_INT, g_nb_x_up, 2, 
 	       (void*)tmp, 6, MPI_INT, g_nb_x_dn, 2, 
-	       g_cart_grid, &mstatus);
+	       g_cart_grid, &mstatus); //XDOWN
   MUSPI_SetUpDestination( &nb2dest[3].dest, tmp[0], tmp[1], tmp[2], tmp[3], tmp[4] );
   MPI_Sendrecv((void*)mypers, 6, MPI_INT, g_nb_x_dn, 3, 
 	       (void*)tmp, 6, MPI_INT, g_nb_x_up, 3, 
-	       g_cart_grid, &mstatus);
+	       g_cart_grid, &mstatus); //XUP
   MUSPI_SetUpDestination( &nb2dest[2].dest, tmp[0], tmp[1], tmp[2], tmp[3], tmp[4] );  
 #endif
 #if (defined PARALLELXYT || defined PARALLELXYZT)
@@ -427,6 +414,8 @@ int msg_InjFifoInit ( msg_InjFifoHandle_t *injFifoHandlePtr,
 	printf("msg_InjFifoInit: Kernel_InjFifoInit failed with rc=%d\n",rc);
 	return rc;
       }
+
+      if (g_proc_id==0) printf( "HW freespace=%lx\n", MUSPI_getHwFreeSpace(MUSPI_IdToInjFifo(fifoIds[i],&info->subgroup[subgroupId])) );
     }
     
     // Activate the fifos.
@@ -449,7 +438,7 @@ int msg_InjFifoInit ( msg_InjFifoHandle_t *injFifoHandlePtr,
   return 0;
 }
 
-
+MUSPI_GIBarrier_t GIBarrier;
 void global_barrier() {
   int rc = 0;
   uint64_t timeoutCycles = 60UL * 1600000000UL; // about 60 sec at 1.6 ghz

@@ -25,7 +25,7 @@
 
 #define MAIN_PROGRAM
 #ifdef HAVE_CONFIG_H
-# include<config.h>
+#include "config.h"
 #endif
 #include <stdlib.h>
 #include <stdio.h>
@@ -857,7 +857,8 @@ static int check_hopmat(void *arg_untyped) {
 
 static void exec_bench(int j_max, int k_max) {
 	bgq_indices_init();
-	bgq_comm_init();
+	bgq_comm_mpi_init();
+	bgq_comm_spi_init();
 	bgq_initbgqref();
 
 	bgq_spinorfields_init(2 * k_max + 1, 0);
@@ -937,6 +938,7 @@ int main(int argc, char *argv[]) {
 	DUM_MATRIX = DUM_SOLVER+6;
 	NO_OF_SPINORFIELDS = DUM_MATRIX+2;
 
+
 //#  ifdef OMP
 	int mpi_thread_provided;
 	MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &mpi_thread_provided);
@@ -950,7 +952,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 	g_rgi_C1 = 1.;
-
+bool legacy_spi = false;
 	char *input_filename = "benchmark.input";
 	int c = 0;
 	while ((c = getopt(argc, argv, "vh?f:")) != -1) {
@@ -963,6 +965,8 @@ int main(int argc, char *argv[]) {
 			verbose = 1;
 			break;
 		case 'h':
+			legacy_spi = true;
+			break;
 			case '?':
 			default:
 			//usage();
@@ -1082,11 +1086,14 @@ int main(int argc, char *argv[]) {
 	boundary(g_kappa);
 
 #ifdef _USE_HALFSPINOR
+	if (legacy_spi) {
+		master_print("MK calling init_dirac_halfspinor()\n");
 	j = init_dirac_halfspinor();
+	master_print("MK exit init_dirac_halfspinor()\n");
 	if ( j!= 0) {
 		fprintf(stderr, "Not enough memory for halfspinor fields! Aborting...\n");
 		exit(0);
-	}
+	}}
 	if(g_sloppy_precision_flag == 1) {
 		g_sloppy_precision = 1;
 		j = init_dirac_halfspinor32();

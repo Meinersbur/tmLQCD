@@ -15,7 +15,8 @@
 #endif
 
 
-void bgq_comm_init(void);
+void bgq_comm_mpi_init(void);
+void bgq_comm_spi_init(void);
 
 //TODO: inline?
 void bgq_comm_recv(bool nospi);

@@ -65,16 +65,16 @@ extern uint64_t descCount[NUM_DIRS];
 
 // get the destinations for all neighbours
 // will be saved in nb2dest
-int get_destinations(int * mypers);
+int get_destinations(unsigned int *mypers);
 
 // Call to create the descriptors for all eight directions
 void create_descriptors(MUHWI_Descriptor_t * descriptors, uint64_t *, uint64_t *, uint64_t *, const unsigned int);
 
 // Call to set up the base address table id and memory regions
-void setup_mregions_bats_counters(const int bufferSize);
+void setup_mregions_bats_counters(uint64_t bufferSize);
 
 // global barrier using GIBarrier
-MUSPI_GIBarrier_t GIBarrier; //MK: extern?
+extern MUSPI_GIBarrier_t GIBarrier;
 void global_barrier();
 
 /**
@@ -128,6 +128,7 @@ uint64_t msg_InjFifoInject ( msg_InjFifoHandle_t injFifoHandle,
                              uint32_t            relativeFifoId,
                              MUHWI_Descriptor_t *descPtr );
 
+int do_dynamic;
 
 #  endif // SPI
 #endif

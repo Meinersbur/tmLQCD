@@ -367,7 +367,11 @@ typedef enum {
 	sec_collapsed=sec_surface,
 	sec_collapsed_end=sec_send_tup,
 	sec_comm=sec_send_tup,
-	sec_comm_end=sec_end
+	sec_comm_end=sec_end,
+	sec_send_begin=sec_send_tup,
+	sec_send_end=sec_send_zdown+1,
+	sec_recv_begin=sec_recv_tup,
+	sec_recv_end=sec_recv_zdown+1
 } bgq_weylfield_section;//TODO: rename weyllayout
 
 
