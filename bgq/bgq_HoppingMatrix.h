@@ -237,9 +237,6 @@ EXTERN_INLINE void bgq_HoppingMatrix_storeWeyllayout_raw(bgq_weyl_ptr_t *targetp
 	}
 }
 
-int d;
-int e;
-
 
 #define bgq_HoppingMatrix_compute_storeWeyllayout_tup(targetptrs,gaugesite,spinor,t1,t2,x,y,z,qka0,qka1,qka2,qka3,kamul) bgq_HoppingMatrix_compute_storeWeyllayout_tup_raw(targetptrs,gaugesite,bgq_su3_spinor_vars(spinor),t1,t2,x,y,z,bgq_vars(qka0),bgq_vars(qka1),bgq_vars(qka2),bgq_vars(qka3),kamul)
 EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_tup_raw(bgq_weyl_ptr_t * restrict targetptrs, bgq_gaugesite * restrict gaugesite, bgq_su3_spinor_params(spinor), ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_params(qka0), bgq_params(qka1),bgq_params(qka2),bgq_params(qka3), bool kamul) {

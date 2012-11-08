@@ -549,7 +549,7 @@ static void print_stats(benchstat *stats) {
 		printf("%10s|", "");
 		char *desc = NULL;
 
-		for (int i3 = 0; i3 < COUNTOF(flags); i3 += 1) {
+		for (int i3 = 0; i3 < lengthof(flags); i3 += 1) {
 			char str[80];
 			str[0] = '\0';
 			benchstat *stat = &stats[i3];
@@ -557,8 +557,8 @@ static void print_stats(benchstat *stats) {
 
 			uint64_t flop = compute_flop(opts, stat->lup_body, stat->lup_surface);
 			double flops = (double)flop/stat->avgtime;
-			double localrms = stat->localrms / stat->avgtime;
-			double globalrms = stat->globalrms / stat->avgtime;
+			double localrms = stat->localrmstime / stat->avgtime;
+			double globalrms = stat->globalrmstime / stat->avgtime;
 
 			double nCycles = stats[i3].counters.native[PEVT_CYCLES];
 			double nCoreCycles = stats[i3].counters.corecycles;
@@ -591,6 +591,7 @@ static void print_stats(benchstat *stats) {
 			double nAXUInstr = stats[i3].counters.native[PEVT_INST_QFPU_ALL];
 			double nXUAXUInstr = nXUInstr + nAXUInstr;
 
+#if 0
 			double nNecessaryInstr = 0;
 			if (!(opts & hm_nobody))
 			nNecessaryInstr += bodySites * (240/*QFMA*/+ 180/*QMUL+QADD*/+ 180/*LD+ST*/)/2;
@@ -600,6 +601,7 @@ static void print_stats(benchstat *stats) {
 			nNecessaryInstr += surfaceSites * (240/*QFMA*/+ 180/*QMUL+QADD*/+ 180/*LD+ST*/- 2*3*2/*QMUL+QADD*/- 4*3/*LD*/+ 2*3/*LD*/)/2;
 			if (!(opts & hm_nokamul))
 			nNecessaryInstr += sites * (8*2*3*1/*QFMA*/+ 8*2*3*1/*QMUL*/)/2;
+#endif
 
 			uint64_t nL1PListStarted = stats[i3].counters.native[PEVT_L1P_LIST_STARTED];
 			uint64_t nL1PListAbandoned= stats[i3].counters.native[PEVT_L1P_LIST_ABANDON];
@@ -624,7 +626,7 @@ static void print_stats(benchstat *stats) {
 					desc = "Thread RMS";
 					snprintf(str, sizeof(str), "%.1f %%", 100.0*localrms);
 					break;
-				case pi_localrms:
+				case pi_globalrms:
 					desc = "Node RMS";
 					snprintf(str, sizeof(str), "%.1f %%", 100.0*globalrms);
 					break;
@@ -668,10 +670,10 @@ static void print_stats(benchstat *stats) {
 				desc = "L1P hit rate";
 				snprintf(str, sizeof(str), "%.2f %%", 100 * nL1PHits / nL1PAccesses);
 				break;
-				case pi_overhead:
-				desc = "Instr overhead";
-				snprintf(str, sizeof(str), "%.2f %%", 100 * (nInstructions - nNecessaryInstr) / nInstructions);
-				break;
+				//case pi_overhead:
+				//desc = "Instr overhead";
+				//snprintf(str, sizeof(str), "%.2f %%", 100 * (nInstructions - nNecessaryInstr) / nInstructions);
+				//break;
 				//case pi_hitinl1p:
 				//	desc = "Loads that hit in L1P";
 				//	snprintf(str, sizeof(str), "%f %%" ,  100 * nL1PHits / nCachableLoads);

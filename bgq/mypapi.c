@@ -8,9 +8,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 //#include <common/alignment.h>
-#include <papi.h> //Provides definitions for base PAPI function
+//#include <papi.h> //Provides definitions for base PAPI function
 //#include <spi/bgp_SPI.h> //The Blue Gene/P substrate for PAPI is based on the UPC interfaces documented in this header file.
-#include <papiStdEventDefs.h> //Provides a listing of all standard PAPI presets. Please note that not all of these are available on the Blue Gene/P platform
+//#include <papiStdEventDefs.h> //Provides a listing of all standard PAPI presets. Please note that not all of these are available on the Blue Gene/P platform
 //#include <linux-bgp-native-events.h> //Provides a listing of all available counters native to Blue Gene.
 #include <omp.h>
 
@@ -23,22 +23,22 @@
 #include <bgpm/include/bgpm.h>
 
 //void FPUArith(void); //This method does various calculations which should saturate many of the counters
-void List_PAPI_Events(const int pEventSet, int* pEvents, int* xNumEvents);
+//void List_PAPI_Events(const int pEventSet, int* pEvents, int* xNumEvents);
 //void Print_Native_Counters();
 //void Print_Native_Counters_via_Buffer(const BGP_UPC_Read_Counters_Struct_t* pBuffer);
 //void Print_Native_Counters_for_PAPI_Counters(const int pEventSet);
 //void Print_Native_Counters_for_PAPI_Counters_From_List(const int* pEvents, const int pNumEvents);
-void Print_PAPI_Counters(const int pEventSet, const long long* pCounters);
+//void Print_PAPI_Counters(const int pEventSet, const long long* pCounters);
 //void Print_PAPI_Counters_From_List(const int* pEventList, const int pNumEvents, const long long* pCounters);
 void Print_Counters(const int pEventSet);
-void Print_PAPI_Events(const int pEventSet);
+//void Print_PAPI_Events(const int pEventSet);
 long long getMyPapiValue(const int eventNum);
 
 #define lengthof(X) (sizeof(X)/sizeof((X)[0]))
 
 int PAPI_Events[256];
 long long PAPI_Counters[256];
-int xEventSet=PAPI_NULL;
+//int xEventSet=PAPI_NULL;
 
 long long xCyc;
 long long xNsec;
@@ -73,10 +73,10 @@ static double now2(){
 	} while (0)
 
 
-static int PAPI_add_native_event(int EventSet, int EventCode) {
+//static int PAPI_add_native_event(int EventSet, int EventCode) {
 	// For some strange reason (i.e. unknown to me), the numbers from events.h are off by one
-	return PAPI_add_event(EventSet, PAPI_NATIVE_MASK | (EventCode-1));
-}
+//	return PAPI_add_event(EventSet, PAPI_NATIVE_MASK | (EventCode-1));
+//}
 
 
 mypapi_counters mypapi_merge_counters(mypapi_counters *counters1, mypapi_counters *counters2) {
@@ -385,11 +385,11 @@ void mypapi_init() {
 }
 
 
-static long long getMyPapiNativeValue(const int eventNum) {
-	return getMyPapiValue(PAPI_NATIVE_MASK | (eventNum-1));
-}
+//static long long getMyPapiNativeValue(const int eventNum) {
+//	return getMyPapiValue(PAPI_NATIVE_MASK | (eventNum-1));
+//}
 
-
+#if 0
 static long long getMyPapiValue(const int eventNum) {
 	int i;
 	char xName[256];
@@ -412,7 +412,7 @@ static long long getMyPapiValue(const int eventNum) {
 
 	return -1;
 }
-
+#endif
 
 static double mypapi_wtime() {
 	Personality_t personality;
@@ -536,7 +536,7 @@ mypapi_counters mypapi_stop() {
 	return result;
 }
 
-
+#if 0
 /* List_PAPI_Events */
 static void List_PAPI_Events(const int pEventSet, int* pEvents, int* pNumEvents) {
 	int xRC = PAPI_list_events(pEventSet, pEvents, pNumEvents);
@@ -546,7 +546,7 @@ static void List_PAPI_Events(const int pEventSet, int* pEvents, int* pNumEvents)
 	}
 	return;
 }
-
+#endif
 
 #else
 
