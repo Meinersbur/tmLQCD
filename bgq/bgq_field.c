@@ -351,6 +351,23 @@ void bgq_indices_init() {
 		return;
 	g_bgq_indices_initialized = true; // Take care for uses within this function itself
 
+	g_comm_t = (g_nb_t_dn == g_proc_id);
+	g_comm_x = (g_nb_x_dn == g_proc_id);
+	g_comm_y = (g_nb_y_dn == g_proc_id);
+	g_comm_z = (g_nb_z_dn == g_proc_id);
+	assert(g_comm_t == (g_nb_t_up == g_proc_id));
+	assert(g_comm_x == (g_nb_x_up == g_proc_id));
+	assert(g_comm_y == (g_nb_y_up == g_proc_id));
+	assert(g_comm_z == (g_nb_z_up == g_proc_id));
+	g_bgq_dimension_isDistributed[DIM_T] = g_comm_t;
+	g_bgq_dimension_isDistributed[DIM_Z] = g_comm_x;
+	g_bgq_dimension_isDistributed[DIM_Y] = g_comm_y;
+	g_bgq_dimension_isDistributed[DIM_Z] = g_comm_z;
+	g_bgq_dimension_hasHalo[DIM_T] = true;
+	g_bgq_dimension_hasHalo[DIM_X] = true;
+	g_bgq_dimension_hasHalo[DIM_Y] = true;
+	g_bgq_dimension_hasHalo[DIM_Z] = true;
+
 	assert(PHYSICAL_LTV>=2);
 	if ((PHYSICAL_LTV <= 1) || (PHYSICAL_LX <= 2) || (PHYSICAL_LY <= 2) || (PHYSICAL_LZ <= 2)) {
 		PHYSICAL_BODY = 0;
@@ -482,10 +499,6 @@ void bgq_indices_init() {
 				ucoord ic_src= bgq_collapsed_src2dst(isOdd_dst, ic_dst, d_dst);
 				bgq_direction d_src = bgq_direction_revert(d_dst);
 
-
-
-
-
 				if (sec != mainsec) {
 					// If in one of the mpi buffers, also reserve some space there
 					assert((sec!=sec_surface) && (sec!=sec_body));
@@ -547,28 +560,6 @@ void bgq_indices_init() {
 	}
 #endif
 
-
-#if 0
-	for (ucoord isOdd_dst = false; isOdd_dst <= true; isOdd_dst += 1) {
-		bool isOdd_src = !isOdd_dst;
-		for (ucoord d_dst = 0; d_dst < PHYSICAL_LD; d_dst+=1) {
-			bgq_direction d_src = bgq_direction_revert(d_dst);
-			bgq_weylfield_section sec_recv = bgq_direction2section(d_dst, false);
-			bgq_weylfield_section sec_send = bgq_direction2section(d_src, true);
-
-			ucoord length = bgq_weyl_section_offset(sec_recv+1) - bgq_weyl_section_offset(sec_recv);
-			for (ucoord index = 0; index < length; index +=1   ) {
-				ucoord index_recv = bgq_weyl_section_offset(sec_recv) + index;
-				uccord index_send = bgq_weyl_section_offset(sec_send) + index;
-
-				ucoord ic_dst = g_bgq_index2collapsed[isOdd_dst][index_recv]; // What does dst expect at this location?
-
-				g_bgq_collapsed2indexsend[isOdd_dst][ic_dst] = index_send;
-				g_bgq_index2collapsed[isOdd_dst][index_send] = ic_dst;
-			}
-		}
-	}
-#endif
 
 	// Determine dest locations (where to write a weyl before communication)
 	for (size_t isOdd = false; isOdd <= true; isOdd += 1) {

@@ -18,12 +18,12 @@
 #include <mpi.h>
 
 
-static MPI_Request g_bgq_request_recv[COMMDIR_COUNT];
-static MPI_Request g_bgq_request_send[COMMDIR_COUNT];
+static MPI_Request g_bgq_request_recv[PHYSICAL_LD];
+static MPI_Request g_bgq_request_send[PHYSICAL_LD];
 
 
 static bgq_dimension bgq_commdim2dimension(ucoord commdim) {
-	assert(0 <= commdim && commdim < COMMDIR_COUNT);
+	assert(0 <= commdim && commdim < PHYSICAL_LD);
 	if (COMM_T) {
 		if (commdim == 0)
 			return DIM_T;
