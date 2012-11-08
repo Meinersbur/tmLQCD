@@ -35,7 +35,7 @@ static volatile bool g_bgq_dispatch_terminate;
 static volatile bool g_bgq_dispatch_sync; // obsolete
 //static volatile size_t g_bgq_dispatch_seq; // obsolete
 
-static bool g_bgq_dispatch_pendingsync = false; // Accessed by master only
+static bool g_bgq_dispatch_pendingsync; // Accessed by master only
 
 
 static void bgq_thread_barrier() {
@@ -69,7 +69,7 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 
 		// Start workers
 		if (tid != 0) {
-			g_bgq_dispatch_pendingsync = false;
+			g_bgq_dispatch_pendingsync = true;
 			bgq_worker();
 		}
 
@@ -103,12 +103,22 @@ void bgq_worker() {
 	//assert(omp_in_parallel() && "Call this inside #pragma omp parallel");
 	size_t threads = omp_get_num_threads();
 	size_t tid = omp_get_thread_num();
+
+
 	//assert((tid != 0) && "This function is for non-master threads only");
 //size_t count = 0;
 	while (true) {
 		// Wait until every thread did its work
 		// This doesn't need to be a barrier, waiting for submission of some work from the master is ok too
 		// TODO: Hope OpenMP has a good implementation without busy waiting; if not, do some own work
+
+		if (tid!=0) {
+			// Guarantee that work is finished
+			//TODO: can we implement this without this second barrier?
+			// Required to ensure consistency of g_bgq_dispatch_sync, g_bgq_dispatch_terminate, g_bgq_dispatch_func
+			bgq_thread_barrier(); // the sync barrier
+		}
+
 
 		// Master thread may write shared variables before this barrier
 		bgq_thread_barrier();
@@ -139,14 +149,8 @@ void bgq_worker() {
 			// Let master thread continue the program
 			// Hint: master thread must call bgq_thread_barrier() sometime to release the workers from the following barrier
 			return;
-		} else {
-		// All others, wait for the next command
-
-		// Guarantee that work is finished
-		//TODO: can we implement this without this second barrier?
-		// Required to ensure consistency of g_bgq_dispatch_sync, g_bgq_dispatch_terminate, g_bgq_dispatch_func
-		bgq_thread_barrier(); // the sync barrier
 		}
+		// All others, wait for the next command
 	}
 }
 

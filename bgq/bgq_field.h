@@ -152,7 +152,7 @@ EXTERN_FIELD size_t PHYSICAL_BODY;
 #define PHYSICAL_HALO_Z (COMM_Z*PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LY)
 
 
-
+#if 0
 #if defined(PARALLELT)
 #define COMM_T 1
 #define COMM_X 0
@@ -191,8 +191,17 @@ EXTERN_FIELD size_t PHYSICAL_BODY;
 #else
 #error Unknown inter-node parallelization
 #endif
-
+#else
+#define COMM_T g_comm_t
+#define COMM_X g_comm_x
+#define COMM_Y g_comm_y
+#define COMM_Z g_comm_z
+#endif
 #define COMMDIR_COUNT 2*(COMM_T+COMM_X+COMM_Y+COMM_Z)
+#define HALO_T true
+#define HALO_X COMM_X
+#define HALO_Y COMM_Y
+#define HALO_Z COMM_Z
 
 #define COMPLEX_PRECISION complexdouble
 
@@ -224,8 +233,18 @@ EXTERN_INLINE bgq_dimension bgq_direction2dimension(bgq_direction d) {
 	return d/2;
 }
 
+EXTERN_FIELD bool g_bgq_indices_initialized EXTERN_INIT(false);
 
+EXTERN_FIELD bool g_comm_t;
+EXTERN_FIELD bool g_comm_x;
+EXTERN_FIELD bool g_comm_y;
+EXTERN_FIELD bool g_comm_z;
+EXTERN_FIELD bool g_bgq_dimension_isDistributed[4];
+EXTERN_FIELD bool g_bgq_dimension_hasHalo[4];//TODO:obsolete
 EXTERN_INLINE bool bgq_dimension_isDistributed(bgq_dimension dim) {
+	assert(g_bgq_indices_initialized);
+	return g_bgq_dimension_isDistributed[dim];
+#if 0
 	switch (dim) {
 	case DIM_T:
 		return COMM_T;
@@ -238,6 +257,11 @@ EXTERN_INLINE bool bgq_dimension_isDistributed(bgq_dimension dim) {
 	default:
 		UNREACHABLE
 	}
+#endif
+}
+
+EXTERN_INLINE bool bgq_dimension_hasHalo(bgq_dimension dim) {
+	return g_bgq_dimension_hasHalo[dim];
 }
 
 EXTERN_INLINE bgq_direction bgq_dimenstion2direction_up(bgq_dimension dim) {
@@ -485,6 +509,11 @@ typedef enum {
 } bgq_hmflags;
 
 
+typedef struct {
+	bgq_weyl_vec *tup;
+	bgq_weyl_vec *tdown;
+} bgq_recvt_consptr;
+
 //TODO: make incomplete type
 typedef struct {
 	bool isInitinialized;
@@ -521,10 +550,8 @@ typedef struct {
 
 	bgq_weyl_vec **consptr_recvtup;
 	bgq_weyl_vec **consptr_recvtdown;
-	//bgq_weyl_vec **destptrFromTRecv;
 	bgq_weyl_vec **destptrFromRecv;
 
-	//bgq_weyl_vec **destptrFromRecv[PHYSICAL_LD];
 } bgq_weylfield_controlblock;
 
 // Index translations
@@ -563,7 +590,7 @@ EXTERN_FIELD bgq_weylfield_controlblock *g_bgq_spinorfields EXTERN_INIT(NULL);
 
 
 
-EXTERN_FIELD bool g_bgq_indices_initialized EXTERN_INIT(false);
+
 void bgq_indices_init(void);
 void bgq_spinorfields_init(size_t std_count, size_t chi_count);
 //void bgq_spinorfield_reset(bgq_weylfield_controlblock *field, bool isOdd, bool activateWeyl, bool activateFull);
@@ -1061,37 +1088,41 @@ EXTERN_INLINE bgq_weylfield_section bgq_direction2section(bgq_direction d, bool 
 
 
 EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
+	assert(g_bgq_indices_initialized);
 	size_t result = 0;
-
+//TODO: This func is called quite often, make it a table lookup
 	for (bgq_weylfield_section sec = 0; sec < sec_end; sec += 1) {
+		assert(result % BGQ_ALIGNMENT_L2 == 0);
 		if (section == sec)
 			return result;
 
 		size_t secsize;
 		switch (sec) {
 		case sec_send_tup:
-			case sec_send_tdown:
-			case sec_recv_tup:
-			case sec_recv_tdown:
+		case sec_send_tdown:
 			secsize = LOCAL_HALO_T * sizeof(bgq_weyl_vec)/PHYSICAL_LP;
 			break;
+		case sec_recv_tup:
+		case sec_recv_tdown:
+			secsize = COMM_T * LOCAL_HALO_T * sizeof(bgq_weyl_vec)/PHYSICAL_LP;
+			break;
 		case sec_send_xup:
-			case sec_send_xdown:
-			case sec_recv_xup:
-			case sec_recv_xdown:
-			secsize = PHYSICAL_HALO_X * sizeof(bgq_weyl_vec);
+		case sec_send_xdown:
+		case sec_recv_xup:
+		case sec_recv_xdown:
+			secsize = COMM_X * PHYSICAL_HALO_X * sizeof(bgq_weyl_vec);
 			break;
 		case sec_send_yup:
-			case sec_send_ydown:
-			case sec_recv_yup:
-			case sec_recv_ydown:
-			secsize = PHYSICAL_HALO_Y * sizeof(bgq_weyl_vec);
+		case sec_send_ydown:
+		case sec_recv_yup:
+		case sec_recv_ydown:
+			secsize = COMM_Y * PHYSICAL_HALO_Y * sizeof(bgq_weyl_vec);
 			break;
 		case sec_send_zup:
-			case sec_send_zdown:
-			case sec_recv_zup:
-			case sec_recv_zdown:
-			secsize = PHYSICAL_HALO_Z * sizeof(bgq_weyl_vec);
+		case sec_send_zdown:
+		case sec_recv_zup:
+		case sec_recv_zdown:
+			secsize = COMM_Z * PHYSICAL_HALO_Z * sizeof(bgq_weyl_vec);
 			break;
 		case sec_surface:
 			secsize = PHYSICAL_SURFACE * sizeof(bgq_weylsite);
@@ -1100,7 +1131,7 @@ EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
 			secsize = PHYSICAL_BODY * sizeof(bgq_weylsite);
 			break;
 		default:
-			assert(!"Never should get here");
+			UNREACHABLE
 			secsize = 0;
 			break;
 		}

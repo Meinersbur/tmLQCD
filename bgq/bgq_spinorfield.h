@@ -130,7 +130,11 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 void bgq_spinorfield_transfer(bool isOdd, bgq_weylfield_controlblock *targetfield, spinor* sourcefield);
 double bgq_spinorfield_compare(bool isOdd, bgq_weylfield_controlblock *bgqfield, spinor *reffield, bool silent);
 
-
+typedef struct {
+	bgq_weylfield_controlblock *spinorfield;
+	bgq_hmflags opts;
+} bgq_work_datamove;
+void bgq_HoppingMatrix_datamovet_worker(void *arg_untyped, size_t tid, size_t threads);
 
 
 

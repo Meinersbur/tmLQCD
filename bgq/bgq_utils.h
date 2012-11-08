@@ -249,13 +249,16 @@ if (xyz_counter==0) { \
  xyz_orig =	xyz + 		return*xyz_total
  */
 
+#ifdef NDEBUG
+#define WORKLOAD_CHECK
+#else
 #define WORKLOAD_CHECK \
 	if (xyz_counter!=0 && g_proc_id==0) { \
 		fprintf(stderr, "xyz_counter=%zu xyz_total=%zu xyz_isntance=%zu\n", xyz_counter, xyz_total, xyz_isntance); \
 	} \
 	assert(xyz_counter==0); \
 	assert(xyz_total==1);
-
+#endif
 
 #ifndef BGQMOD
 #define BGQMOD 0

@@ -19,11 +19,36 @@
 
 
 
-static size_t messageSizes[COMMDIR_COUNT];
-static size_t roffsets[COMMDIR_COUNT];
-static size_t soffsets[COMMDIR_COUNT];
+static MPI_Request g_bgq_request_recv[PHYSICAL_LD];
+static MPI_Request g_bgq_request_send[PHYSICAL_LD];
+
+static size_t messageSizes[PHYSICAL_LD];
+static size_t roffsets[PHYSICAL_LD];
+static size_t soffsets[PHYSICAL_LD];
 static size_t totalMessageSize = 0;
 
+
+static bgq_dimension bgq_commdim2dimension(ucoord commdim) {
+	assert(0 <= commdim && commdim < PHYSICAL_LD);
+	if (COMM_T) {
+		if (commdim == 0)
+			return DIM_T;
+		commdim -= 1;
+	}
+	if (COMM_X) {
+		if (commdim == 0)
+			return DIM_X;
+		commdim -= 1;
+	}
+	if (COMM_Y) {
+		if (commdim == 0)
+			return DIM_Y;
+		commdim -= 1;
+	}
+	assert(COMM_Z);
+	assert(commdim==0);
+	return DIM_Z;
+}
 
 
 static ucoord bgq_direction2commdir(bgq_direction d) {
@@ -564,7 +589,7 @@ static char recvBufMemory[MAX_NUM_NODES * MAX_MESSAGE_SIZE+ SEND_BUFFER_ALIGNMEN
 
 // Random permutation array. The alltoall messages will be sent
 // to neighbors in a random permutation
-static uint32_t randPerm[COMMDIR_COUNT];
+static uint32_t randPerm[PHYSICAL_LD];
 
 // rank2dest cache
 #if 0
@@ -597,7 +622,7 @@ struct {
   uint8_t             hintsABCD;
   uint8_t             hintsE;
   torus_t torus;
-} nb2dest[COMMDIR_COUNT];
+} nb2dest[PHYSICAL_LD];
 
 
 // number of participating processes (1 proc/node)
@@ -1269,31 +1294,8 @@ static void setup_destinations(Personality_t *pers) {
 
 
 
-static MPI_Request g_bgq_request_recv[COMMDIR_COUNT];
-static MPI_Request g_bgq_request_send[COMMDIR_COUNT];
-
-
-static bgq_dimension bgq_commdim2dimension(ucoord commdim) {
-	assert(0 <= commdim && commdim < COMMDIR_COUNT);
-	if (COMM_T) {
-		if (commdim == 0)
-			return DIM_T;
-		commdim -= 1;
-	}
-	if (COMM_X) {
-		if (commdim == 0)
-			return DIM_X;
-		commdim -= 1;
-	}
-	if (COMM_Y) {
-		if (commdim == 0)
-			return DIM_Y;
-		commdim -= 1;
-	}
-	assert(COMM_Z);
-	assert(commdim==0);
-	return DIM_Z;
-}
+static MPI_Request g_bgq_request_recv[PHYSICAL_LD];
+static MPI_Request g_bgq_request_send[PHYSICAL_LD];
 
 
 
@@ -1359,10 +1361,14 @@ static void bgq_comm_common_init(void) {
 	uint8_t *bufend = buf + commbufsize;
 	g_bgq_sec_comm = buf;
 	for (bgq_direction d = 0; d < PHYSICAL_LD; d+=1) {
+		bgq_dimension dim = bgq_direction2dimension(d);
+
 		bgq_weylfield_section sec_send = bgq_direction2section(d, true);
+		bgq_weylfield_section sec_recv = bgq_direction2section(d, !bgq_dimension_isDistributed(dim));
+
 		g_bgq_sec_send[d] = (bgq_weyl_vec*)(buf + bgq_weyl_section_offset(sec_send) - bgq_weyl_section_offset(sec_comm));
-		assert((uint8_t*)g_bgq_sec_send[d] < bufend);
-		bgq_weylfield_section sec_recv = bgq_direction2section(d, false);
+		assert((uint8_t*)g_bgq_sec_send[d] <= bufend);
+
 		g_bgq_sec_recv[d] = (bgq_weyl_vec*)(buf + bgq_weyl_section_offset(sec_recv) - bgq_weyl_section_offset(sec_comm));
 		assert((uint8_t*)g_bgq_sec_recv[d] < bufend);
 

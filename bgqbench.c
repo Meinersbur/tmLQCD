@@ -471,13 +471,13 @@ static char *kamuls_desc[] = { "dslash", "kamul" };
 static bool sloppinessess[] = { false, true };
 static char *sloppinessess_desc[] = { "double", "float" };
 
-static int omp_threads[] = { 4, 8, 16, 32, 33, 48, 56, 64 };
-static char *omp_threads_desc[] = { "4", "8", "16", "32", "33", "48", "56", "64" };
+static int omp_threads[] = { 1, 2, 4, 8, 16, 32, 33, 48, 56, 64 };
+static char *omp_threads_desc[] = { "1","2", "4", "8", "16", "32", "33", "48", "56", "64" };
 
 #define DEFOPTS (hm_noprefetchlist | hm_nokamul)
 
 static bgq_hmflags flags[] = {
-        DEFOPTS & ~hm_nokamul,
+        (DEFOPTS | hm_withcheck) & ~hm_nokamul,
         DEFOPTS,
 		DEFOPTS | hm_nospi,
 		DEFOPTS | hm_nooverlap,
@@ -508,11 +508,11 @@ static bgq_hmflags flags[] = {
 #endif
     };
 static char* flags_desc[] = {
-        "kamul"
-		        "+nokamul",
+        "kamul",
+		"+nokamul",
         "MPI",
-        "+nooverlap"
-		        "+nocom",
+        "+nooverlap",
+		"+nocom",
         "bodyonly",
         "distronly",
         "datamovonly",
@@ -760,7 +760,7 @@ static void exec_table(benchfunc_t benchmark, bgq_hmflags additional_opts, int j
 			}
 
 			char str[80] = { 0 };
-			snprintf(str, sizeof(str), "%.0f lup/s%s", (double) result.lup / (result.avgtime * MEGA), (result.error > 0.001) ? "X" : "");
+			snprintf(str, sizeof(str), "%.2f lup/s%s", (double) result.lup / (result.avgtime * MEGA), (result.error > 0.001) ? "X" : "");
 			if (g_proc_id == 0)
 				printf("%"SCELLWIDTH"s|", str);
 			if (g_proc_id == 0)
