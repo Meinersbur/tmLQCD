@@ -198,7 +198,10 @@ EXTERN_FIELD size_t PHYSICAL_BODY;
 #define COMM_Z g_comm_z
 #endif
 #define COMMDIR_COUNT 2*(COMM_T+COMM_X+COMM_Y+COMM_Z)
-
+#define HALO_T true
+#define HALO_X COMM_X
+#define HALO_Y COMM_Y
+#define HALO_Z COMM_Z
 
 #define COMPLEX_PRECISION complexdouble
 
@@ -237,7 +240,7 @@ EXTERN_FIELD bool g_comm_x;
 EXTERN_FIELD bool g_comm_y;
 EXTERN_FIELD bool g_comm_z;
 EXTERN_FIELD bool g_bgq_dimension_isDistributed[4];
-EXTERN_FIELD bool g_bgq_dimension_hasHalo[4];
+EXTERN_FIELD bool g_bgq_dimension_hasHalo[4];//TODO:obsolete
 EXTERN_INLINE bool bgq_dimension_isDistributed(bgq_dimension dim) {
 	assert(g_bgq_indices_initialized);
 	return g_bgq_dimension_isDistributed[dim];
@@ -724,8 +727,7 @@ EXTERN_INLINE bool bgq_physical2isSurface(bool isOdd, size_t tv, size_t x, size_
 	size_t t2 = bgq_physical2t2(isOdd,tv,x,y,z);
 	bool eo = bgq_physical2eo(isOdd,tv,x,y,z);
 	bool isSurface = false;
-	// DIM_T always has a halo
-	//if (COMM_T)
+	if (COMM_T)
 		isSurface = isSurface || (!eo && (tv==0)) || (eo && (tv==PHYSICAL_LTV-1));
 	if (COMM_X)
 		isSurface = isSurface || (x==0) || (x==PHYSICAL_LX-1);
@@ -1084,7 +1086,7 @@ EXTERN_INLINE bgq_weylfield_section bgq_direction2section(bgq_direction d, bool 
 EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
 	assert(g_bgq_indices_initialized);
 	size_t result = 0;
-
+//TODO: This func is called quite often, make it a table lookup
 	for (bgq_weylfield_section sec = 0; sec < sec_end; sec += 1) {
 		assert(result % BGQ_ALIGNMENT_L2 == 0);
 		if (section == sec)
@@ -1094,11 +1096,11 @@ EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
 		switch (sec) {
 		case sec_send_tup:
 		case sec_send_tdown:
-			secsize = COMM_T * LOCAL_HALO_T * sizeof(bgq_weyl_vec)/PHYSICAL_LP;
+			secsize = LOCAL_HALO_T * sizeof(bgq_weyl_vec)/PHYSICAL_LP;
 			break;
 		case sec_recv_tup:
 		case sec_recv_tdown:
-			secsize = LOCAL_HALO_T * sizeof(bgq_weyl_vec)/PHYSICAL_LP;
+			secsize = COMM_T * LOCAL_HALO_T * sizeof(bgq_weyl_vec)/PHYSICAL_LP;
 			break;
 		case sec_send_xup:
 		case sec_send_xdown:

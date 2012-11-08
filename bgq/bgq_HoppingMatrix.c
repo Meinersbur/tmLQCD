@@ -164,7 +164,11 @@ typedef struct {
 	bool noprefetchstream;
 } bgq_HoppingMatrix_workload;
 
-
+static struct {
+	bool isOdd_dst;
+	bgq_weylfield_controlblock *targetfield;
+	bool noprefetchstream;
+} bgq_HoppingMatrix_datamovet_workload;
 
 static void bgq_HoppingMatrix_worker_surface(void *argptr, size_t tid, size_t threads) {
 	const bgq_HoppingMatrix_workload *args = argptr;
@@ -691,15 +695,17 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	// 1. Distribute
 	bgq_master_sync();
 	static bgq_HoppingMatrix_workload work_surface;
-	work_surface.isOdd_src = !isOdd;
-	work_surface.isOdd_dst = isOdd;
-	work_surface.targetfield = targetfield;
-	work_surface.spinorfield = spinorfield;
-	work_surface.ic_begin = bgq_surface2collapsed(0);
-	work_surface.ic_end = bgq_surface2collapsed(PHYSICAL_SURFACE-1)+1;
-	work_surface.noprefetchstream = noprefetchstream;
+	if (PHYSICAL_SURFACE > 0) {
+		work_surface.isOdd_src = !isOdd;
+		work_surface.isOdd_dst = isOdd;
+		work_surface.targetfield = targetfield;
+		work_surface.spinorfield = spinorfield;
+		work_surface.ic_begin = bgq_surface2collapsed(0);
+		work_surface.ic_end = bgq_surface2collapsed(PHYSICAL_SURFACE-1)+1;
+		work_surface.noprefetchstream = noprefetchstream;
+	}
 
-	static bgq_HoppingMatrix_workload work_body ;
+	static bgq_HoppingMatrix_workload work_body;
 	work_body.isOdd_src = !isOdd;
 	work_body.isOdd_dst = isOdd;
 	work_body.targetfield = targetfield;
@@ -709,7 +715,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	work_body.noprefetchstream = noprefetchstream;
 
 	// Compute surface and put data into the send buffers
-	if (!nodistribute) {
+	if ((PHYSICAL_SURFACE > 0) && !nodistribute) {
 		if (readFullspinor) {
 			if (nokamul)
 				bgq_master_call(&bgq_HoppingMatrix_nokamul_worker_readFulllayout, &work_surface);
@@ -755,6 +761,15 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 				bgq_master_call(&bgq_HoppingMatrix_nokamul_worker_readWeyllayout, &work_body);
 			else
 				bgq_master_call(&bgq_HoppingMatrix_kamul_worker_readWeyllayout, &work_body);
+		}
+
+		if (!COMM_X) {
+			// Copy the data from HALO_T into the required locations
+			bgq_master_sync();
+			static bgq_work_datamove work_datamovet;
+			work_datamovet.spinorfield = targetfield;
+			work_datamovet.opts = opts;
+			bgq_master_call(&bgq_HoppingMatrix_datamovet_worker, &work_datamovet);
 		}
 	}
 

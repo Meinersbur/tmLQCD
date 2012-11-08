@@ -151,12 +151,16 @@ void bgq_comm_init(void) {
 	uint8_t *bufend = buf + commbufsize;
 	g_bgq_sec_comm = buf;
 	for (bgq_direction d = 0; d < PHYSICAL_LD; d+=1) {
+		bgq_dimension dim = bgq_direction2dimension(d);
+
 		bgq_weylfield_section sec_send = bgq_direction2section(d, true);
+		bgq_weylfield_section sec_recv = bgq_direction2section(d, !bgq_dimension_isDistributed(dim));
+
 		g_bgq_sec_send[d] = (bgq_weyl_vec*)(buf + bgq_weyl_section_offset(sec_send) - bgq_weyl_section_offset(sec_comm));
-		assert((uint8_t*)g_bgq_sec_send[d] < bufend);
-		bgq_weylfield_section sec_recv = bgq_direction2section(d, false);
+		assert((uint8_t*)g_bgq_sec_send[d] <= bufend);
+
 		g_bgq_sec_recv[d] = (bgq_weyl_vec*)(buf + bgq_weyl_section_offset(sec_recv) - bgq_weyl_section_offset(sec_comm));
-		assert((uint8_t*)g_bgq_sec_recv[d] < bufend);
+		assert((uint8_t*)g_bgq_sec_recv[d] <= bufend);
 	}
 
 
