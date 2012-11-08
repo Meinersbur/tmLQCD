@@ -374,6 +374,7 @@ void bgq_indices_init() {
 	g_bgq_dimension_hasHalo[DIM_X] = g_comm_x;
 	g_bgq_dimension_hasHalo[DIM_Y] = g_comm_y;
 	g_bgq_dimension_hasHalo[DIM_Z] = g_comm_z;
+	master_print("BGQ SPI/MPI communication enabled for: %s%s%s%s\n", COMM_T?"T,":"", COMM_X?"X,":"", COMM_Y?"Y,":"", COMM_Z?"Z":"");
 
 	assert(PHYSICAL_LTV>=2);
 	if ((PHYSICAL_LTV <= 1) || (PHYSICAL_LX <= 2) || (PHYSICAL_LY <= 2) || (PHYSICAL_LZ <= 2)) {

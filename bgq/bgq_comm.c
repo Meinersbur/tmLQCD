@@ -86,6 +86,7 @@ static ucoord bgq_direction2commdir(bgq_direction d) {
 		result+=1;
 	}
 	UNREACHABLE
+	return -1;
 }
 
 
@@ -1394,13 +1395,14 @@ void bgq_comm_mpi_init(void) {
 
 		ucoord commdir_src = bgq_direction2commdir(d_src);
 		bgq_weylfield_section sec_recv = bgq_direction2section(d_src, false);
-		size_t secsize = bgq_weyl_section_offset(sec_recv+1) - bgq_weyl_section_offset(sec_recv);
-		MPI_CHECK(MPI_Recv_init(g_bgq_sec_recv[d_src], secsize / sizeof(double), MPI_DOUBLE, bgq_direction2rank(d_src), d_dst, g_cart_grid, &g_bgq_request_recv[commdir_src]));
+		size_t secsize = bgq_section_size(sec_recv);
+		assert(secsize > 0);
+		MPI_CHECK(MPI_Recv_init(g_bgq_sec_recv[d_src], secsize / sizeof(complexdouble), MPI_DOUBLE_COMPLEX, bgq_direction2rank(d_src), d_dst, g_cart_grid, &g_bgq_request_recv[commdir_src]));
 
 		ucoord commdir_dst = bgq_direction2commdir(d_dst);
 		bgq_weylfield_section sec_send = bgq_direction2section(d_dst, true);
-		assert(secsize == bgq_weyl_section_offset(sec_send+1) - bgq_weyl_section_offset(sec_send));
-		MPI_CHECK(MPI_Send_init(g_bgq_sec_send[d_dst], secsize / sizeof(double), MPI_DOUBLE, bgq_direction2rank(d_dst), d_dst, g_cart_grid, &g_bgq_request_send[commdir_dst]));
+		assert(secsize == bgq_section_size(sec_send));
+		MPI_CHECK(MPI_Send_init(g_bgq_sec_send[d_dst], secsize / sizeof(complexdouble), MPI_DOUBLE_COMPLEX, bgq_direction2rank(d_dst), d_dst, g_cart_grid, &g_bgq_request_send[commdir_dst]));
 	}
 
 
@@ -1531,7 +1533,7 @@ void bgq_comm_spi_init(void) {
 void bgq_comm_recv(bool nospi) {
 	assert(omp_get_thread_num()==0);
 	master_print("Comm Receiving...\n");
-#if 0//def SPI
+#ifdef SPI
 	if (!nospi) {
 	    // reset the recv counter
 	    recvCounter = totalMessageSize;
@@ -1546,7 +1548,7 @@ void bgq_comm_recv(bool nospi) {
 void bgq_comm_send(bool nospi) {
 	assert(omp_get_thread_num()==0);
 	master_print("Comm Sending...\n");
-#if 0//def SPI
+#ifdef XSPI
 	if (!nospi) {
 		global_barrier(); // make sure everybody has reset recvCounter
 	    for (size_t cd = 0; cd < COMMDIR_COUNT; cd+=1) {
@@ -1563,7 +1565,7 @@ void bgq_comm_send(bool nospi) {
 void bgq_comm_wait(bool nospi) {
 	assert(omp_get_thread_num()==0);
 	master_print("Comm Waiting...\n");
-#if 0//def SPI
+#ifdef XSPI
 	if (!nospi) {
 		 while(recvCounter > 0) {}
 		_bgq_msync();
