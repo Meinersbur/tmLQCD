@@ -193,6 +193,8 @@ static uint64_t compute_flop(bgq_hmflags opts, uint64_t lup_body, uint64_t lup_s
 
 
 static void benchmark_setup_worker(void *argptr, size_t tid, size_t threads) {
+	mypapi_init();
+
 #ifdef BGQ
 	const master_args *args = argptr;
 	const int j_max = args->j_max;
@@ -304,6 +306,24 @@ static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 #endif
 }
 
+
+typedef struct {
+	int set;
+	mypapi_counters result;
+} mypapi_work_t;
+
+static void mypapi_start_worker(void *arg_untyped, size_t tid, size_t threads) {
+	mypapi_work_t *arg = arg_untyped;
+	mypapi_start(arg->set);
+}
+
+
+
+static void mypapi_stop_worker(void *arg_untyped, size_t tid, size_t threads) {
+	mypapi_work_t *arg = arg_untyped;
+	arg->result = mypapi_stop();
+}
+
 static int benchmark_master(void *argptr) {
 	master_args * const args = argptr;
 	const int j_max = args->j_max;
@@ -331,6 +351,7 @@ static int benchmark_master(void *argptr) {
 		err = runcheck(opts, k_max);
 	}
 
+	static mypapi_work_t mypapi_arg;
 	double localsumtime = 0;
 	double localsumsqtime = 0;
 	mypapi_counters counters;
@@ -353,7 +374,9 @@ static int benchmark_master(void *argptr) {
 			start_time = MPI_Wtime();
 		}
 		if (isPapi) {
-			mypapi_start(papiSet);
+			bgq_master_sync();
+			mypapi_arg.set = papiSet;
+			bgq_master_call(mypapi_start_worker, &mypapi_arg);
 		}
 
 		{
@@ -367,8 +390,8 @@ static int benchmark_master(void *argptr) {
 		}
 
 		if (isPapi) {
-			mypapi_counters curcounters = mypapi_stop();
-			counters = mypapi_merge_counters(&counters, &curcounters);
+			bgq_master_call(mypapi_start_worker, &mypapi_arg);
+			counters = mypapi_merge_counters(&counters, &mypapi_arg.result);
 		}
 		if (isJMax) {
 			double end_time = MPI_Wtime();
@@ -851,11 +874,27 @@ static int check_hopmat(void *arg_untyped) {
 	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], false);
 	assert(compare_even < 0.01);
 
+
+	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max]);
+	compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max], false);
+	assert(compare_transfer == 0);
+
+	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k], &g_bgq_spinorfields[k+k_max], hmflags);
+	HoppingMatrix_switch(true, g_spinor_field[k], g_spinor_field[k+k_max], hmflags);
+
+	double compare_odd = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], false);
+	assert(compare_odd < 0.01);
+
+
+	master_print("Comparison to reference version: even=%f odd=%f max difference", compare_even, compare_odd);
 	return EXIT_SUCCESS;
 }
 
 
 static void exec_bench(int j_max, int k_max) {
+	if (g_proc_id==0)
+		bgq_qpx_unittest();
+
 	bgq_indices_init();
 	bgq_comm_mpi_init();
 	bgq_comm_spi_init();
@@ -967,7 +1006,7 @@ int main(int argc, char *argv[]) {
 		case 'h':
 			legacy_spi = false;
 			break;
-			case '?':
+		case '?':
 			default:
 			//usage();
 			exit(0);

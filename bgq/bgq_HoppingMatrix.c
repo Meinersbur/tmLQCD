@@ -659,6 +659,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	assert(targetfield); // to be initialized
 
 	assert(spinorfield);
+	assert(spinorfield != targetfield);
 	assert(spinorfield->isInitinialized);
 	assert(spinorfield->isSloppy == false);
 	assert(spinorfield->isOdd == !isOdd);

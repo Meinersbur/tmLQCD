@@ -10,6 +10,7 @@
 
 #include "bgq_field.h"
 
+
 #ifdef SPI
 #include "../DirectPut.h"
 #include <upci/upc_atomic.h>

@@ -18,7 +18,7 @@
  ***********************************************************************/
 
 #ifdef HAVE_CONFIG_H
-#  include<config.h>
+#  include "config.h"
 #endif
 #include <stdlib.h>
 #include <stdio.h>
@@ -130,7 +130,7 @@ void setup_mregions_bats_counters(uint64_t bufferSize) {
     printf("Kernel_CreateMemoryRegion failed with rc=%d\n",rc);
     exit(1);
   }
-  
+
   paAddr = 
     (uint64_t)&recvCounter - 
     (uint64_t)memRegion.BaseVa + 
