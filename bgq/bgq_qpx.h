@@ -862,6 +862,7 @@ do {\
 	} while (0)
 	// 96 byte (3x 32B)
 
+	// obsolete
 #define bgq_su3_weyl_load_combine_double(dest, addr1, addr2) \
 	do { \
 		void *ptr1 = (addr1); \
@@ -1728,6 +1729,7 @@ static inline void mbar() {
 #endif
 
 
+void bgq_qpx_unittest(void);
 
 
 

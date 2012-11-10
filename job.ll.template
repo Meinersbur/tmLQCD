@@ -14,6 +14,14 @@
 #@ queue
 echo DEPART : `date`
 
+INPUT_FILE_TINY=benchmark.input_tiny.${LOADL_STEP_ID} 
+cat > ${INPUT_FILE_TINY} <<+EOF
+T=8
+LX=4
+LY=4
+LZ=4
++EOF
+
 INPUT_FILE_SMALL=benchmark.input_small.${LOADL_STEP_ID} 
 cat > ${INPUT_FILE_SMALL} <<+EOF
 T=48
@@ -59,4 +67,5 @@ runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_SMALL}
 echo ================================================================================
 #runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_BIG} 
 echo ================================================================================
+runjob --np 1 --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
 

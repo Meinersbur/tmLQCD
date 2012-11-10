@@ -76,7 +76,7 @@
 
 #if defined _USE_HALFSPINOR
 #  include "operator/halfspinor_hopping.h"
-
+wertwert
 #  if ((defined SSE2)||(defined SSE3))
 #    include "sse.h"
 
@@ -122,22 +122,22 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k) {
 #  if (((defined SSE2)||(defined SSE3)) && defined _USE_TSPLITPAR)
 #    include "sse.h"
 #    include "operator/hopping_sse_dbl.c"
-
+sdfg
 #  else
 #    include "operator/hopping.h"
 #    if ((defined SSE2)||(defined SSE3))
 #      include "sse.h"
-
+sdfgsdzfg
 #    elif (defined BGL && defined XLC)
 #      include "bgl.h"
-
+dfghfg
 #    elif (defined BGQ && defined XLC)
 #      include "bgq.h"
 #      include "bgq2.h"
 #      include "xlc_prefetch.h"
-
+fdgh
 #    elif defined XLC
-#      include"xlc_prefetch.h"
+#      include "xlc_prefetch.h"
 
 #    endif
 void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k) {

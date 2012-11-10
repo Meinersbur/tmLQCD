@@ -253,11 +253,11 @@ static mypapi_counters mypapi_bgpm_read(int eventset, int set) {
 
 
 void mypapi_init() {
-	assert(omp_get_thread_num() == 0);
-	if (g_proc_id == 0)
+	//assert(omp_get_thread_num() == 0);
+	if ((g_proc_id == 0) && (omp_get_thread_num() == 0))
 		fprintf(stderr, "MK_Init mypapi\n");
 
-#pragma omp parallel
+//#pragma omp parallel
 	{
 		BGPM_ERROR(Bgpm_Init(BGPM_MODE_SWDISTRIB));
 
