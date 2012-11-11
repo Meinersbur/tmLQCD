@@ -9,15 +9,17 @@
 #include "bgq_dispatch.h"
 #include "bgq_HoppingMatrix.h"
 #include "bgq_qpx.h"
+#include "bgq_utils.h"
 
 #include <stdbool.h>
 
 
 #define OPERATOR_OUTPLACENAME bgq_operator_outplace
 #define OPERATOR_INPLACENAME bgq_operator_inplace
-#define OPERATOR_ARGFIELDS 1
+#define OPERATOR_ARGFIELDS 2
+#define OPERATOR_EXTRAPARMS double factor
+#define OPERATOR_EXTRAARGS factor
 #define OPERATOR_VECSITEFUNC vecsitefunc_raw
-
 
 static void vecsitefunc_raw(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor1), bgq_su3_spinor_params(spinor2), double factor, ucoord tv, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z) {
 
@@ -35,40 +37,29 @@ static void vecsitefunc_raw(bgq_su3_spinor_params(*target), bgq_su3_spinor_param
 
 
 
-
-
-
-
-#define OPERATOR_EXTRAPARMS , double factor
-#define OPERATOR_EXTRAARGS factor
-#endif
-
-#if OPERATOR_ARGFIELDS==0
-#define OPERATOR_ARGFIELDS_PARMS
-#define OPERATOR_ARGFIELDS_ARGS
-#elif OPERATOR_ARGFIELDS==1
-#define OPERATOR_ARGFIELDS_PARMS , bgq_weylfield_controlblock *argfield1
-#define OPERATOR_ARGFIELDS_ARGS argfield1
-#elif OPERATOR_ARGFIELDS==2
-#define OPERATOR_ARGFIELDS_PARMS , bgq_weylfield_controlblock *argfield1, bgq_weylfield_controlblock *argfield2
-#define OPERATOR_ARGFIELDS_ARGS argfield1, argfield2
-#else
-#error Unsupported number of field arguments
 #endif
 
 
+#define OPERATOR_EXTRAPARMLIST IF_EMPTY_INPAREN((),(,),OPERATOR_EXTRAPARMS) OPERATOR_EXTRAPARMS
+#define OPERATOR_EXTRAARGLIST IF_EMPTY_INPAREN((),(,),OPERATOR_EXTRAARGS) OPERATOR_EXTRAARGS
 
 
 
+
+typedef struct {
+	PREPROCESSOR_FOREACH( ,;,;, ,IDENTITY,OPERATOR_EXTRAPARMS)
+} bgq_operator_extraparm_t;
 
 typedef struct {
 	bool isOdd;
 	bgq_weylfield_controlblock *targetfield;
 	bgq_weylfield_controlblock *argfield1;
 	bgq_weylfield_controlblock *argfield2;
-	double factor;
+	bgq_operator_extraparm_t extra;
 } bgq_operator_args_t;
 
+
+#define OPERATOR_EXTRA_ASSIGN(varname) (varname) = ((arg->extra).varname);
 
 static inline void bgq_operator_worker(void *arg_untyped, size_t tid, size_t threads, bool readFulllayout1, bool readFulllayout2) {
 	bgq_operator_args_t *arg = (bgq_operator_args_t*)arg_untyped;
@@ -76,7 +67,8 @@ static inline void bgq_operator_worker(void *arg_untyped, size_t tid, size_t thr
 	bgq_weylfield_controlblock *targetfield = arg->targetfield;
 	bgq_weylfield_controlblock *argfield1 = arg->argfield1;
 	bgq_weylfield_controlblock *argfield2 = arg->argfield2;
-	double factor = arg->factor;
+	PREPROCESSOR_FOREACH( ,;,;, ,IDENTITY,OPERATOR_EXTRAPARMS)
+	PREPROCESSOR_FOREACH(,,,,OPERATOR_EXTRA_ASSIGN,OPERATOR_EXTRAARGS)
 
 	size_t workload = PHYSICAL_VOLUME;
 	size_t threadload = (workload+threads-1)/threads;
@@ -110,8 +102,10 @@ static inline void bgq_operator_worker(void *arg_untyped, size_t tid, size_t thr
 		}
 
 		bgq_su3_spinor_decl(targetspinor);
-		OPERATOR_VECSITEFUNC(bgq_su3_spinor_vars(&targetspinor), bgq_su3_spinor_vars(spinor1), bgq_su3_spinor_vars(spinor2), factor, tv, t1, t2, x, y, z);
+		OPERATOR_VECSITEFUNC(bgq_su3_spinor_vars(&targetspinor), bgq_su3_spinor_vars(spinor1), bgq_su3_spinor_vars(spinor2) OPERATOR_EXTRAARGLIST, tv, t1, t2, x, y, z);
 
+		// Warning: targetsite==argfield1 is possible and the inline assembler does not have memory barriers! If there is not data dependency, the compiler might arrange the stores before the loads!
+		//asm volatile ("" : : : );
 		bgq_spinorsite *targetsite = &targetfield->sec_fullspinor[ic];
 		bgq_su3_spinor_store_double(targetsite, targetspinor);
 	}
@@ -136,45 +130,55 @@ static bgq_worker_func bgq_worker_funcs[2][2] = {
 };
 
 #ifdef OPERATOR_OUTPLACENAME
-void OPERATOR_OUTPLACENAME(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *argfield1, bgq_weylfield_controlblock *argfield2, double factor) {
-	bgq_weylfield_controlblock *argfield[] = { argfield1, argfield2 };
-	bool useFulllayout[2];
-	bool useWeyllayout[2];
-
+void OPERATOR_OUTPLACENAME(bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *argfield1, bgq_weylfield_controlblock *argfield2 OPERATOR_EXTRAPARMLIST) {
+	bool isOdd = argfield1->isOdd;
 	bgq_spinorfield_setup(targetfield, isOdd , false, true, false, false);
-	size_t nFieldargs = OPERATOR_ARGFIELDS;
-	for (size_t i = 0; i < nFieldargs; i+=1) {
-		useFulllayout[i] = argfield[i]->hasFullspinorData;
-		useWeyllayout[i] = !useFulllayout[i];
-		bgq_spinorfield_setup(argfield[i], isOdd, useFulllayout[i], false, useWeyllayout[i], false);
-	}
 
+	bool useFulllayout1 = argfield1->hasFullspinorData;
+	bool useWeyllayout1 = !useFulllayout1;
+	bgq_spinorfield_setup(argfield1, isOdd, useFulllayout1, false, useWeyllayout1, false);
+
+	bool useFulllayout2 = argfield2->hasFullspinorData;
+	bool useWeyllayout2 = !useFulllayout2;
+	bgq_spinorfield_setup(argfield2, isOdd, useFulllayout2, false, useWeyllayout2, false);
 
 	bgq_master_sync();
 	static bgq_operator_args_t operator_args;
 	bgq_operator_args_t call_args = {
+			.isOdd = isOdd,
 			.targetfield = targetfield,
 			.argfield1 = argfield1,
 			.argfield2 = argfield2,
-			.factor = factor
+			.extra = { OPERATOR_EXTRAARGS }
 	};
 	operator_args = call_args;
-	bgq_master_call(&bgq_worker_funcs[useFulllayout[0]][useFulllayout[1]], &operator_args);
+	bgq_master_call(bgq_worker_funcs[useFulllayout1][useFulllayout2], &operator_args);
 }
 #endif
 
 
 #ifdef OPERATOR_INPLACENAME
-void bgq_operator_inplace(bgq_weylfield_controlblock *targetfield) {
-	bool isOdd = targetfield->isOdd;
+void OPERATOR_INPLACENAME(bgq_weylfield_controlblock *argfield1, bgq_weylfield_controlblock *argfield2 OPERATOR_EXTRAPARMLIST) {
+	bool isOdd = argfield1->isOdd;
 
-	bool useFulllayout = targetfield->hasFullspinorData;
-	bool useWeyllayout = !useFulllayout;
+	bool useFulllayout1 = argfield1->hasFullspinorData;
+	bool useWeyllayout1 = !useFulllayout1;
+	bgq_spinorfield_setup(argfield1, isOdd, useFulllayout1, true, useWeyllayout1, false);
 
-	bgq_spinorfield_setup(targetfield, isOdd, useFulllayout, true, false, useWeyllayout);
+	bool useFulllayout2 = argfield2->hasFullspinorData;
+	bool useWeyllayout2 = !useFulllayout2;
+	bgq_spinorfield_setup(argfield2, isOdd, useFulllayout2, false, useWeyllayout2, false);
 
 	bgq_master_sync();
-	bgq_master_call(&bgq_operator_worker[useFulllayout[0]][useFulllayout[1]], &operator_args);
+	static bgq_operator_args_t operator_args;
+	bgq_operator_args_t call_args = {
+			.targetfield = argfield1,
+			.argfield1 = argfield1,
+			.argfield2 = argfield2,
+			.extra = { OPERATOR_EXTRAARGS }
+	};
+	operator_args = call_args;
+	bgq_master_call(bgq_worker_funcs[useFulllayout1][useFulllayout2], &operator_args);
 }
 #endif
 

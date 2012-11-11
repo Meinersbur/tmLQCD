@@ -10,7 +10,6 @@
 
 #include "bgq_field.h"
 
-
 #ifdef SPI
 #include "../DirectPut.h"
 #include <upci/upc_atomic.h>
@@ -1984,27 +1983,25 @@ void bgq_comm_wait(bool nospi) {
 	} else
 #endif
 	{
-	MPI_Status recv_status[COMMDIR_COUNT];
-	MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_recv, recv_status));
+		MPI_Status recv_status[COMMDIR_COUNT];
+		MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_recv, recv_status));
 
-	MPI_Status send_status[COMMDIR_COUNT];
-	MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_send, send_status));
+		MPI_Status send_status[COMMDIR_COUNT];
+		MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_send, send_status));
 
 #ifndef NDEBUG
-	for (ucoord commdir = 0; commdir < COMMDIR_COUNT; commdir += 1) {
-		bgq_direction d = bgq_commdir2direction(commdir);
-		bgq_weylfield_section sec = bgq_direction2section(d,false);
-		size_t size = bgq_weyl_section_offset(sec+1) - bgq_weyl_section_offset(sec);
-		assert(get_MPI_count(&recv_status[commdir]) == size);
-	}
+		for (ucoord commdir = 0; commdir < COMMDIR_COUNT; commdir += 1) {
+			bgq_direction d = bgq_commdir2direction(commdir);
+			bgq_weylfield_section sec = bgq_direction2section(d,false);
+			size_t size = bgq_weyl_section_offset(sec+1) - bgq_weyl_section_offset(sec);
+			assert(get_MPI_count(&recv_status[commdir]) == size);
+		}
 #endif
 	}
 
 #if BGQ_QPX
 	mtspr(SPRN_PPR32, ppc32); // Restore original priority
 #endif
-
-	return;
 }
 
 
