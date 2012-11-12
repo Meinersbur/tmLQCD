@@ -285,12 +285,12 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtup(bgq_weylfield_contr
 
 		bgq_su3_weyl_decl(weyl_left);
 		bgq_su3_weyl_load_double(weyl_left, weyladdr_left);
-		assert(bgq_cmplxval2(weyl_left_v0_c0)!=0); // for valgrind
+		//assert(bgq_cmplxval2(weyl_left_v0_c0)!=0); // for valgrind
 		bgq_weylqpxk_expect(weyl_left, 1, t1, x, y, z, d1, false);
 
 		bgq_su3_weyl_decl(weyl_right);
 		bgq_su3_weyl_load_double(weyl_right, weyladdr_right);
-		assert(bgq_cmplxval1(weyl_left_v0_c0)!=0); // for valgrind
+		//assert(bgq_cmplxval1(weyl_left_v0_c0)!=0); // for valgrind
 		bgq_weylqpxk_expect(weyl_right, 0, t2, x, y, z, d2, false);
 
 		bgq_su3_weyl_decl(weyl);

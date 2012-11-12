@@ -42,6 +42,9 @@ typedef enum {
 	pi_flops,
 	pi_msecs,
 	pi_cycpersite,
+	pi_instrpersite,
+	pi_fxupersite,
+
 	pi_localrms,
 	pi_globalrms,
 	pi_avgovhtime,

@@ -137,7 +137,7 @@ typedef struct {
 
 	mypapi_counters counters;
 	bgq_hmflags opts;
-	uint64_t avgovhtime;
+	double avgovhtime;
 } benchstat;
 
 typedef struct {
@@ -381,7 +381,7 @@ static int benchmark_master(void *argptr) {
 		uint64_t time = (stop_time - mid_time) - (mid_time- start_time);
 		sumotime += time;
 	}
-	uint64_t avgovhtime = sumotime / 20;
+	double avgovhtime = (double)sumotime / 20.0;
 
 	static mypapi_work_t mypapi_arg;
 	double localsumtime = 0;
@@ -653,6 +653,14 @@ static void print_stats(benchstat *stats) {
 				desc = "per site update";
 				snprintf(str, sizeof(str), "%.1f cyc", stat->totcycles / lup);
 				break;
+			case pi_instrpersite:
+				desc = "instr per update";
+				snprintf(str, sizeof(str), "%.1f", nInstructions / lup);
+				break;
+			case pi_fxupersite:
+				desc = "FU instr per update";
+				snprintf(str, sizeof(str), "%.1f", nAXUInstr / lup);
+				break;
 			case pi_flops:
 				desc = "MFlop/s";
 				snprintf(str, sizeof(str), "%.0f MFlop/s", flops/MEGA);
@@ -667,7 +675,7 @@ static void print_stats(benchstat *stats) {
 				break;
 			case pi_avgovhtime:
 				desc = "Threading overhead";
-				snprintf(str, sizeof(str), "%llu cyc", stat->avgovhtime);
+				snprintf(str, sizeof(str), "%.1f cyc", stat->avgovhtime);
 				break;
 			case pi_detstreams:
 				desc = "Detected streams";
@@ -958,7 +966,7 @@ static void exec_bench(int j_max, int k_max) {
 	checkargs_t checkargs = {
 	        .k_max = k_max
 	};
-	//bgq_parallel(&check_hopmat, &checkargs);
+	bgq_parallel(&check_hopmat, &checkargs);
 
 	exec_table(&benchmark_hopmat, 0, j_max, k_max);
 }
