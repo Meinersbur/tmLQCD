@@ -12,6 +12,7 @@
 ##@ bg_shape = 1x1x1x1
 #@ bg_connectivity = TORUS
 #@ queue
+
 echo DEPART : `date`
 
 INPUT_FILE_TINY=benchmark.input_tiny.${LOADL_STEP_ID} 
@@ -28,6 +29,14 @@ T=48
 LX=24
 LY=24
 LZ=24
++EOF
+
+INPUT_FILE_MEDIUM=benchmark.input_medium.${LOADL_STEP_ID} 
+cat > ${INPUT_FILE_MEDIUM} <<+EOF
+T=96
+LX=48
+LY=48
+LZ=48
 +EOF
 
 INPUT_FILE_BIG=benchmark.input_big.${LOADL_STEP_ID}
@@ -56,16 +65,16 @@ export XLSMPOPTS="procs=${PROCS}"
 #export BG_THREADLAYOUT=1 # breadth-first
 #export BG_THREADLAYOUT=2 # depth-first
 
-env
 
-
-
+#env
 echo ================================================================================
 #runjob --ranks-per-node 1 --env-all : ./bgqbench -h -f ${INPUT_FILE_SMALL} 
 echo ================================================================================
 runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_SMALL} 
 echo ================================================================================
-#runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_BIG} 
+runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_MEDIUM} 
 echo ================================================================================
-runjob --np 1 --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
+runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_BIG} 
+echo ================================================================================
+#runjob --np 1 --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
 

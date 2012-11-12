@@ -410,7 +410,7 @@ int msg_InjFifoInit ( msg_InjFifoHandle_t *injFifoHandlePtr,
 	return rc;
       }
 
-      if (g_proc_id==0) printf( "HW freespace=%lx\n", MUSPI_getHwFreeSpace(MUSPI_IdToInjFifo(fifoIds[i],&info->subgroup[subgroupId])) );
+      //if (g_proc_id==0) printf( "HW freespace=%lx\n", MUSPI_getHwFreeSpace(MUSPI_IdToInjFifo(fifoIds[i],&info->subgroup[subgroupId])) );
     }
     
     // Activate the fifos.

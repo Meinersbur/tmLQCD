@@ -254,8 +254,8 @@ static mypapi_counters mypapi_bgpm_read(int eventset, int set) {
 
 void mypapi_init() {
 	//assert(omp_get_thread_num() == 0);
-	if ((g_proc_id == 0) && (omp_get_thread_num() == 0))
-		fprintf(stderr, "MK_Init mypapi\n");
+	//if ((g_proc_id == 0) && (omp_get_thread_num() == 0))
+	//	fprintf(stderr, "MK_Init mypapi\n");
 
 //#pragma omp parallel
 	{
@@ -385,34 +385,10 @@ void mypapi_init() {
 }
 
 
-//static long long getMyPapiNativeValue(const int eventNum) {
-//	return getMyPapiValue(PAPI_NATIVE_MASK | (eventNum-1));
-//}
-
-#if 0
-static long long getMyPapiValue(const int eventNum) {
-	int i;
-	char xName[256];
-	//printf("Print_PAPI_Counters: PAPI_Counters*=%p, pCounters*=%p\n",PAPI_Counters, pCounters);
-
-	int pNumEvents = PAPI_num_events(xEventSet);
-	if (pNumEvents) {
-		List_PAPI_Events(xEventSet, PAPI_Events, &pNumEvents);
-		for (i=0; i<pNumEvents; i++) {
-			//if (PAPI_event_code_to_name(PAPI_Events[i], xName)) {
-			//	printf("PAPI_event_code_to_name failed on event code %d\n",PAPI_Events[i]);
-			//	exit(1);
-			//}
- 			//printf("%20llu	%3d	0x%8.8x %s\n", PAPI_Counters[i], i, PAPI_Events[i],xName);
-			//if ((eventNum  & 0xBFFFFFFF) == (PAPI_Events[i] & 0xBFFFFFFF))
-			if (eventNum == PAPI_Events[i])
-				return PAPI_Counters[i];
-		}
-	}
-
-	return -1;
+void mypapi_free() {
+	BGPM_ERROR(Bgpm_Disable());
 }
-#endif
+
 
 static double mypapi_wtime() {
 	Personality_t personality;
@@ -425,40 +401,46 @@ static double mypapi_wtime() {
 static int activeEventSet = -1;
 
 
-void mypapi_start(int i) {
-	int ompid = omp_get_thread_num();
-	assert(!omp_in_parallel() || !omp_get_nested());
+static void mypapi_start_work(int i) {
+	int tid = Kernel_ProcessorID();
+	int cid = Kernel_ProcessorCoreID();
+	int sid = Kernel_ProcessorThreadID();
 
-	if (ompid == 0) {
-	xCyc = GetTimeBase();
-	//xCyc = PAPI_get_real_cyc();
-	xNsec = mypapi_wtime();
-	//xNsec = PAPI_get_real_nsec();
-	xNow = now2();
-	xWtime = MPI_Wtime();
-	xOmpTime = omp_get_wtime();
+	if (tid == 0) {
+		xCyc = GetTimeBase();
+		//xCyc = PAPI_get_real_cyc();
+		xNsec = mypapi_wtime();
+		//xNsec = PAPI_get_real_nsec();
+		xNow = now2();
+		xWtime = MPI_Wtime();
+		xOmpTime = omp_get_wtime();
 
-	activeEventSet = i;
+		activeEventSet = i;
 	}
 
-// this sould execute for in threads, regardless of omp_in_parallel()
-#pragma omp parallel private(ompid)
-	{
-		ompid = omp_get_thread_num();
-		int tid = Kernel_ProcessorID();
-		int cid = Kernel_ProcessorCoreID();
-		int sid = Kernel_ProcessorThreadID();
-
-		int pues = PuEventSets[i][tid];
-		BGPM_ERROR(Bgpm_Apply(pues));
-		if (tid == 0) {
-			int l2es  = L2EventSet[i];
-			if (l2es > 0) {
-				BGPM_ERROR(Bgpm_Apply(l2es));
-				BGPM_ERROR(Bgpm_Start(l2es));
-			}
+	int pues = PuEventSets[i][tid];
+	BGPM_ERROR(Bgpm_Apply(pues));
+	if (tid == 0) {
+		int l2es = L2EventSet[i];
+		if (l2es > 0) {
+			BGPM_ERROR(Bgpm_Apply(l2es));
+			BGPM_ERROR(Bgpm_Start(l2es));
 		}
-		BGPM_ERROR(Bgpm_Start(pues));
+	}
+	BGPM_ERROR(Bgpm_Start(pues));
+}
+
+
+void mypapi_start(int i) {
+	if (omp_in_parallel()) {
+		// Already in parallel, no need to start threads
+		mypapi_start_work(i);
+	} else {
+		// Start counters in all threads
+		#pragma omp parallel
+		{
+			mypapi_start_work(i);
+		}
 	}
 }
 

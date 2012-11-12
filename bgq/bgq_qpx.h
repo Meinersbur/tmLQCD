@@ -34,6 +34,7 @@
 #define BGQ_QPX 0
 #endif
 
+#define BGQ_ALIGNMENT_QPX 32
 #define BGQ_ALIGNMENT_L1 64
 #define BGQ_ALIGNMENT_L1P 128
 #define BGQ_ALIGNMENT_L2 128
@@ -334,16 +335,16 @@ typedef struct {
 
 #else
 #define bgq_elem0(arg) \
-	(arg)[0]
+	((arg)[0])
 
 #define bgq_elem1(arg) \
-	(arg)[1]
+	((arg)[1])
 
 #define bgq_elem2(arg) \
-	(arg)[2]
+	((arg)[2])
 
 #define bgq_elem3(arg) \
-	(arg)[3]
+	((arg)[3])
 
 #define bgq_vars(name) \
 	name
@@ -358,12 +359,14 @@ typedef struct {
 	(dst) = (vector4double){creal(cmplx),cimag(cmplx),creal(cmplx),cimag(cmplx)}
 
 #define bgq_lda_double(dst,offset,addr) \
+	assert((((uintptr_t)(addr)+(uintptr_t)(offset)) & 31) == 0 && "Must be aligned to 32 bytes"); \
 	(dst) = vec_lda(offset,(double*)(addr))
 
 #define bgq_lda_float(dst,offset,addr) \
 	(dst) = vec_lda(offset,(float*)(addr))
 
 #define bgq_ld2a_double(dst,offset,addr) \
+	assert((((uintptr_t)(addr)+(uintptr_t)(offset)) & 15) == 0 && "Must be aligned to 16 bytes"); \
 	(dst) = vec_ld2a(offset, (double*)(addr))
 
 #define bgq_ld2a_float(dst,offset,addr) \
@@ -442,8 +445,10 @@ typedef struct {
 //	dst = vec_logical(dst, dst, 0);
 
 #define bgq_qvlfdxa(dst,addr,offset) \
-	asm ("qvlfduxa %[v4d],%[ptr],%[off]  \n" : [v4d] "=v" (dst) : [ptr]  "b" (addr),  [off] "r" (offset) ) /* no memory clobber, so pay attention! */
+	assert((((uintptr_t)(addr)+(uintptr_t)(offset)) & 31) == 0 && "Must be aligned to 32 bytes"); \
+	asm ("qvlfdxa %[v4d],%[ptr],%[off]  \n" : [v4d] "=v" (dst) : [ptr]  "b" (addr),  [off] "r" (offset) ) /* no memory clobber, so pay attention! */
 #define bgq_qvlfduxa(dst,addr,offset) \
+		assert((((uintptr_t)(addr)+(uintptr_t)(offset)) & 31) == 0 && "Must be aligned to 32 bytes"); \
 	asm ("qvlfduxa %[v4d],%[ptr],%[off]  \n" : [v4d] "=v" (dst), [ptr] "+b" (addr) : [off] "r" (offset) ) /* no memory clobber, so pay attention! */
 
 #define bgq_qvstfdxa(data,addr,offset) \
@@ -927,7 +932,6 @@ do {\
 do {\
 	void *ptr = (addr); \
 	bgq_qvlfduxa(NAME2(dst,c00), ptr, 0); \
-	bgq_qvlfduxa(NAME2(dst,c00), ptr, 32); \
 	bgq_qvlfduxa(NAME2(dst,c01), ptr, 32); \
 	bgq_qvlfduxa(NAME2(dst,c02), ptr, 32); \
 	bgq_qvlfduxa(NAME2(dst,c10), ptr, 32); \

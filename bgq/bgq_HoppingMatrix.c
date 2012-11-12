@@ -215,12 +215,11 @@ static void bgq_HoppingMatrix_worker_body(void *argptr, size_t tid, size_t threa
 }
 
 
-
-static inline void bgq_HoppingMatrix_worker_readFulllayout(void * restrict arg, size_t tid, size_t threads, bool kamul, bool readFulllayout) {
+static inline void bgq_HoppingMatrix_worker(void * restrict arg, size_t tid, size_t threads, bool kamul, bool readFulllayout) {
 	bgq_HoppingMatrix_workload *work = arg;
 	bool isOdd = work->isOdd_src;
-	bgq_weylfield_controlblock *spinorfield = work->spinorfield;
-	bgq_weylfield_controlblock *targetfield = work->targetfield;
+	bgq_weylfield_controlblock * restrict spinorfield = work->spinorfield;
+	bgq_weylfield_controlblock * restrict targetfield = work->targetfield;
 	ucoord ic_begin = work->ic_begin;
 	ucoord ic_end = work->ic_end;
 	bool noprefetchstream = work->noprefetchstream;
@@ -260,6 +259,19 @@ static inline void bgq_HoppingMatrix_worker_readFulllayout(void * restrict arg, 
 
 		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][ic];
 		bgq_weyl_ptr_t *destptrs = &targetfield->sendptr[ic];
+#if 0
+		bgq_weyl_ptr_t destptrsx = {
+				&targetfield->sec_collapsed->d[TUP],
+				&targetfield->sec_collapsed->d[TDOWN],
+				&targetfield->sec_collapsed->d[XUP],
+				&targetfield->sec_collapsed->d[XDOWN],
+				&targetfield->sec_collapsed->d[YUP],
+				&targetfield->sec_collapsed->d[YDOWN],
+				&targetfield->sec_collapsed->d[ZUP],
+				&targetfield->sec_collapsed->d[ZDOWN]
+		};
+		bgq_weyl_ptr_t * restrict destptrs = &destptrsx;
+#endif
 
 		//TODO: prefetching
 		//TODO: Check inlining
@@ -267,7 +279,7 @@ static inline void bgq_HoppingMatrix_worker_readFulllayout(void * restrict arg, 
 		if (readFulllayout) {
 			bgq_spinorsite *spinorsite = &spinorfield->sec_fullspinor[ic];
 			assert(spinorsite->s[1][0][0]!=0);
-			bgq_su3_spinor_prefetch_double(&spinorfield->sec_fullspinor[ic+1]); // TODO: This prefetch is too early
+			//bgq_su3_spinor_prefetch_double(&spinorfield->sec_fullspinor[ic+1]); // TODO: This prefetch is too early
 			bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
 		} else {
 			bgq_weylsite *weylsite = &spinorfield->sec_collapsed[ic];
@@ -279,17 +291,16 @@ static inline void bgq_HoppingMatrix_worker_readFulllayout(void * restrict arg, 
 }
 
 static void bgq_HoppingMatrix_nokamul_worker_readFulllayout(void *arg, size_t tid, size_t threads) {
-	bgq_HoppingMatrix_worker_readFulllayout(arg,tid,threads,false,true);
+	bgq_HoppingMatrix_worker(arg,tid,threads,false,true);
 }
-
 static void bgq_HoppingMatrix_kamul_worker_readFulllayout(void *arg, size_t tid, size_t threads) {
-	bgq_HoppingMatrix_worker_readFulllayout(arg,tid,threads,true,true);
+	bgq_HoppingMatrix_worker(arg,tid,threads,true,true);
 }
 static void bgq_HoppingMatrix_nokamul_worker_readWeyllayout(void *arg, size_t tid, size_t threads) {
-	bgq_HoppingMatrix_worker_readFulllayout(arg,tid,threads,false,false);
+	bgq_HoppingMatrix_worker(arg,tid,threads,false,false);
 }
 static void bgq_HoppingMatrix_kamul_worker_readWeyllayout(void *arg, size_t tid, size_t threads) {
-	bgq_HoppingMatrix_worker_readFulllayout(arg,tid,threads,true,false);
+	bgq_HoppingMatrix_worker(arg,tid,threads,true,false);
 }
 
 
@@ -764,7 +775,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 				bgq_master_call(&bgq_HoppingMatrix_kamul_worker_readWeyllayout, &work_body);
 		}
 
-		if (!COMM_X) {
+		if (!COMM_T) {
 			// Copy the data from HALO_T into the required locations
 			bgq_master_sync();
 			static bgq_work_datamove work_datamovet;

@@ -12,7 +12,7 @@
 
 #include <stdbool.h>
 
-
+#if 0
 #define OPERATOR_OUTPLACENAME bgq_operator_outplace
 #define OPERATOR_INPLACENAME bgq_operator_inplace
 #define OPERATOR_ARGFIELDS 1
@@ -182,3 +182,4 @@ void bgq_operator_inplace(bgq_weylfield_controlblock *targetfield) {
 
 #undef OPERATOR_INCLUDED
 #undef OPERATOR_NAME
+#endif

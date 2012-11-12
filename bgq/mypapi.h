@@ -39,6 +39,7 @@ typedef struct {
 } mypapi_counters;
 
 typedef enum {
+	pi_msecs,
 	pi_flops,
 	pi_localrms,
 	pi_globalrms,
@@ -53,7 +54,6 @@ typedef enum {
 	pi_is2stalls,
 
 	pi_hitinl1,
-	pi_l1pstreamhitinl1p,
 	pi_l1phitrate,
 	pi_l2hitrate,
 	pi_dcbthitrate,
@@ -62,6 +62,7 @@ typedef enum {
 	pi_l1pstreamunusedlines,
 
 	__pi_COUNT,
+	pi_l1pstreamhitinl1p,
 	pi_hitinl1p,
 	pi_l1pliststarted,
 	pi_l1plistabandoned,
@@ -75,6 +76,7 @@ typedef enum {
 void mypapi_init();
 void mypapi_start(int i);
 mypapi_counters mypapi_stop();
+void mypapi_free();
 
 mypapi_counters mypapi_merge_counters(mypapi_counters *counters1, mypapi_counters *counters2);
 void mypapi_print_counters(mypapi_counters *counters);
@@ -88,5 +90,9 @@ void mypapi_print_counters(mypapi_counters *counters);
 #define GIGA (1e9)
 #define TERA (1e12)
 
+#define KIBI (1024.0)
+#define MEBI (1024.0*1024.0)
+#define GIBI (1024.0*1024.0*1024.0)
+#define TEBI (1024.0*1024.0*1024.0*1024.0)
 
 #endif

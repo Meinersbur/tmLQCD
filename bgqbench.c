@@ -150,12 +150,17 @@ static ucoord flop_per_bodysite(bgq_hmflags opts) {
 	ucoord result = 0;
 
 	if (!(opts & hm_nobody)) {
-		result += 8/*dirs*/* (2 * 3)/*cmplx per weyl*/* 2/*flops*/;
-		result += 8/*dirs*/* 2/*su3vec per weyl*/* (6 * 9)/*flop su3 mv-mul*/;
+		// Compute weyl
+		result += 8/*dirs*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/;
 
+		// Su3 M*V
+		result += 8/*dirs*/ * 2/*su3vec per weyl*/ * (6 * 9 + 2*3)/*flop per su3 mv-mul*/;
+
+		// Accummulate spinor
 		// Assuming readWeyllayout:
-		result += 7/*dirs*/* (2 * 3)/*cmplx per weyl*/* 2/*flops accumm*/;
+		result += 7/*dirs*/ * (4 * 3)/*cmplx per spinor*/ * 2/*flops accumm*/;
 		assert(result == 1320);
+
 		if (!(opts & hm_nokamul)) {
 			result += 6/*flops cmplx mul*/* (2 * 3)/*cmplx per weyl*/* 8/*dirs*/;
 		}
@@ -169,15 +174,20 @@ static ucoord flop_per_surfacesite(bgq_hmflags opts) {
 	ucoord result = 0;
 
 	if (!(opts & hm_nodistribute)) {
-		result += 8/*dirs*/* (2 * 3)/*cmplx per weyl*/* 2/*flops*/;
-		result += 8/*dirs*/* 2/*su3vec per weyl*/* (6 * 9)/*flop su3 mv-mul*/;
+		// Compute weyl
+		result += 8/*dirs*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/;
 
+		// Su3 M*V
+		result += 8/*dirs*/ * 2/*su3vec per weyl*/ * (6 * 9 + 2*3)/*flop per su3 mv-mul*/;
+
+		// Accummulate spinor
 		// Assuming readWeyllayout:
-		result += 7/*dirs*/* (2 * 3)/*cmplx per weyl*/* 2/*flops accumm*/;
-	}
+		result += 7/*dirs*/ * (4 * 3)/*cmplx per spinor*/ * 2/*flops accumm*/;
+		assert(result == 1320);
 
-	if (!(opts & hm_nokamul)) {
-		result += 6/*flops cmpl mul*/* (2 * 3)/*cmpl per weyl*/* 8/*dirs*/;
+		if (!(opts & hm_nokamul)) {
+			result += 6/*flops cmpl mul*/* (2 * 3)/*cmpl per weyl*/* 8/*dirs*/;
+		}
 	}
 
 	return result;
@@ -187,7 +197,7 @@ static ucoord flop_per_surfacesite(bgq_hmflags opts) {
 
 static uint64_t compute_flop(bgq_hmflags opts, uint64_t lup_body, uint64_t lup_surface) {
 	uint64_t flop_body = flop_per_bodysite(opts) * lup_body;
-	uint64_t flop_surface =  flop_per_surfacesite(opts) * lup_surface;
+	uint64_t flop_surface = flop_per_surfacesite(opts) * lup_surface;
 	return flop_body+flop_surface;
 }
 
@@ -195,7 +205,7 @@ static uint64_t compute_flop(bgq_hmflags opts, uint64_t lup_body, uint64_t lup_s
 static void benchmark_setup_worker(void *argptr, size_t tid, size_t threads) {
 	mypapi_init();
 
-#ifdef BGQ
+#ifdef BGQ_QPX
 	const master_args *args = argptr;
 	const int j_max = args->j_max;
 	const int k_max = args->k_max;
@@ -215,16 +225,16 @@ static void benchmark_setup_worker(void *argptr, size_t tid, size_t threads) {
 
 	L1P_StreamPolicy_t pol;
 	switch (implicitprefetch) {
-		case hm_prefetchimplicitdisable:
+	case hm_prefetchimplicitdisable:
 		pol = noprefetchstream ? L1P_stream_disable : L1P_confirmed_or_dcbt/*No option to selectively disable implicit stream*/;
 		break;
-		case hm_prefetchimplicitoptimistic:
+	case hm_prefetchimplicitoptimistic:
 		pol = L1P_stream_optimistic;
 		break;
-		case hm_prefetchimplicitconfirmed:
+	case hm_prefetchimplicitconfirmed:
 		pol = noprefetchstream ? L1P_stream_confirmed : L1P_confirmed_or_dcbt;
 		break;
-		default:
+	default:
 		// Default setting
 		pol = L1P_confirmed_or_dcbt;
 		break;
@@ -252,6 +262,10 @@ static void benchmark_setup_worker(void *argptr, size_t tid, size_t threads) {
 #endif
 }
 
+static void benchmark_free_worker(void *argptr, size_t tid, size_t threads) {
+	mypapi_free();
+}
+
 static void HoppingMatrix_switch(bool isOdd, spinor *l, spinor *k, bgq_hmflags hmflags) {
 	bool nocom = hmflags & hm_nocom;
 	if (nocom) {
@@ -271,7 +285,7 @@ static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 
 	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 #ifndef BGQ_COORDCHECK
-	double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], false);
+	double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], true);
 	assert(compare_transfer == 0);
 	// Must be exact copy
 #endif
@@ -279,13 +293,13 @@ static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 	bgq_HoppingMatrix(false, &g_bgq_spinorfields[k + k_max], &g_bgq_spinorfields[k], hmflags);
 	HoppingMatrix_switch(false, g_spinor_field[k + k_max], g_spinor_field[k], hmflags);
 #ifndef BGQ_COORDCHECK
-	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], false);
+	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], true);
 	assert(compare_even < 0.01);
 #endif
 
 #ifndef BGQ_COORDCHECK
 	bgq_spinorfield_transfer(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max]); 	// We don't want to accumulate errors
-	compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], false);
+	compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], true);
 	assert(compare_transfer == 0);
 	// Must be exact copy
 #endif
@@ -293,7 +307,7 @@ static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k + 2 * k_max], &g_bgq_spinorfields[k + k_max], hmflags);
 	HoppingMatrix_switch(true, g_spinor_field[k + 2 * k_max], g_spinor_field[k + k_max], hmflags);
 #ifndef BGQ_COORDCHECK
-	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k + 2 * k_max], g_spinor_field[k + 2 * k_max], false);
+	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k + 2 * k_max], g_spinor_field[k + 2 * k_max], true);
 	assert(compare_odd < 0.01);
 #else
 	bgq_spinorfield_setup(&g_bgq_spinorfields[k + 2*k_max], true, false, false, true, false); // Wait for data transmission
@@ -316,8 +330,6 @@ static void mypapi_start_worker(void *arg_untyped, size_t tid, size_t threads) {
 	mypapi_work_t *arg = arg_untyped;
 	mypapi_start(arg->set);
 }
-
-
 
 static void mypapi_stop_worker(void *arg_untyped, size_t tid, size_t threads) {
 	mypapi_work_t *arg = arg_untyped;
@@ -343,7 +355,7 @@ static int benchmark_master(void *argptr) {
 	//const bgq_hmflags implicitprefetch = opts & (hm_prefetchimplicitdisable | hm_prefetchimplicitoptimistic | hm_prefetchimplicitconfirmed);
 	bool withcheck = opts & hm_withcheck;
 
-	// Setup thread options (prefetch setting etc.)
+	// Setup thread options (prefetch setting, performance counters, etc.)
 	bgq_master_call(&benchmark_setup_worker, argptr);
 
 	double err = 0;
@@ -390,7 +402,7 @@ static int benchmark_master(void *argptr) {
 		}
 
 		if (isPapi) {
-			bgq_master_call(mypapi_start_worker, &mypapi_arg);
+			bgq_master_call(mypapi_stop_worker, &mypapi_arg);
 			counters = mypapi_merge_counters(&counters, &mypapi_arg.result);
 		}
 		if (isJMax) {
@@ -400,6 +412,8 @@ static int benchmark_master(void *argptr) {
 			localsumsqtime += sqr(duration);
 		}
 	}
+
+	bgq_master_call(&benchmark_free_worker, argptr);
 
 	ucoord its = j_max;
 	double localavgtime = localsumtime / its;
@@ -426,25 +440,7 @@ static int benchmark_master(void *argptr) {
 	ucoord lup_body = k_max * sites_body;
 	ucoord lup_surface = k_max * sites_surface;
 	ucoord lup = lup_body + lup_surface;
-
-#if 0
-	int flops_per_lup_body = 0;
-	if (!nobody) {
-		flops_per_lup_body += 1320;
-		if (!nokamul)
-		flops_per_lup_body += 8 * 2 * 3 * 6;
-	}
-
-	int flops_per_lup_surface = 0;
-	if (!noweylsend)
-	flops_per_lup_surface += 6 * 2 * 2;
-	if (!nosurface) {
-		flops_per_lup_surface += 1320 - (6 * 2 * 2);
-		if (!nokamul)
-		flops_per_lup_surface += 8 * 2 * 3 * 6;
-	}
-	double flops = ((double) flops_per_lup_body * (double) lups_body) + ((double) flops_per_lup_surface * (double) lups_surface);
-#endif
+	assert(lup == k_max * sites);
 
 	benchstat *result = &args->result;
 	result->avgtime = avgtime;
@@ -503,63 +499,36 @@ static bgq_hmflags flags[] = {
         (DEFOPTS | hm_withcheck) & ~hm_nokamul,
         DEFOPTS,
 		DEFOPTS | hm_nospi,
-		DEFOPTS | hm_nooverlap,
+//		DEFOPTS | hm_nooverlap,
 		DEFOPTS | hm_nocom,
-		DEFOPTS | hm_nocom | hm_nodistribute | hm_nodatamove,
-		DEFOPTS | hm_nocom | hm_nobody | hm_nodatamove,
-		DEFOPTS | hm_nocom | hm_nobody | hm_nodistribute,
+		DEFOPTS | hm_nocom |             hm_nodistribute | hm_nodatamove,
+		DEFOPTS | hm_nocom | hm_nobody |                   hm_nodatamove,
+		DEFOPTS | hm_nocom | hm_nobody | hm_nodistribute                ,
+		DEFOPTS |            hm_nobody | hm_nodistribute | hm_nodatamove,
+		DEFOPTS | hm_nospi | hm_nobody | hm_nodistribute | hm_nodatamove,
+		DEFOPTS | hm_nocom | hm_nobody | hm_nodistribute | hm_nodatamove,
 		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitdisable,
-		DEFOPTS | hm_prefetchimplicitconfirmed,
+		DEFOPTS                       | hm_prefetchimplicitconfirmed,
 		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitconfirmed,
 		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitoptimistic
-#if 0
-//		               hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-//		hm_nooverlap | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-        hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-//		hm_fixedoddness | hm_nocom | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-        hm_nocom | hm_nosurface | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-        hm_nocom | hm_nobody | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-        hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit,
-        hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
-        hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitconfirmed,
-        hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitoptimistic,
-//		hm_nocom | hm_noweylsend | hm_noprefetchlist                       | hm_noprefetchexplicit | hm_prefetchimplicitdisable,
-        hm_nocom | hm_noweylsend | hm_noprefetchlist | hm_noprefetchstream | hm_prefetchimplicitdisable,
-//		hm_nocom | hm_noweylsend                     | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable
-        hm_nocom | hm_noweylsend | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable | hm_l1pnonstoprecord,
-        hm_nocom | hm_noweylsend | hm_noprefetchstream | hm_noprefetchexplicit | hm_prefetchimplicitdisable | hm_experimental
-#endif
     };
 static char* flags_desc[] = {
-        "kamul",
+		"kamul",
 		"+nokamul",
-        "MPI",
-        "+nooverlap",
+		"MPI",
+//		"+nooverlap",
 		"+nocom",
-        "bodyonly",
-        "distronly",
-        "datamovonly",
-        "pf disable",
-        "pf explisit",
-        "pf confirmed",
-        "pf optimistic"
-
-//		"Com async",
-//		"Com sync",
-//		"Com off",
-//		"^fixedodd",
-//		"bodyonly",
-//		"surfaceonly",
-//		"pf def",
-//		"pf disable",
-//		"pf confirmed",
-//		"pf optimistic",
-//		"pf stream",
-//		"pf explicit",
-//		"pf list",
-//		"pf list nonstop",
-//		"pf list exp"
-        };
+		"bodyonly",
+		"distonly",
+		"dmovonly",
+		"SPI only",
+		"MPI only",
+		"idle",
+		"pf disable",
+		"pf stream",
+		"pf confirmed",
+		"pf optimistic"
+	};
 
 #define CELLWIDTH 15
 #define SCELLWIDTH TOSTRING(CELLWIDTH)
@@ -641,55 +610,59 @@ static void print_stats(benchstat *stats) {
 			double nL1PStreamHits = stats[i3].counters.native[PEVT_L1P_STRM_HIT_LIST];
 
 			switch (j) {
-				case pi_flops:
-					desc = "Flop/s";
-					snprintf(str, sizeof(str), "%.0f", flops/MEGA);
-					break;
-				case pi_localrms:
-					desc = "Thread RMS";
-					snprintf(str, sizeof(str), "%.1f %%", 100.0*localrms);
-					break;
-				case pi_globalrms:
-					desc = "Node RMS";
-					snprintf(str, sizeof(str), "%.1f %%", 100.0*globalrms);
-					break;
-				case pi_detstreams:
+			case pi_msecs:
+				desc = "mSecs";
+				snprintf(str, sizeof(str), "%.3f",stat->avgtime/MILLI);
+				break;
+			case pi_flops:
+				desc = "MFlop/s";
+				snprintf(str, sizeof(str), "%.0f", flops/MEGA);
+				break;
+			case pi_localrms:
+				desc = "Thread RMS";
+				snprintf(str, sizeof(str), "%.1f %%", 100.0*localrms);
+				break;
+			case pi_globalrms:
+				desc = "Node RMS";
+				snprintf(str, sizeof(str), "%.1f %%", 100.0*globalrms);
+				break;
+			case pi_detstreams:
 				desc = "Detected streams";
 				snprintf(str, sizeof(str), "%llu", nStreamDetectedStreams);
 				break;
-				case pi_l1pstreamunusedlines:
+			case pi_l1pstreamunusedlines:
 				desc = "Unused (partially) lines";
 				snprintf(str, sizeof(str), "%.2f%% (%.2f%%)", 100.0 * nL1PSteamUnusedLines / nL1PStreamLines, 100.0 * nL1PStreamPartiallyUsedLines / nL1PStreamLines);
 				break;
-				case pi_l1pstreamhitinl1p:
+			case pi_l1pstreamhitinl1p:
 				desc = "Loads that hit in L1P stream";
 				snprintf(str, sizeof(str), "%.2f %%", 100.0 * nL1PStreamHits / nCachableLoads);
 				break;
-				case pi_cpi:
+			case pi_cpi:
 				desc = "Cycles per instruction (Thread)";
 				snprintf(str, sizeof(str), "%.3f", nCycles / nInstructions);
 				break;
-				case pi_corecpi:
+			case pi_corecpi:
 				desc = "Cycles per instruction (Core)";
 				snprintf(str, sizeof(str), "%.3f", nCoreCycles / nInstructions);
 				break;
-				case pi_l1istalls:
+			case pi_l1istalls:
 				desc = "Empty instr buffer";
 				snprintf(str, sizeof(str), "%.2f %%", nL1IBuffEmpty / nCycles);
 				break;
-				case pi_is1stalls:
+			case pi_is1stalls:
 				desc = "IS1 Stalls (dependency)";
 				snprintf(str, sizeof(str), "%.2f %%", 100 * nIS1Stalls / nCycles);
 				break;
-				case pi_is2stalls:
+			case pi_is2stalls:
 				desc = "IS2 Stalls (func unit)";
 				snprintf(str, sizeof(str), "%.2f %%", 100 * nIS2Stalls / nCycles);
 				break;
-				case pi_hitinl1:
+			case pi_hitinl1:
 				desc = "Loads that hit in L1";
 				snprintf(str, sizeof(str), "%.2f %%", 100 * nL1Hits / nCachableLoads);
 				break;
-				case pi_l1phitrate:
+			case pi_l1phitrate:
 				desc = "L1P hit rate";
 				snprintf(str, sizeof(str), "%.2f %%", 100 * nL1PHits / nL1PAccesses);
 				break;
@@ -701,43 +674,43 @@ static void print_stats(benchstat *stats) {
 				//	desc = "Loads that hit in L1P";
 				//	snprintf(str, sizeof(str), "%f %%" ,  100 * nL1PHits / nCachableLoads);
 				//	break;
-				case pi_l2hitrate:
+			case pi_l2hitrate:
 				desc = "L2 hit rate";
 				snprintf(str, sizeof(str), "%.2f %%", 100 * nL2Hits / nL2Accesses);
 				break;
-				case pi_dcbthitrate:
+			case pi_dcbthitrate:
 				desc = "dcbt hit rate";
 				snprintf(str, sizeof(str), "%.2f %%", 100 * nDcbtHits / nDcbtAccesses);
 				break;
-				case pi_axufraction:
+			case pi_axufraction:
 				desc = "FXU instrs";
 				snprintf(str, sizeof(str), "%.2f %%", 100 * nAXUInstr / nXUAXUInstr);
 				break;
-				case pi_l1pliststarted:
+			case pi_l1pliststarted:
 				desc = "List prefetch started";
 				snprintf(str, sizeof(str), "%llu", nL1PListStarted);
 				break;
-				case pi_l1plistabandoned:
+			case pi_l1plistabandoned:
 				desc = "List prefetch abandoned";
 				snprintf(str, sizeof(str), "%llu", nL1PListAbandoned);
 				break;
-				case pi_l1plistmismatch:
+			case pi_l1plistmismatch:
 				desc = "List prefetch mismatch";
 				snprintf(str, sizeof(str), "%llu", nL1PListMismatch);
 				break;
-				case pi_l1plistskips:
+			case pi_l1plistskips:
 				desc = "List prefetch skip";
 				snprintf(str, sizeof(str), "%llu", nL1PListSkips);
 				break;
-				case pi_l1plistoverruns:
+			case pi_l1plistoverruns:
 				desc = "List prefetch overrun";
 				snprintf(str, sizeof(str), "%llu", nL1PListOverruns);
 				break;
-				case pi_l1plistlatestalls:
+			case pi_l1plistlatestalls:
 				desc = "Stalls list prefetch behind";
 				snprintf(str, sizeof(str), "%.2f", nL1PLatePrefetchStalls / nCoreCycles);
 				break;
-				default:
+			default:
 				continue;
 			}
 
@@ -783,7 +756,7 @@ static void exec_table(benchfunc_t benchmark, bgq_hmflags additional_opts, int j
 			}
 
 			char str[80] = { 0 };
-			snprintf(str, sizeof(str), "%.2f lup/s%s", (double) result.lup / (result.avgtime * MEGA), (result.error > 0.001) ? "X" : "");
+			snprintf(str, sizeof(str), "%.2f mlup/s%s", (double) result.lup / (result.avgtime * MEGA), (result.error > 0.001) ? "X" : "");
 			if (g_proc_id == 0)
 				printf("%"SCELLWIDTH"s|", str);
 			if (g_proc_id == 0)
@@ -875,18 +848,18 @@ static int check_hopmat(void *arg_untyped) {
 	assert(compare_even < 0.01);
 
 
-	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max]);
-	compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max], false);
+	bgq_spinorfield_transfer(false, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max]);
+	compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max], false);
 	assert(compare_transfer == 0);
 
 	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k], &g_bgq_spinorfields[k+k_max], hmflags);
 	HoppingMatrix_switch(true, g_spinor_field[k], g_spinor_field[k+k_max], hmflags);
 
-	double compare_odd = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], false);
+	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], false);
 	assert(compare_odd < 0.01);
 
 
-	master_print("Comparison to reference version: even=%f odd=%f max difference", compare_even, compare_odd);
+	master_print("Comparison to reference version: even=%f odd=%f max difference\n", compare_even, compare_odd);
 	return EXIT_SUCCESS;
 }
 
@@ -912,11 +885,26 @@ static void exec_bench(int j_max, int k_max) {
 		if (g_proc_id == 0 && !done) {
 #pragma omp ordered
 			{
-				printf("MK Here is omp_id %2d, cpu_id %2d running on SMT-Thread %d of Core %2d\n", omp_get_thread_num(), Kernel_ProcessorID(), Kernel_ProcessorThreadID(), Kernel_ProcessorCoreID());
+				//printf("MK Here is omp_id %2d, cpu_id %2d running on SMT-Thread %d of Core %2d\n", omp_get_thread_num(), Kernel_ProcessorID(), Kernel_ProcessorThreadID(), Kernel_ProcessorCoreID());
 				done = true;
 			}
 		}
 	}
+
+	uint64_t ws = 0;
+	uint64_t indices = 0;
+	uint64_t forcomm = 0;
+	ws += PHYSICAL_VOLUME * sizeof(bgq_weylsite); // input spinorfield
+	indices += PHYSICAL_VOLUME * sizeof(bgq_weylsite*); // sendptr
+	ws += PHYSICAL_VOLUME * sizeof(bgq_gaugesite); // gauge field
+	forcomm += bgq_weyl_section_offset(sec_comm_end) - bgq_weyl_section_offset(sec_comm); // for communication
+	indices += ((bgq_weyl_section_offset(sec_recv_zdown + 1) - bgq_weyl_section_offset(sec_recv_xup))  / sizeof(bgq_weyl_vec)) * sizeof(bgq_weylsite*); // destptrFromRecv
+	indices += (bgq_section_size(sec_send_tup) / sizeof(bgq_weyl_vec)) * sizeof(bgq_weylsite*); // consptr_recvtdown+consptr_recvtup
+
+	ws+= forcomm;
+	ws+= indices;
+	uint64_t ws_write = ws + PHYSICAL_VOLUME * sizeof(bgq_weylsite); // target spinor
+	master_print("Working set size: %.1fMB (%.1fMB incl target) (%.1fMB index, %.1fMB commbuf)\n", (double)ws/(1024.0*1024.0), (double)ws_write/(1024.0*1024.0),indices/MEBI,forcomm/MEBI);
 
 	for (int k = 0; k < k_max; k += 1) {
 		/*initialize the pseudo-fermion fields*/
@@ -927,7 +915,6 @@ static void exec_bench(int j_max, int k_max) {
 	checkargs_t checkargs = {
 	        .k_max = k_max
 	};
-	bgq_parallel(&check_hopmat, &checkargs);
 	//bgq_parallel(&check_hopmat, &checkargs);
 
 	exec_table(&benchmark_hopmat, 0, j_max, k_max);

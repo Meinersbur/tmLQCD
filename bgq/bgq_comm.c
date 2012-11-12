@@ -1606,20 +1606,19 @@ static unsigned mySpirank;
 static inline unsigned bgq_abcde2spirank(Personality_t *pers, uint8_t a, uint8_t b,uint8_t c,uint8_t d,uint8_t e) {
 	assert(pers);
 	torus_t tdims = {
-				pers->Network_Config.Anodes,
-				pers->Network_Config.Bnodes,
-				pers->Network_Config.Cnodes,
-				pers->Network_Config.Dnodes,
-				pers->Network_Config.Enodes
-		};
-	torus_t dims =
-	    {
-	      pers->Network_Config.Anodes,
-	      pers->Network_Config.Bnodes,
-	      pers->Network_Config.Cnodes,
-	      pers->Network_Config.Dnodes,
-	      pers->Network_Config.Enodes
-	    };
+		pers->Network_Config.Anodes,
+		pers->Network_Config.Bnodes,
+		pers->Network_Config.Cnodes,
+		pers->Network_Config.Dnodes,
+		pers->Network_Config.Enodes
+	};
+	torus_t dims = {
+	  pers->Network_Config.Anodes,
+	  pers->Network_Config.Bnodes,
+	  pers->Network_Config.Cnodes,
+	  pers->Network_Config.Dnodes,
+	  pers->Network_Config.Enodes
+	};
 
 	unsigned numNodes = tdims.a * tdims.b * tdims.c * tdims.d * tdims.e;
 	unsigned result = ((((a)*dims.b + b)*dims.c + c)*dims.d + d)*dims.e + e;
@@ -1671,7 +1670,7 @@ static void setup_destinations(Personality_t *pers) {
 		MUSPI_SetUpDestination(&nb2dest[cd].dest, nb.a, nb.b, nb.c, nb.d, nb.e);
 		nb2dest[cd].hintsABCD = 0;
 		nb2dest[cd].hintsE = 0;
-		printf("node %d: %d(%d,%d,%d,%d,%d)-%d->%d(%d,%d,%d,%d,%d)\n", g_proc_id, mySpirank, tcoords.a, tcoords.b, tcoords.c, tcoords.e, tcoords.d, cd, nbrank, nb.a, nb.b, nb.c, nb.d, nb.e);
+		//printf("node %d: %d(%d,%d,%d,%d,%d)-%d->%d(%d,%d,%d,%d,%d)\n", g_proc_id, mySpirank, tcoords.a, tcoords.b, tcoords.c, tcoords.e, tcoords.d, cd, nbrank, nb.a, nb.b, nb.c, nb.d, nb.e);
 	}
 }
 
@@ -1835,7 +1834,7 @@ void bgq_comm_spi_init(void) {
 		assert((roffsets[cd] + secsize) <= (bgq_weyl_section_offset(sec_recv_end) - bgq_weyl_section_offset(sec_recv_begin)));
 		totalMessageSize += secsize;
 
-		master_print("SPI %llu: d=%llu msize=%zu soffset=%zu d_dst=%llu roffset=%zu\n", cd, d_src, messageSizes[commdir], soffsets[commdir], d_dst, roffsets[cd]);
+		//master_print("SPI %llu: d=%llu msize=%zu soffset=%zu d_dst=%llu roffset=%zu\n", cd, d_src, messageSizes[commdir], soffsets[commdir], d_dst, roffsets[cd]);
 	}
 	assert(totalMessageSize == bgq_weyl_section_offset(sec_recv_end) - bgq_weyl_section_offset(sec_recv_begin));
 
@@ -1910,7 +1909,7 @@ void bgq_comm_spi_init(void) {
 //TODO: inline?
 void bgq_comm_recv(bool nospi) {
 	assert(omp_get_thread_num()==0);
-	master_print("Comm Receiving...\n");
+	//master_print("Comm Receiving...\n");
 #ifdef SPI
 	if (!nospi) {
 	    // reset the recv counter
@@ -1925,7 +1924,7 @@ void bgq_comm_recv(bool nospi) {
 
 void bgq_comm_send(bool nospi) {
 	assert(omp_get_thread_num()==0);
-	master_print("Comm Sending...\n");
+	//master_print("Comm Sending...\n");
 #ifdef SPI
 	if (!nospi) {
 		// make sure everybody has reset recvCounter
@@ -1947,7 +1946,7 @@ void bgq_comm_send(bool nospi) {
 
 void bgq_comm_wait(bool nospi) {
 	assert(omp_get_thread_num()==0);
-	master_print("Comm Waiting...\n");
+	//master_print("Comm Waiting...\n");
 
 	uint64_t ppc32 = mfspr(SPRN_PPR32);
 	ThreadPriority_Low(); // If there is some other work to be done on this node, give it priority
@@ -1958,17 +1957,17 @@ void bgq_comm_wait(bool nospi) {
 		uint64_t startTime = 0;
 
 		// Wait for all data is received
-		 printf("node %d: %llu bytes to be received\n", g_proc_id, totalMessageSize);
+		 //printf("node %d: %llu bytes to be received\n", g_proc_id, totalMessageSize);
 		 while(recvCounter > 0) {
 			 // Check range of pending bytes to receive
 			 assert(recvCounter <= totalMessageSize);
 
 			 if (GetTimeBase() - startTime >= 1600) {
-				 printf("node %d: %llu bytes left\n", g_proc_id, recvCounter);
+				 //printf("node %d: %llu bytes left\n", g_proc_id, recvCounter);
 				 startTime = GetTimeBase();
 			 }
 		 }
-		 printf("node %d: All data received\n", g_proc_id);
+		 //printf("node %d: All data received\n", g_proc_id);
 
 		 // Wait for all data sent
 		while (true) {

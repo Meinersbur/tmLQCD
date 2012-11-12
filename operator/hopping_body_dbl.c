@@ -103,14 +103,14 @@
     sm=k+(*hi);
     hi+=2;
 
-    _vector_add(psi_v0,sp->s0,sp->s2);
-    _su3_multiply(chi_v0,(*up),psi_v0);
+    _vector_add(psi_v0,sp->s0,sp->s2); // 6
+    _su3_multiply(chi_v0,(*up),psi_v0); // 3*3*6 + 2*3*2
     _complex_times_vector(rho_v0,ka0,chi_v0);
     _vector_assign(temp.s0,rho_v0);
     _vector_assign(temp.s2,rho_v0);
 
-    _vector_add(psi_v1,sp->s1,sp->s3);
-    _su3_multiply(chi_v1,(*up),psi_v1);
+    _vector_add(psi_v1,sp->s1,sp->s3); // 6
+    _su3_multiply(chi_v1,(*up),psi_v1); // 3*3*6 + 2*3*2
     _complex_times_vector(rho_v1,ka0,chi_v1);
     _vector_assign(temp.s1,rho_v1);
     _vector_assign(temp.s3,rho_v1);
@@ -135,14 +135,14 @@
     _vector_sub(psi_v0,sm->s0,sm->s2);
     _su3_inverse_multiply(chi_v0,(*um),psi_v0);
     _complexcjg_times_vector(rho_v0,ka0,chi_v0);
-    _vector_add_assign(temp.s0,rho_v0);
-    _vector_sub_assign(temp.s2,rho_v0);
+    _vector_add_assign(temp.s0,rho_v0); // 6
+    _vector_sub_assign(temp.s2,rho_v0); // 6
 
     _vector_sub(psi_v1,sm->s1,sm->s3);
     _su3_inverse_multiply(chi_v1,(*um),psi_v1);
     _complexcjg_times_vector(rho_v1,ka0,chi_v1);
-    _vector_add_assign(temp.s1,rho_v1);
-    _vector_sub_assign(temp.s3,rho_v1);
+    _vector_add_assign(temp.s1,rho_v1); // 6
+    _vector_sub_assign(temp.s3,rho_v1); // 6
 
 
     bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_GAUGE, um->c00);

@@ -992,7 +992,7 @@ bgq_spinor bgq_legacy_getspinor(spinor *spinor, ucoord t, ucoord x, ucoord y, uc
 	assert(0 <= icx && icx < VOLUME/2);
 
 	bgq_spinor *result = (bgq_spinor*)&spinor[icx];
-	return *result;;
+	return *result;
 }
 
 
@@ -1017,8 +1017,10 @@ bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, ucoord t
 		bgq_HoppingMatrix_loadWeyllayout(spinor,&field->sec_collapsed[ic], bgq_t2t(t,0), bgq_t2t(t,1), x, y, z);
 		return bgq_spinor_fromqpx(spinor,k);
 	} else {
-		assert(!"Field contains no data");
-		UNREACHABLE
+		printf("Field contains no data\n");
+		abort();
+		bgq_spinor dummy;
+		return dummy;
 	}
 }
 
