@@ -539,11 +539,15 @@ mypapi_counters mypapi_stop(){
 	dummy.init=false;
 	return dummy;
 }
+void mypapi_free(){}
+
 mypapi_counters mypapi_merge_counters(mypapi_counters *counters1, mypapi_counters *counters2) {
 	mypapi_counters result = {0};
 	return result;
 }
 void mypapi_print_counters(mypapi_counters *counters) {}
+
+
 
 #endif
 

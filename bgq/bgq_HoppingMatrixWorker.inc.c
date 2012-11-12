@@ -40,9 +40,8 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 		bgq_prefetch_forward(&targetfield->sendptr[begin]);
 	}
 
-	for (ucoord ic_ = begin; ic_<end; ic_+=1) {
+	for (ucoord ic = begin; ic<end; ic+=1) {
 		//TODO: Check optaway
-		ucoord ic = begin;
 		ucoord ih = bgq_collapsed2halfvolume(isOdd,ic);
 		ucoord t1 = bgq_halfvolume2t1(isOdd,ih);
 		ucoord t2 = bgq_halfvolume2t2(isOdd,ih);
@@ -89,7 +88,7 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 		};
 		bgq_weyl_ptr_t * restrict destptrs = &destptrsx;
 #else
-		bgq_weyl_ptr_t *destptrs = &targetfield->sendptr[ic];
+		bgq_weyl_ptr_t * restrict targetptrs = &targetfield->sendptr[ic];
 #endif
 
 		//TODO: prefetching
@@ -107,7 +106,6 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 		}
 		//bgq_HoppingMatrix_compute_storeWeyllayout_alldir(destptrs, gaugesite, spinor, t1, t2, x, y, z, qka0,qka1,qka2,qka3,kamul);
 
-		bgq_weyl_ptr_t *targetptrs = destptrs;
 #define BGQ_COMPUTEWEYL_INC_
 #include "bgq_ComputeWeyl.inc.c"
 	}

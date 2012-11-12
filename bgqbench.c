@@ -207,7 +207,7 @@ static uint64_t compute_flop(bgq_hmflags opts, uint64_t lup_body, uint64_t lup_s
 static void benchmark_setup_worker(void *argptr, size_t tid, size_t threads) {
 	mypapi_init();
 
-#ifdef BGQ_QPX
+#if BGQ_QPX
 	const master_args *args = argptr;
 	const int j_max = args->j_max;
 	const int k_max = args->k_max;
@@ -340,7 +340,9 @@ static void mypapi_stop_worker(void *arg_untyped, size_t tid, size_t threads) {
 
 
 static void donothing(void *arg, size_t tid, size_t threads) {
+#if BGQ_QPX
 	DelayTimeBase(1600*100);
+#endif
 }
 
 static int benchmark_master(void *argptr) {

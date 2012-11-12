@@ -14,7 +14,12 @@
 #include <string.h>
 #include <complex.h>
 #include <stdint.h>
+
+#if BGQ_QPX
 #include <hwi/include/bqc/A2_inlines.h>
+#else
+#include <mpi.h>
+#endif
 
 #ifndef BGQ_QPX_C_
 #define EXTERN_INLINE EXTERN_INLINE_DECLARATION
@@ -1744,9 +1749,15 @@ static inline void mbar() {
 void bgq_qpx_unittest(void);
 
 
+#if BGQ_QPX
 EXTERN_INLINE uint64_t bgq_wcycles() {
 	return GetTimeBase();
 }
+#else
+EXTERN_INLINE uint64_t bgq_wcycles() {
+	return MPI_Wtick();
+}
+#endif
 
 
 #undef EXTERN_INLINE
