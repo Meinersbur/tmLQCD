@@ -39,10 +39,12 @@ typedef struct {
 } mypapi_counters;
 
 typedef enum {
-	pi_msecs,
 	pi_flops,
+	pi_msecs,
+	pi_cycpersite,
 	pi_localrms,
 	pi_globalrms,
+	pi_avgovhtime,
 
 	pi_cpi,
 	pi_corecpi,

@@ -4,9 +4,11 @@
 
 #ifndef BGQ_COMPUTEWEYL_INC_
 #include "bgq_qpx.h"
+#include "bgq_spinorfield.h"
+#include "bgq_gaugefield.h"
 
 #include <stdbool.h>
-void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, bgq_gaugesite *gaugesite, bgq_su3_spinor_params(spinor), ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bool kamul)
+void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, bgq_gaugesite *gaugesite, bgq_su3_spinor_params(spinor), bgq_params(qka0), bgq_params(qka1),bgq_params(qka2),bgq_params(qka3),ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bool kamul)
 #endif
 {
 
@@ -205,3 +207,5 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 	}
 
 }
+
+#undef BGQ_COMPUTEWEYL_INC_

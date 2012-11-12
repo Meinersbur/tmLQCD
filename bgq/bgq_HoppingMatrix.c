@@ -154,15 +154,7 @@ static inline void bgq_HoppingMatrix_kernel_raw(bgq_weyl_ptr_t *targetptrs, bgq_
 }
 
 
-typedef struct {
-	bool isOdd_src;
-	bool isOdd_dst;
-	bgq_weylfield_controlblock *targetfield;
-	bgq_weylfield_controlblock *spinorfield;
-	ucoord ic_begin;
-	ucoord ic_end;
-	bool noprefetchstream;
-} bgq_HoppingMatrix_workload;
+
 
 static struct {
 	bool isOdd_dst;
@@ -248,8 +240,9 @@ static inline void bgq_HoppingMatrix_worker(void * restrict arg, size_t tid, siz
 		bgq_prefetch_forward(&targetfield->sendptr[begin]);
 	}
 
-	for (ucoord ic = begin; ic<end; ic+=1) {
+	for (ucoord ic_ = begin; ic_<end; ic_+=1) {
 		//TODO: Check optaway
+		ucoord ic = begin;
 		ucoord ih = bgq_collapsed2halfvolume(isOdd,ic);
 		ucoord t1 = bgq_halfvolume2t1(isOdd,ih);
 		ucoord t2 = bgq_halfvolume2t2(isOdd,ih);
@@ -257,9 +250,33 @@ static inline void bgq_HoppingMatrix_worker(void * restrict arg, size_t tid, siz
 		ucoord y = bgq_halfvolume2y(ih);
 		ucoord z = bgq_halfvolume2z(ih);
 
+
 		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][ic];
-		bgq_weyl_ptr_t *destptrs = &targetfield->sendptr[ic];
 #if 0
+		bgq_weyl_ptr_t destptrsx = {
+				&targetfield->sec_collapsed[0].d[TUP],
+				&targetfield->sec_collapsed[0].d[TUP],
+				&targetfield->sec_collapsed[0].d[TUP],
+				&targetfield->sec_collapsed[0].d[TUP],
+				&targetfield->sec_collapsed[0].d[TUP],
+				&targetfield->sec_collapsed[0].d[TUP],
+				&targetfield->sec_collapsed[0].d[TUP],
+				&targetfield->sec_collapsed[0].d[TUP]
+		};
+		bgq_weyl_ptr_t * restrict destptrs = &destptrsx;
+#elif 0
+		bgq_weyl_ptr_t destptrsx = {
+				&targetfield->sec_collapsed[ic].d[TUP],
+				&targetfield->sec_collapsed[ic].d[TDOWN],
+				&targetfield->sec_collapsed[ic].d[XUP],
+				&targetfield->sec_collapsed[ic].d[XDOWN],
+				&targetfield->sec_collapsed[ic].d[YUP],
+				&targetfield->sec_collapsed[ic].d[YDOWN],
+				&targetfield->sec_collapsed[ic].d[ZUP],
+				&targetfield->sec_collapsed[ic].d[ZDOWN]
+		};
+		bgq_weyl_ptr_t * restrict destptrs = &destptrsx;
+#elif 0
 		bgq_weyl_ptr_t destptrsx = {
 				&targetfield->sec_collapsed->d[TUP],
 				&targetfield->sec_collapsed->d[TDOWN],
@@ -271,6 +288,8 @@ static inline void bgq_HoppingMatrix_worker(void * restrict arg, size_t tid, siz
 				&targetfield->sec_collapsed->d[ZDOWN]
 		};
 		bgq_weyl_ptr_t * restrict destptrs = &destptrsx;
+#else
+		bgq_weyl_ptr_t * restrict destptrs = &targetfield->sendptr[ic];
 #endif
 
 		//TODO: prefetching
@@ -286,21 +305,46 @@ static inline void bgq_HoppingMatrix_worker(void * restrict arg, size_t tid, siz
 			assert(weylsite->d[TUP].s[1][0][0]!=0);
 			bgq_HoppingMatrix_loadWeyllayout(spinor, weylsite, t1, t2, x, y, z);
 		}
+		//continue;
 		bgq_HoppingMatrix_compute_storeWeyllayout_alldir(destptrs, gaugesite, spinor, t1, t2, x, y, z, qka0,qka1,qka2,qka3,kamul);
 	}
 }
 
 static void bgq_HoppingMatrix_nokamul_worker_readFulllayout(void *arg, size_t tid, size_t threads) {
-	bgq_HoppingMatrix_worker(arg,tid,threads,false,true);
+	//bgq_HoppingMatrix_worker(arg,tid,threads,false,true);
+
+	bool const kamul = false;
+	bool const readFulllayout = true;
+
+#define BGQ_HOPPINGMATRIXWORKER_INC_ 1
+#include "bgq_HoppingMatrixWorker.inc.c"
 }
 static void bgq_HoppingMatrix_kamul_worker_readFulllayout(void *arg, size_t tid, size_t threads) {
-	bgq_HoppingMatrix_worker(arg,tid,threads,true,true);
+	//bgq_HoppingMatrix_worker(arg,tid,threads,true,true);
+
+	bool const kamul = true;
+	bool const readFulllayout = true;
+
+#define BGQ_HOPPINGMATRIXWORKER_INC_ 1
+#include "bgq_HoppingMatrixWorker.inc.c"
 }
 static void bgq_HoppingMatrix_nokamul_worker_readWeyllayout(void *arg, size_t tid, size_t threads) {
-	bgq_HoppingMatrix_worker(arg,tid,threads,false,false);
+	//bgq_HoppingMatrix_worker(arg,tid,threads,false,false);
+
+	bool const kamul = false;
+	bool const readFulllayout = false;
+
+#define BGQ_HOPPINGMATRIXWORKER_INC_ 1
+#include "bgq_HoppingMatrixWorker.inc.c"
 }
 static void bgq_HoppingMatrix_kamul_worker_readWeyllayout(void *arg, size_t tid, size_t threads) {
-	bgq_HoppingMatrix_worker(arg,tid,threads,true,false);
+	//bgq_HoppingMatrix_worker(arg,tid,threads,true,false);
+
+	bool const kamul = true;
+	bool const readFulllayout = false;
+
+#define BGQ_HOPPINGMATRIXWORKER_INC_ 1
+#include "bgq_HoppingMatrixWorker.inc.c"
 }
 
 

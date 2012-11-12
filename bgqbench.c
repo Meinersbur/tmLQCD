@@ -122,6 +122,7 @@ typedef struct {
 	double avgtime;
 	double localrmstime;
 	double globalrmstime;
+	double totcycles;
 
 	ucoord sites_body;
 	ucoord sites_surface;
@@ -136,6 +137,7 @@ typedef struct {
 
 	mypapi_counters counters;
 	bgq_hmflags opts;
+	uint64_t avgovhtime;
 } benchstat;
 
 typedef struct {
@@ -336,6 +338,11 @@ static void mypapi_stop_worker(void *arg_untyped, size_t tid, size_t threads) {
 	arg->result = mypapi_stop();
 }
 
+
+static void donothing(void *arg, size_t tid, size_t threads) {
+	DelayTimeBase(1600*100);
+}
+
 static int benchmark_master(void *argptr) {
 	master_args * const args = argptr;
 	const int j_max = args->j_max;
@@ -363,9 +370,23 @@ static int benchmark_master(void *argptr) {
 		err = runcheck(opts, k_max);
 	}
 
+	uint64_t sumotime = 0;
+	for (int i = 0; i < 20; i += 1) {
+		uint64_t start_time = bgq_wcycles();
+		donothing(NULL, 0, 0);
+		uint64_t mid_time = bgq_wcycles();
+		bgq_master_call(&donothing, NULL);
+		uint64_t stop_time = bgq_wcycles();
+
+		uint64_t time = (stop_time - mid_time) - (mid_time- start_time);
+		sumotime += time;
+	}
+	uint64_t avgovhtime = sumotime / 20;
+
 	static mypapi_work_t mypapi_arg;
 	double localsumtime = 0;
 	double localsumsqtime = 0;
+	uint64_t localsumcycles=0;
 	mypapi_counters counters;
 	counters.init = false;
 	int iterations = 1; // Warmup phase
@@ -382,13 +403,15 @@ static int benchmark_master(void *argptr) {
 		bool isJMax = (0 <= j) && (j < j_max);
 
 		double start_time;
-		if (isJMax) {
-			start_time = MPI_Wtime();
-		}
+		uint64_t start_cycles;
 		if (isPapi) {
 			bgq_master_sync();
 			mypapi_arg.set = papiSet;
 			bgq_master_call(mypapi_start_worker, &mypapi_arg);
+		}
+		if (isJMax) {
+			start_time = MPI_Wtime();
+			start_cycles = bgq_wcycles();
 		}
 
 		{
@@ -401,15 +424,22 @@ static int benchmark_master(void *argptr) {
 			bgq_master_sync(); // Wait for all threads to finish, to get worst thread timing
 		}
 
+		double end_time;
+		uint64_t end_cycles;
+		if (isJMax) {
+			end_cycles = bgq_wcycles();
+			end_time = MPI_Wtime();
+		}
 		if (isPapi) {
 			bgq_master_call(mypapi_stop_worker, &mypapi_arg);
 			counters = mypapi_merge_counters(&counters, &mypapi_arg.result);
 		}
+
 		if (isJMax) {
-			double end_time = MPI_Wtime();
 			double duration = end_time - start_time;
 			localsumtime += duration;
 			localsumsqtime += sqr(duration);
+			localsumcycles += (end_cycles - start_cycles);
 		}
 	}
 
@@ -419,6 +449,7 @@ static int benchmark_master(void *argptr) {
 	double localavgtime = localsumtime / its;
 	double localavgsqtime = sqr(localavgtime);
 	double localrmstime = sqrt((localsumsqtime / its) - localavgsqtime);
+	double localcycles = (double)localsumcycles / (double)its;
 
 	double localtime[] = { localavgtime, localavgsqtime, localrmstime };
 	double sumreduce[3] = { -1, -1, -1 };
@@ -446,6 +477,8 @@ static int benchmark_master(void *argptr) {
 	result->avgtime = avgtime;
 	result->localrmstime = avglocalrms;
 	result->globalrmstime = rmstime;
+	result->totcycles = localcycles;
+
 	result->sites_surface = sites_surface;
 	result->sites_body = sites_body;
 	result->sites = sites;
@@ -456,6 +489,7 @@ static int benchmark_master(void *argptr) {
 	result->error = err;
 	result->counters = counters;
 	result->opts = opts;
+	result->avgovhtime = avgovhtime;
 	return EXIT_SUCCESS;
 }
 
@@ -547,6 +581,7 @@ static void print_stats(benchstat *stats) {
 			benchstat *stat = &stats[i3];
 			bgq_hmflags opts = stat->opts;
 
+			uint64_t lup = stat->lup;
 			uint64_t flop = compute_flop(opts, stat->lup_body, stat->lup_surface);
 			double flops = (double)flop/stat->avgtime;
 			double localrms = stat->localrmstime / stat->avgtime;
@@ -611,12 +646,16 @@ static void print_stats(benchstat *stats) {
 
 			switch (j) {
 			case pi_msecs:
-				desc = "mSecs";
-				snprintf(str, sizeof(str), "%.3f",stat->avgtime/MILLI);
+				desc = "Iteration time";
+				snprintf(str, sizeof(str), "%.3f mSecs",stat->avgtime/MILLI);
+				break;
+			case pi_cycpersite:
+				desc = "per site update";
+				snprintf(str, sizeof(str), "%.1f cyc", stat->totcycles / lup);
 				break;
 			case pi_flops:
 				desc = "MFlop/s";
-				snprintf(str, sizeof(str), "%.0f", flops/MEGA);
+				snprintf(str, sizeof(str), "%.0f MFlop/s", flops/MEGA);
 				break;
 			case pi_localrms:
 				desc = "Thread RMS";
@@ -625,6 +664,10 @@ static void print_stats(benchstat *stats) {
 			case pi_globalrms:
 				desc = "Node RMS";
 				snprintf(str, sizeof(str), "%.1f %%", 100.0*globalrms);
+				break;
+			case pi_avgovhtime:
+				desc = "Threading overhead";
+				snprintf(str, sizeof(str), "%llu cyc", stat->avgovhtime);
 				break;
 			case pi_detstreams:
 				desc = "Detected streams";
@@ -640,11 +683,11 @@ static void print_stats(benchstat *stats) {
 				break;
 			case pi_cpi:
 				desc = "Cycles per instruction (Thread)";
-				snprintf(str, sizeof(str), "%.3f", nCycles / nInstructions);
+				snprintf(str, sizeof(str), "%.3f cpi", nCycles / nInstructions);
 				break;
 			case pi_corecpi:
 				desc = "Cycles per instruction (Core)";
-				snprintf(str, sizeof(str), "%.3f", nCoreCycles / nInstructions);
+				snprintf(str, sizeof(str), "%.3f cpi", nCoreCycles / nInstructions);
 				break;
 			case pi_l1istalls:
 				desc = "Empty instr buffer";

@@ -377,6 +377,7 @@ void bgq_indices_init() {
 	master_print("BGQ SPI/MPI communication enabled for: %s%s%s%s\n", COMM_T?"T,":"", COMM_X?"X,":"", COMM_Y?"Y,":"", COMM_Z?"Z":"");
 
 	assert(PHYSICAL_LTV>=2);
+	PHYSICAL_VOLUME = (PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ);
 	if ((PHYSICAL_LTV <= 1) || (PHYSICAL_LX <= 2) || (PHYSICAL_LY <= 2) || (PHYSICAL_LZ <= 2)) {
 		PHYSICAL_BODY = 0;
 	} else {
@@ -386,6 +387,7 @@ void bgq_indices_init() {
 		size_t body_z = COMM_Z ? (PHYSICAL_LZ - 2) : PHYSICAL_LZ;
 		PHYSICAL_BODY = body_tv * body_x * body_y * body_z;
 	}
+	PHYSICAL_SURFACE = PHYSICAL_VOLUME - PHYSICAL_BODY;
 
 	// Setup array for index translation
 	// It would be difficult to find an explicit expression for indices that are only on surface/body

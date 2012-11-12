@@ -1,34 +1,15 @@
 
 
+#include "bgq_HoppingMatrix.h"
 #include <bgq_utils.h>
 
-typedef void (*calledfunc)(int);
 
-inline void callme1(int arg) {
-	printf("Callme1 %d\n", arg);
-}
+void bgq_HoppingMatrix_worker(void * restrict arg, size_t tid, size_t threads) {
+	bool const kamul = false;
+	bool const readFulllayout = false;
 
-inline void callme2(int arg) {
-	printf("Callme2 %d\n", arg);
-}
-
-
-
-
-inline void caller(calledfunc func, int arg) {
-	(*func)(arg);
+#define BGQ_HOPPINGMATRIXWORKER_INC_ 1
+#include "bgq_HoppingMatrixWorker.inc.c"
 }
 
 
-void inst1() {
-	caller(&callme1, 1);
-}
-
-void inst2() {
-	caller(&callme2, 2);
-}
-
-int main(int argc, char **argv) {
-	inst1();
-	return 0;
-}

@@ -13,6 +13,8 @@
 //#include "complex_c99.h"
 #include <string.h>
 #include <complex.h>
+#include <stdint.h>
+#include <hwi/include/bqc/A2_inlines.h>
 
 #ifndef BGQ_QPX_C_
 #define EXTERN_INLINE EXTERN_INLINE_DECLARATION
@@ -485,6 +487,8 @@ typedef struct {
 #define bgq_dcbz_0(addr)  \
 	asm ("dcbz 0,%[ptr]  \n" : : [ptr] "r" (addr))
 
+//#define bgq_antioptaway(qreg)
+//	asm ("\n" : : [ptr] "v" (qreg))
 
 #endif
 
@@ -1739,6 +1743,10 @@ static inline void mbar() {
 
 void bgq_qpx_unittest(void);
 
+
+EXTERN_INLINE uint64_t bgq_wcycles() {
+	return GetTimeBase();
+}
 
 
 #undef EXTERN_INLINE
