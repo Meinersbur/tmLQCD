@@ -149,6 +149,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_params(* 
 	{
 		bgq_su3_weyl_decl(weyl_ydown);
 		bgq_su3_weyl_load_double(weyl_ydown, &spinorsite->d[YDOWN]);
+		assert(bgq_cmplxval1(weyl_ydown_v1_c0)!=0);
 		bgq_weylqpx_expect(weyl_ydown, t1, t2, x, y, z, YDOWN, false);
 		bgq_su3_accum_weyl_ydown(result, weyl_ydown);
 			bgq_setdesc(BGQREF_YDOWN_ACCUM, "BGQREF_YDOWN_ACCUM");
