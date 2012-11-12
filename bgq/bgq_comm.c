@@ -10,7 +10,6 @@
 
 #include "bgq_field.h"
 
-
 #ifdef SPI
 #include "../DirectPut.h"
 #include <upci/upc_atomic.h>
@@ -1601,7 +1600,7 @@ static MPI_Request g_bgq_request_recv[PHYSICAL_LD];
 static MPI_Request g_bgq_request_send[PHYSICAL_LD];
 
 
-
+#ifdef SPI
 static unsigned mySpirank;
 static inline unsigned bgq_abcde2spirank(Personality_t *pers, uint8_t a, uint8_t b,uint8_t c,uint8_t d,uint8_t e) {
 	assert(pers);
@@ -1673,7 +1672,7 @@ static void setup_destinations(Personality_t *pers) {
 		//printf("node %d: %d(%d,%d,%d,%d,%d)-%d->%d(%d,%d,%d,%d,%d)\n", g_proc_id, mySpirank, tcoords.a, tcoords.b, tcoords.c, tcoords.e, tcoords.d, cd, nbrank, nb.a, nb.b, nb.c, nb.d, nb.e);
 	}
 }
-
+#endif
 
 
 
@@ -1712,7 +1711,7 @@ static void bgq_comm_test(bool nospi) {
 					for (ucoord k = 0; k < 2; k += 1) {
 						complexdouble val = g_bgq_sec_recv[d][i].s[v][c][k];
 						if (creal(val) != rank_neighbor) {
-							printf("Node %d: Exchange doesn't work for dir %d: %d != %f (proc=%f) at point %d\n", g_proc_id, d, rank_neighbor, creal(val), cimag(val), i);
+							printf("Node %d: Exchange doesn't work for dir %d: %d != %f (proc=%f) at point %zu\n", g_proc_id, d, rank_neighbor, creal(val), cimag(val), i);
 							exit(1);
 						}
 					}
@@ -1948,12 +1947,13 @@ void bgq_comm_wait(bool nospi) {
 	assert(omp_get_thread_num()==0);
 	//master_print("Comm Waiting...\n");
 
+#if BGQ_QPX
 	uint64_t ppc32 = mfspr(SPRN_PPR32);
 	ThreadPriority_Low(); // If there is some other work to be done on this node, give it priority
+#endif
 
 #ifdef SPI
 	if (!nospi) {
-
 		uint64_t startTime = 0;
 
 		// Wait for all data is received
@@ -1980,27 +1980,28 @@ void bgq_comm_wait(bool nospi) {
 		}
 
 		_bgq_msync();  // Ensure data is available to all cores.
-		mtspr(SPRN_PPR32, ppc32); // Restore original priority
 	} else
 #endif
 	{
-	MPI_Status recv_status[COMMDIR_COUNT];
-	MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_recv, recv_status));
+		MPI_Status recv_status[COMMDIR_COUNT];
+		MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_recv, recv_status));
 
-	MPI_Status send_status[COMMDIR_COUNT];
-	MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_send, send_status));
+		MPI_Status send_status[COMMDIR_COUNT];
+		MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_send, send_status));
 
 #ifndef NDEBUG
-	for (ucoord commdir = 0; commdir < COMMDIR_COUNT; commdir += 1) {
-		bgq_direction d = bgq_commdir2direction(commdir);
-		bgq_weylfield_section sec = bgq_direction2section(d,false);
-		size_t size = bgq_weyl_section_offset(sec+1) - bgq_weyl_section_offset(sec);
-		assert(get_MPI_count(&recv_status[commdir]) == size);
-	}
+		for (ucoord commdir = 0; commdir < COMMDIR_COUNT; commdir += 1) {
+			bgq_direction d = bgq_commdir2direction(commdir);
+			bgq_weylfield_section sec = bgq_direction2section(d,false);
+			size_t size = bgq_weyl_section_offset(sec+1) - bgq_weyl_section_offset(sec);
+			assert(get_MPI_count(&recv_status[commdir]) == size);
+		}
 #endif
 	}
 
-	return;
+#if BGQ_QPX
+	mtspr(SPRN_PPR32, ppc32); // Restore original priority
+#endif
 }
 
 

@@ -257,25 +257,25 @@ typedef struct {
 		bgq_mov(dst,tmp);                    \
 	} while (0)
 
-#define bgq_xmul(dst,lhs,rhs)              \
-	{                                      \
-		bgq_vector4double_decl(MAKENAME4(xmul,dst,lhs,rhs));                \
-		MAKENAME5(xmul,dst,lhs,rhs,q0) = CONCAT(lhs,_q0) * CONCAT(rhs,_q0); \
-		MAKENAME5(xmul,dst,lhs,rhs,q1) = CONCAT(lhs,_q0) * CONCAT(rhs,_q1); \
-		MAKENAME5(xmul,dst,lhs,rhs,q2) = CONCAT(lhs,_q2) * CONCAT(rhs,_q2); \
-		MAKENAME5(xmul,dst,lhs,rhs,q3) = CONCAT(lhs,_q2) * CONCAT(rhs,_q3); \
-		bgq_mov(dst,MAKENAME4(xmul,dst,lhs,rhs));                           \
-	}
+#define bgq_xmul(dst,lhs,rhs)                                          \
+	do {                                                                \
+		bgq_vector4double_decl(MAKENAME4(xmul,dst,lhs,rhs));            \
+		MAKENAME5(xmul,dst,lhs,rhs,q0) = NAME2(lhs,q0) * NAME2(rhs,q0); \
+		MAKENAME5(xmul,dst,lhs,rhs,q1) = NAME2(lhs,q0) * NAME2(rhs,q1); \
+		MAKENAME5(xmul,dst,lhs,rhs,q2) = NAME2(lhs,q2) * NAME2(rhs,q2); \
+		MAKENAME5(xmul,dst,lhs,rhs,q3) = NAME2(lhs,q2) * NAME2(rhs,q3); \
+		bgq_mov(dst,MAKENAME4(xmul,dst,lhs,rhs));                       \
+	} while (0)
 
-#define bgq_xmadd(dst,a,b,c)                      \
-	{                                             \
-		bgq_vector4double_decl(MAKENAME5(xmadd,dst,a,b,c));                            \
-		MAKENAME6(xmadd,dst,a,b,c,q0) = CONCAT(a,_q0) * CONCAT(b,_q0) + CONCAT(c,_q0); \
-		MAKENAME6(xmadd,dst,a,b,c,q1) = CONCAT(a,_q0) * CONCAT(b,_q1) + CONCAT(c,_q1); \
-		MAKENAME6(xmadd,dst,a,b,c,q2) = CONCAT(a,_q2) * CONCAT(b,_q2) + CONCAT(c,_q2); \
-		MAKENAME6(xmadd,dst,a,b,c,q3) = CONCAT(a,_q2) * CONCAT(b,_q3) + CONCAT(c,_q3); \
-		bgq_mov(dst,MAKENAME5(xmadd,dst,a,b,c));                                       \
-	}
+#define bgq_xmadd(dst,a,b,c)                                                    \
+	do {                                                                         \
+		bgq_vector4double_decl(MAKENAME5(xmadd,dst,a,b,c));                      \
+		MAKENAME6(xmadd,dst,a,b,c,q0) = NAME2(a,q0) * NAME2(b,q0) + NAME2(c,q0); \
+		MAKENAME6(xmadd,dst,a,b,c,q1) = NAME2(a,q0) * NAME2(b,q1) + NAME2(c,q1); \
+		MAKENAME6(xmadd,dst,a,b,c,q2) = NAME2(a,q2) * NAME2(b,q2) + NAME2(c,q2); \
+		MAKENAME6(xmadd,dst,a,b,c,q3) = NAME2(a,q2) * NAME2(b,q3) + NAME2(c,q3); \
+		bgq_mov(dst,MAKENAME5(xmadd,dst,a,b,c));                                 \
+	} while (0)
 
 #define bgq_madd(dst,a,b,c)                                                    \
 	{                                                                           \
@@ -315,6 +315,9 @@ typedef struct {
 	NAME2(dst,q2) = 0;     \
 	NAME2(dst,q3) = 0
 
+#define bgq_qvlfdxa(dst,addr,offset) \
+	bgq_lda_double(dst,offset,addr)
+
 #define bgq_qvlfduxa(dst,addr,offset) \
 	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
 	bgq_lda_double(dst,0,addr)
@@ -326,6 +329,7 @@ typedef struct {
 #define bgq_qvstfcduxa(data,addr,offset) \
 	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
 	bgq_st2a_double(data,0,addr)
+
 
 
 #define bgq_dcbt(addr,offset)

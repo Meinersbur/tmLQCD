@@ -99,7 +99,7 @@ void bgq_qpx_unittest(void) {
 		QPX_EXPECT(qvlfduxa,5,6,7,8);
 		if ((void*)addr != (void*)&data[2]) {
 			failed = true;
-			fprintf(stderr, "QPX fail: (%llu) found, (%llu) expected at %s:%d\n", (uintptr_t)addr, (uintptr_t)(&data[2]), __FILE__, __LINE__);
+			fprintf(stderr, "QPX fail: (%lu) found, (%lu) expected at %s:%d\n", (uintptr_t)addr, (uintptr_t)(&data[2]), __FILE__, __LINE__);
 		}
 	}
 

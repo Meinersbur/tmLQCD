@@ -459,6 +459,76 @@ EXTERN_INLINE size_t lcm_sizet(size_t a, size_t b) {
 #endif
 
 
+#define REMOVE_PAREN(...) __VA_ARGS__
+
+#define _NUM_ARGS2(X,X64,X63,X62,X61,X60,X59,X58,X57,X56,X55,X54,X53,X52,X51,X50,X49,X48,X47,X46,X45,X44,X43,X42,X41,X40,X39,X38,X37,X36,X35,X34,X33,X32,X31,X30,X29,X28,X27,X26,X25,X24,X23,X22,X21,X20,X19,X18,X17,X16,X15,X14,X13,X12,X11,X10,X9,X8,X7,X6,X5,X4,X3,X2,X1,N,...) N
+#define NUM_ARGS(...) _NUM_ARGS2(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0)
+
+
+// Thanks to Jens Gustedt
+// Taken from http://gustedt.wordpress.com/2010/06/08/detect-empty-macro-arguments/
+#define _ARG16(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, ...) _15
+#define HAS_COMMA(...) _ARG16(__VA_ARGS__, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, more than 16 arguments used/*dummy to conform to C99*/)
+#define _TRIGGER_PARENTHESIS_(...) ,
+#define ISEMPTY(...)                                                    \
+_ISEMPTY(                                                               \
+          /* test if there is just one argument, eventually an empty    \
+             one */                                                     \
+          HAS_COMMA(__VA_ARGS__),                                       \
+          /* test if _TRIGGER_PARENTHESIS_ together with the argument   \
+             adds a comma */                                            \
+          HAS_COMMA(_TRIGGER_PARENTHESIS_ __VA_ARGS__),                 \
+          /* test if the argument together with a parenthesis           \
+             adds a comma */                                            \
+          HAS_COMMA(__VA_ARGS__ (/*empty*/)),                           \
+          /* test if placing it between _TRIGGER_PARENTHESIS_ and the   \
+             parenthesis adds a comma */                                \
+          HAS_COMMA(_TRIGGER_PARENTHESIS_ __VA_ARGS__ (/*empty*/))      \
+          )
+#define PASTE5(_0, _1, _2, _3, _4) _0 ## _1 ## _2 ## _3 ## _4
+#define _ISEMPTY(_0, _1, _2, _3) HAS_COMMA(PASTE5(_IS_EMPTY_CASE_, _0, _1, _2, _3))
+#define _IS_EMPTY_CASE_0001 ,
+
+
+#define _IFELSE_0(ifcase,elsecase) elsecase
+#define _IFELSE_1(ifcase,elsecase) ifcase
+#define IF_EMPTY(ifcase,elsecase,...) CONCAT(_IFELSE_, ISEMPTY(__VA_ARGS__)) (ifcase,elsecase)
+
+
+#define _IFELSE_INPAREN_0(ifcase,elsecase) REMOVE_PAREN elsecase
+#define _IFELSE_INPAREN_1(ifcase,elsecase) REMOVE_PAREN ifcase
+#define IF_EMPTY_INPAREN(ifcase,elsecase, ...) CONCAT(_IFELSE_INPAREN_, ISEMPTY(__VA_ARGS__)) (ifcase,elsecase)
+#define IF_TWOARGSORMORE(ifcase,elsecase,...) CONCAT(_IFELSE_, HAS_COMMA(__VA_ARGS__)) (ifcase,elsecase)
+
+
+// True recursion is impossible with preprocessor
+//TODO: Version that accepts comma in parenthesis in arguments
+#define _PREPROCESSOR_FOREACH_VARARGS0(...) /* dummy version, never used */
+#define _PREPROCESSOR_FOREACH_VARARGS1(infix,callback,one) callback(one)
+#define _PREPROCESSOR_FOREACH_VARARGS2(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS1(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS3(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS2(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS4(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS3(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS5(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS4(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS6(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS5(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS7(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS6(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS8(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS7(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS9(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS8(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS10(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS9(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS11(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS10(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS12(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS11(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS13(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS12(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS14(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS13(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS15(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS14(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS16(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS15(infix,callback,__VA_ARGS__)
+#define PREPROCESSOR_FOREACH(prefix,infix,postfix,emptycase,callback, ...) IF_EMPTY(emptycase,prefix CONCAT(_PREPROCESSOR_FOREACH_VARARGS, NUM_ARGS(__VA_ARGS__))(infix,callback,__VA_ARGS__) postfix,__VA_ARGS__)
+
+
+
+
+#define IDENTITY(...) __VA_ARGS__
+#define EMPTY(...)
+
+
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD
 #undef EXTERN_INIT
