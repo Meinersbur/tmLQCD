@@ -31,7 +31,7 @@ LDADD =
 COMPILE = ${CC} $(DEFS) ${INCLUDES} ${CPPFLAGS} ${CFLAGS}
 
 LIBRARIES = libbgq
-libbgq_TARGETS = bgq_HoppingMatrixWorker.inc bgq_ComputeWeyl.inc bgq_stdreductions bgq_reduction.inc bgq_operator.inc asm1 asm2 bgq_qpx bgq_gaugefield bgq_spinorfield bgq_comm bgq_utils bgq_field bgq_HoppingMatrix bgq_dispatch mypapi
+libbgq_TARGETS = bgq_ReadWeyllayout.inc bgq_HoppingMatrixWorker.inc bgq_ComputeWeyl.inc bgq_stdreductions bgq_reduction.inc bgq_operator.inc asm1 asm2 bgq_qpx bgq_gaugefield bgq_spinorfield bgq_comm bgq_utils bgq_field bgq_HoppingMatrix bgq_dispatch mypapi
 libbgq_STARGETS = 
 
 libbgq_OBJECTS = $(addsuffix .o, ${libbgq_TARGETS})
@@ -66,7 +66,7 @@ ${libbgq_SOBJECTS}: %.o: ${srcdir}/%.c %.d Makefile
 
 # rule to make libbgq
 
-libbgq.a: ${libbgq_OBJECTS} ${libbgq_SOBJECTS} Makefile
+libbgq.a: ${libbgq_OBJECTS} ${libbgq_SOBJECTS} Makefile disasm
 	@rm -f libbgq.a
 	@${AR} cru libbgq.a ${libbgq_OBJECTS} ${libbgq_SOBJECTS}
 	@$(RANLIB) libbgq.a
@@ -112,7 +112,7 @@ asm1.as: Makefile asm1.o
 asm1.lst asm1.info: asm1.c asm1.o Makefile
 	if [ -e asm1.lst ]; then cp -f asm1.lst asm1.lst_; fi
 	if [ -e asm1.info ]; then cp -f asm1.info asm1.info_; fi
-	$(COMPILE) ${OPTARGS} -o asm1.qo -qreport -qlist -qsource -qinfo -qoptdebug -c $<  >asm1.info 2>&1
+	$(COMPILE) ${OPTARGS} -o asm1.qo -qreport -qlist -qsource -qinfo=all -qinfo=nouni:noeff -qoptdebug -c $<  >asm1.info 2>&1
 
 
 asm2.ds: Makefile asm2.o
@@ -130,7 +130,7 @@ asm2.as: Makefile asm2.o
 asm2.lst asm2.info: asm2.c asm2.o Makefile
 	if [ -e asm2.lst ]; then cp -f asm2.lst asm2.lst_; fi
 	if [ -e asm2.info ]; then cp -f asm2.info asm2.info_; fi
-	$(COMPILE) ${OPTARGS} -o asm2.qo -qreport -qlist -qsource -qinfo -qoptdebug -c $<  >asm2.info 2>&1
+	$(COMPILE) ${OPTARGS} -o asm2.qo -qreport -qlist -qsource -qinfo=all -qinfo=noeff -qoptdebug -c $<  >asm2.info 2>&1
 
 
 .PHONY: all dep clean compile-clean distclean profile all-profile debug all-debug disasm FORCE

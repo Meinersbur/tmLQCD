@@ -492,8 +492,14 @@ typedef struct {
 #define bgq_dcbz_0(addr)  \
 	asm ("dcbz 0,%[ptr]  \n" : : [ptr] "r" (addr))
 
-//#define bgq_antioptaway(qreg)
-//	asm ("\n" : : [ptr] "v" (qreg))
+//#define bgq_antioptaway(qreg) \
+//	asm ("qvstfdxa %[v4d],0,%[ptr],  \n" : : [ptr] "r" (&dummi), [v4d] "v" (qreg) )
+	//asm ("\n" : : [ptr] "v" (qreg))
+
+//EXTERN_FIELD vector4double dummi;
+//#define bgq_valgen(qreg) \
+//	asm ("qvgpci %[dst],0\n" : [dst] "=v" (qreg) : : )
+	//asm ("\n" : : [ptr] "v" (qreg))
 
 #endif
 
@@ -939,6 +945,46 @@ do {\
 	bgq_ld2a_float(NAME3(dest,v1,c1),  64+8, addr);        \
 	bgq_ld2a_float(NAME3(dest,v1,c2),  80+8, addr)
 
+#define bgq_su3_matrix_valgen(dst) \
+	do { \
+		bgq_valgen(NAME2(dst,c00)); \
+		bgq_valgen(NAME2(dst,c01)); \
+		bgq_valgen(NAME2(dst,c02)); \
+		bgq_valgen(NAME2(dst,c10)); \
+		bgq_valgen(NAME2(dst,c11)); \
+		bgq_valgen(NAME2(dst,c12)); \
+		bgq_valgen(NAME2(dst,c20)); \
+		bgq_valgen(NAME2(dst,c21)); \
+		bgq_valgen(NAME2(dst,c22)); \
+	} while (0)
+
+
+#define bgq_su3_weyl_valgen(dst) \
+	do { \
+		bgq_valgen(NAME3(dst,v0,c0)); \
+		bgq_valgen(NAME3(dst,v0,c1)); \
+		bgq_valgen(NAME3(dst,v0,c2)); \
+		bgq_valgen(NAME3(dst,v1,c0)); \
+		bgq_valgen(NAME3(dst,v1,c1)); \
+		bgq_valgen(NAME3(dst,v1,c2)); \
+	} while (0)
+
+#define bgq_su3_spinor_valgen(dst) \
+	do { \
+		bgq_valgen(NAME3(dst,v0,c0)); \
+		bgq_valgen(NAME3(dst,v0,c1)); \
+		bgq_valgen(NAME3(dst,v0,c2)); \
+		bgq_valgen(NAME3(dst,v1,c0)); \
+		bgq_valgen(NAME3(dst,v1,c1)); \
+		bgq_valgen(NAME3(dst,v1,c2)); \
+		bgq_valgen(NAME3(dst,v2,c0)); \
+		bgq_valgen(NAME3(dst,v2,c1)); \
+		bgq_valgen(NAME3(dst,v2,c2)); \
+		bgq_valgen(NAME3(dst,v3,c0)); \
+		bgq_valgen(NAME3(dst,v3,c1)); \
+		bgq_valgen(NAME3(dst,v3,c2)); \
+	} while (0)
+
 #define bgq_su3_matrix_load NAME2(bgq_su3_matrix_load,PRECISION)
 #if BGQ_QPX
 #define bgq_su3_matrix_load_double(dst, addr) \
@@ -1082,6 +1128,16 @@ do {\
 	bgq_sta_float(NAME3(src,v3,c0), 144, addr);          \
 	bgq_sta_float(NAME3(src,v3,c1), 160, addr);          \
 	bgq_sta_float(NAME3(src,v3,c2), 176, addr)
+
+#define bgq_su3_weyl_antioptaway(weyl) \
+	do { \
+		bgq_antioptaway(NAME3(weyl,v0,c0)); \
+		bgq_antioptaway(NAME3(weyl,v0,c1)); \
+		bgq_antioptaway(NAME3(weyl,v0,c2)); \
+		bgq_antioptaway(NAME3(weyl,v1,c0)); \
+		bgq_antioptaway(NAME3(weyl,v1,c1)); \
+		bgq_antioptaway(NAME3(weyl,v1,c2)); \
+	} while (0)
 
 #define bgq_su3_weyl_store NAME2(bgq_su3_weyl_store,PRECISION)
 #if BGQ_QPX
@@ -1528,6 +1584,20 @@ do { \
 	bgq_prefetch((char*)(addr) + 128)
 #endif
 
+#define bgq_su3_weylnext_prefetch_double(addr)     \
+	do {                             \
+		void *ptr = (addr);          \
+		asm (                        \
+			"dcbt   %[c0],%[ptr]  \n" \
+			"dcbt  %[c64],%[ptr]  \n" \
+			"dcbt %[c128],%[ptr]  \n" \
+			: [ptr] "+r" (ptr)        \
+			:   [c0] "b" (192+0),     \
+			   [c64] "b" (192+64),    \
+			  [c128] "b" (192+128)    \
+		);                            \
+	} while (0)
+
 #define bgq_su3_weyl_prefetch_float(addr)      \
 	bgq_prefetch((char*)(addr) +   0);    \
 	bgq_prefetch((char*)(addr) +  64) /* half a cacheline */
@@ -1559,6 +1629,24 @@ do { \
 	bgq_prefetch((char*)(addr) + 192);    \
 	bgq_prefetch((char*)(addr) + 256)
 #endif
+
+#define bgq_su3_matrixnext_prefetch_double(addr)     \
+	do {                             \
+		void *ptr = (addr);          \
+		asm (                        \
+			"dcbt   %[c0],%[ptr]  \n" \
+			"dcbt  %[c64],%[ptr]  \n" \
+			"dcbt %[c128],%[ptr]  \n" \
+			"dcbt %[c192],%[ptr]  \n" \
+			"dcbt %[c256],%[ptr]  \n" \
+			: [ptr] "+r" (ptr)        \
+			:   [c0] "b" (288+0),     \
+			   [c64] "b" (288+64),    \
+			  [c128] "b" (288+128),   \
+			  [c192] "b" (288+192),   \
+			  [c256] "b" (288+256)    \
+		);                            \
+	} while (0)
 
 #define bgq_su3_matrix_prefetch_float(addr)      \
 	bgq_prefetch((char*)(addr) +   0);    \

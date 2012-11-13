@@ -310,6 +310,7 @@ static inline void bgq_HoppingMatrix_worker(void * restrict arg, size_t tid, siz
 	}
 }
 
+
 static void bgq_HoppingMatrix_nokamul_worker_readFulllayout(void *arg, size_t tid, size_t threads) {
 	//bgq_HoppingMatrix_worker(arg,tid,threads,false,true);
 
@@ -665,6 +666,10 @@ static void bgq_HoppingMatrix_worker_body_readWeyllayout(void *arg, size_t tid, 
 	}
 }
 
+static void dummy(void *arg, size_t tid, size_t threads) {
+
+}
+
 static void bgq_HoppingMatrix_kamul_worker_body_readWeyllayout(void *arg, size_t tid, size_t threads) {
 	bgq_HoppingMatrix_workload *work = arg;
 	bool isOdd = work->isOdd_src;
@@ -708,6 +713,8 @@ static void bgq_HoppingMatrix_kamul_worker_body_readWeyllayout(void *arg, size_t
 		bgq_HoppingMatrix_compute_storeWeyllayout_alldir(destptrs, gaugesite, spinor, t1, t2, x, y, z, qka0,qka1,qka2,qka3,kamul);
 	}
 }
+
+
 
 
 void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield, bgq_hmflags opts) {

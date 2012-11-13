@@ -244,6 +244,12 @@ static void benchmark_setup_worker(void *argptr, size_t tid, size_t threads) {
 
 	L1P_CHECK(L1P_SetStreamPolicy(pol));
 
+	//if (g_proc_id==0) {
+	//	L1P_StreamPolicy_t poli;
+	//	L1P_CHECK(L1P_GetStreamPolicy(&poli));
+	//	printf("Prefetch policy: %d\n",poli);
+	//}
+
 	// Test whether it persists between parallel sections
 	//L1P_StreamPolicy_t getpol = 0;
 	//L1P_CHECK(L1P_GetStreamPolicy(&getpol));
@@ -469,6 +475,7 @@ static int benchmark_master(void *argptr) {
 	ucoord sites_body = PHYSICAL_BODY * PHYSICAL_LK * PHYSICAL_LP;
 	ucoord sites_surface = PHYSICAL_SURFACE * PHYSICAL_LK * PHYSICAL_LP;
 	assert(sites == sites_body+sites_surface);
+	assert(sites == VOLUME);
 
 	ucoord lup_body = k_max * sites_body;
 	ucoord lup_surface = k_max * sites_surface;
@@ -534,35 +541,37 @@ static char *omp_threads_desc[] = { "1","2", "4", "8", "16", "32", "33", "48", "
 static bgq_hmflags flags[] = {
         (DEFOPTS | hm_withcheck) & ~hm_nokamul,
         DEFOPTS,
-		DEFOPTS | hm_nospi,
+//		DEFOPTS | hm_nospi,
 //		DEFOPTS | hm_nooverlap,
 		DEFOPTS | hm_nocom,
 		DEFOPTS | hm_nocom |             hm_nodistribute | hm_nodatamove,
 		DEFOPTS | hm_nocom | hm_nobody |                   hm_nodatamove,
 		DEFOPTS | hm_nocom | hm_nobody | hm_nodistribute                ,
 		DEFOPTS |            hm_nobody | hm_nodistribute | hm_nodatamove,
-		DEFOPTS | hm_nospi | hm_nobody | hm_nodistribute | hm_nodatamove,
+		DEFOPTS | hm_nocom                               | hm_nodatamove,
+//		DEFOPTS | hm_nospi | hm_nobody | hm_nodistribute | hm_nodatamove,
 		DEFOPTS | hm_nocom | hm_nobody | hm_nodistribute | hm_nodatamove,
 		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitdisable,
-		DEFOPTS                       | hm_prefetchimplicitconfirmed,
-		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitconfirmed,
+//		DEFOPTS                       | hm_prefetchimplicitconfirmed,
+//		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitconfirmed,
 		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitoptimistic
     };
 static char* flags_desc[] = {
 		"kamul",
 		"+nokamul",
-		"MPI",
+//		"MPI",
 //		"+nooverlap",
-		"+nocom",
+		"+nocomm",
 		"bodyonly",
 		"distonly",
 		"dmovonly",
 		"SPI only",
-		"MPI only",
+		"volonly",
+//		"MPI only",
 		"idle",
 		"pf disable",
-		"pf stream",
-		"pf confirmed",
+//		"pf stream",
+//		"pf confirmed",
 		"pf optimistic"
 	};
 
@@ -959,6 +968,13 @@ static void exec_bench(int j_max, int k_max) {
 	uint64_t ws_write = ws + PHYSICAL_VOLUME * sizeof(bgq_weylsite); // target spinor
 	master_print("Working set size: %.1fMB (%.1fMB incl target) (%.1fMB index, %.1fMB commbuf)\n", (double)ws/(1024.0*1024.0), (double)ws_write/(1024.0*1024.0),indices/MEBI,forcomm/MEBI);
 
+	master_print("VOLUME=%d PHYSICAL_VOLUME=%zu PHYSICAL_BODY=%zu PHYSICAL_SURFACE=%zu\n", VOLUME, PHYSICAL_VOLUME, PHYSICAL_BODY, PHYSICAL_SURFACE);
+
+	for (int k = 0; k < k_max; k += 1) {
+		bgq_spinorfield_setup(&g_bgq_spinorfields[k],       true,  false, true, false, true);
+		bgq_spinorfield_setup(&g_bgq_spinorfields[k+k_max], false, false, true, false, true);
+	}
+
 	for (int k = 0; k < k_max; k += 1) {
 		/*initialize the pseudo-fermion fields*/
 		random_spinor_field(g_spinor_field[k], VOLUME / 2, 0);
@@ -968,7 +984,7 @@ static void exec_bench(int j_max, int k_max) {
 	checkargs_t checkargs = {
 	        .k_max = k_max
 	};
-	bgq_parallel(&check_hopmat, &checkargs);
+	//bgq_parallel(&check_hopmat, &checkargs);
 
 	exec_table(&benchmark_hopmat, 0, j_max, k_max);
 }
