@@ -699,8 +699,6 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		field->destptrFromBody = malloc(PHYSICAL_BODY * sizeof(*field->destptrFromBody));
 
 
-		//field->destptrFromTRecv = malloc((LOCAL_HALO_T/PHYSICAL_LP + 0 + LOCAL_HALO_T/PHYSICAL_LP) * sizeof(bgq_weyl_vec*)); // COMM_T==1
-
 		size_t offset_begin = bgq_weyl_section_offset(sec_recv_xup);
 		size_t offset_end = bgq_weyl_section_offset(sec_recv_zdown + 1);
 		size_t weylCount = (offset_end - offset_begin) / sizeof(bgq_weyl_vec);

@@ -459,13 +459,26 @@ typedef struct {
 	assert((((uintptr_t)(addr)+(uintptr_t)(offset)) & 31) == 0 && "Must be aligned to 32 bytes"); \
 	asm ("qvlfdxa %[v4d],%[ptr],%[off]  \n" : [v4d] "=v" (dst) : [ptr]  "b" (addr),  [off] "r" (offset) ) /* no memory clobber, so pay attention! */
 #define bgq_qvlfduxa(dst,addr,offset) \
-		assert((((uintptr_t)(addr)+(uintptr_t)(offset)) & 31) == 0 && "Must be aligned to 32 bytes"); \
+	assert((((uintptr_t)(addr)+(uintptr_t)(offset)) & 31) == 0 && "Must be aligned to 32 bytes"); \
 	asm ("qvlfduxa %[v4d],%[ptr],%[off]  \n" : [v4d] "=v" (dst), [ptr] "+b" (addr) : [off] "r" (offset) ) /* no memory clobber, so pay attention! */
+
+#define bgq_qvlfsxa(dst,addr,offset) \
+	assert((((uintptr_t)(addr)+(uintptr_t)(offset)) & 15) == 0 && "Must be aligned to 16 bytes"); \
+	asm ("qvlfsxa %[v4d],%[ptr],%[off]  \n" : [v4d] "=v" (dst) : [ptr]  "b" (addr),  [off] "r" (offset) ) /* no memory clobber, so pay attention! */
+#define bgq_qvlfsuxa(dst,addr,offset) \
+	assert((((uintptr_t)(addr)+(uintptr_t)(offset)) & 15) == 0 && "Must be aligned to 16 bytes"); \
+	asm ("qvlfsuxa %[v4d],%[ptr],%[off]  \n" : [v4d] "=v" (dst), [ptr] "+b" (addr) : [off] "r" (offset) ) /* no memory clobber, so pay attention! */
 
 #define bgq_qvstfdxa(data,addr,offset) \
 	asm ("qvstfdxa %[v4d],%[ptr],%[off]  \n" : : [ptr]  "b" (addr),  [v4d] "v" (data), [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
 #define bgq_qvstfduxa(data,addr,offset) \
 	asm ("qvstfduxa %[v4d],%[ptr],%[off]  \n" : [ptr] "+b" (addr) : [v4d] "v" (data), [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
+
+#define bgq_qvstfsxa(data,addr,offset) \
+	asm ("qvstfsxa %[v4d],%[ptr],%[off]  \n" : : [ptr]  "b" (addr),  [v4d] "v" (data), [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
+#define bgq_qvstfsuxa(data,addr,offset) \
+	asm ("qvstfsuxa %[v4d],%[ptr],%[off]  \n" : [ptr] "+b" (addr) : [v4d] "v" (data), [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
+
 
 #define bgq_qvstfcduxa(data,addr,offset) \
 	asm ("qvstfcduxa %[v4d],%[ptr],%[off]  \n", [ptr] "+b" (addr) : [v4d] "v" (data), [off] "r" (offset) )
@@ -503,6 +516,15 @@ typedef struct {
 
 #endif
 
+
+
+#define bgq_qvlfxa NAME2(bgq_qvlfxa,PRECISION)
+#define bgq_qvlfxa_double bgq_qvlfdxa
+#define bgq_qvlfxa_float  bgq_qvlfsxa
+
+#define bgq_qvlfuxa NAME2(bgq_qvlfuxa,PRECISION)
+#define bgq_qvlfuxa_double bgq_qvlfduxa
+#define bgq_qvlfuxa_float bgq_qvlfsxua
 
 // vec_xmul(a, b)
 // re =    a.re * b.re
@@ -1163,6 +1185,18 @@ do {\
 #endif
 
 
+#if BGQ_QPX
+#define bgq_su3_weyl_store_float(addr,src) \
+	do { \
+		void *ptr = (addr); \
+		bgq_qvstfsuxa(NAME3(weyl,v0,c0), ptr, 0); \
+		bgq_qvstfsuxa(NAME3(weyl,v0,c1), ptr, 16); \
+		bgq_qvstfsuxa(NAME3(weyl,v0,c2), ptr, 16); \
+		bgq_qvstfsuxa(NAME3(weyl,v1,c0), ptr, 16); \
+		bgq_qvstfsuxa(NAME3(weyl,v1,c1), ptr, 16); \
+		bgq_qvstfsuxa(NAME3(weyl,v1,c2), ptr, 16); \
+	} while (0)
+#else
 #define bgq_su3_weyl_store_float(addr,src) \
 	bgq_sta_float(NAME3(src,v0,c0),   0, addr);          \
 	bgq_sta_float(NAME3(src,v0,c1),  16, addr);          \
@@ -1170,6 +1204,7 @@ do {\
 	bgq_sta_float(NAME3(src,v1,c0),  48, addr);          \
 	bgq_sta_float(NAME3(src,v1,c1),  64, addr);          \
 	bgq_sta_float(NAME3(src,v1,c2),  80, addr)
+#endif
 
 #define bgq_su3_weyl_left_store_double(addr,src) \
 	do { \
@@ -1584,6 +1619,7 @@ do { \
 	bgq_prefetch((char*)(addr) + 128)
 #endif
 
+#define bgq_su3_weylnext NAME2(bgq_su3_weylnext,PRECISION)
 #if BGQ_QPX
 #define bgq_su3_weylnext_prefetch_double(addr)     \
 	do {                             \
@@ -1592,8 +1628,8 @@ do { \
 			"dcbt   %[c0],%[ptr]  \n" \
 			"dcbt  %[c64],%[ptr]  \n" \
 			"dcbt %[c128],%[ptr]  \n" \
-			: [ptr] "+r" (ptr)        \
-			:   [c0] "b" (192+0),     \
+			:  [ptr] "r" (ptr),        \
+			    [c0] "b" (192+0),     \
 			   [c64] "b" (192+64),    \
 			  [c128] "b" (192+128)    \
 		);                            \
@@ -1603,6 +1639,25 @@ do { \
 	bgq_prefetch((char*)(addr) + 192 +   0);    \
 	bgq_prefetch((char*)(addr) + 192 +  64);    \
 	bgq_prefetch((char*)(addr) + 192 + 128)
+#endif
+
+
+#if BGQ_QPX
+#define bgq_su3_weylnext_prefetch_float(addr)     \
+	do {                             \
+		void *ptr = (addr);          \
+		asm (                        \
+			"dcbt   %[c0],%[ptr]  \n" \
+			"dcbt  %[c64],%[ptr]  \n" \
+			:  [ptr] "r" (ptr),       \
+			    [c0] "b" (96+0),     \
+			   [c64] "b" (96+64)
+		);                            \
+	} while (0)
+#else
+#define bgq_su3_weylnext_prefetch_float(addr)      \
+	bgq_prefetch((char*)(addr) + 192 +   0);    \
+	bgq_prefetch((char*)(addr) + 192 +  64);
 #endif
 
 #define bgq_su3_weyl_prefetch_float(addr)      \
@@ -1637,6 +1692,7 @@ do { \
 	bgq_prefetch((char*)(addr) + 256)
 #endif
 
+#define bgq_su3_matrixnext name2(bgq_su3_matrixnext,PRECISION)
 #if BGQ_QPX
 #define bgq_su3_matrixnext_prefetch_double(addr)     \
 	do {                             \
@@ -1647,8 +1703,8 @@ do { \
 			"dcbt %[c128],%[ptr]  \n" \
 			"dcbt %[c192],%[ptr]  \n" \
 			"dcbt %[c256],%[ptr]  \n" \
-			: [ptr] "+r" (ptr)        \
-			:   [c0] "b" (288+0),     \
+			:  [ptr] "r" (ptr),        \
+			    [c0] "b" (288+0),     \
 			   [c64] "b" (288+64),    \
 			  [c128] "b" (288+128),   \
 			  [c192] "b" (288+192),   \
@@ -1663,6 +1719,29 @@ do { \
 		bgq_prefetch((char*)(addr) + 288 + 192);    \
 		bgq_prefetch((char*)(addr) + 288 + 256)
 #endif
+
+
+#if BGQ_QPX
+#define bgq_su3_matrixnext_prefetch_float(addr)     \
+	do {                             \
+		void *ptr = (addr);          \
+		asm (                        \
+			"dcbt   %[c0],%[ptr]  \n" \
+			"dcbt  %[c64],%[ptr]  \n" \
+			"dcbt %[c128],%[ptr]  \n" \
+			:  [ptr] "r" (ptr)        \
+			    [c0] "b" (144+0),     \
+			   [c64] "b" (144+64),    \
+			  [c128] "b" (144+128)    \
+		);                            \
+	} while (0)
+#else
+#define bgq_su3_matrixnext_prefetch_float(addr)     \
+		bgq_prefetch((char*)(addr) + 144 +   0);    \
+		bgq_prefetch((char*)(addr) + 144 +  64);    \
+		bgq_prefetch((char*)(addr) + 144 + 128);
+#endif
+
 
 #define bgq_su3_matrix_prefetch_float(addr)      \
 	bgq_prefetch((char*)(addr) +   0);    \
