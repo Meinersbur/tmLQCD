@@ -40,6 +40,10 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 		bgq_prefetch_forward(&targetfield->sendptr[begin]);
 	}
 
+	bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][begin];
+	gaugesite = (bgq_gaugesite*)(((uint8_t*)gaugesite)-32);
+	bgq_weylsite *weylsite = &spinorfield->sec_collapsed[begin];
+	weylsite = (bgq_weylsite*)(((uint8_t*)weylsite)-32);
 
 	if (true || readFulllayout) {
 	for (ucoord ic = begin; ic<end; ic+=1) {
@@ -51,8 +55,6 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 		ucoord y = bgq_halfvolume2y(ih);
 		ucoord z = bgq_halfvolume2z(ih);
 
-
-		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][ic];
 #if 0
 		bgq_weyl_ptr_t destptrsx = {
 				&targetfield->sec_collapsed[begin].d[TUP],
@@ -104,8 +106,6 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 			bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
 			//bgq_su3_spinor_valgen(spinor);
 		} else {
-			bgq_weylsite *weylsite = &spinorfield->sec_collapsed[ic];
-
 			#define BGQ_READWEYLLAYOUT_INC_ 1
 			#include "bgq_ReadWeyllayout.inc.c"
 		}

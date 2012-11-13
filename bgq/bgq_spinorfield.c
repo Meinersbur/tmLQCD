@@ -115,93 +115,9 @@ void bgq_weyl_expect(bgq_weyl_nonvec weyl, ucoord t, ucoord x, ucoord y, ucoord 
 }
 
 
-static bgq_weyl_nonvec bgq_weyl_coord_encode(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
-	ucoord t_global = bgq_local2global_t(t);
-	ucoord x_global = bgq_local2global_x(x);
-	ucoord y_global = bgq_local2global_y(y);
-	ucoord z_global = bgq_local2global_z(z);
-	if (isSrc) {
-		bgq_direction_move_global(&t_global, &x_global, &y_global, &z_global, d);
-		d = bgq_direction_revert(d);
-	}
-
-	bgq_weyl_nonvec result = {{{0}}};
-	result.s[0][0] = t_global;
-	result.s[0][1] = x_global;
-	result.s[0][2] = y_global;
-	result.s[1][0] = z_global;
-	result.s[1][1] = d;
-	return result;
-}
 
 
-static void bgq_weylveck_write(bgq_weyl_vec *target, ucoord k, bgq_weyl_nonvec data) {
-	ptrdiff_t offset = (uint8_t*)target - g_bgq_sec_comm;
-	size_t offend = bgq_weyl_section_offset(sec_comm_end);
-	if (offset > 0 && offset < offend) {
-		offset += bgq_weyl_section_offset(sec_comm);
-		ucoord index = bgq_offset2index(offset);
-		if (index == 1088) {
-			int a = 0;
-		}
-	}
 
-	for (ucoord i = 0; i < 2; i += 1) {
-		for (ucoord l = 0; l < 3; l += 1) {
-			target->s[i][l][k] = data.s[i][l];
-		}
-	}
-}
-
-
-static void bgq_spinorveck_write(bgq_spinorsite *target, ucoord k, bgq_spinor data) {
-	for (ucoord i = 0; i < 4; i+=1) {
-		for (ucoord l = 0; l < 3; l+=1) {
-			target->s[i][l][k] = data.v[i].c[l];
-		}
-	}
-}
-
-
-static bgq_spinor_nonvec bgq_spinor_coord_encode(scoord t, scoord x, scoord y, scoord z) {
-	ucoord t_global = bgq_local2global_t(t);
-	ucoord x_global = bgq_local2global_x(x);
-	ucoord y_global = bgq_local2global_y(y);
-	ucoord z_global = bgq_local2global_z(z);
-
-	bgq_spinor_nonvec result = {{{{0}}}};
-	result.v[0].c[0] = t_global;
-	result.v[0].c[1] = x_global;
-	result.v[0].c[2] = y_global;
-	result.v[1].c[0] = z_global;
-	result.v[1].c[1] = 0;
-
-	return result;
-}
-
-
-static bgq_weyl_vec bgq_weyl_mergevec(bgq_weyl_nonvec s_left, bgq_weyl_nonvec s_right) {
-	bgq_weyl_vec result;
-	for (size_t v = 0; v < 2; v+=1) {
-		for (size_t c = 0; c < 3; c+=1) {
-			result.s[v][c][0] = s_left.s[v][c];
-			result.s[v][c][1] = s_right.s[v][c];
-		}
-	}
-	return result;
-}
-
-
-static bgq_spinor_vec bgq_spinor_mergevec(bgq_spinor_nonvec s_left, bgq_spinor_nonvec s_right) {
-	bgq_spinor_vec result;
-	for (ucoord v = 0; v < 4; v+=1) {
-		for (ucoord c = 0; c < 3; c+=1) {
-			result.s[v][c][0] = s_left.v[v].c[c];
-			result.s[v][c][1] = s_right.v[v].c[c];
-		}
-	}
-	return result;
-}
 
 static inline void bgq_HoppingMatrix_worker_datamove_recvxyz(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
 	if (!noprefetchstream) {
@@ -285,12 +201,12 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtup(bgq_weylfield_contr
 
 		bgq_su3_weyl_decl(weyl_left);
 		bgq_su3_weyl_load_double(weyl_left, weyladdr_left);
-		//assert(bgq_cmplxval2(weyl_left_v0_c0)!=0); // for valgrind
+		assert(bgq_cmplxval2(weyl_left_v0_c0)!=0); // for valgrind
 		bgq_weylqpxk_expect(weyl_left, 1, t1, x, y, z, d1, false);
 
 		bgq_su3_weyl_decl(weyl_right);
 		bgq_su3_weyl_load_double(weyl_right, weyladdr_right);
-		//assert(bgq_cmplxval1(weyl_left_v0_c0)!=0); // for valgrind
+		assert(bgq_cmplxval1(weyl_left_v0_c0)!=0); // for valgrind
 		bgq_weylqpxk_expect(weyl_right, 0, t2, x, y, z, d2, false);
 
 		bgq_su3_weyl_decl(weyl);
@@ -648,47 +564,6 @@ static void bgq_spinorfield_fulllayout_clear(bgq_weylfield_controlblock *field) 
 		field->sec_fullspinor[ic] = bgq_spinor_mergevec(bgq_spinor_coord_encode(t1, x, y, z), bgq_spinor_coord_encode(t2, x, y, z));
 	}
 #endif
-#endif
-}
-
-
-static void bgq_spinorfield_weyllayout_clear(bgq_weylfield_controlblock *field) {
-#ifdef BGQ_COORDCHECK
-	//ucoord indices = (bgq_weyl_section_offset(sec_end) - bgq_weyl_section_offset(0))/sizeof ()
-
-	bool isOdd = field->isOdd;
-	for (size_t z = 0; z < LOCAL_LZ ; z += 1) {
-		for (size_t y = 0; y < LOCAL_LY ; y += 1) {
-			for (size_t x = 0; x < LOCAL_LX ; x += 1) {
-				for (size_t t = 0; t < LOCAL_LT ; t += 1) {
-					bool isOdd_txyz = bgq_local2isOdd(t, x, y, z);
-					ucoord ic = bgq_local2collapsed(t, x, y, z);
-					ucoord k = bgq_local2k(t, x, y, z);
-
-					for (ucoord d = 0; d < PHYSICAL_LD; d += 1) {
-						if (isOdd == isOdd_txyz) {
-							bgq_weyl_nonvec coord = bgq_weyl_coord_encode(t, x, y, z, d, false);
-							bgq_weylveck_write(&field->sec_collapsed[ic].d[d], k, coord);
-
-							ucoord index_recv = g_bgq_collapsed2indexrecv[isOdd][ic].d[d];
-							if (!isOdd && index_recv == bgq_offset2index(bgq_weyl_section_offset(sec_recv_tdown))) {
-								int a = 0;
-							}
-							bgq_weylveck_write(bgq_index2pointer(field->sec_weyl, index_recv), k, coord);
-						} else {
-							bgq_weyl_nonvec coord_send = bgq_weyl_coord_encode(t, x, y, z, d, true);
-							bgq_direction d_dst = bgq_direction_revert(d);
-							ucoord index_send = g_bgq_collapsed2indexsend[isOdd][ic].d[d];
-							if (!isOdd && index_send == bgq_offset2index(bgq_weyl_section_offset(sec_recv_tdown))) {
-								int a = 0;
-							}
-							bgq_weylveck_write(bgq_index2pointer(field->sec_weyl, index_send), k, coord_send);
-						}
-					}
-				}
-			}
-		}
-	}
 #endif
 }
 

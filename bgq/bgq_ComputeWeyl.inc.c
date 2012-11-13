@@ -29,11 +29,18 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 					bgq_qvlfduxa(gauge_tup_c20, gaugesite, 32);
 					bgq_qvlfduxa(gauge_tup_c21, gaugesite, 32);
 					bgq_qvlfduxa(gauge_tup_c22, gaugesite, 32);
+							bgq_gaugeqpx_expect(gauge_tup, t1, t2, x, y, z, TUP, true);
+							bgq_setdesc(BGQREF_TDOWN_GAUGE, "BGQREF_TDOWN_GAUGE");
+							bgq_setbgqvalue_src(t1, x, y, z, TUP, BGQREF_TDOWN_GAUGE, bgq_cmplxval1(gauge_tup_c00));
+							bgq_setbgqvalue_src(t2, x, y, z, TUP, BGQREF_TDOWN_GAUGE, bgq_cmplxval2(gauge_tup_c00));
 
 					bgq_su3_weyl_mvinvmul(weyl_tup, gauge_tup, weyl_tup);
 					if (kamul) {
 						bgq_su3_weyl_cmul(weyl_tup, qka0, weyl_tup);
 					}
+							bgq_setdesc(BGQREF_TDOWN_KAMUL,"BGQREF_TDOWN_KAMUL");
+							bgq_setbgqvalue_src(t1, x, y, z, TUP, BGQREF_TDOWN_KAMUL, bgq_cmplxval1(weyl_tup_v1_c0));
+							bgq_setbgqvalue_src(t2, x, y, z, TUP, BGQREF_TDOWN_KAMUL, bgq_cmplxval2(weyl_tup_v1_c0));
 
 					bgq_su3_weyl_store_double(targetptrs->d[TUP], weyl_tup);
 					bgq_weylvec_written(targetptrs->d[TUP], t1, t2, x, y, z, TUP, true);
@@ -43,8 +50,15 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 
 // T- /////////////////////////////////////////////////////////////////////////
 					{
+								bgq_setdesc(BGQREF_TUP_SOURCE,"BGQREF_TUP_SOURCE");
+								bgq_setbgqvalue_src(t1, x, y, z, TDOWN, BGQREF_TUP_SOURCE, bgq_cmplxval1(spinor_v1_c0));
+								bgq_setbgqvalue_src(t2, x, y, z, TDOWN, BGQREF_TUP_SOURCE, bgq_cmplxval2(spinor_v1_c0));
+
 						bgq_su3_weyl_decl(weyl_tdown);
 						bgq_su3_reduce_weyl_tup(weyl_tdown, spinor);
+								bgq_setdesc(BGQREF_TUP, "BGQREF_TUP");
+								bgq_setbgqvalue_src(t1, x, y, z, TDOWN, BGQREF_TUP, bgq_cmplxval1(weyl_tdown_v1_c0));
+								bgq_setbgqvalue_src(t2, x, y, z, TDOWN, BGQREF_TUP, bgq_cmplxval2(weyl_tdown_v1_c0));
 
 						bgq_su3_mdecl(gauge_tdown);
 						bgq_qvlfduxa(gauge_tdown_c00, gaugesite, 32);
@@ -56,11 +70,21 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 						bgq_qvlfduxa(gauge_tdown_c20, gaugesite, 32);
 						bgq_qvlfduxa(gauge_tdown_c21, gaugesite, 32);
 						bgq_qvlfduxa(gauge_tdown_c22, gaugesite, 32);
+								bgq_gaugeqpx_expect(gauge_tdown, t1, t2, x, y, z, TDOWN, true);
+								bgq_setdesc(BGQREF_TUP_GAUGE, "BGQREF_TUP_GAUGE");
+								bgq_setbgqvalue_src(t1, x, y, z, TDOWN, BGQREF_TUP_GAUGE, bgq_cmplxval1(gauge_tdown_c00));
+								bgq_setbgqvalue_src(t2, x, y, z, TDOWN, BGQREF_TUP_GAUGE, bgq_cmplxval2(gauge_tdown_c00));
 
 						bgq_su3_weyl_mvmul(weyl_tdown, gauge_tdown, weyl_tdown);
+								bgq_setdesc(BGQREF_TUP_WEYL,"BGQREF_TUP_WEYL");
+								bgq_setbgqvalue_src(t1, x, y, z, TDOWN, BGQREF_TUP_WEYL, bgq_cmplxval1(weyl_tdown_v1_c0));
+								bgq_setbgqvalue_src(t2, x, y, z, TDOWN, BGQREF_TUP_WEYL, bgq_cmplxval2(weyl_tdown_v1_c0));
 						if (kamul) {
 							bgq_su3_weyl_cmul(weyl_tdown, qka0, weyl_tdown);
 						}
+								bgq_setdesc(BGQREF_TUP_KAMUL,"BGQREF_TUP_KAMUL");
+								bgq_setbgqvalue_src(t1, x, y, z, TDOWN, BGQREF_TUP_KAMUL, bgq_cmplxval1(weyl_tdown_v1_c0));
+								bgq_setbgqvalue_src(t2, x, y, z, TDOWN, BGQREF_TUP_KAMUL, bgq_cmplxval2(weyl_tdown_v1_c0));
 
 						bgq_su3_weyl_store_double(targetptrs->d[TDOWN], weyl_tdown);
 						bgq_weylvec_written(targetptrs->d[TDOWN], t1, t2, x, y, z, TDOWN, true);

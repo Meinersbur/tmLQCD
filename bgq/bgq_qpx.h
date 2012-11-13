@@ -492,12 +492,12 @@ typedef struct {
 #define bgq_dcbz_0(addr)  \
 	asm ("dcbz 0,%[ptr]  \n" : : [ptr] "r" (addr))
 
-//#define bgq_antioptaway(qreg) \
+//#define bgq_antioptaway(qreg)
 //	asm ("qvstfdxa %[v4d],0,%[ptr],  \n" : : [ptr] "r" (&dummi), [v4d] "v" (qreg) )
 	//asm ("\n" : : [ptr] "v" (qreg))
 
 //EXTERN_FIELD vector4double dummi;
-//#define bgq_valgen(qreg) \
+//#define bgq_valgen(qreg)
 //	asm ("qvgpci %[dst],0\n" : [dst] "=v" (qreg) : : )
 	//asm ("\n" : : [ptr] "v" (qreg))
 
@@ -1584,6 +1584,7 @@ do { \
 	bgq_prefetch((char*)(addr) + 128)
 #endif
 
+#if BGQ_QPX
 #define bgq_su3_weylnext_prefetch_double(addr)     \
 	do {                             \
 		void *ptr = (addr);          \
@@ -1597,6 +1598,12 @@ do { \
 			  [c128] "b" (192+128)    \
 		);                            \
 	} while (0)
+#else
+#define bgq_su3_weylnext_prefetch_double(addr)      \
+	bgq_prefetch((char*)(addr) + 192 +   0);    \
+	bgq_prefetch((char*)(addr) + 192 +  64);    \
+	bgq_prefetch((char*)(addr) + 192 + 128)
+#endif
 
 #define bgq_su3_weyl_prefetch_float(addr)      \
 	bgq_prefetch((char*)(addr) +   0);    \
@@ -1630,6 +1637,7 @@ do { \
 	bgq_prefetch((char*)(addr) + 256)
 #endif
 
+#if BGQ_QPX
 #define bgq_su3_matrixnext_prefetch_double(addr)     \
 	do {                             \
 		void *ptr = (addr);          \
@@ -1647,6 +1655,14 @@ do { \
 			  [c256] "b" (288+256)    \
 		);                            \
 	} while (0)
+#else
+#define bgq_su3_matrixnext_prefetch_double(addr)     \
+		bgq_prefetch((char*)(addr) + 288 +   0);    \
+		bgq_prefetch((char*)(addr) + 288 +  64);    \
+		bgq_prefetch((char*)(addr) + 288 + 128);    \
+		bgq_prefetch((char*)(addr) + 288 + 192);    \
+		bgq_prefetch((char*)(addr) + 288 + 256)
+#endif
 
 #define bgq_su3_matrix_prefetch_float(addr)      \
 	bgq_prefetch((char*)(addr) +   0);    \
