@@ -15,135 +15,118 @@ void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weyl
 #endif
 {
 
-	// T+ //////////////////////////////////////////////////////////////////////////
+	bgq_su3_weylnext_prefetch_double(weylsite);
+
+	// TUP
 	{
-		bgq_su3_weyl_decl(weyl_tup);
-		bgq_su3_weyl_load_double(weyl_tup, &weylsite->d[TUP]);
-		//bgq_su3_weyl_valgen(weyl_tup);
-		bgq_weylqpx_expect(weyl_tup, t1, t2, x, y, z, TUP, false);
-				bgq_setdesc(BGQREF_TUP_RECV, "BGQREF_TUP_RECV");
-				bgq_setbgqvalue(t1, x, y, z, BGQREF_TUP_RECV, bgq_cmplxval1(weyl_tup_v1_c0));
-				bgq_setbgqvalue(t2, x, y, z, BGQREF_TUP_RECV, bgq_cmplxval2(weyl_tup_v1_c0));
-		bgq_su3_expand_weyl_tup(spinor, weyl_tup);
+		bgq_su3_weyl_decl(weylnext_tup);
+		bgq_qvlfduxa(weylnext_tup_v0_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_tup_v0_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_tup_v0_c2, weylsite, 32);
+		bgq_qvlfduxa(weylnext_tup_v1_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_tup_v1_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_tup_v1_c2, weylsite, 32);
+		bgq_su3_expand_weyl_tup(spinor, weylnext_tup);
 	}
 
-	//bgq_su3_weyl_prefetch_double(&spinorsite->d[XUP]);
+	bgq_su3_weylnext_prefetch_double(weylsite);
 
-	// T- //////////////////////////////////////////////////////////////////////////
+	// TDOWN
 	{
-		bgq_su3_weyl_decl(weyl_tdown);
-		bgq_su3_weyl_load_double(weyl_tdown, &weylsite->d[TDOWN]);
-		//bgq_su3_weyl_valgen(weyl_tdown);
-		bgq_weylqpx_expect(weyl_tdown, t1, t2, x, y, z, TDOWN, false);
-				bgq_setdesc(BGQREF_TDOWN_RECV, "BGQREF_TDOWN_RECV");
-				bgq_setbgqvalue(t1, x, y, z, BGQREF_TDOWN_RECV, bgq_cmplxval1(weyl_tdown_v1_c0));
-				bgq_setbgqvalue(t2, x, y, z, BGQREF_TDOWN_RECV, bgq_cmplxval2(weyl_tdown_v1_c0));
-		bgq_su3_accum_weyl_tdown(spinor, weyl_tdown);
-				bgq_setdesc(BGQREF_TDOWN_ACCUM, "BGQREF_TDOWN_ACCUM");
-				bgq_setbgqvalue(t1, x, y, z, BGQREF_TDOWN_ACCUM, bgq_cmplxval1(spinor_v1_c0));
-				bgq_setbgqvalue(t2, x, y, z, BGQREF_TDOWN_ACCUM, bgq_cmplxval2(spinor_v1_c0));
+		bgq_su3_weyl_decl(weylnext_tdown);
+		bgq_qvlfduxa(weylnext_tdown_v0_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_tdown_v0_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_tdown_v0_c2, weylsite, 32);
+		bgq_qvlfduxa(weylnext_tdown_v1_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_tdown_v1_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_tdown_v1_c2, weylsite, 32);
+		bgq_su3_accum_weyl_tdown(spinor, weylnext_tdown);
 	}
 
-	//bgq_su3_weyl_prefetch_double(&spinorsite->d[XDOWN]);
+	bgq_su3_weylnext_prefetch_double(weylsite);
 
-	// X+ //////////////////////////////////////////////////////////////////////////
+	// X+ /////////////////////////////////////////////////////////////////////////
 	{
-		bgq_su3_weyl_decl(weyl_xup);
-		bgq_su3_weyl_load_double(weyl_xup, &weylsite->d[XUP]);
-		//bgq_su3_weyl_valgen(weyl_xup);
-		bgq_weylqpx_expect(weyl_xup, t1, t2, x, y, z, XUP, false);
-			bgq_setdesc(BGQREF_XUP_RECV, "BGQREF_XUP_RECV");
-			bgq_setbgqvalue(t1, x, y, z, BGQREF_XUP_RECV, bgq_cmplxval1(weyl_xup_v1_c0));
-			bgq_setbgqvalue(t2, x, y, z, BGQREF_XUP_RECV, bgq_cmplxval2(weyl_xup_v1_c0));
-		bgq_su3_accum_weyl_xup(spinor, weyl_xup);
-			bgq_setdesc(BGQREF_XUP_ACCUM, "BGQREF_XUP_ACCUM");
-			bgq_setbgqvalue(t1, x, y, z, BGQREF_XUP_ACCUM, bgq_cmplxval1(spinor_v1_c0));
-			bgq_setbgqvalue(t2, x, y, z, BGQREF_XUP_ACCUM, bgq_cmplxval2(spinor_v1_c0));
+		bgq_su3_weyl_decl(weylnext_xup);
+		bgq_qvlfduxa(weylnext_xup_v0_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_xup_v0_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_xup_v0_c2, weylsite, 32);
+		bgq_qvlfduxa(weylnext_xup_v1_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_xup_v1_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_xup_v1_c2, weylsite, 32);
+		bgq_su3_accum_weyl_xup(spinor, weylnext_xup);
 	}
 
-	//bgq_su3_weyl_prefetch_double(&spinorsite->d[YUP]);
+	bgq_su3_weylnext_prefetch_double(weylsite);
 
-	// X- //////////////////////////////////////////////////////////////////////////
+	// X- /////////////////////////////////////////////////////////////////////////
 	{
-		bgq_su3_weyl_decl(weyl_xdown);
-		bgq_su3_weyl_load_double(weyl_xdown, &weylsite->d[XDOWN]);
-		//bgq_su3_weyl_valgen(weyl_xdown);
-		bgq_weylqpx_expect(weyl_xdown, t1, t2, x, y, z, XDOWN, false);
-			bgq_setdesc(BGQREF_XDOWN_RECV, "BGQREF_XDOWN_RECV");
-			bgq_setbgqvalue(t1, x, y, z, BGQREF_XDOWN_RECV, bgq_cmplxval1(weyl_xdown_v1_c0));
-			bgq_setbgqvalue(t2, x, y, z, BGQREF_XDOWN_RECV, bgq_cmplxval2(weyl_xdown_v1_c0));
-		bgq_su3_accum_weyl_xdown(spinor, weyl_xdown);
-			bgq_setdesc(BGQREF_XDOWN_ACCUM, "BGQREF_XDOWN_ACCUM");
-			bgq_setbgqvalue(t1, x, y, z, BGQREF_XDOWN_ACCUM, bgq_cmplxval1(spinor_v1_c0));
-			bgq_setbgqvalue(t2, x, y, z, BGQREF_XDOWN_ACCUM, bgq_cmplxval2(spinor_v1_c0));
+		bgq_su3_weyl_decl(weylnext_xdown);
+		bgq_qvlfduxa(weylnext_xdown_v0_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_xdown_v0_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_xdown_v0_c2, weylsite, 32);
+		bgq_qvlfduxa(weylnext_xdown_v1_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_xdown_v1_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_xdown_v1_c2, weylsite, 32);
+		bgq_su3_accum_weyl_xdown(spinor, weylnext_xdown);
 	}
 
-	//bgq_su3_weyl_prefetch_double(&spinorsite->d[YDOWN]);
+	bgq_su3_weylnext_prefetch_double(weylsite);
 
-	// Y+ //////////////////////////////////////////////////////////////////////////
+	// Y+ /////////////////////////////////////////////////////////////////////////
 	{
-		bgq_su3_weyl_decl(weyl_yup);
-		bgq_su3_weyl_load_double(weyl_yup, &weylsite->d[YUP]);
-		//bgq_su3_weyl_valgen(weyl_yup);
-		bgq_weylqpx_expect(weyl_yup, t1, t2, x, y, z, YUP,false);
-			bgq_setdesc(BGQREF_YUP_RECV, "BGQREF_YUP_RECV");
-			bgq_setbgqvalue(t1, x, y, z, BGQREF_YUP_RECV, bgq_cmplxval1(weyl_yup_v1_c0));
-			bgq_setbgqvalue(t2, x, y, z, BGQREF_YUP_RECV, bgq_cmplxval2(weyl_yup_v1_c0));
-		bgq_su3_accum_weyl_yup(spinor, weyl_yup);
-			bgq_setdesc(BGQREF_YUP_ACCUM, "BGQREF_YUP_ACCUM");
-			bgq_setbgqvalue(t1, x, y, z, BGQREF_YUP_ACCUM, bgq_cmplxval1(spinor_v1_c0));
-			bgq_setbgqvalue(t2, x, y, z, BGQREF_YUP_ACCUM, bgq_cmplxval2(spinor_v1_c0));
+		bgq_su3_weyl_decl(weylnext_yup);
+		bgq_qvlfduxa(weylnext_yup_v0_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_yup_v0_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_yup_v0_c2, weylsite, 32);
+		bgq_qvlfduxa(weylnext_yup_v1_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_yup_v1_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_yup_v1_c2, weylsite, 32);
+		bgq_su3_accum_weyl_yup(spinor, weylnext_yup);
 	}
 
-	//bgq_su3_weyl_prefetch_double(&spinorsite->d[ZUP]);
+	bgq_su3_weylnext_prefetch_double(weylsite);
 
-	// Y- //////////////////////////////////////////////////////////////////////////
+	// Y- /////////////////////////////////////////////////////////////////////////
 	{
-		bgq_su3_weyl_decl(weyl_ydown);
-		bgq_su3_weyl_load_double(weyl_ydown, &weylsite->d[YDOWN]);
-		//bgq_su3_weyl_valgen(weyl_ydown);
-		assert(bgq_cmplxval1(weyl_ydown_v1_c0)!=0);
-		bgq_weylqpx_expect(weyl_ydown, t1, t2, x, y, z, YDOWN, false);
-		bgq_su3_accum_weyl_ydown(spinor, weyl_ydown);
-			bgq_setdesc(BGQREF_YDOWN_ACCUM, "BGQREF_YDOWN_ACCUM");
-			bgq_setbgqvalue(t1, x, y, z, BGQREF_YDOWN_ACCUM, bgq_cmplxval1(spinor_v1_c0));
-			bgq_setbgqvalue(t2, x, y, z, BGQREF_YDOWN_ACCUM, bgq_cmplxval2(spinor_v1_c0));
+		bgq_su3_weyl_decl(weylnext_ydown);
+		bgq_qvlfduxa(weylnext_ydown_v0_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_ydown_v0_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_ydown_v0_c2, weylsite, 32);
+		bgq_qvlfduxa(weylnext_ydown_v1_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_ydown_v1_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_ydown_v1_c2, weylsite, 32);
+		bgq_su3_accum_weyl_ydown(spinor, weylnext_ydown);
 	}
 
-	//bgq_su3_weyl_prefetch_double(&spinorsite->d[ZDOWN]);
+	bgq_su3_weylnext_prefetch_double(weylsite);
 
-	// Z+ //////////////////////////////////////////////////////////////////////////
+	// Z+ /////////////////////////////////////////////////////////////////////////
 	{
-		bgq_su3_weyl_decl(weyl_zup);
-		bgq_su3_weyl_load_double(weyl_zup, &weylsite->d[ZUP]);
-		//bgq_su3_weyl_valgen(weyl_zup);
-		assert(bgq_cmplxval1(weyl_zup_v1_c0)!=0);
-		bgq_weylqpx_expect(weyl_zup, t1, t2, x, y, z, ZUP, false);
-			bgq_setdesc(BGQREF_ZUP_RECV, "BGQREF_ZUP_RECV");
-			bgq_setbgqvalue(t1, x, y, z, BGQREF_ZUP_RECV, bgq_cmplxval1(weyl_zup_v1_c0));
-			bgq_setbgqvalue(t2, x, y, z, BGQREF_ZUP_RECV, bgq_cmplxval2(weyl_zup_v1_c0));
-		bgq_su3_accum_weyl_zup(spinor, weyl_zup);
-			bgq_setdesc(BGQREF_ZUP_ACCUM, "BGQREF_ZUP_ACCUM");
-			bgq_setbgqvalue(t1, x, y, z, BGQREF_ZUP_ACCUM, bgq_cmplxval1(spinor_v1_c0));
-			bgq_setbgqvalue(t2, x, y, z, BGQREF_ZUP_ACCUM, bgq_cmplxval2(spinor_v1_c0));
+		bgq_su3_weyl_decl(weylnext_zup);
+		bgq_qvlfduxa(weylnext_zup_v0_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_zup_v0_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_zup_v0_c2, weylsite, 32);
+		bgq_qvlfduxa(weylnext_zup_v1_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_zup_v1_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_zup_v1_c2, weylsite, 32);
+		bgq_su3_accum_weyl_zup(spinor, weylnext_zup);
 	}
 
-	//bgq_su3_weyl_prefetch_double(&spinorsite->d[TUP]);
+	//bgq_su3_weylnext_prefetch_double(weylsite);
 
-	// Z- //////////////////////////////////////////////////////////////////////////
+	// Z- /////////////////////////////////////////////////////////////////////////
 	{
-		bgq_su3_weyl_decl(weyl_zdown);
-		bgq_su3_weyl_load_double(weyl_zdown, &weylsite->d[ZDOWN]);
-		//bgq_su3_weyl_valgen(weyl_zdown);
-		bgq_weylqpx_expect(weyl_zdown, t1, t2, x, y, z, ZDOWN,false);
-		bgq_su3_accum_weyl_zdown(spinor, weyl_zdown);
+		bgq_su3_weyl_decl(weylnext_zdown);
+		bgq_qvlfduxa(weylnext_zdown_v0_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_zdown_v0_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_zdown_v0_c2, weylsite, 32);
+		bgq_qvlfduxa(weylnext_zdown_v1_c0, weylsite, 32);
+		bgq_qvlfduxa(weylnext_zdown_v1_c1, weylsite, 32);
+		bgq_qvlfduxa(weylnext_zdown_v1_c2, weylsite, 32);
+		bgq_su3_accum_weyl_zdown(spinor, weylnext_zdown);
 	}
 
-
-			bgq_setdesc(BGQREF_ACCUM, "BGQREF_ACCUM");
-			bgq_setbgqvalue(t1, x, y, z, BGQREF_ACCUM, bgq_cmplxval1(spinor_v1_c0));
-			bgq_setbgqvalue(t2, x, y, z, BGQREF_ACCUM, bgq_cmplxval2(spinor_v1_c0));
-	//bgq_su3_spinor_mov(*target, result);
 }
 
 #undef BGQ_READWEYLLAYOUT_INC_

@@ -552,8 +552,8 @@ static bgq_hmflags flags[] = {
 //		DEFOPTS | hm_nospi | hm_nobody | hm_nodistribute | hm_nodatamove,
 		DEFOPTS | hm_nocom | hm_nobody | hm_nodistribute | hm_nodatamove,
 		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitdisable,
-//		DEFOPTS                       | hm_prefetchimplicitconfirmed,
-//		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitconfirmed,
+		DEFOPTS                       | hm_prefetchimplicitconfirmed,
+		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitconfirmed,
 		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitoptimistic
     };
 static char* flags_desc[] = {
@@ -570,8 +570,8 @@ static char* flags_desc[] = {
 //		"MPI only",
 		"idle",
 		"pf disable",
-//		"pf stream",
-//		"pf confirmed",
+		"pf stream",
+		"pf confirmed",
 		"pf optimistic"
 	};
 
@@ -784,6 +784,7 @@ static void print_stats(benchstat *stats) {
 #endif
 }
 
+
 static void exec_table(benchfunc_t benchmark, bgq_hmflags additional_opts, int j_max, int k_max) {
 //static void exec_table(bool sloppiness, hm_func_double hm_double, hm_func_float hm_float, bgq_hmflags additional_opts) {
 	benchstat excerpt;
@@ -860,7 +861,7 @@ static int check_hopmat(void *arg_untyped) {
 	bgq_hmflags hmflags = 0;
 
 	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
-	double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], false);
+	double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], true);
 	assert(compare_transfer == 0);
 	// Must be exact copy
 
@@ -906,18 +907,18 @@ static int check_hopmat(void *arg_untyped) {
 	}
 
 	bgq_savebgqref();
-	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], false);
+	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], true);
 	assert(compare_even < 0.01);
 
 
 	bgq_spinorfield_transfer(false, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max]);
-	compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max], false);
+	compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max], true);
 	assert(compare_transfer == 0);
 
 	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k], &g_bgq_spinorfields[k+k_max], hmflags);
 	HoppingMatrix_switch(true, g_spinor_field[k], g_spinor_field[k+k_max], hmflags);
 
-	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], false);
+	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], true);
 	assert(compare_odd < 0.01);
 
 
@@ -984,7 +985,7 @@ static void exec_bench(int j_max, int k_max) {
 	checkargs_t checkargs = {
 	        .k_max = k_max
 	};
-	//bgq_parallel(&check_hopmat, &checkargs);
+	bgq_parallel(&check_hopmat, &checkargs);
 
 	exec_table(&benchmark_hopmat, 0, j_max, k_max);
 }

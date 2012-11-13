@@ -29,7 +29,7 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = ic_begin + tid*threadload;
 	const size_t end = min_sizet(ic_end, begin+threadload);
-#if 0
+
 	if (!noprefetchstream) {
 		bgq_prefetch_forward(&g_bgq_gaugefield_fromCollapsed[isOdd][begin]);
 		if (readFulllayout) {
@@ -40,9 +40,8 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 		bgq_prefetch_forward(&targetfield->sendptr[begin]);
 	}
 
-#endif
 
-	if (readFulllayout) {
+	if (true || readFulllayout) {
 	for (ucoord ic = begin; ic<end; ic+=1) {
 		//TODO: Check optaway
 		ucoord ih = bgq_collapsed2halfvolume(isOdd,ic);
@@ -99,20 +98,23 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 		bgq_su3_spinor_decl(spinor);
 
 		if (readFulllayout) {
-		bgq_spinorsite *spinorsite = &spinorfield->sec_fullspinor[ic];
-		assert(spinorsite->s[1][0][0]!=0);
-		//bgq_su3_spinor_prefetch_double(&spinorfield->sec_fullspinor[ic+1]); // TODO: This prefetch is too early
-		bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
-		//bgq_su3_spinor_valgen(spinor);
+			bgq_spinorsite *spinorsite = &spinorfield->sec_fullspinor[ic];
+			assert(spinorsite->s[1][0][0]!=0);
+			//bgq_su3_spinor_prefetch_double(&spinorfield->sec_fullspinor[ic+1]); // TODO: This prefetch is too early
+			bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
+			//bgq_su3_spinor_valgen(spinor);
 		} else {
-			bgq_spinorsite *weylsite = &spinorfield->sec_collapsed[ic];
+			bgq_weylsite *weylsite = &spinorfield->sec_collapsed[ic];
 
-#ifndef BGQ_READWEYLLAYOUT_INC_
-#include "bgq_ReadWeyllayout.inc.c"
+			#define BGQ_READWEYLLAYOUT_INC_ 1
+			#include "bgq_ReadWeyllayout.inc.c"
 		}
+		bgq_su3_matrixnext_prefetch_double(gaugesite); // TODO: too late
 
-#define BGQ_COMPUTEWEYL_INC_
-#include "bgq_ComputeWeyl.inc.c"
+		#define BGQ_COMPUTEWEYL_INC_ 1
+		#include "bgq_ComputeWeyl.inc.c"
+
+		//bgq_su3_weylnext_prefetch_double(weylsite); //TODO: too late
 	}
 	} else {
 		ucoord ic_load = begin;

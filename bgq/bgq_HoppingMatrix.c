@@ -240,9 +240,10 @@ static inline void bgq_HoppingMatrix_worker(void * restrict arg, size_t tid, siz
 		bgq_prefetch_forward(&targetfield->sendptr[begin]);
 	}
 
-	for (ucoord ic_ = begin; ic_<end; ic_+=1) {
+	bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][begin];
+
+	for (ucoord ic = begin; ic<end; ic+=1) {
 		//TODO: Check optaway
-		ucoord ic = begin;
 		ucoord ih = bgq_collapsed2halfvolume(isOdd,ic);
 		ucoord t1 = bgq_halfvolume2t1(isOdd,ih);
 		ucoord t2 = bgq_halfvolume2t2(isOdd,ih);
@@ -250,8 +251,8 @@ static inline void bgq_HoppingMatrix_worker(void * restrict arg, size_t tid, siz
 		ucoord y = bgq_halfvolume2y(ih);
 		ucoord z = bgq_halfvolume2z(ih);
 
+		assert(gaugesite == &g_bgq_gaugefield_fromCollapsed[isOdd][ic]);
 
-		bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][ic];
 #if 0
 		bgq_weyl_ptr_t destptrsx = {
 				&targetfield->sec_collapsed[0].d[TUP],
