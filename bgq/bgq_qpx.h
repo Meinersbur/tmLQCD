@@ -524,7 +524,7 @@ typedef struct {
 
 #define bgq_qvlfuxa NAME2(bgq_qvlfuxa,PRECISION)
 #define bgq_qvlfuxa_double bgq_qvlfduxa
-#define bgq_qvlfuxa_float bgq_qvlfsxua
+#define bgq_qvlfuxa_float bgq_qvlfsuxa
 
 // vec_xmul(a, b)
 // re =    a.re * b.re
@@ -1186,7 +1186,7 @@ do {\
 
 
 #if BGQ_QPX
-#define bgq_su3_weyl_store_float(addr,src) \
+#define bgq_su3_weyl_store_float(addr,weyl) \
 	do { \
 		void *ptr = (addr); \
 		bgq_qvstfsuxa(NAME3(weyl,v0,c0), ptr, 0); \
@@ -1619,7 +1619,7 @@ do { \
 	bgq_prefetch((char*)(addr) + 128)
 #endif
 
-#define bgq_su3_weylnext NAME2(bgq_su3_weylnext,PRECISION)
+#define bgq_su3_weylnext_prefetch NAME2(bgq_su3_weylnext_prefetch,PRECISION)
 #if BGQ_QPX
 #define bgq_su3_weylnext_prefetch_double(addr)     \
 	do {                             \
@@ -1628,7 +1628,7 @@ do { \
 			"dcbt   %[c0],%[ptr]  \n" \
 			"dcbt  %[c64],%[ptr]  \n" \
 			"dcbt %[c128],%[ptr]  \n" \
-			:  [ptr] "r" (ptr),        \
+			: : [ptr] "r" (ptr),       \
 			    [c0] "b" (192+0),     \
 			   [c64] "b" (192+64),    \
 			  [c128] "b" (192+128)    \
@@ -1649,9 +1649,9 @@ do { \
 		asm (                        \
 			"dcbt   %[c0],%[ptr]  \n" \
 			"dcbt  %[c64],%[ptr]  \n" \
-			:  [ptr] "r" (ptr),       \
-			    [c0] "b" (96+0),     \
-			   [c64] "b" (96+64)
+			: : [ptr] "r" (ptr),       \
+			    [c0] "b" (96+0),      \
+			   [c64] "b" (96+64)      \
 		);                            \
 	} while (0)
 #else
@@ -1676,8 +1676,8 @@ do { \
 		"dcbt %[c128],%[ptr]  \n" \
 		"dcbt %[c192],%[ptr]  \n" \
 		"dcbt %[c256],%[ptr]  \n" \
-		: [ptr] "+r" (ptr) \
-		: [c64] "b" (64), \
+		: : [ptr] "r" (ptr), \
+		  [c64] "b" (64), \
 		  [c128] "b" (128), \
 		  [c192] "b" (192), \
 		  [c256] "b" (256) \
@@ -1692,7 +1692,7 @@ do { \
 	bgq_prefetch((char*)(addr) + 256)
 #endif
 
-#define bgq_su3_matrixnext name2(bgq_su3_matrixnext,PRECISION)
+#define bgq_su3_matrixnext_prefetch NAME2(bgq_su3_matrixnext_prefetch,PRECISION)
 #if BGQ_QPX
 #define bgq_su3_matrixnext_prefetch_double(addr)     \
 	do {                             \
@@ -1703,7 +1703,7 @@ do { \
 			"dcbt %[c128],%[ptr]  \n" \
 			"dcbt %[c192],%[ptr]  \n" \
 			"dcbt %[c256],%[ptr]  \n" \
-			:  [ptr] "r" (ptr),        \
+			: : [ptr] "r" (ptr),        \
 			    [c0] "b" (288+0),     \
 			   [c64] "b" (288+64),    \
 			  [c128] "b" (288+128),   \
@@ -1729,7 +1729,7 @@ do { \
 			"dcbt   %[c0],%[ptr]  \n" \
 			"dcbt  %[c64],%[ptr]  \n" \
 			"dcbt %[c128],%[ptr]  \n" \
-			:  [ptr] "r" (ptr)        \
+			: : [ptr] "r" (ptr),        \
 			    [c0] "b" (144+0),     \
 			   [c64] "b" (144+64),    \
 			  [c128] "b" (144+128)    \
@@ -1760,8 +1760,8 @@ do { \
 			"dcbz %[c192],%[ptr]  \n" \
 			"dcbz %[c256],%[ptr]  \n" \
 			"dcbz %[c320],%[ptr]  \n" \
-			: [ptr] "+r" (ptr) \
-			: [c64] "b" (64), \
+			: : [ptr] "r" (ptr), \
+			  [c64] "b" (64), \
 			  [c128] "b" (128), \
 			  [c192] "b" (192), \
 			  [c256] "b" (256), \
@@ -1796,11 +1796,28 @@ do { \
 	// 192
 
 
+
+
 #define bgq_su3_weyl_zeroload NAME2(bgq_su3_weyl_zeroload,PRECISION)
+#if BGQ_QPX
+#define bgq_su3_weyl_zeroload_double(addr) \
+	do { \
+		void *ptr = (addr); \
+		asm ( \
+		"dcbz       0,%[ptr]  \n" \
+		"dcbz %[c64],%[ptr]  \n" \
+		"dcbz %[c128],%[ptr]  \n" \
+		: : [ptr] "r" (ptr), \
+		   [c64] "b" (64), \
+		  [c128] "b" (128) \
+		); \
+	} while (0)
+#else
 #define bgq_su3_weyl_zeroload_double(addr) \
 	bgq_l1_zero((char*)(addr) + 0);          \
 	bgq_prefetchforwrite((char*)(addr) +  128)
 	// 192
+#endif
 
 #define bgq_su3_weyl_zeroload_float(addr)    \
 	bgq_prefetchforwrite((char*)(addr) +  0); \

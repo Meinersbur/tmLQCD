@@ -1334,6 +1334,7 @@ EXTERN_INLINE size_t bgq_sectionrange_size(bgq_weylfield_section sec_begin, bgq_
 	return bgq_weyl_section_offset(sec_stop+1) - bgq_weyl_section_offset(sec_stop);
 }
 
+EXTERN_FIELD uint64_t flopaccumulator EXTERN_INIT(0);
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

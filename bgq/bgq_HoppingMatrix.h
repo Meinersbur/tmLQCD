@@ -729,6 +729,7 @@ typedef struct {
 } bgq_HoppingMatrix_workload;
 
 
+void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work, bool nokamul, bool readFulllayout);
 
 
 #undef EXTERN_INLINE

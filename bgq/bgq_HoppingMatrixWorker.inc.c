@@ -106,7 +106,7 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 			bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
 			//bgq_su3_spinor_valgen(spinor);
 		} else {
-#define PRECISION float
+#define PRECISION double
 			#define BGQ_READWEYLLAYOUT_INC_ 1
 			#include "bgq_ReadWeyllayout.inc.c"
 		}

@@ -11,11 +11,13 @@
 #include "bgq_qpx.h"
 #include "bgq_spinorfield.h"
 
+#define PRECISION double
+
 void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weylsite, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z)
 #endif
 {
 
-	bgq_su3_weylnext_prefetch_double(weylsite);
+	bgq_su3_weylnext_prefetch(weylsite);
 
 	// TUP
 	{

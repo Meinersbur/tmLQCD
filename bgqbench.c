@@ -123,6 +123,7 @@ typedef struct {
 	double localrmstime;
 	double globalrmstime;
 	double totcycles;
+	double localavgflop;
 
 	ucoord sites_body;
 	ucoord sites_surface;
@@ -312,13 +313,13 @@ static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 	// Must be exact copy
 #endif
 
-	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k + 2 * k_max], &g_bgq_spinorfields[k + k_max], hmflags);
-	HoppingMatrix_switch(true, g_spinor_field[k + 2 * k_max], g_spinor_field[k + k_max], hmflags);
+	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k], &g_bgq_spinorfields[k + k_max], hmflags);
+	HoppingMatrix_switch(true, g_spinor_field[k], g_spinor_field[k + k_max], hmflags);
 #ifndef BGQ_COORDCHECK
-	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k + 2 * k_max], g_spinor_field[k + 2 * k_max], true);
+	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], true);
 	assert(compare_odd < 0.01);
 #else
-	bgq_spinorfield_setup(&g_bgq_spinorfields[k + 2*k_max], true, false, false, true, false); // Wait for data transmission
+	bgq_spinorfield_setup(&g_bgq_spinorfields[k], true, false, false, true, false); // Wait for data transmission
 #endif
 
 #ifndef BGQ_COORDCHECK
@@ -395,6 +396,7 @@ static int benchmark_master(void *argptr) {
 	double localsumtime = 0;
 	double localsumsqtime = 0;
 	uint64_t localsumcycles=0;
+	uint64_t localsumflop = 0;
 	mypapi_counters counters;
 	counters.init = false;
 	int iterations = 1; // Warmup phase
@@ -412,6 +414,10 @@ static int benchmark_master(void *argptr) {
 
 		double start_time;
 		uint64_t start_cycles;
+		uint64_t start_flop;
+		if (isJMax) {
+			start_flop = flopaccumulator;
+		}
 		if (isPapi) {
 			bgq_master_sync();
 			mypapi_arg.set = papiSet;
@@ -448,6 +454,7 @@ static int benchmark_master(void *argptr) {
 			localsumtime += duration;
 			localsumsqtime += sqr(duration);
 			localsumcycles += (end_cycles - start_cycles);
+			localsumflop += (flopaccumulator - start_flop);
 		}
 	}
 
@@ -458,6 +465,7 @@ static int benchmark_master(void *argptr) {
 	double localavgsqtime = sqr(localavgtime);
 	double localrmstime = sqrt((localsumsqtime / its) - localavgsqtime);
 	double localcycles = (double)localsumcycles / (double)its;
+	double localavgflop = (double)localsumflop / (double)its;
 
 	double localtime[] = { localavgtime, localavgsqtime, localrmstime };
 	double sumreduce[3] = { -1, -1, -1 };
@@ -487,6 +495,7 @@ static int benchmark_master(void *argptr) {
 	result->localrmstime = avglocalrms;
 	result->globalrmstime = rmstime;
 	result->totcycles = localcycles;
+	result->localavgflop = localavgflop;
 
 	result->sites_surface = sites_surface;
 	result->sites_body = sites_body;
@@ -592,11 +601,13 @@ static void print_stats(benchstat *stats) {
 			benchstat *stat = &stats[i3];
 			bgq_hmflags opts = stat->opts;
 
+			double avgtime = stat->avgtime;
 			uint64_t lup = stat->lup;
 			uint64_t flop = compute_flop(opts, stat->lup_body, stat->lup_surface);
 			double flops = (double)flop/stat->avgtime;
 			double localrms = stat->localrmstime / stat->avgtime;
 			double globalrms = stat->globalrmstime / stat->avgtime;
+			ucoord sites = stat->sites;
 
 			double nCycles = stats[i3].counters.native[PEVT_CYCLES];
 			double nCoreCycles = stats[i3].counters.corecycles;
@@ -675,6 +686,14 @@ static void print_stats(benchstat *stats) {
 			case pi_flops:
 				desc = "MFlop/s";
 				snprintf(str, sizeof(str), "%.0f MFlop/s", flops/MEGA);
+				break;
+			case pi_flopsref:
+				desc = "Speed";
+				snprintf(str, sizeof(str), "%.0f MFlop/s", stat->localavgflop / (avgtime * MEGA));
+				break;
+			case pi_floppersite:
+				desc = "Flop per site";
+				snprintf(str, sizeof(str), "%.1f Flop", stat->localavgflop / sites);
 				break;
 			case pi_localrms:
 				desc = "Thread RMS";
@@ -850,6 +869,19 @@ static void benchmark_hopmat(bgq_hmflags flags, int k, int k_max) {
 	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k], &g_bgq_spinorfields[k + k_max], flags);
 }
 
+static void benchmark_hopmatkernel(bgq_hmflags flags, int k, int k_max) {
+	bgq_master_sync();
+	static bgq_HoppingMatrix_workload work;
+	work.isOdd_src = true;
+	work.isOdd_dst = false;
+	work.targetfield = &g_bgq_spinorfields[k+k_max];
+	work.spinorfield = &g_bgq_spinorfields[k];
+	work.ic_begin = 0;
+	work.ic_end = PHYSICAL_VOLUME;
+	work.noprefetchstream = flags & hm_noprefetchstream;
+	bgq_HoppingMatrix_work(&work, flags & hm_nokamul, g_bgq_spinorfields[k].hasFullspinorData);
+}
+
 typedef struct {
 	size_t k_max;
 } checkargs_t;
@@ -964,8 +996,8 @@ static void exec_bench(int j_max, int k_max) {
 	indices += ((bgq_weyl_section_offset(sec_recv_zdown + 1) - bgq_weyl_section_offset(sec_recv_xup))  / sizeof(bgq_weyl_vec)) * sizeof(bgq_weylsite*); // destptrFromRecv
 	indices += (bgq_section_size(sec_send_tup) / sizeof(bgq_weyl_vec)) * sizeof(bgq_weylsite*); // consptr_recvtdown+consptr_recvtup
 
-	ws+= forcomm;
-	ws+= indices;
+	ws += forcomm;
+	ws += indices;
 	uint64_t ws_write = ws + PHYSICAL_VOLUME * sizeof(bgq_weylsite); // target spinor
 	master_print("Working set size: %.1fMB (%.1fMB incl target) (%.1fMB index, %.1fMB commbuf)\n", (double)ws/(1024.0*1024.0), (double)ws_write/(1024.0*1024.0),indices/MEBI,forcomm/MEBI);
 
@@ -987,32 +1019,15 @@ static void exec_bench(int j_max, int k_max) {
 	};
 	bgq_parallel(&check_hopmat, &checkargs);
 
-	exec_table(&benchmark_hopmat, 0, j_max, k_max);
-}
-
-
-static void exec_bench_all() {
+	master_print("Benchmark: hopmatkernel\n");
+	exec_table(&benchmark_hopmatkernel, 0, j_max, k_max);
 	print_repeat("\n", 2);
 
-	for (int i0 = 0; i0 < lengthof(kamuls); i0 += 1) {
-		//bool kamul = kamuls[i0];
-		if (g_proc_id == 0)
-			printf("Benchmark: %s\n", kamuls_desc[i0]);
+	master_print("Benchmark: HoppingMatrix\n");
+	exec_table(&benchmark_hopmat, 0, j_max, k_max);
+	print_repeat("\n", 2);
 
-		for (int i1 = 0; i1 < lengthof(sloppinessess); i1 += 1) {
-			//bool sloppiness = sloppinessess[i1];
-
-			if (g_proc_id == 0)
-				printf("Benchmarking precision: %s\n", sloppinessess_desc[i1]);
-			//exec_table(sloppiness, bgq_HoppingMatrix_double, bgq_HoppingMatrix_float, !kamul * hm_nokamul);
-		}
-
-		if (g_proc_id == 0)
-			printf("\n");
-	}
-
-	if (g_proc_id == 0)
-		printf("Benchmark done\n");
+	master_print("Benchmarking done\n");
 }
 
 
