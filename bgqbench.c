@@ -751,10 +751,10 @@ static void print_stats(benchstat *stats) {
 				//desc = "Instr overhead";
 				//snprintf(str, sizeof(str), "%.2f %%", 100 * (nInstructions - nNecessaryInstr) / nInstructions);
 				//break;
-				//case pi_hitinl1p:
-				//	desc = "Loads that hit in L1P";
-				//	snprintf(str, sizeof(str), "%f %%" ,  100 * nL1PHits / nCachableLoads);
-				//	break;
+			case pi_hitinl1p:
+				desc = "Loads that hit in L1P";
+				snprintf(str, sizeof(str), "%f %%" ,  100 * nL1PHits / nCachableLoads);
+				break;
 			case pi_l2hitrate:
 				desc = "L2 hit rate";
 				snprintf(str, sizeof(str), "%.2f %%", 100 * nL2Hits / nL2Accesses);

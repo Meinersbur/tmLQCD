@@ -1,4 +1,6 @@
 
+#define PRECISION double
+
 #ifndef BGQ_HOPPINGMATRIXWORKER_INC_
 #include "bgq_utils.h"
 #include "bgq_HoppingMatrix.h"
@@ -106,18 +108,25 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 			bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
 			//bgq_su3_spinor_valgen(spinor);
 		} else {
-#define PRECISION double
 			#define BGQ_READWEYLLAYOUT_INC_ 1
 			#include "bgq_ReadWeyllayout.inc.c"
 		}
 		bgq_su3_matrixnext_prefetch(gaugesite); // TODO: too late
 
-		#define BGQ_COMPUTEWEYL_INC_ 1
-		#include "bgq_ComputeWeyl.inc.c"
+		if (kamul) {
+			#define BGQ_COMPUTEWEYL_INC_ 1
+			#define KAMUL 1
+			#include "bgq_ComputeWeyl.inc.c"
+		} else {
+			#define BGQ_COMPUTEWEYL_INC_ 1
+			#define KAMUL 0
+			#include "bgq_ComputeWeyl.inc.c"
+		}
 
 		//bgq_su3_weylnext_prefetch_double(weylsite); //TODO: too late
 	}
 	} else {
+#if 0
 		ucoord ic_load = begin;
 		bgq_weylsite *weylsite = (bgq_weylsite*)(((uintptr_t)&spinorfield->sec_collapsed[ic_load])-32);
 		bgq_gaugesite *gaugesite = (bgq_gaugesite *)(((uintptr_t)&g_bgq_gaugefield_fromCollapsed[isOdd][ic_load])-32);
@@ -750,6 +759,7 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 					bgq_weylvec_written(targetptrs->d[ZDOWN], t1, t2, x,y,z,ZDOWN, true);
 				}
 		}
+#endif
 	}
 }
 

@@ -1641,7 +1641,6 @@ do { \
 	bgq_prefetch((char*)(addr) + 192 + 128)
 #endif
 
-
 #if BGQ_QPX
 #define bgq_su3_weylnext_prefetch_float(addr)     \
 	do {                             \
@@ -1819,11 +1818,23 @@ do { \
 	// 192
 #endif
 
+#if BGQ_QPX
+#define bgq_su3_weyl_zeroload_float(addr) \
+	do { \
+		void *ptr = (addr); \
+		asm ( \
+		"dcbz       0,%[ptr]  \n" \
+		"dcbz %[c64],%[ptr]  \n" \
+		: : [ptr] "r" (ptr), \
+		   [c64] "b" (64) \
+		); \
+	} while (0)
+#else
 #define bgq_su3_weyl_zeroload_float(addr)    \
 	bgq_prefetchforwrite((char*)(addr) +  0); \
 	bgq_prefetchforwrite((char*)(addr) +  64)
 	// 96
-
+#endif
 
 
 #define bgq_su3_spinor_flush NAME2(bgq_su3_spinor_flush,PRECISION)

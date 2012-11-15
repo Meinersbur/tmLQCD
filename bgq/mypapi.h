@@ -43,15 +43,12 @@ typedef enum {
 	pi_floppersite,
 	pi_msecs,
 	pi_cycpersite,
-	pi_instrpersite,
-	pi_fxupersite,
 
 	pi_localrms,
 	pi_globalrms,
 	pi_avgovhtime,
 
 	pi_cpi,
-	pi_corecpi,
 	pi_l1istalls,
 	pi_axufraction,
 	//pi_overhead,
@@ -68,6 +65,9 @@ typedef enum {
 	pi_l1pstreamunusedlines,
 
 	__pi_COUNT,
+	pi_corecpi,
+	pi_instrpersite,
+	pi_fxupersite,
 	pi_flops,
 	pi_l1pstreamhitinl1p,
 	pi_hitinl1p,
