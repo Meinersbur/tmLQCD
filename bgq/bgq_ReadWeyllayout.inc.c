@@ -22,7 +22,7 @@ void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weyl
 
 {
 
-	bgq_su3_weylnext_prefetch(weylsite);
+	bgq_su3_weylnext_prefetch(weylsite); //TODO: evaluate bgq_su3_weylnextnext_prefetch
 
 	// TUP
 	{

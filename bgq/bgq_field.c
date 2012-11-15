@@ -17,11 +17,13 @@
 static bgq_weylfield_section bgq_section_commbuftran(bgq_weylfield_section sec, bool isSendSide) {
 	switch (sec) {
 	case sec_send_tup:
+	case sec_temp_tup:
 	case sec_recv_tdown:
-		return isSendSide ? sec_send_tup : sec_recv_tdown;
+		return isSendSide ? sec_temp_tup : sec_recv_tdown;
 	case sec_send_tdown:
+	case sec_temp_tdown:
 	case sec_recv_tup:
-		return isSendSide ? sec_send_tdown : sec_recv_tup;
+		return isSendSide ? sec_temp_tdown : sec_recv_tup;
 	case sec_send_xup:
 	case sec_recv_xdown:
 		return isSendSide ? sec_send_xup : sec_recv_xdown;
@@ -95,9 +97,9 @@ static bgq_weylfield_section bgq_HoppingMatrix_init_source_sectionof_physical(bo
 	} else {
 		assert(!"Unknown case");
 		UNREACHABLE
+		return -1;
 	}
 }
-
 
 
 static size_t bgq_offset_send2recv(size_t offset_send) {
@@ -270,12 +272,10 @@ bgq_direction bgq_offset2ddst(size_t offset) {
 }
 
 
-
 bgq_direction bgq_offset2dsrc(size_t offset) {
 	bgq_direction d_dst = bgq_offset2ddst(offset);
 	return bgq_direction_revert(d_dst);
 }
-
 
 
 size_t bgq_src2ih_dst(size_t t_src, size_t x_src, size_t y_src, size_t z_src, bgq_direction d_src) {
@@ -314,6 +314,7 @@ size_t bgq_src2ih_dst(size_t t_src, size_t x_src, size_t y_src, size_t z_src, bg
 	size_t ih_dst = bgq_local2halfvolume(t_dst,x_dst,y_dst,z_dst);
 	return ih_dst;
 }
+
 
 size_t bgq_src2k_dst(size_t t_src, size_t x_src, size_t y_src, size_t z_src, bgq_direction d_src) {
 	size_t t_dst = t_src;
@@ -528,7 +529,7 @@ void bgq_indices_init() {
 
 					// Sender part (this is on the inter-node sending the data to this node)
 					size_t offset_sender = bgq_offset_recv2send(thisOffset);
-					ucoord index_send = offset_sender/sizeof(bgq_weyl_vec);
+					ucoord index_send = bgq_offset2index(offset_sender);
 					assert(bgq_sectionOfOffset(offset_sender) == bgq_section_commbuftran(sec,true));
 					g_bgq_index2collapsed[isOdd_dst][index_send] = ic_dst;
 					g_bgq_collapsed2indexsend[isOdd_dst][ic_src].d[d_src] = index_send;

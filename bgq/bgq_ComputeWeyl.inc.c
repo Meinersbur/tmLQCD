@@ -20,7 +20,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 #endif
 
 {
-	asm volatile ("");
+	REORDER_BARRIER // These keep the compiler from avoid spilling because of excessive instruction reordering
 	bgq_prefetch(&targetptrs->d[TUP]);
 	bgq_su3_matrixnext_prefetch(gaugesite);
 
@@ -52,13 +52,13 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_setbgqvalue_src(t1, x, y, z, TUP, BGQREF_TDOWN_KAMUL, bgq_cmplxval1(weyl_tup_v1_c0));
 				bgq_setbgqvalue_src(t2, x, y, z, TUP, BGQREF_TDOWN_KAMUL, bgq_cmplxval2(weyl_tup_v1_c0));
 
-		bgq_su3_weyl_zeroload(targetptrs->d[TUP]);
+		bgq_su3_weyl_zeroload(targetptrs->d[TUP]); //TODO: remove?
 		bgq_su3_weyl_store(targetptrs->d[TUP], weyl_tup);
 		bgq_weylvec_written(targetptrs->d[TUP], t1, t2, x, y, z, TUP, true);
 	}
 
-	asm volatile ("");
-	//bgq_prefetch(&targetptrs->d[TDOWN]);
+	REORDER_BARRIER
+	bgq_prefetch(&targetptrs->d[TDOWN]); // Note: just one of these should be necessary because the complete bgq_weyl_ptr_t fits into one 64-byte cache line -- but performance is better with them; maybe they are thrown out of cache prematurely
 	bgq_su3_matrixnext_prefetch(gaugesite);
 
 	// T- /////////////////////////////////////////////////////////////////////////
@@ -104,8 +104,8 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		bgq_weylvec_written(targetptrs->d[TDOWN], t1, t2, x, y, z, TDOWN, true);
 	}
 
-	asm volatile ("");
-	//bgq_prefetch(&targetptrs->d[XUP]);
+	REORDER_BARRIER
+	bgq_prefetch(&targetptrs->d[XUP]);
 	bgq_su3_matrixnext_prefetch(gaugesite);
 
 	// X+ /////////////////////////////////////////////////////////////////////////
@@ -134,8 +134,8 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		bgq_weylvec_written(targetptrs->d[XUP], t1, t2, x,y,z,XUP, true);
 	}
 
-	asm volatile ("");
-	//bgq_prefetch(&targetptrs->d[XDOWN]);
+	REORDER_BARRIER
+	bgq_prefetch(&targetptrs->d[XDOWN]);
 	bgq_su3_matrixnext_prefetch(gaugesite);
 
 	// X- /////////////////////////////////////////////////////////////////////////
@@ -164,8 +164,8 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		bgq_weylvec_written(targetptrs->d[XDOWN], t1, t2, x,y,z,XDOWN, true);
 	}
 
-	asm volatile ("");
-	//bgq_prefetch(&targetptrs->d[YUP]);
+	REORDER_BARRIER
+	bgq_prefetch(&targetptrs->d[YUP]);
 	bgq_su3_matrixnext_prefetch(gaugesite);
 
 	// Y+ /////////////////////////////////////////////////////////////////////////
@@ -194,8 +194,8 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		bgq_weylvec_written(targetptrs->d[YUP], t1, t2, x,y,z,YUP, true);
 	}
 
-	asm volatile ("");
-	//bgq_prefetch(&targetptrs->d[YDOWN]);
+	REORDER_BARRIER
+	bgq_prefetch(&targetptrs->d[YDOWN]);
 	bgq_su3_matrixnext_prefetch(gaugesite);
 
 	// Y- /////////////////////////////////////////////////////////////////////////
@@ -224,8 +224,8 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		bgq_weylvec_written(targetptrs->d[YDOWN], t1, t2, x,y,z,YDOWN, true);
 	}
 
-	asm volatile ("");
-	//bgq_prefetch(&targetptrs->d[ZUP]);
+	REORDER_BARRIER
+	bgq_prefetch(&targetptrs->d[ZUP]);
 	bgq_su3_matrixnext_prefetch(gaugesite);
 
 	// Z+ /////////////////////////////////////////////////////////////////////////
@@ -254,8 +254,8 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		bgq_weylvec_written(targetptrs->d[ZUP], t1, t2, x,y,z,ZUP, true);
 	}
 
-	asm volatile ("");
-	//bgq_prefetch(&targetptrs->d[ZDOWN]);
+	REORDER_BARRIER
+	bgq_prefetch(&targetptrs->d[ZDOWN]);
 	BGQ_COMPUTEWEYL_INSERTPREFETCH
 
 	// Z- /////////////////////////////////////////////////////////////////////////
@@ -283,7 +283,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		bgq_su3_weyl_store(targetptrs->d[ZDOWN], weyl_zdown);
 		bgq_weylvec_written(targetptrs->d[ZDOWN], t1, t2, x,y,z,ZDOWN, true);
 	}
-	asm volatile ("");
+	REORDER_BARRIER
 }
 
 #undef BGQ_COMPUTEWEYL_INSERTPREFETCH

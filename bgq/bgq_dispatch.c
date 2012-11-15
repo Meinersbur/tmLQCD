@@ -39,6 +39,7 @@ static bool g_bgq_dispatch_pendingsync; // Accessed by master only
 
 
 static void bgq_thread_barrier() {
+	//TODO: use BGQ barrier
 #ifdef BGQ
 	uint64_t ppc32 = mfspr(SPRN_PPR32);
 	ThreadPriority_Low(); // Lower thread priority, so if busy waiting is used, do not impact other threads on core

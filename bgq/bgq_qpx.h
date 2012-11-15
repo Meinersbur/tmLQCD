@@ -1243,6 +1243,14 @@ do {\
 	bgq_su3_vmerge2(NAME2(dst,v0), NAME2(a,v0), NAME2(b,v0)); \
 	bgq_su3_vmerge2(NAME2(dst,v1), NAME2(a,v1), NAME2(b,v1))
 
+#define bgq_su3_weyl_lmerge(dst,a,b)         \
+	bgq_su3_vlmerge(NAME2(dst,v0), NAME2(a,v0), NAME2(b,v0)); \
+	bgq_su3_vlmerge(NAME2(dst,v1), NAME2(a,v1), NAME2(b,v1))
+
+#define bgq_su3_weyl_rmerge(dst,a,b)         \
+	bgq_su3_vrmerge(NAME2(dst,v0), NAME2(a,v0), NAME2(b,v0)); \
+	bgq_su3_vrmerge(NAME2(dst,v1), NAME2(a,v1), NAME2(b,v1))
+
 #define bgq_su3_vmov(dst,src)    \
 	bgq_mov(NAME2(dst,c0), NAME2(src,c0)); \
 	bgq_mov(NAME2(dst,c1), NAME2(src,c1)); \
@@ -1252,6 +1260,16 @@ do {\
 	bgq_merge2(NAME2(dst,c0), NAME2(a,c0), NAME2(b,c0)); \
 	bgq_merge2(NAME2(dst,c1), NAME2(a,c1), NAME2(b,c1)); \
 	bgq_merge2(NAME2(dst,c2), NAME2(a,c2), NAME2(b,c2))
+
+#define bgq_su3_vlmerge(dst,a,b)           \
+	bgq_lmerge(NAME2(dst,c0), NAME2(a,c0), NAME2(b,c0)); \
+	bgq_lmerge(NAME2(dst,c1), NAME2(a,c1), NAME2(b,c1)); \
+	bgq_lmerge(NAME2(dst,c2), NAME2(a,c2), NAME2(b,c2))
+
+#define bgq_su3_vrmerge(dst,a,b)           \
+	bgq_rmerge(NAME2(dst,c0), NAME2(a,c0), NAME2(b,c0)); \
+	bgq_rmerge(NAME2(dst,c1), NAME2(a,c1), NAME2(b,c1)); \
+	bgq_rmerge(NAME2(dst,c2), NAME2(a,c2), NAME2(b,c2))
 
 #define bgq_su3_mmerge(dst,a,b)               \
 	dst##_c00 = cvec_merge(a##_c00, b##_c00); \
@@ -1978,6 +1996,11 @@ static inline void mbar() {
 }
 
 #endif
+
+
+#define REORDER_BARRIER \
+	asm volatile ("");
+
 
 
 void bgq_qpx_unittest(void);

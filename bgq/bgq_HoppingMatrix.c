@@ -57,6 +57,63 @@ static void bgq_HoppingMatrix_kamul_worker_readWeyllayout(void *arg, size_t tid,
 }
 
 
+typedef struct {
+	bgq_weylfield_controlblock *field;
+} bgq_unvectorize_workload;
+
+static void bgq_HoppingMatrix_unvectorize(void *arg_untyped, size_t tid, size_t threads) {
+	bgq_unvectorize_workload *arg = arg_untyped;
+	bgq_weylfield_controlblock *field = arg->field;
+
+	assert(LOCAL_HALO_T%2==0);
+	const size_t workload_tdown = LOCAL_HALO_T/2;
+	const size_t workload_tup = LOCAL_HALO_T/2;
+	const size_t workload = workload_tdown + workload_tup;
+	const size_t threadload = (workload+threads-1)/threads;
+	const size_t begin = tid*threadload;
+	const size_t end = min_sizet(workload, begin+threadload);
+	for (size_t i = begin; i < end; i+=1) {
+		WORKLOAD_DECL(i, workload);
+
+		if (WORKLOAD_SPLIT(workload_tup)) {
+			const size_t beginj = WORKLOAD_PARAM(workload_tup);
+			const size_t endj = min_sizet(workload_tup, beginj+threadload);
+			for (size_t j = beginj; j < endj; j+=1) {
+				bgq_su3_weyl_decl(weyl1);
+				bgq_su3_weyl_load(weyl1, &g_bgq_sec_temp_tup[2*j]);
+
+				bgq_su3_weyl_decl(weyl2);
+				bgq_su3_weyl_load(weyl2, &g_bgq_sec_temp_tup[2*j+1]);
+
+				bgq_su3_weyl_decl(weyl);
+				bgq_su3_weyl_merge2(weyl, weyl1, weyl2);
+
+				bgq_su3_weyl_store(&g_bgq_sec_send[TUP][j], weyl);
+			}
+			i += (endj - beginj);
+		} else if (WORKLOAD_SPLIT(workload_tdown)) {
+			const size_t beginj = WORKLOAD_PARAM(workload_tdown);
+			const size_t endj = min_sizet(workload_tup, beginj+threadload);
+			for (size_t j = beginj; j < endj; j+=1) {
+				bgq_su3_weyl_decl(weyl1);
+				bgq_su3_weyl_load(weyl1, &g_bgq_sec_temp_tdown[2*j]);
+
+				bgq_su3_weyl_decl(weyl2);
+				bgq_su3_weyl_load(weyl2, &g_bgq_sec_temp_tdown[2*j+1]);
+
+				bgq_su3_weyl_decl(weyl);
+				bgq_su3_weyl_merge2(weyl, weyl1, weyl2);
+
+				bgq_su3_weyl_store(&g_bgq_sec_send[TDOWN][j], weyl);
+			}
+			i += (endj - beginj);
+		} else {
+			UNREACHABLE
+		}
+
+		WORKLOAD_CHECK
+	}
+}
 
 
 
@@ -166,9 +223,16 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	work_body.ic_end = bgq_body2collapsed(PHYSICAL_BODY-1)+1;
 	work_body.noprefetchstream = noprefetchstream;
 
+	static bgq_unvectorize_workload work_unvectorize;
+	work_unvectorize.field = targetfield;
+
 	// Compute surface and put data into the send buffers
 	if ((PHYSICAL_SURFACE > 0) && !nodistribute) {
 		bgq_HoppingMatrix_work(&work_surface, nokamul, readFullspinor);
+	}
+
+	if ((PHYSICAL_SURFACE > 0) && !nodatamove) {
+		bgq_master_call(&bgq_HoppingMatrix_unvectorize, &work_unvectorize);
 	}
 
 

@@ -147,7 +147,7 @@ EXTERN_FIELD size_t PHYSICAL_SURFACE;
 //#define PHYSICAL_LEXICAL2T1(isOdd,ih) (4*PHYSICAL_LEXICAL2TV(isOdd,ih) + ((PHYSICAL_LEXICAL2X(isOdd,ih)+PHYSICAL_LEXICAL2Y(isOdd,ih)+PHYSICAL_LEXICAL2Z(isOdd,ih)+isOdd)&1))
 //#define PHYSICAL_LEXICAL2T2(isOdd,ih) (PHYSICAL_LEXICAL2T1(isOdd,ih) + 2)
 
-#define PHYSICAL_HALO_T (COMM_T*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ/PHYSICAL_LP) //TODO: Remove? Interpretation not clear. With vectorization? without?
+#define PHYSICAL_HALO_T (COMM_T*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ/(PHYSICAL_LP*PHYSICAL_LK))
 #define PHYSICAL_HALO_X (COMM_X*PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ)
 #define PHYSICAL_HALO_Y (COMM_Y*PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ)
 #define PHYSICAL_HALO_Z (COMM_Z*PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LY)
@@ -346,8 +346,6 @@ typedef struct {
 } bgq_weylfield_status;
 
 typedef enum {
-	// Yes, the order is important for COMM_X==1
-
 	sec_surface,
 	sec_body,
 
@@ -387,12 +385,18 @@ typedef enum {
 	sec_recv_zdown,
 	/* END consecutive */
 
+	sec_temp_tup,
+	sec_temp_tdown,
+
+	sec_vrecv_tup,
+	sec_vrecv_tdown,
+
 	sec_end,
 
 	sec_collapsed=sec_surface,
 	sec_collapsed_end=sec_send_tup,
 	sec_comm=sec_send_tup,
-	sec_comm_end=sec_end,
+	sec_comm_end=sec_recv_zdown+1,
 	sec_send_begin=sec_send_tup,
 	sec_send_end=sec_send_zdown+1,
 	sec_recv_begin=sec_recv_tup,
@@ -553,6 +557,8 @@ typedef struct {
 	bgq_weyl_vec **consptr_recvtdown;
 	bgq_weyl_vec **destptrFromRecv;
 
+	//bgq_weyl_vec **sendptr_tup;
+	//bgq_weyl_vec **sendptr_tdown;
 } bgq_weylfield_controlblock;
 
 // Index translations
@@ -1099,13 +1105,19 @@ EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
 
 		size_t secsize;
 		switch (sec) {
+		case sec_temp_tup:
+		case sec_temp_tdown:
+			secsize = LOCAL_HALO_T * sizeof(bgq_weyl_vec)/PHYSICAL_LP;
+			break;
 		case sec_send_tup:
 		case sec_send_tdown:
-			secsize = LOCAL_HALO_T * sizeof(bgq_weyl_vec)/PHYSICAL_LP;
+			//secsize = LOCAL_HALO_T * sizeof(bgq_weyl_vec)/PHYSICAL_LP;
+			secsize = COMM_T*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ;
 			break;
 		case sec_recv_tup:
 		case sec_recv_tdown:
-			secsize = COMM_T * LOCAL_HALO_T * sizeof(bgq_weyl_vec)/PHYSICAL_LP;
+			//secsize = COMM_T * LOCAL_HALO_T * sizeof(bgq_weyl_vec)/PHYSICAL_LP;
+			secsize = COMM_T*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ;
 			break;
 		case sec_send_xup:
 		case sec_send_xdown:
