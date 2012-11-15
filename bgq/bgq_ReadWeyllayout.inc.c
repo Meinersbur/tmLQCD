@@ -15,6 +15,11 @@
 
 void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weylsite, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z)
 #endif
+
+#ifndef BGQ_READWEYLLAYOUT_INSERTPREFETCH
+#define BGQ_READWEYLLAYOUT_INSERTPREFETCH
+#endif
+
 {
 
 	bgq_su3_weylnext_prefetch(weylsite);
@@ -115,7 +120,7 @@ void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weyl
 		bgq_su3_accum_weyl_zup(spinor, weylnext_zup);
 	}
 
-	//bgq_su3_weylnext_prefetch(weylsite);
+	BGQ_READWEYLLAYOUT_INSERTPREFETCH
 
 	// Z- /////////////////////////////////////////////////////////////////////////
 	{
@@ -131,4 +136,5 @@ void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weyl
 
 }
 
+#undef BGQ_READWEYLLAYOUT_INSERTPREFETCH
 #undef BGQ_READWEYLLAYOUT_INC_

@@ -1659,6 +1659,29 @@ do { \
 	bgq_prefetch((char*)(addr) + 192 +  64);
 #endif
 
+
+#define bgq_su3_weylnextnext_prefetch NAME2(bgq_su3_weylnext_prefetch,PRECISION)
+#if BGQ_QPX
+#define bgq_su3_weylnextnext_prefetch_double(addr)     \
+	do {                             \
+		void *ptr = (addr);          \
+		asm (                        \
+			"dcbt   %[c0],%[ptr]  \n" \
+			"dcbt  %[c64],%[ptr]  \n" \
+			"dcbt %[c128],%[ptr]  \n" \
+			: : [ptr] "r" (ptr),       \
+			    [c0] "b" (2*192+0),     \
+			   [c64] "b" (2*192+64),    \
+			  [c128] "b" (2*192+128)    \
+		);                            \
+	} while (0)
+#else
+#define bgq_su3_weylnext_prefetch_double(addr)      \
+	bgq_prefetch((char*)(addr) + 2*192 +   0);    \
+	bgq_prefetch((char*)(addr) + 2*192 +  64);    \
+	bgq_prefetch((char*)(addr) + 2*192 + 128)
+#endif
+
 #define bgq_su3_weyl_prefetch_float(addr)      \
 	bgq_prefetch((char*)(addr) +   0);    \
 	bgq_prefetch((char*)(addr) +  64) /* half a cacheline */

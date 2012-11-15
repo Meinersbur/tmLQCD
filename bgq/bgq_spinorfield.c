@@ -693,7 +693,7 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		field->sec_body = (bgq_weylsite*) (weylbase + bgq_weyl_section_offset(sec_body));
 		field->sec_end = weylbase + bgq_weyl_section_offset(sec_end);
 
-		field->sendptr = malloc(PHYSICAL_VOLUME * sizeof(*field->sendptr));
+		field->sendptr = malloc_aligned(PHYSICAL_VOLUME * sizeof(*field->sendptr), BGQ_ALIGNMENT_L2);
 		field->destptrFromHalfvolume = malloc(PHYSICAL_VOLUME * sizeof(*field->destptrFromHalfvolume));
 		field->destptrFromSurface = malloc(PHYSICAL_SURFACE * sizeof(*field->destptrFromSurface));
 		field->destptrFromBody = malloc(PHYSICAL_BODY * sizeof(*field->destptrFromBody));
@@ -702,11 +702,11 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		size_t offset_begin = bgq_weyl_section_offset(sec_recv_xup);
 		size_t offset_end = bgq_weyl_section_offset(sec_recv_zdown + 1);
 		size_t weylCount = (offset_end - offset_begin) / sizeof(bgq_weyl_vec);
-		field->destptrFromRecv = malloc(weylCount * sizeof(bgq_weyl_vec*));
+		field->destptrFromRecv = malloc_aligned(weylCount * sizeof(bgq_weyl_vec*), BGQ_ALIGNMENT_L2);
 
 		weylCount = bgq_section_size(sec_send_tup) / sizeof(bgq_weyl_vec);
-		field->consptr_recvtdown = malloc(weylCount * sizeof(*field->consptr_recvtdown));
-		field->consptr_recvtup = malloc(weylCount * sizeof(*field->consptr_recvtup));
+		field->consptr_recvtdown = malloc_aligned(weylCount * sizeof(*field->consptr_recvtdown), BGQ_ALIGNMENT_L2);
+		field->consptr_recvtup = malloc_aligned(weylCount * sizeof(*field->consptr_recvtup), BGQ_ALIGNMENT_L2);
 	}
 
 	if (actionInitWeylPtrs) {

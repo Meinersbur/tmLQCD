@@ -102,26 +102,26 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 		bgq_su3_spinor_decl(spinor);
 
 		if (readFulllayout) {
+			bgq_su3_matrix_prefetch(gaugesite);
 			bgq_spinorsite *spinorsite = &spinorfield->sec_fullspinor[ic];
 			assert(spinorsite->s[1][0][0]!=0);
 			//bgq_su3_spinor_prefetch_double(&spinorfield->sec_fullspinor[ic+1]); // TODO: This prefetch is too early
 			bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
 			//bgq_su3_spinor_valgen(spinor);
+
+			#define BGQ_COMPUTEWEYL_INC_ 1
+			#define BGQ_COMPUTEWEYL_INSERTPREFETCH bgq_su3_spinor_prefetch(weylsite);
+			#include "bgq_ComputeWeyl.inc.c"
 		} else {
 			#define BGQ_READWEYLLAYOUT_INC_ 1
+			#define BGQ_READWEYLLAYOUT_INSERTPREFETCH bgq_su3_matrix_prefetch(gaugesite);
 			#include "bgq_ReadWeyllayout.inc.c"
-		}
-		bgq_su3_matrixnext_prefetch(gaugesite); // TODO: too late
 
-		if (kamul) {
 			#define BGQ_COMPUTEWEYL_INC_ 1
-			#define KAMUL 1
-			#include "bgq_ComputeWeyl.inc.c"
-		} else {
-			#define BGQ_COMPUTEWEYL_INC_ 1
-			#define KAMUL 0
+			#define BGQ_COMPUTEWEYL_INSERTPREFETCH bgq_su3_weyl_prefetch(weylsite);
 			#include "bgq_ComputeWeyl.inc.c"
 		}
+
 
 		//bgq_su3_weylnext_prefetch_double(weylsite); //TODO: too late
 	}
