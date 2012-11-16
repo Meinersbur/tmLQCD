@@ -51,7 +51,7 @@ static bgq_weylfield_section bgq_HoppingMatrix_init_source_sectionof_local(size_
 	}
 
 	// Stay within the local lattice, determine whether the target is on the surface
-	bgq_direction_move_local(&t,&x,&y,&z,d);
+	bgq_direction_move_local(&t, &x, &y, &z, d);
 	bool isSurface = bgq_local2isSurface(t, x, y, z);
 	return isSurface ? sec_surface : sec_body;
 }
@@ -354,10 +354,10 @@ void bgq_indices_init() {
 	assert(g_comm_x == (g_nb_x_up != g_proc_id));
 	assert(g_comm_y == (g_nb_y_up != g_proc_id));
 	assert(g_comm_z == (g_nb_z_up != g_proc_id));
-	g_comm_t = true;
-	g_comm_x = true;
-	g_comm_y = true;
-	g_comm_z = true;
+	//g_comm_t = true;
+	//g_comm_x = true;
+	//g_comm_y = true;
+	//g_comm_z = true;
 	g_bgq_dimension_isDistributed[DIM_T] = g_comm_t;
 	g_bgq_dimension_isDistributed[DIM_X] = g_comm_x;
 	g_bgq_dimension_isDistributed[DIM_Y] = g_comm_y;
@@ -515,7 +515,10 @@ void bgq_indices_init() {
 				nextoffset[mainsec_dst] += sizeof(bgq_weyl_vec);
 				assert(bgq_collapsed2consecutiveoffset(ic_dst, d_dst) == offset_main);
 
-				ucoord index_main = bgq_offset2index(offset_main) ;
+				ucoord index_main = bgq_offset2index(offset_main);
+				if (ic_dst == 60) {
+					int a = 0;
+				}
 				g_bgq_index2collapsed[isOdd_dst][index_main] = ic_dst;
 				assert(bgq_sectionOfOffset(offset_main) == mainsec_dst);
 
@@ -528,6 +531,9 @@ void bgq_indices_init() {
 
 					ucoord index_write = bgq_offset2index(offset_write);
 					g_bgq_collapsed2indexsend[isOdd_dst][ic_src/*!!!*/].d[d_dst] = index_write;
+					if (ic_dst == 60) {
+						int a = 0;
+					}
 					g_bgq_index2collapsed[isOdd_dst][index_write] = ic_dst;
 
 #if 0

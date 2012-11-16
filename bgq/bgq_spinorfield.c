@@ -353,7 +353,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtup_unvectorized(bgq_we
 
 static inline void bgq_HoppingMatrix_worker_datamove_recvtdown(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
 	assert(COMM_T);
-	assert(BGQ_UNVECTORIZE);
+
 	if (!noprefetchstream) {
 		bgq_prefetch_forward(&g_bgq_sec_recv[TDOWN][beginj]);
 		bgq_prefetch_forward(&g_bgq_sec_send[TUP][beginj]);
@@ -366,8 +366,8 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtdown(bgq_weylfield_con
 		ucoord index_left = bgq_offset2index(offset_left);
 		size_t offset_right = bgq_pointer2offset(spinorfield, &g_bgq_sec_send[TUP][j]);
 		ucoord index_right = bgq_offset2index(offset_right);
-		ucoord ic_left = g_bgq_index2collapsed[isOdd][index_left];
-		ucoord ic_right = g_bgq_index2collapsed[isOdd][index_right];
+		ucoord ic_left = bgq_index2collapsed(isOdd, index_left, -1);
+		ucoord ic_right = bgq_index2collapsed(isOdd, index_right, -1);
 		assert(ic_left == ic_right);
 		ucoord ic = ic_left;
 		ucoord t1 = bgq_collapsed2t(isOdd, ic_left, 0);
@@ -395,12 +395,12 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtdown(bgq_weylfield_con
 		bgq_su3_weyl_decl(weyl_left);
 		bgq_su3_weyl_load_double(weyl_left, weyladdr_left);
 		bgq_weylqpxk_expect(weyl_left, 1, t1, x, y, z, d1, false);
-		assert(bgq_elem2(weyl_left_v0_c0)!=0); // for valgrind
+		//assert(bgq_elem2(weyl_left_v0_c0)!=0); // for valgrind
 
 		bgq_su3_weyl_decl(weyl_right);
 		bgq_su3_weyl_load_double(weyl_right, weyladdr_right);
 		bgq_weylqpxk_expect(weyl_right, 0, t2, x, y, z, d2, false);
-		assert(bgq_elem0(weyl_right_v0_c0)!=0);// for valgrind
+		//assert(bgq_elem0(weyl_right_v0_c0)!=0);// for valgrind
 
 		bgq_su3_weyl_decl(weyl);
 		bgq_su3_weyl_merge2(weyl, weyl_left, weyl_right);
@@ -1459,7 +1459,7 @@ size_t bgq_fieldpointer2offset(void *ptr) {
 		for (bgq_weylfield_section sec = 0; sec < sec_end; sec+=1) {
 			size_t secsize = bgq_section_size(sec);
 			bgq_weyl_vec *baseptr = bgq_section_baseptr(field, sec);
-			if ((uint8_t*)baseptr <= (uint8_t*)ptr && (uint8_t*)ptr < (uint8_t*)baseptr+secsize) {
+			if (baseptr && ((uint8_t*)baseptr <= (uint8_t*)ptr) && ((uint8_t*)ptr < (uint8_t*)baseptr+secsize)) {
 				size_t baseoffset = bgq_weyl_section_offset(sec);
 				size_t result = baseoffset + ((uint8_t*)ptr - (uint8_t*)baseptr);
 				assert(result%sizeof(bgq_weyl_vec)==0);
@@ -1547,6 +1547,6 @@ bgq_weyl_vec *bgq_section_baseptr(bgq_weylfield_controlblock *field, bgq_weylfie
 		UNREACHABLE
 	}
 
-	assert(result);
+	//assert(result);
 	return result;
 }
