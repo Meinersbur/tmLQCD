@@ -95,7 +95,7 @@ static void bgq_gaugefield_worker_transferfrom(void *arg_untyped, size_t tid, si
 			size_t x_src = bgq_halfvolume2x(ih_src);
 			size_t y_src = bgq_halfvolume2y(ih_src);
 			size_t z_src = bgq_halfvolume2z(ih_src);
-			bool isSurface = bgq_halfvolume2isSurface(isOdd_src, ih_src);
+			//bool isSurface = bgq_halfvolume2isSurface(isOdd_src, ih_src);
 
 			for (size_t d_src = 0; d_src < PHYSICAL_LD; d_src += 1) {
 				bgq_dimension dim = bgq_direction2dimension(d_src);
@@ -145,10 +145,10 @@ static void bgq_gaugefield_worker_transferfrom(void *arg_untyped, size_t tid, si
 				for (size_t i = 0; i < 3; i += 1) {
 					for (size_t l = 0; l < 3; l += 1) {
 						COMPLEX_PRECISION val = m->c[i][l];
-						g_bgq_gaugefield_fromCollapsed[isOdd][ic_src].su3[d_src].c[i][l][k_src] = val;
+						g_bgq_gaugefield_fromCollapsed[isOdd][ic_src].su3[d_dst].c[i][l][k_src] = val;
 					}
 				}
-				bgq_gaugeveck_written(&g_bgq_gaugefield_fromCollapsed[isOdd][ic_src].su3[d_src], k_src, t_src, x_src, y_src, z_src, d_src, true);
+				bgq_gaugeveck_written(&g_bgq_gaugefield_fromCollapsed[isOdd][ic_src].su3[d_dst], k_src, t_src, x_src, y_src, z_src, d_dst, true);
 			}
 		}
 	}

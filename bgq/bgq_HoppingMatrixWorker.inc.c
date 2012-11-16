@@ -49,14 +49,14 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 
 	if (true || readFulllayout) {
 	for (ucoord ic = begin; ic<end; ic+=1) {
-		//TODO: Check optaway
+#ifndef NDEBUG
 		ucoord ih = bgq_collapsed2halfvolume(isOdd,ic);
 		ucoord t1 = bgq_halfvolume2t1(isOdd,ih);
 		ucoord t2 = bgq_halfvolume2t2(isOdd,ih);
 		ucoord x = bgq_halfvolume2x(ih);
 		ucoord y = bgq_halfvolume2y(ih);
 		ucoord z = bgq_halfvolume2z(ih);
-
+#endif
 #if 0
 		bgq_weyl_ptr_t destptrsx = {
 				&targetfield->sec_collapsed[begin].d[TUP],
@@ -104,7 +104,7 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 		if (readFulllayout) {
 			bgq_su3_matrix_prefetch(gaugesite);
 			bgq_spinorsite *spinorsite = &spinorfield->sec_fullspinor[ic];
-			assert(spinorsite->s[1][0][0]!=0);
+			//assert(spinorsite->s[1][0][0]!=0);
 			//bgq_su3_spinor_prefetch_double(&spinorfield->sec_fullspinor[ic+1]); // TODO: This prefetch is too early
 			bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
 			//bgq_su3_spinor_valgen(spinor);

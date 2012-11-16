@@ -1694,7 +1694,7 @@ do { \
 		);                            \
 	} while (0)
 #else
-#define bgq_su3_weylnext_prefetch_double(addr)      \
+#define bgq_su3_weylnextnext_prefetch_double(addr)      \
 	bgq_prefetch((char*)(addr) + 2*192 +   0);    \
 	bgq_prefetch((char*)(addr) + 2*192 +  64);    \
 	bgq_prefetch((char*)(addr) + 2*192 + 128)

@@ -147,10 +147,10 @@ EXTERN_FIELD size_t PHYSICAL_SURFACE;
 //#define PHYSICAL_LEXICAL2T1(isOdd,ih) (4*PHYSICAL_LEXICAL2TV(isOdd,ih) + ((PHYSICAL_LEXICAL2X(isOdd,ih)+PHYSICAL_LEXICAL2Y(isOdd,ih)+PHYSICAL_LEXICAL2Z(isOdd,ih)+isOdd)&1))
 //#define PHYSICAL_LEXICAL2T2(isOdd,ih) (PHYSICAL_LEXICAL2T1(isOdd,ih) + 2)
 
-#define PHYSICAL_HALO_T (COMM_T*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ/(PHYSICAL_LP*PHYSICAL_LK))
-#define PHYSICAL_HALO_X (COMM_X*PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ)
-#define PHYSICAL_HALO_Y (COMM_Y*PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ)
-#define PHYSICAL_HALO_Z (COMM_Z*PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LY)
+//#define PHYSICAL_HALO_T (COMM_T*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ/(PHYSICAL_LP*PHYSICAL_LK))
+#define PHYSICAL_HALO_X (HALO_X*PHYSICAL_LTV*PHYSICAL_LY*PHYSICAL_LZ)
+#define PHYSICAL_HALO_Y (HALO_Y*PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LZ)
+#define PHYSICAL_HALO_Z (HALO_Z*PHYSICAL_LTV*PHYSICAL_LX*PHYSICAL_LY)
 
 
 #if 0
@@ -349,21 +349,9 @@ typedef enum {
 	sec_surface,
 	sec_body,
 
-	// k==0
 	/* BEGIN consecutive */
-	//sec_send_tup,
-	//sec_recv_tup,
-	/* END consecutive */
-
-	// k==1
-	/* BEGIN consecutive */
-	//sec_recv_tdown,
-	//sec_send_tdown,
-	/* END consecutive */
-
 	sec_send_tup,
 	sec_send_tdown,
-	/* BEGIN consecutive */
 	sec_send_xup,
 	sec_send_xdown,
 	sec_send_yup,
@@ -372,11 +360,9 @@ typedef enum {
 	sec_send_zdown,
 	/* END consecutive */
 
-	// Recv sections are unused without inter-node communication
-	// However, keep the here in order not to break code
+	/* BEGIN consecutive */
 	sec_recv_tup,
 	sec_recv_tdown,
-	/* BEGIN consecutive */
 	sec_recv_xup,
 	sec_recv_xdown,
 	sec_recv_yup,
@@ -532,9 +518,9 @@ typedef struct {
 	bool hasFullspinorData;
 
 	uint8_t *sec_weyl;
-	bgq_weyl_vec *sec_index; // obsolete
-	bgq_weyl_vec *sec_send[PHYSICAL_LD]; // obsolete
-	bgq_weyl_vec *sec_recv[PHYSICAL_LD]; // obsolete
+	//bgq_weyl_vec *sec_index; // obsolete
+	//bgq_weyl_vec *sec_send[PHYSICAL_LD]; // obsolete
+	//bgq_weyl_vec *sec_recv[PHYSICAL_LD]; // obsolete
 	bgq_weylsite *sec_collapsed;
 	bgq_weylsite *sec_surface;
 	bgq_weylsite *sec_body;
@@ -547,15 +533,12 @@ typedef struct {
 	//TODO: We may even interleave these with the data itself, but may cause alignment issues
 	// Idea: sizeof(bgq_weyl_ptr_t)==10*8==80, so one bgq_weyl_ptr_t every 2(5;10) spinors solves the issue
 	// In case we write as fullspinor layout, the are not needed
-	bgq_weyl_ptr_t *destptrFromHalfvolume; // obsolete
-	bgq_weyl_ptr_t *destptrFromSurface; // obsolete
-	bgq_weyl_ptr_t *destptrFromBody; // obsolete
 	bgq_weyl_ptr_t *sendptr;
+	bgq_weyl_vec **consptr[PHYSICAL_LD];
 
-
-	bgq_weyl_vec **consptr_recvtup;
-	bgq_weyl_vec **consptr_recvtdown;
-	bgq_weyl_vec **destptrFromRecv;
+	//bgq_weyl_vec **consptr_recvtup;
+	//bgq_weyl_vec **consptr_recvtdown;
+	//bgq_weyl_vec **destptrFromRecv;
 
 	//bgq_weyl_vec **sendptr_tup;
 	//bgq_weyl_vec **sendptr_tdown;
@@ -565,31 +548,14 @@ typedef struct {
 EXTERN_FIELD size_t *g_bgq_collapsed2halfvolume[PHYSICAL_LP];
 EXTERN_FIELD size_t *g_bgq_halfvolume2collapsed[PHYSICAL_LP];
 
-EXTERN_FIELD size_t *g_bgq_index_surface2halfvolume[PHYSICAL_LP]; // deprecated
-EXTERN_FIELD size_t *g_bgq_index_body2halfvolume[PHYSICAL_LP];// deprecated
-EXTERN_FIELD size_t *g_bgq_index_halfvolume2surface[PHYSICAL_LP];// deprecated // -1 if not surface
-EXTERN_FIELD size_t *g_bgq_index_halfvolume2body[PHYSICAL_LP]; // deprecated// -1 if not body
-EXTERN_FIELD size_t *g_bgq_index_halfvolume2surfacebody[PHYSICAL_LP];// deprecated
-//EXTERN_FIELD size_t *g_bgq_index_ordered2halfvolume[PHYSICAL_LP];
 
 // Mapping of dst weyls to memory offsets
 EXTERN_FIELD size_t *g_bgq_index2collapsed[PHYSICAL_LP];
 //EXTERN_FIELD bgq_direction *g_bgq_index2d[PHYSICAL_LP];
-EXTERN_FIELD bgq_weyl_offsets_t *g_bgq_collapsed2indexrecv[PHYSICAL_LP];
+//EXTERN_FIELD bgq_weyl_offsets_t *g_bgq_collapsed2indexrecv[PHYSICAL_LP]; // obsolete
 EXTERN_FIELD bgq_weyl_offsets_t *g_bgq_collapsed2indexsend[PHYSICAL_LP];
 
-EXTERN_FIELD bgq_weyl_offsets_t *g_bgq_ih_dst2offset[PHYSICAL_LP]; // deprecated
-EXTERN_FIELD bgq_weyl_offsets_t *g_bgq_is_dst2offset[PHYSICAL_LP]; // deprecated
-EXTERN_FIELD bgq_weyl_offsets_t *g_bgq_ib_dst2offset[PHYSICAL_LP]; // deprecated
-EXTERN_FIELD size_t *g_bgq_index2ih_dst[PHYSICAL_LP]; // deprecated
-EXTERN_FIELD bgq_direction *g_bgq_index2d_dst[PHYSICAL_LP]; // deprecated
 
-// Offsets of weyl when going into the corresponding direction
-EXTERN_FIELD bgq_weyl_offsets_t *g_bgq_ihsrc2offsetwrite[PHYSICAL_LP];// deprecated
-EXTERN_FIELD bgq_weyl_offsets_t *g_bgq_issrc2offsetwrite[PHYSICAL_LP];// deprecated
-EXTERN_FIELD bgq_weyl_offsets_t *g_bgq_ibsrc2offsetwrite[PHYSICAL_LP];// deprecated
-EXTERN_FIELD size_t *g_bgq_index2ih_src[PHYSICAL_LP];// deprecated
-EXTERN_FIELD bgq_direction *g_bgq_index2d_src[PHYSICAL_LP];// deprecated
 
 
 // The gaugefield as GAUGE_COPY
@@ -821,11 +787,7 @@ EXTERN_INLINE ucoord bgq_halfvolume2t(bool isOdd, ucoord ih, ucoord k) {
 	ucoord t = bgq_physical2t(isOdd, tv, x,y,z,k);
 	return t;
 }
-EXTERN_INLINE bool bgq_halfvolume2isSurface(bool isOdd, size_t ih) {
-	assert(g_bgq_indices_initialized);
-	assert(0 <= ih && ih < PHYSICAL_VOLUME);
-	return g_bgq_index_halfvolume2surface[isOdd][ih] != (size_t)-1;
-}
+#if 0
 EXTERN_INLINE size_t bgq_halfvolume2surface(bool isOdd, size_t ih) {
 	assert(g_bgq_indices_initialized);
 	assert(0 <= ih && ih < PHYSICAL_VOLUME);
@@ -857,7 +819,7 @@ EXTERN_INLINE size_t bgq_physical2surface(bool isOdd, size_t tv, size_t x, size_
 	assert(0 <= is && is < PHYSICAL_SURFACE);
 	return is;
 }
-
+#endif
 EXTERN_INLINE size_t bgq_halfvolume2volume(bool isOdd, size_t ih, size_t k) {
 	assert(0 <= ih && ih < PHYSICAL_VOLUME);
 	assert(0 <= k && k < PHYSICAL_LK);
@@ -927,7 +889,12 @@ EXTERN_INLINE bool bgq_collapsed2isSurface(size_t ic) {
 	assert(0 <= ic && ic < PHYSICAL_VOLUME);
 	return ic < PHYSICAL_SURFACE;
 }
-
+EXTERN_INLINE bool bgq_halfvolume2isSurface(bool isOdd, size_t ih) {
+	assert(g_bgq_indices_initialized);
+	assert(0 <= ih && ih < PHYSICAL_VOLUME);
+	ucoord ic = bgq_halfvolume2collapsed(isOdd,ih);
+	return bgq_collapsed2isSurface(ic);
+}
 EXTERN_INLINE size_t bgq_collapsed2halfvolume(bool isOdd, size_t ic) {
 	assert(g_bgq_indices_initialized);
 	assert(0 <= ic && ic < PHYSICAL_VOLUME);
@@ -1094,6 +1061,7 @@ EXTERN_INLINE bgq_weylfield_section bgq_direction2section(bgq_direction d, bool 
 }
 
 
+
 EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
 	assert(g_bgq_indices_initialized);
 	size_t result = 0;
@@ -1107,35 +1075,47 @@ EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
 		switch (sec) {
 		case sec_temp_tup:
 		case sec_temp_tdown:
-			secsize = LOCAL_HALO_T * sizeof(bgq_weyl_vec)/PHYSICAL_LP;
+			if (BGQ_UNVECTORIZE || !COMM_T) {
+				secsize = LOCAL_HALO_T/PHYSICAL_LP * sizeof(bgq_weyl_vec);
+			} else {
+				secsize = 0;
+			}
 			break;
 		case sec_send_tup:
 		case sec_send_tdown:
-			//secsize = LOCAL_HALO_T * sizeof(bgq_weyl_vec)/PHYSICAL_LP;
-			secsize = COMM_T*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ;
-			break;
 		case sec_recv_tup:
 		case sec_recv_tdown:
-			//secsize = COMM_T * LOCAL_HALO_T * sizeof(bgq_weyl_vec)/PHYSICAL_LP;
-			secsize = COMM_T*PHYSICAL_LX*PHYSICAL_LY*PHYSICAL_LZ;
+			if (COMM_T) {
+				if (BGQ_UNVECTORIZE) {
+					secsize = LOCAL_HALO_T/PHYSICAL_LP * sizeof(bgq_weyl_vec);
+				} else {
+					secsize = LOCAL_HALO_T/(PHYSICAL_LP*PHYSICAL_LK) * sizeof(bgq_weyl_vec);
+				}
+			} else {
+				secsize = 0;
+			}
+			break;
+		case sec_vrecv_tdown:
+		case sec_vrecv_tup:
+			secsize = 0;
 			break;
 		case sec_send_xup:
 		case sec_send_xdown:
 		case sec_recv_xup:
 		case sec_recv_xdown:
-			secsize = COMM_X * PHYSICAL_HALO_X * sizeof(bgq_weyl_vec);
+			secsize = PHYSICAL_HALO_X * sizeof(bgq_weyl_vec);
 			break;
 		case sec_send_yup:
 		case sec_send_ydown:
 		case sec_recv_yup:
 		case sec_recv_ydown:
-			secsize = COMM_Y * PHYSICAL_HALO_Y * sizeof(bgq_weyl_vec);
+			secsize = PHYSICAL_HALO_Y * sizeof(bgq_weyl_vec);
 			break;
 		case sec_send_zup:
 		case sec_send_zdown:
 		case sec_recv_zup:
 		case sec_recv_zdown:
-			secsize = COMM_Z * PHYSICAL_HALO_Z * sizeof(bgq_weyl_vec);
+			secsize = PHYSICAL_HALO_Z * sizeof(bgq_weyl_vec);
 			break;
 		case sec_surface:
 			secsize = PHYSICAL_SURFACE * sizeof(bgq_weylsite);
@@ -1194,7 +1174,7 @@ EXTERN_INLINE size_t bgq_decode_offset(uint32_t code) { assert(code+1);
 EXTERN_INLINE size_t bgq_weyllayout_collapsed2consecutiveoffset(bool isOdd, ucoord ic, bgq_direction d) {
 	return bgq_weyl_section_offset(sec_collapsed) + ic*sizeof(bgq_weylsite) + d*sizeof(bgq_weyl_vec);
 }
-size_t bgq_weyllayout_halfvolume2consecutiveoffset(bool isOdd_dst, size_t ih_dst, bgq_direction d_dst);
+//size_t bgq_weyllayout_halfvolume2consecutiveoffset(bool isOdd_dst, size_t ih_dst, bgq_direction d_dst);
 bgq_direction bgq_offset2ddst(size_t offset);
 bgq_direction bgq_offset2dsrc(size_t offset);
 size_t bgq_src2ih_dst(size_t t_src, size_t x_src, size_t y_src, size_t z_src, bgq_direction d_src);
@@ -1331,8 +1311,135 @@ EXTERN_INLINE ucoord bgq_collapsed_src2dst(bool isOdd_src, ucoord ic_src, bgq_di
 }
 
 
+EXTERN_INLINE ucoord bgq_halfvolume_dst2src(bool isOdd_dst, ucoord ih_dst, bgq_direction d_dst) {
+	assert(0 <= ih_dst && ih_dst < PHYSICAL_VOLUME);
+	ucoord tv_dst = bgq_halfvolume2tv(ih_dst);
+	ucoord x_dst = bgq_halfvolume2x(ih_dst);
+	ucoord y_dst = bgq_halfvolume2y(ih_dst);
+	ucoord z_dst = bgq_halfvolume2z(ih_dst);
+
+	ucoord tv_src = tv_dst;
+	ucoord x_src = x_dst;
+	ucoord y_src = y_dst;
+	ucoord z_src = z_dst;
+	bgq_direction_move_physical(isOdd_dst, &tv_src, &x_src, &y_src, &z_src, d_dst);
+	ucoord ih_src = bgq_physical2halfvolume(tv_src, x_src, y_src, z_src);
+	return ih_src;
+}
+
+
+EXTERN_INLINE ucoord bgq_collapsed_dst2src(bool isOdd_dst, ucoord ic_dst, bgq_direction d_dst) {
+	assert(0 <= ic_dst && ic_dst < PHYSICAL_VOLUME);
+	bool isOdd_src = !isOdd_dst;
+	ucoord ih_dst = bgq_collapsed2halfvolume(isOdd_dst, ic_dst);
+	ucoord ih_src = bgq_halfvolume_dst2src(isOdd_dst, ih_dst, d_dst);
+	return bgq_halfvolume2collapsed(isOdd_src, ih_src);
+}
+
 
 size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr) ;
+
+EXTERN_INLINE size_t bgq_collapsed2consecutiveoffset(ucoord ic, bgq_direction d) {
+	assert(0 <= ic && ic < PHYSICAL_VOLUME);
+	return bgq_weyl_section_offset(sec_collapsed) + ic*sizeof(bgq_weylsite) + d*sizeof(bgq_weyl_vec);
+}
+
+
+typedef enum {
+	seckind_recv,
+	seckind_send,
+	seckind_write
+} bgq_section_kind;
+EXTERN_INLINE bgq_weylfield_section bgq_section_commbuftran(bgq_weylfield_section sec, bgq_section_kind kind) {
+	bool isSendSide = (kind!=seckind_recv);
+	switch (sec) {
+	case sec_send_tup:
+	case sec_temp_tup:
+	case sec_recv_tdown:
+	case sec_vrecv_tdown:
+		switch (kind) {
+		case seckind_recv:
+			return sec_recv_tdown;
+		case seckind_send:
+			return sec_send_tup;
+		case seckind_write:
+			if (BGQ_UNVECTORIZE || !COMM_T)
+				return sec_temp_tup;
+			else
+				return sec_send_tup;
+		}
+	case sec_send_tdown:
+	case sec_temp_tdown:
+	case sec_recv_tup:
+	case sec_vrecv_tup:
+		switch (kind) {
+		case seckind_recv:
+			return sec_recv_tup;
+		case seckind_send:
+			return sec_send_tdown;
+		case seckind_write:
+			if (BGQ_UNVECTORIZE || !COMM_T)
+				return sec_temp_tdown;
+			else
+				return sec_send_tdown;
+		}
+		return isSendSide ? sec_send_tdown : sec_recv_tup;
+	case sec_send_xup:
+	case sec_recv_xdown:
+		return isSendSide ? sec_send_xup : sec_recv_xdown;
+	case sec_send_xdown:
+	case sec_recv_xup:
+		return isSendSide ? sec_send_xdown : sec_recv_xup;
+	case sec_send_yup:
+	case sec_recv_ydown:
+		return isSendSide ? sec_send_yup : sec_recv_ydown;
+	case sec_send_ydown:
+	case sec_recv_yup:
+		return isSendSide ? sec_send_ydown : sec_recv_yup;
+	case sec_send_zup:
+	case sec_recv_zdown:
+		return isSendSide ? sec_send_zup : sec_recv_zdown;
+	case sec_send_zdown:
+	case sec_recv_zup:
+		return isSendSide ? sec_send_zdown : sec_recv_zup;
+	default:
+		// No communication to other node, stay in buffer
+		return sec;
+	}
+}
+
+
+
+EXTERN_INLINE ucoord bgq_index2collapsed(bool isOdd, ucoord index, ucoord k) {
+	size_t offset = bgq_index2offset(index);
+	bgq_weylfield_section sec = bgq_sectionOfOffset(offset);
+	size_t baseoffset = bgq_weyl_section_offset(sec);
+	ucoord baseindex = bgq_offset2index(baseoffset);
+	ucoord relindex = index - baseindex;
+	bgq_weylfield_section sec_write = bgq_section_commbuftran(sec, seckind_write);
+
+	if (BGQ_UNVECTORIZE && COMM_T) {
+		if (sec==sec_send_tup || sec==sec_send_tdown || sec==sec_recv_tup || sec==sec_recv_tdown) {
+			// difficult case: unvectorized buffer
+			if (k<0 || k>1) {
+				assert(!"There are multiple ic's at this location");
+			}
+			relindex = relindex * PHYSICAL_LK + k; assert(sec_write==sec_temp_tdown || sec_write==sec_temp_tup);
+		}
+	}
+
+	size_t baseoffset_write = bgq_weyl_section_offset(sec_write);
+	ucoord baseindex_write = bgq_offset2index(baseoffset_write);
+	ucoord index_write = baseindex_write + relindex;
+	return g_bgq_index2collapsed[isOdd][index_write];
+}
+
+
+EXTERN_INLINE ucoord bgq_offset2collapsed(bool isOdd, size_t offset, ucoord k) {
+	return bgq_index2collapsed(isOdd, bgq_offset2index(offset),k);
+}
+
+
 
 
 EXTERN_FIELD size_t g_bgq_spinorfields_count;

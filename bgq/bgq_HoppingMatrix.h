@@ -79,10 +79,11 @@ EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_tdown_raw(bgq_su3_spinor_par
 	bgq_su3_spinor_mov(*target, result);
 }
 
+
 #define bgq_HoppingMatrix_loadWeyllayout(target, spinorsite, t1, t2, x,y,z) bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_vars(&target), spinorsite, t1, t2, x, y, z)
 EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_params(* restrict target), bgq_weylsite * restrict spinorsite, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z) {
 	bgq_su3_spinor_decl(result);
-
+//TODO: Use bgq_ReadWeyllayout.inc.c
 	//bgq_su3_weyl_prefetch_double(&spinorsite->d[TDOWN]);
 
 	// T+ //////////////////////////////////////////////////////////////////////////
@@ -154,8 +155,8 @@ EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_params(* 
 	{
 		bgq_su3_weyl_decl(weyl_ydown);
 		bgq_su3_weyl_load_double(weyl_ydown, &spinorsite->d[YDOWN]);
-		//bgq_su3_weyl_valgen(weyl_ydown);
-		assert(bgq_cmplxval1(weyl_ydown_v1_c0)!=0);
+				//bgq_su3_weyl_valgen(weyl_ydown);
+				//assert(bgq_cmplxval1(weyl_ydown_v1_c0)!=0);
 		bgq_weylqpx_expect(weyl_ydown, t1, t2, x, y, z, YDOWN, false);
 		bgq_su3_accum_weyl_ydown(result, weyl_ydown);
 			bgq_setdesc(BGQREF_YDOWN_ACCUM, "BGQREF_YDOWN_ACCUM");
@@ -170,15 +171,15 @@ EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_params(* 
 		bgq_su3_weyl_decl(weyl_zup);
 		bgq_su3_weyl_load_double(weyl_zup, &spinorsite->d[ZUP]);
 		//bgq_su3_weyl_valgen(weyl_zup);
-		assert(bgq_cmplxval1(weyl_zup_v1_c0)!=0);
-		bgq_weylqpx_expect(weyl_zup, t1, t2, x, y, z, ZUP, false);
-			bgq_setdesc(BGQREF_ZUP_RECV, "BGQREF_ZUP_RECV");
-			bgq_setbgqvalue(t1, x, y, z, BGQREF_ZUP_RECV, bgq_cmplxval1(weyl_zup_v1_c0));
-			bgq_setbgqvalue(t2, x, y, z, BGQREF_ZUP_RECV, bgq_cmplxval2(weyl_zup_v1_c0));
+		//assert(bgq_cmplxval1(weyl_zup_v1_c0)!=0);
+				bgq_weylqpx_expect(weyl_zup, t1, t2, x, y, z, ZUP, false);
+				bgq_setdesc(BGQREF_ZUP_RECV, "BGQREF_ZUP_RECV");
+				bgq_setbgqvalue(t1, x, y, z, BGQREF_ZUP_RECV, bgq_cmplxval1(weyl_zup_v1_c0));
+				bgq_setbgqvalue(t2, x, y, z, BGQREF_ZUP_RECV, bgq_cmplxval2(weyl_zup_v1_c0));
 		bgq_su3_accum_weyl_zup(result, weyl_zup);
-			bgq_setdesc(BGQREF_ZUP_ACCUM, "BGQREF_ZUP_ACCUM");
-			bgq_setbgqvalue(t1, x, y, z, BGQREF_ZUP_ACCUM, bgq_cmplxval1(result_v1_c0));
-			bgq_setbgqvalue(t2, x, y, z, BGQREF_ZUP_ACCUM, bgq_cmplxval2(result_v1_c0));
+				bgq_setdesc(BGQREF_ZUP_ACCUM, "BGQREF_ZUP_ACCUM");
+				bgq_setbgqvalue(t1, x, y, z, BGQREF_ZUP_ACCUM, bgq_cmplxval1(result_v1_c0));
+				bgq_setbgqvalue(t2, x, y, z, BGQREF_ZUP_ACCUM, bgq_cmplxval2(result_v1_c0));
 	}
 
 	//bgq_su3_weyl_prefetch_double(&spinorsite->d[TUP]);
@@ -206,6 +207,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_storeFulllayout_raw(bgq_spinorsite *targetp
 }
 
 
+#if 0
 EXTERN_INLINE void bgq_HoppingMatrix_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, bgq_su3_spinor_params(spinor)) {
 	//TODO: prefetch targetptrs
 
@@ -265,8 +267,9 @@ EXTERN_INLINE void bgq_HoppingMatrix_storeWeyllayout_raw(bgq_weyl_ptr_t *targetp
 		bgq_su3_weyl_store_double(targetptrs->d[ZDOWN], weyl_zdown);
 	}
 }
+#endif
 
-
+#if 0
 #define bgq_HoppingMatrix_compute_storeWeyllayout_tup(targetptrs,gaugesite,spinor,t1,t2,x,y,z,qka0,qka1,qka2,qka3,kamul) bgq_HoppingMatrix_compute_storeWeyllayout_tup_raw(targetptrs,gaugesite,bgq_su3_spinor_vars(spinor),t1,t2,x,y,z,bgq_vars(qka0),bgq_vars(qka1),bgq_vars(qka2),bgq_vars(qka3),kamul)
 EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_tup_raw(bgq_weyl_ptr_t * restrict targetptrs, bgq_gaugesite * restrict gaugesite, bgq_su3_spinor_params(spinor), ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_params(qka0), bgq_params(qka1),bgq_params(qka2),bgq_params(qka3), bool kamul) {
 	bgq_su3_weyl_decl(weyl_tup);
@@ -500,8 +503,9 @@ EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_alldir_raw(bgq_weyl
 	//bgq_prefetch(&targetptrs->d[TUP]);
 	bgq_HoppingMatrix_compute_storeWeyllayout_zdown(targetptrs, gaugesite, spinor, t1, t2, x, y, z, qka0,qka1,qka2,qka3,kamul);
 }
+#endif
 
-
+#if 0
 #define bgq_HoppingMatrix_compute_storeWeyllayout(targetptrs,gaugesite,spinor,t1,t2,x,y,z,kamul) bgq_HoppingMatrix_compute_storeWeyllayout_raw(targetptrs,gaugesite,bgq_su3_spinor_vars(spinor),t1,t2,x,y,z,kamul)
 EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, bgq_gaugesite *gaugesite, bgq_su3_spinor_params(spinor), ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bool kamul)
 {
@@ -715,7 +719,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t 
 		bgq_weylvec_written(targetptrs->d[ZDOWN], t1, t2, x,y,z,ZDOWN, true);
 	}
 }
-
+#endif
 
 
 typedef struct {

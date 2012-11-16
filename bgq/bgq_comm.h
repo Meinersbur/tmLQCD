@@ -29,9 +29,9 @@ EXTERN_FIELD bgq_weyl_vec *g_bgq_sec_send[PHYSICAL_LD];
 
 EXTERN_FIELD bgq_weyl_vec *g_bgq_sec_temp_tup;
 EXTERN_FIELD bgq_weyl_vec *g_bgq_sec_temp_tdown;
-
 //EXTERN_FIELD bgq_weyl_vec *g_bgq_sec_vrecv_tup;
 //EXTERN_FIELD bgq_weyl_vec *g_bgq_sec_vrecv_tdown;
+
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

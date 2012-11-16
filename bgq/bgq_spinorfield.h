@@ -57,8 +57,8 @@ EXTERN_INLINE bgq_weyl_vec bgq_weyl_fromqpx_raw(bgq_su3_weyl_params(weyl)) {
 }
 
 
-#define bgq_weyl_fromqpxk(arg,k) bgq_weyl_fromqpxk_raw(bgq_su3_weyl_vars(arg),k)
-EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_fromqpxk_raw(bgq_su3_weyl_params(weyl),ucoord k) {
+#define bgq_weyl_fromqpxk(arg,k) bgq_weyl_fromqpxk_raw(bgq_su3_weyl_vars(arg), k)
+EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_fromqpxk_raw(bgq_su3_weyl_params(weyl), ucoord k) {
 	bgq_weyl_nonvec result;
 	result.s[0][0] = bgq_cmplxval(weyl_v0_c0,k);
 	result.s[0][1] = bgq_cmplxval(weyl_v0_c1,k);
@@ -202,11 +202,11 @@ EXTERN_INLINE void bgq_weylqpx_expect_raw(bgq_su3_weyl_params(weyl), ucoord t1, 
 #ifdef BGQ_COORDCHECK
 #define bgq_weylqpxk_expect(weyl,k,t,x,y,z,d,isSrc) bgq_weylqpxk_expect_raw(bgq_su3_weyl_vars(weyl),k,t,x,y,z,d,isSrc)
 #else
-#define bgq_weylqpxk_expect(weyl,k,t,x,y,z,d,isSrc)
+#define bgq_weylqpxk_expect(weyl, k, t, x, y, z, d, isSrc)
 #endif
 EXTERN_INLINE void bgq_weylqpxk_expect_raw(bgq_su3_weyl_params(weyl), ucoord k, ucoord t,  ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 #ifdef BGQ_COORDCHECK
-	bgq_weyl_expect(bgq_weyl_fromqpxk(weyl,k),t,x,y,z,d,isSrc);
+	bgq_weyl_expect(bgq_weyl_fromqpxk(weyl, k), t, x, y, z, d, isSrc);
 #endif
 }
 
@@ -343,6 +343,8 @@ void bgq_setbgqvalue_src_impl(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direct
 void bgq_savebgqref_impl();
 
 size_t bgq_fieldpointer2offset(void *ptr);
+bgq_weyl_vec* bgq_section_baseptr(bgq_weylfield_controlblock *field, bgq_weylfield_section section);
+
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

@@ -34,8 +34,8 @@
 
 
 #ifdef __GNUC__
-//#pragma GCC diagnostic ignored "-Wunused-variable"
-//#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 //#pragma GCC diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic error "-Wimplicit-int"
 #pragma GCC diagnostic error "-Wimplicit-function-declaration"
@@ -180,7 +180,7 @@ if (xyz_counter==0) { \
 	 xyz_torig = xyz_total,               \
 	 xyz_total = xyz_param,  			  \
 	 xyz_counter = xyz_orig / (xyz_torig/xyz_param),          \
-	 mod(xyz_orig, (xyz_torig/xyz_param)))
+	 (xyz_orig % (xyz_torig/xyz_param)))
 /*
  xyz_orig	xyz			return
  0			0			0
@@ -204,7 +204,7 @@ if (xyz_counter==0) { \
 		 xyz_orig = xyz_counter,                           \
 		 xyz_torig = xyz_total,                    \
 		 xyz_total = TILES,     				   \
-		 xyz_counter = mod(xyz_orig, (xyz_torig / xyz_param)), \
+		 xyz_counter = (xyz_orig % (xyz_torig / xyz_param)), \
 		 xyz_orig / (xyz_torig / xyz_param))
 /*
  xyz_orig	xyz	(=TILE)	return
@@ -229,7 +229,7 @@ if (xyz_counter==0) { \
 	 xyz_orig = xyz_counter,                           \
 	 xyz_torig = xyz_total,                    \
 	 xyz_total = xyz_torig / xyz_param,        \
-	 xyz_counter = mod(xyz_orig, xyz_total),               \
+	 xyz_counter = (xyz_orig % xyz_total),               \
 	 xyz_orig / xyz_total)
 /*
  xyz_orig	xyz			return (=CHUNK)

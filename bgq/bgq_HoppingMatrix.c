@@ -58,35 +58,61 @@ static void bgq_HoppingMatrix_kamul_worker_readWeyllayout(void *arg, size_t tid,
 
 
 typedef struct {
+	bool isOdd;
 	bgq_weylfield_controlblock *field;
 } bgq_unvectorize_workload;
 
 static void bgq_HoppingMatrix_unvectorize(void *arg_untyped, size_t tid, size_t threads) {
+	assert(BGQ_UNVECTORIZE);
+	assert(COMM_T);
 	bgq_unvectorize_workload *arg = arg_untyped;
+	bool isOdd = arg->isOdd;
 	bgq_weylfield_controlblock *field = arg->field;
 
-	assert(LOCAL_HALO_T%2==0);
-	const size_t workload_tdown = LOCAL_HALO_T/2;
-	const size_t workload_tup = LOCAL_HALO_T/2;
+	const size_t workload_tdown = LOCAL_HALO_T/(PHYSICAL_LP*PHYSICAL_LK);
+	const size_t workload_tup = workload_tdown;
 	const size_t workload = workload_tdown + workload_tup;
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = tid*threadload;
 	const size_t end = min_sizet(workload, begin+threadload);
-	for (size_t i = begin; i < end; i+=1) {
+	for (size_t i = begin; i < end; ) {
 		WORKLOAD_DECL(i, workload);
 
 		if (WORKLOAD_SPLIT(workload_tup)) {
 			const size_t beginj = WORKLOAD_PARAM(workload_tup);
 			const size_t endj = min_sizet(workload_tup, beginj+threadload);
 			for (size_t j = beginj; j < endj; j+=1) {
+#ifndef NDEBUG
+				size_t offset1 = bgq_pointer2offset(field, &g_bgq_sec_temp_tup[2*j]);
+				ucoord index1 = bgq_offset2index(offset1);
+				ucoord ic1 = bgq_index2collapsed(isOdd, index1, 0);
+				ucoord ih1 = bgq_collapsed2halfvolume(isOdd, ic1);
+				ucoord t1 = bgq_halfvolume2t(isOdd, ih1, 0);
+				ucoord x1 = bgq_halfvolume2x(ih1);
+				ucoord y1 = bgq_halfvolume2y(ih1);
+				ucoord z1 = bgq_halfvolume2z(ih1);
+				size_t offset2 = bgq_pointer2offset(field, &g_bgq_sec_temp_tup[2*j+1]);
+				ucoord index2 = bgq_offset2index(offset2);
+				ucoord ic2 = bgq_index2collapsed(isOdd, index2, 0);
+				ucoord ih2 = bgq_collapsed2halfvolume(isOdd, ic2);
+				ucoord t2 = bgq_halfvolume2t(isOdd, ih2, 0);
+				ucoord x2 = bgq_halfvolume2x(ih2);
+				ucoord y2 = bgq_halfvolume2y(ih2);
+				ucoord z2 = bgq_halfvolume2z(ih2);
+#endif
+
 				bgq_su3_weyl_decl(weyl1);
 				bgq_su3_weyl_load(weyl1, &g_bgq_sec_temp_tup[2*j]);
+						bgq_weylqpxk_expect(weyl1, 1, t1, x1, y1, z1, TDOWN, false);
 
 				bgq_su3_weyl_decl(weyl2);
 				bgq_su3_weyl_load(weyl2, &g_bgq_sec_temp_tup[2*j+1]);
+						bgq_weylqpxk_expect(weyl2, 1, t2, x2, y2, z2, TDOWN, false);
 
 				bgq_su3_weyl_decl(weyl);
-				bgq_su3_weyl_merge2(weyl, weyl1, weyl2);
+				bgq_su3_weyl_rmerge(weyl, weyl1, weyl2);
+						bgq_weylqpxk_expect(weyl, 0, t1, x1, y1, z1, TDOWN, false);
+						bgq_weylqpxk_expect(weyl, 1, t2, x2, y2, z2, TDOWN, false);
 
 				bgq_su3_weyl_store(&g_bgq_sec_send[TUP][j], weyl);
 			}
@@ -95,14 +121,37 @@ static void bgq_HoppingMatrix_unvectorize(void *arg_untyped, size_t tid, size_t 
 			const size_t beginj = WORKLOAD_PARAM(workload_tdown);
 			const size_t endj = min_sizet(workload_tup, beginj+threadload);
 			for (size_t j = beginj; j < endj; j+=1) {
+#ifndef NDEBUG
+				size_t offset1 = bgq_pointer2offset(field, &g_bgq_sec_temp_tdown[2*j]);
+				ucoord index1 = bgq_offset2index(offset1);
+				ucoord ic1 = bgq_index2collapsed(isOdd, index1, 0);
+				ucoord ih1 = bgq_collapsed2halfvolume(isOdd, ic1);
+				ucoord t1 = bgq_halfvolume2t(isOdd, ih1, 1);
+				ucoord x1 = bgq_halfvolume2x(ih1);
+				ucoord y1 = bgq_halfvolume2y(ih1);
+				ucoord z1 = bgq_halfvolume2z(ih1);
+				size_t offset2 = bgq_pointer2offset(field, &g_bgq_sec_temp_tdown[2*j+1]);
+				ucoord index2 = bgq_offset2index(offset2);
+				ucoord ic2 = bgq_index2collapsed(isOdd, index2, 0);
+				ucoord ih2 = bgq_collapsed2halfvolume(isOdd, ic2);
+				ucoord t2 = bgq_halfvolume2t(isOdd, ih2, 1);
+				ucoord x2 = bgq_halfvolume2x(ih2);
+				ucoord y2 = bgq_halfvolume2y(ih2);
+				ucoord z2 = bgq_halfvolume2z(ih2);
+#endif
+
 				bgq_su3_weyl_decl(weyl1);
 				bgq_su3_weyl_load(weyl1, &g_bgq_sec_temp_tdown[2*j]);
+						bgq_weylqpxk_expect(weyl1, 0, t1, x1, y1, z1, TUP, false);
 
 				bgq_su3_weyl_decl(weyl2);
 				bgq_su3_weyl_load(weyl2, &g_bgq_sec_temp_tdown[2*j+1]);
+						bgq_weylqpxk_expect(weyl2, 0, t2, x2, y2, z2, TUP, false);
 
 				bgq_su3_weyl_decl(weyl);
-				bgq_su3_weyl_merge2(weyl, weyl1, weyl2);
+				bgq_su3_weyl_lmerge(weyl, weyl1, weyl2);
+						bgq_weylqpxk_expect(weyl, 0, t1, x1, y1, z1, TUP, false);
+						bgq_weylqpxk_expect(weyl, 1, t2, x2, y2, z2, TUP, false);
 
 				bgq_su3_weyl_store(&g_bgq_sec_send[TDOWN][j], weyl);
 			}
@@ -114,7 +163,6 @@ static void bgq_HoppingMatrix_unvectorize(void *arg_untyped, size_t tid, size_t 
 		WORKLOAD_CHECK
 	}
 }
-
 
 
 void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work, bool nokamul, bool readFulllayout) {
@@ -215,35 +263,40 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	}
 
 	static bgq_HoppingMatrix_workload work_body;
-	work_body.isOdd_src = !isOdd;
-	work_body.isOdd_dst = isOdd;
-	work_body.targetfield = targetfield;
-	work_body.spinorfield = spinorfield;
-	work_body.ic_begin = bgq_body2collapsed(0);
-	work_body.ic_end = bgq_body2collapsed(PHYSICAL_BODY-1)+1;
-	work_body.noprefetchstream = noprefetchstream;
-
-	static bgq_unvectorize_workload work_unvectorize;
-	work_unvectorize.field = targetfield;
+	if (PHYSICAL_BODY > 0) {
+		work_body.isOdd_src = !isOdd;
+		work_body.isOdd_dst = isOdd;
+		work_body.targetfield = targetfield;
+		work_body.spinorfield = spinorfield;
+		work_body.ic_begin = bgq_body2collapsed(0);
+		work_body.ic_end = bgq_body2collapsed(PHYSICAL_BODY-1)+1;
+		work_body.noprefetchstream = noprefetchstream;
+	}
 
 	// Compute surface and put data into the send buffers
 	if ((PHYSICAL_SURFACE > 0) && !nodistribute) {
 		bgq_HoppingMatrix_work(&work_surface, nokamul, readFullspinor);
 	}
 
-	if ((PHYSICAL_SURFACE > 0) && !nodatamove) {
+
+	if (BGQ_UNVECTORIZE && COMM_T && !nodatamove) {
+		bgq_master_sync();
+		static bgq_unvectorize_workload work_unvectorize;
+		work_unvectorize.isOdd = isOdd;
+		work_unvectorize.field = targetfield;
 		bgq_master_call(&bgq_HoppingMatrix_unvectorize, &work_unvectorize);
 	}
 
 
+
 // 2. Start communication
-	if (!nocomm) {
+	if ((PHYSICAL_SURFACE > 0) && !nocomm) {
 		bgq_master_sync(); // Wait for threads to finish surface before sending it
 		//TODO: ensure there are no other communications pending
 		bgq_comm_send(nospi);
 		targetfield->waitingForRecv = true;
 	}
-	if (!nodatamove) {
+	if ((PHYSICAL_SURFACE > 0) && !nodatamove) {
 		targetfield->pendingDatamove = true;
 	}
 	targetfield->hmflags = opts;
@@ -255,7 +308,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 
 
 // 3. Compute the body
-	if (!nobody) {
+	if ((PHYSICAL_BODY > 0) && !nobody) {
 		bgq_HoppingMatrix_work(&work_body, nokamul, readFullspinor);
 		if (!COMM_T && !nodatamove) {
 			// Copy the data from HALO_T into the required locations

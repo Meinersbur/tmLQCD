@@ -295,7 +295,7 @@ static void bgq_comm_common_init(void) {
 		bgq_dimension dim = bgq_direction2dimension(d);
 
 		bgq_weylfield_section sec_send = bgq_direction2section(d, true);
-		bgq_weylfield_section sec_recv = bgq_direction2section(d, !bgq_dimension_isDistributed(dim));
+		bgq_weylfield_section sec_recv = bgq_direction2section(d, false);
 
 		g_bgq_sec_send[d] = (bgq_weyl_vec*)(buf + bgq_weyl_section_offset(sec_send) - bgq_weyl_section_offset(sec_comm));
 		assert((uint8_t*)g_bgq_sec_send[d] <= bufend);
@@ -307,10 +307,12 @@ static void bgq_comm_common_init(void) {
 		assert((uintptr_t)g_bgq_sec_recv[d] % BGQ_ALIGNMENT_L2 == 0);
 	}
 
-	g_bgq_sec_temp_tup = malloc_aligned(PHYSICAL_HALO_T,BGQ_ALIGNMENT_L2);
-	g_bgq_sec_temp_tdown = malloc_aligned(PHYSICAL_HALO_T,BGQ_ALIGNMENT_L2);
-	//g_bgq_sec_vrecv_tup = malloc_aligned(PHYSICAL_HALO_T,BGQ_ALIGNMENT_L2);
-	//g_bgq_sec_vrecv_tdown = malloc_aligned(PHYSICAL_HALO_T,BGQ_ALIGNMENT_L2);
+	if (BGQ_UNVECTORIZE || !COMM_T) {
+		g_bgq_sec_temp_tup = malloc_aligned(LOCAL_HALO_T/PHYSICAL_LP *sizeof(bgq_weyl_vec),BGQ_ALIGNMENT_L2);
+		g_bgq_sec_temp_tdown = malloc_aligned(LOCAL_HALO_T/PHYSICAL_LP *sizeof(bgq_weyl_vec),BGQ_ALIGNMENT_L2);
+		//g_bgq_sec_vrecv_tup = malloc_aligned(PHYSICAL_HALO_T,BGQ_ALIGNMENT_L2);
+		//g_bgq_sec_vrecv_tdown = malloc_aligned(PHYSICAL_HALO_T,BGQ_ALIGNMENT_L2);
+	}
 }
 
 
