@@ -176,8 +176,11 @@ EXTERN_INLINE void bgq_spinorvec_expect(bgq_spinor_vec spinor, scoord t1, scoord
 }
 
 
-
+#ifdef BGQ_COORDCHECK
 #define bgq_spinorqpx_expect(spinor,t_left,t_right,x,y,z) bgq_spinorqpx_expect_raw(bgq_su3_spinor_vars(spinor),t_left,t_right,x,y,z)
+#else
+#define bgq_spinorqpx_expect(spinor,t_left,t_right,x,y,z)
+#endif
 EXTERN_INLINE void bgq_spinorqpx_expect_raw(bgq_su3_spinor_params(spinor),scoord t_left,scoord t_right,scoord x,scoord y,scoord z) {
 #ifdef BGQ_COORDCHECK
 	bgq_spinor_expect(bgq_spinor_fromqpx(spinor,0),t_left,x,y,z);

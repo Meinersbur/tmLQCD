@@ -106,8 +106,10 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 			bgq_spinorsite *spinorsite = &spinorfield->sec_fullspinor[ic];
 			//assert(spinorsite->s[1][0][0]!=0);
 			//bgq_su3_spinor_prefetch_double(&spinorfield->sec_fullspinor[ic+1]); // TODO: This prefetch is too early
-			bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
+			//bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);
 			//bgq_su3_spinor_valgen(spinor);
+			bgq_su3_spinor_load(spinor, spinorsite);
+					bgq_spinorqpx_expect(spinor, t1, t2, x, y, z);
 
 			#define BGQ_COMPUTEWEYL_INC_ 1
 			#define BGQ_COMPUTEWEYL_INSERTPREFETCH bgq_su3_spinor_prefetch(weylsite);

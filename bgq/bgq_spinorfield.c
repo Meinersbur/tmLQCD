@@ -117,7 +117,7 @@ void bgq_weyl_expect(bgq_weyl_nonvec weyl, ucoord t, ucoord x, ucoord y, ucoord 
 
 static inline void bgq_HoppingMatrix_worker_datamove_recvxyz(bgq_weylfield_controlblock *spinorfield, bgq_direction d, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
 	if (!noprefetchstream) {
-		bgq_prefetch_forward(&spinorfield->sec_recv[d][beginj]);
+		bgq_prefetch_forward(&g_bgq_sec_recv[d][beginj]);
 		bgq_prefetch_forward(&spinorfield->consptr[d][beginj]);
 	}
 
@@ -191,7 +191,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtup(bgq_weylfield_contr
 		bgq_weyl_vec *weyladdr_right = &g_bgq_sec_recv[TUP][j];
 		bgq_weyl_vec *weyladdr_dst = spinorfield->consptr[TUP][j];
 
-		bgq_prefetch(&spinorfield->consptr_recvtup[j+1]);
+		bgq_prefetch(&spinorfield->consptr[TUP][j+1]);
 		bgq_su3_weyl_prefetch_double(&g_bgq_sec_send[TDOWN][j+1]);
 		bgq_su3_weyl_prefetch_double(&g_bgq_sec_recv[TUP][j+1]);
 
@@ -267,7 +267,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtup_unvectorized(bgq_we
 			bgq_weyl_vec *weyladdr_left = &g_bgq_sec_temp_tdown[j];
 			bgq_weyl_vec *weyladdr_dst = spinorfield->consptr[TUP][j];
 
-			bgq_prefetch(&spinorfield->consptr_recvtup[j+1]);
+			bgq_prefetch(&spinorfield->consptr[TUP][j+1]);
 			bgq_su3_weyl_prefetch_double(&g_bgq_sec_recv[TUP][j+1]);
 
 			bgq_su3_weyl_decl(weyl_left);
@@ -388,7 +388,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtdown(bgq_weylfield_con
 		bgq_weyl_vec *weyladdr_right = &g_bgq_sec_send[TUP][j];
 		bgq_weyl_vec *weyladdr_dst = spinorfield->consptr[TDOWN][j];
 
-		bgq_prefetch(&spinorfield->consptr_recvtdown[j+1]);
+		bgq_prefetch(&spinorfield->consptr[TDOWN][j+1]);
 		bgq_su3_weyl_prefetch_double(&g_bgq_sec_recv[TDOWN][j+1]);
 		bgq_su3_weyl_prefetch_double(&g_bgq_sec_send[TUP][j+1]);
 
@@ -599,7 +599,7 @@ static inline void bgq_HoppingMatrix_worker_datamovet_recvtup(bgq_weylfield_cont
 		bgq_weyl_vec *weyladdr_dst = spinorfield->consptr[TUP][j];
 		assert(weyladdr_dst);
 
-		bgq_prefetch(&spinorfield->consptr_recvtup[j+1]);
+		bgq_prefetch(&spinorfield->consptr[TUP][j+1]);
 		bgq_su3_weyl_prefetch_double(&g_bgq_sec_temp_tdown[j+1]);
 
 		bgq_su3_weyl_decl(weyl_before);
