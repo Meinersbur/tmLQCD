@@ -96,7 +96,7 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 		};
 		bgq_weyl_ptr_t * restrict destptrs = &destptrsx;
 #else
-		bgq_weyl_ptr_t * restrict targetptrs = &targetfield->sendptr[ic];
+		bgq_weyl_ptr_t * restrict targetptrs = &targetfield->BGQ_SENDPTR[ic];
 #endif
 
 		//TODO: prefetching

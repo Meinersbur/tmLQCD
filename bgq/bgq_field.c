@@ -250,7 +250,7 @@ bgq_direction bgq_offset2ddst(size_t offset) {
 		return ZUP;
 	case sec_surface:
 	case sec_body: {
-		size_t index = (offset - bgq_weyl_section_offset(sec_surface)) / sizeof(bgq_weyl_vec);
+		size_t index = (offset - bgq_weyl_section_offset(sec_surface)) / sizeof(bgq_weyl_vec_double);
 		return index % PHYSICAL_LD;
 	}
 	default:
@@ -458,9 +458,9 @@ void bgq_indices_init() {
 	// Setup mapping of weyl to some memory offset
 	// (where to read a datum for hoppingmatrix)
 	// Note: although we arrange data ordered as in ih_dst, the field contains data ih_src
-	assert(bgq_weyl_section_offset(sec_end) % sizeof(bgq_weyl_vec) == 0);
+	assert(bgq_weyl_section_offset(sec_end) % sizeof(bgq_weyl_vec_double) == 0);
 	for (size_t isOdd = false; isOdd <= true; isOdd += 1) {
-		size_t indices = bgq_weyl_section_offset(sec_end) / sizeof(bgq_weyl_vec);
+		size_t indices = bgq_weyl_section_offset(sec_end) / sizeof(bgq_weyl_vec_double);
 		g_bgq_index2collapsed[isOdd] = malloc(indices * sizeof(*g_bgq_index2collapsed[isOdd]));
 		//g_bgq_collapsed2indexrecv[isOdd] = malloc(PHYSICAL_VOLUME * sizeof(*g_bgq_collapsed2indexsend[isOdd]));
 		g_bgq_collapsed2indexsend[isOdd] = malloc(PHYSICAL_VOLUME * sizeof(*g_bgq_collapsed2indexsend[isOdd]));
@@ -512,7 +512,7 @@ void bgq_indices_init() {
 
 				// Reserve some offset in surface/body to ensure consecutive layout
 				size_t offset_main = nextoffset[mainsec_dst];
-				nextoffset[mainsec_dst] += sizeof(bgq_weyl_vec);
+				nextoffset[mainsec_dst] += sizeof(bgq_weyl_vec_double);
 				assert(bgq_collapsed2consecutiveoffset(ic_dst, d_dst) == offset_main);
 
 				ucoord index_main = bgq_offset2index(offset_main);
@@ -527,7 +527,7 @@ void bgq_indices_init() {
 					assert((sec_write!=sec_surface) && (sec_write!=sec_body));
 
 					size_t offset_write = nextoffset[sec_write];
-					nextoffset[sec_write] += sizeof(bgq_weyl_vec);
+					nextoffset[sec_write] += sizeof(bgq_weyl_vec_double);
 
 					ucoord index_write = bgq_offset2index(offset_write);
 					g_bgq_collapsed2indexsend[isOdd_dst][ic_src/*!!!*/].d[d_dst] = index_write;
@@ -706,11 +706,11 @@ void bgq_spinorfields_init(size_t std_count, size_t chi_count) {
 size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr) {
 	for (bgq_weylfield_section sec = 0; sec < sec_end; sec+=1) {
 		size_t secsize = bgq_section_size(sec);
-		bgq_weyl_vec *baseptr = bgq_section_baseptr(field, sec);
+		bgq_weyl_vec_double *baseptr = bgq_section_baseptr_double(field, sec);
 		if ((uint8_t*)baseptr <= (uint8_t*)ptr && (uint8_t*)ptr < (uint8_t*)baseptr+secsize) {
 			size_t baseoffset = bgq_weyl_section_offset(sec);
 			size_t result = baseoffset + ((uint8_t*)ptr - (uint8_t*)baseptr);
-			assert(result%sizeof(bgq_weyl_vec)==0);
+			assert(result%sizeof(bgq_weyl_vec_double)==0);
 			assert(result < bgq_weyl_section_offset(sec_end));
 			return result;
 		}

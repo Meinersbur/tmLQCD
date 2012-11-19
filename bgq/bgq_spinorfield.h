@@ -39,8 +39,8 @@ typedef struct {
 } bgq_weyl_nonvec;
 
 #define bgq_weyl_fromqpx(arg) bgq_weyl_fromqpx_raw(bgq_su3_weyl_vars(arg))
-EXTERN_INLINE bgq_weyl_vec bgq_weyl_fromqpx_raw(bgq_su3_weyl_params(weyl)) {
-	bgq_weyl_vec result;
+EXTERN_INLINE bgq_weyl_vec_double bgq_weyl_fromqpx_raw(bgq_su3_weyl_params(weyl)) {
+	bgq_weyl_vec_double result;
 	result.s[0][0][0] = bgq_cmplxval1(weyl_v0_c0);
 	result.s[0][0][1] = bgq_cmplxval2(weyl_v0_c0);
 	result.s[0][1][0] = bgq_cmplxval1(weyl_v0_c1);
@@ -71,7 +71,7 @@ EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_fromqpxk_raw(bgq_su3_weyl_params(weyl), u
 
 
 
-EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_extractvec(bgq_weyl_vec weylvec, size_t k) {
+EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_extractvec(bgq_weyl_vec_double weylvec, size_t k) {
 	assert(0 <= k && k < PHYSICAL_LK);
 	bgq_weyl_nonvec result;
 	for (size_t v = 0; v < 2; v+=1) {
@@ -121,7 +121,7 @@ EXTERN_INLINE bgq_spinor bgq_spinor_fromvec(bgq_spinor_vec_double spinorvec, uco
 
 #define bgq_weyl_extractfromqpxvec(weyl, k) bgq_weyl_extractfromqpxvec_raw(bgq_su3_weyl_vars(weyl),k)
 EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_extractfromqpxvec_raw(bgq_su3_weyl_params(weyl), size_t k) {
-	bgq_weyl_vec vec = bgq_weyl_fromqpx(weyl);
+	bgq_weyl_vec_double vec = bgq_weyl_fromqpx(weyl);
 	return bgq_weyl_extractvec(vec,k);
 }
 
@@ -231,7 +231,7 @@ EXTERN_INLINE void bgq_weylqpxk_expect_raw(bgq_su3_weyl_params(weyl), ucoord k, 
 #endif
 
 
-EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_fromvec(bgq_weyl_vec weylvec, ucoord k) {
+EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_fromvec(bgq_weyl_vec_double weylvec, ucoord k) {
 	assert(0 <= k && k < PHYSICAL_LK);
 	bgq_weyl_nonvec result;
 	for (size_t v = 0; v < 2; v += 1) {
@@ -245,7 +245,7 @@ EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_fromvec(bgq_weyl_vec weylvec, ucoord k) {
 
 void bgq_weyl_expect(bgq_weyl_nonvec weyl, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
 
-EXTERN_INLINE void bgq_weylvec_expect(bgq_weyl_vec weyl, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
+EXTERN_INLINE void bgq_weylvec_expect(bgq_weyl_vec_double weyl, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 #ifdef BGQ_COORDCHECK
 	bgq_weyl_expect(bgq_weyl_fromvec(weyl, 0), t1, x, y, z, d, isSrc);
 	bgq_weyl_expect(bgq_weyl_fromvec(weyl, 1), t2, x, y, z, d, isSrc);
@@ -257,7 +257,7 @@ EXTERN_INLINE void bgq_weylvec_expect(bgq_weyl_vec weyl, ucoord t1, ucoord t2, u
 bgq_spinor bgq_legacy_getspinor(spinor *spinor, ucoord t, ucoord x, ucoord y, ucoord z);
 bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, size_t t, size_t x, size_t y, size_t z) ;
 
-void bgq_weylveck_written(bgq_weyl_vec *targetweyl, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
+void bgq_weylveck_written(bgq_weyl_vec_double *targetweyl, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
 
 
 #ifdef BGQ_COORDCHECK
@@ -265,7 +265,7 @@ void bgq_weylveck_written(bgq_weyl_vec *targetweyl, ucoord k, ucoord t, ucoord x
 #else
 #define bgq_weylvec_written(targetweyl, t1, t2, x, y, z, d, isSrc)
 #endif
-EXTERN_INLINE void bgq_weylvec_written_impl(bgq_weyl_vec *targetweyl, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
+EXTERN_INLINE void bgq_weylvec_written_impl(bgq_weyl_vec_double *targetweyl, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 	bgq_weylveck_written(targetweyl, 0, t1, x,y,z,d,isSrc);
 	bgq_weylveck_written(targetweyl, 1, t2, x,y,z,d,isSrc);
 }
@@ -348,7 +348,8 @@ void bgq_setbgqvalue_src_impl(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direct
 void bgq_savebgqref_impl();
 
 size_t bgq_fieldpointer2offset(void *ptr);
-bgq_weyl_vec* bgq_section_baseptr(bgq_weylfield_controlblock *field, bgq_weylfield_section section);
+bgq_weyl_vec_double *bgq_section_baseptr_double(bgq_weylfield_controlblock *field, bgq_weylfield_section section);
+bgq_weyl_vec_float *bgq_section_baseptr_float(bgq_weylfield_controlblock *field, bgq_weylfield_section section);
 
 
 typedef enum {

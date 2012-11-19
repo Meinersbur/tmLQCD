@@ -8,17 +8,19 @@
 #include "bgq_workers.h"
 
 #include "bgq_spinorfield.h"
+#include "bgq_field.h"
 #include "bgq_comm.h"
 #include "bgq_qpx.h"
 #include "bgq_utils.h"
-
-
 
 #ifndef BGQ_WORKERS_INC_
 #define PRECISION double
 #undef bgq_HoppingMatrix_unvectorize
 #undef bgq_HoppingMatrix_worker_datamove
+#undef bgq_HoppingMatrix_datamovet_worker
 #endif
+
+
 
 void bgq_HoppingMatrix_unvectorize(void *arg_untyped, size_t tid, size_t threads) {
 	assert(BGQ_UNVECTORIZE);
@@ -148,7 +150,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvxyz(bgq_weylfield_contr
 		//TODO: Prefetch
 		//TODO: Inline assembler
 		bgq_weyl_vec *weyladdr_src = &g_bgq_sec_recv[d][j];
-		bgq_weyl_vec *weyladdr_dst = spinorfield->consptr[d][j];
+		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[d][j];
 		assert((bgq_weyl_vec *)spinorfield->sec_weyl <= weyladdr_dst && weyladdr_dst < (bgq_weyl_vec *)spinorfield->sec_end);
 
 		bgq_prefetch(&spinorfield->consptr[d][j+1]);
@@ -206,7 +208,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtup_unvectorized(bgq_we
 			//TODO: Inline assembler
 			//TODO: Is reading just the 16 used bytes faster?
 			bgq_weyl_vec *weyladdr_left = &g_bgq_sec_temp_tdown[j];
-			bgq_weyl_vec *weyladdr_dst = spinorfield->consptr[TUP][j];
+			bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TUP][j];
 
 			bgq_prefetch(&spinorfield->consptr[TUP][j+1]);
 			bgq_su3_weyl_prefetch(&g_bgq_sec_recv[TUP][j+1]);
@@ -260,7 +262,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtup_unvectorized(bgq_we
 			//TODO: Is reading just the 16 used bytes faster?
 			bgq_weyl_vec *weyladdr_left = &g_bgq_sec_temp_tdown[j];
 			//bgq_weyl_vec *weyladdr_right = &g_bgq_sec_recv[TUP][j];
-			bgq_weyl_vec *weyladdr_dst = spinorfield->consptr[TUP][j];
+			bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TUP][j];
 
 			bgq_su3_weyl_decl(weyl_left);
 			bgq_su3_weyl_load(weyl_left, weyladdr_left);
@@ -331,7 +333,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtdown_unvectorized(bgq_
 			//TODO: Inline assembler
 			//TODO: Is reading just the 16 used bytes faster?
 			bgq_weyl_vec *weyladdr_right = &g_bgq_sec_temp_tup[j];
-			bgq_weyl_vec *weyladdr_dst = spinorfield->consptr[TDOWN][j];
+			bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TDOWN][j];
 
 			bgq_prefetch(&spinorfield->consptr[TDOWN][j+1]);
 			bgq_su3_weyl_prefetch(&g_bgq_sec_temp_tdown[j+1]);
@@ -375,7 +377,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtdown_unvectorized(bgq_
 			//TODO: Inline assembler
 			//TODO: Is reading just the 16 used bytes faster?
 			bgq_weyl_vec *weyladdr_right = &g_bgq_sec_temp_tup[j];
-			bgq_weyl_vec *weyladdr_dst = spinorfield->consptr[TDOWN][j];
+			bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TDOWN][j];
 
 			bgq_prefetch(&spinorfield->consptr[TDOWN][j+1]);
 			bgq_su3_weyl_prefetch(&g_bgq_sec_temp_tdown[j+1]);
@@ -474,7 +476,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtup(bgq_weylfield_contr
 		//TODO: Is reading just the 16 used bytes faster?
 		bgq_weyl_vec *weyladdr_left = &g_bgq_sec_send[TDOWN][j];
 		bgq_weyl_vec *weyladdr_right = &g_bgq_sec_recv[TUP][j];
-		bgq_weyl_vec *weyladdr_dst = spinorfield->consptr[TUP][j];
+		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TUP][j];
 
 		bgq_prefetch(&spinorfield->consptr[TUP][j+1]);
 		bgq_su3_weyl_prefetch(&g_bgq_sec_send[TDOWN][j+1]);
@@ -545,7 +547,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtdown(bgq_weylfield_con
 		//TODO: Inline assembler
 		bgq_weyl_vec *weyladdr_left = &g_bgq_sec_recv[TDOWN][j];
 		bgq_weyl_vec *weyladdr_right = &g_bgq_sec_send[TUP][j];
-		bgq_weyl_vec *weyladdr_dst = spinorfield->consptr[TDOWN][j];
+		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TDOWN][j];
 
 		bgq_prefetch(&spinorfield->consptr[TDOWN][j+1]);
 		bgq_su3_weyl_prefetch(&g_bgq_sec_recv[TDOWN][j+1]);
@@ -646,6 +648,129 @@ void bgq_HoppingMatrix_worker_datamove(void *arg_untyped, size_t tid, size_t thr
 		} else {
 			UNREACHABLE
 		}
+		WORKLOAD_CHECK
+	}
+}
+
+
+
+static inline void bgq_HoppingMatrix_worker_datamovet_recvtup(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
+	assert(!COMM_T);
+
+	if (!noprefetchstream) {
+		bgq_prefetch_forward(&g_bgq_sec_temp_tdown[beginj]);
+		bgq_prefetch_forward(&spinorfield->consptr[TUP][beginj]);
+	}
+
+	for (size_t j = beginj; j < endj; j+=1) {
+#ifndef NDEBUG
+		size_t offset = bgq_pointer2offset(spinorfield, &g_bgq_sec_temp_tdown[j]);
+		ucoord index = bgq_offset2index(offset);
+		ucoord ic = bgq_index2collapsed(isOdd, index, -1);
+		ucoord t1 = bgq_collapsed2t(isOdd, ic, 0);
+		ucoord t2 = bgq_collapsed2t(isOdd, ic, 1);
+		ucoord x = bgq_collapsed2x(isOdd, ic);
+		ucoord y = bgq_collapsed2y(isOdd, ic);
+		ucoord z = bgq_collapsed2z(isOdd, ic);
+		bgq_direction d = bgq_offset2ddst(offset);
+#endif
+
+		//TODO: Check strength reduction
+		//TODO: Inline assembler
+		bgq_weyl_vec *weyladdr = &g_bgq_sec_temp_tdown[j];
+		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TUP][j];
+		assert(weyladdr_dst);
+
+		bgq_prefetch(&spinorfield->consptr[TUP][j+1]);
+		bgq_su3_weyl_prefetch(&g_bgq_sec_temp_tdown[j+1]);
+
+		bgq_su3_weyl_decl(weyl_before);
+		bgq_su3_weyl_load(weyl_before, weyladdr);
+				bgq_weylqpx_expect(weyl_before, t2, t1, x, y, z, d, false);
+
+		bgq_su3_weyl_decl(weyl_after);
+		bgq_su3_weyl_merge2(weyl_after, weyl_before, weyl_before); // Just switch first and second complex
+				bgq_weylqpx_expect(weyl_after, t1, t2, x, y, z, d, false);
+
+		bgq_su3_weyl_store(weyladdr_dst, weyl_after);
+	}
+}
+
+
+static inline void bgq_HoppingMatrix_worker_datamovet_recvtdown(bgq_weylfield_controlblock *spinorfield, bool isOdd, size_t beginj, size_t endj, bool noprefetchstream) {
+	assert(!COMM_T);
+
+	if (!noprefetchstream) {
+		bgq_prefetch_forward(&g_bgq_sec_temp_tup[beginj]);
+		bgq_prefetch_forward(&spinorfield->consptr[TDOWN][beginj]);
+	}
+
+	for (size_t j = beginj; j < endj; j+=1) {
+#ifndef NDEBUG
+		size_t offset = bgq_pointer2offset(spinorfield, &g_bgq_sec_temp_tup[j]);
+		ucoord index = bgq_offset2index(offset);
+		ucoord ic = g_bgq_index2collapsed[isOdd][index];
+		ucoord t1 = bgq_collapsed2t(isOdd, ic, 0);
+		ucoord t2 = bgq_collapsed2t(isOdd, ic, 1);
+		ucoord x = bgq_collapsed2x(isOdd, ic);
+		ucoord y = bgq_collapsed2y(isOdd, ic);
+		ucoord z = bgq_collapsed2z(isOdd, ic);
+		bgq_direction d = bgq_offset2ddst(offset);
+#endif
+		//TODO: Check strength reduction
+		//TODO: Inline assembler
+		bgq_weyl_vec *weyladdr = &g_bgq_sec_temp_tup[j];
+		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TDOWN][j];
+		assert(weyladdr_dst);
+
+		bgq_prefetch(&spinorfield->consptr[j+1]); //TODO: prefetch depth?
+		bgq_su3_weyl_prefetch(&g_bgq_sec_temp_tup[j+1]);
+
+		bgq_su3_weyl_decl(weyl_before);
+		bgq_su3_weyl_load(weyl_before, weyladdr);
+				bgq_weylqpx_expect(weyl_before, t2, t1, x, y, z, d, false);
+
+		bgq_su3_weyl_decl(weyl_after);
+		bgq_su3_weyl_merge2(weyl_after, weyl_before, weyl_before);
+				bgq_weylqpx_expect(weyl_after, t1, t2, x, y, z, d, false);
+
+		bgq_su3_weyl_store(weyladdr_dst, weyl_after);
+	}
+}
+
+
+void bgq_HoppingMatrix_datamovet_worker(void *arg_untyped, size_t tid, size_t threads) {
+	assert(!COMM_T);
+
+	bgq_work_datamove *arg = arg_untyped;
+	bgq_weylfield_controlblock *spinorfield = arg->spinorfield;
+	bgq_hmflags opts = arg->opts;
+	bool isOdd = spinorfield->isOdd;
+	bool noprefetchstream = opts & hm_noprefetchstream;
+
+	const size_t workload_recv_tup = LOCAL_HALO_T/PHYSICAL_LP;
+	const size_t workload_recv_tdown = workload_recv_tup;
+	const size_t workload = workload_recv_tup + workload_recv_tdown;
+	const size_t threadload = (workload+threads-1)/threads;
+	const size_t begin = tid*threadload;
+	const size_t end = min_sizet(workload, begin+threadload);
+	for (size_t i = begin; i<end; ) {
+		WORKLOAD_DECL(i,workload);
+
+		if (WORKLOAD_SPLIT(workload_recv_tup)) {
+			size_t beginj = WORKLOAD_PARAM(workload_recv_tup);
+			size_t endj = min_sizet(workload_recv_tup, beginj+threadload);
+			bgq_HoppingMatrix_worker_datamovet_recvtup(spinorfield, isOdd, beginj, endj, noprefetchstream);
+			i += (endj - beginj);
+		} else if (WORKLOAD_SPLIT(workload_recv_tdown)) {
+			size_t beginj = WORKLOAD_PARAM(workload_recv_tdown);
+			size_t endj = min_sizet(workload_recv_tdown,beginj+threadload);
+			bgq_HoppingMatrix_worker_datamovet_recvtdown(spinorfield, isOdd, beginj, endj, noprefetchstream);
+			i += (endj - beginj);
+		} else {
+			UNREACHABLE
+		}
+
 		WORKLOAD_CHECK
 	}
 }

@@ -330,10 +330,10 @@ typedef struct {
 typedef struct {
 	complex_float s[2][3][PHYSICAL_LK]; // 96 byte (1.5 L1 cache lines)
 } bgq_weyl_vec_float;
-typedef bgq_weyl_vec_double bgq_weyl_vec;
+#define bgq_weyl_vec NAME2(bgq_weyl_vec,PRECISION)
 
 typedef struct {
-	bgq_weyl_vec d[PHYSICAL_LD];
+	bgq_weyl_vec_double d[PHYSICAL_LD];
 } bgq_weylsite_double;
 typedef struct {
 	bgq_weyl_vec_float d[PHYSICAL_LD];
@@ -346,16 +346,16 @@ typedef struct {
 } bgq_weyl_offsets_t;
 
 typedef struct {
-	bgq_weyl_vec *d[PHYSICAL_LD];
-} bgq_weyl_ptr_t;
-
+	bgq_weyl_vec_double *d[PHYSICAL_LD];
+} bgq_weyl_ptr_t_double;
 typedef struct {
 	bgq_weyl_vec_float *d[PHYSICAL_LD];
 } bgq_weyl_ptr_t_float;
+#define bgq_weyl_ptr_t NAME2(bgq_weyl_ptr_t,PRECISION)
 
 
 typedef struct {
-	COMPLEX_PRECISION s[2];
+	complex_double s[2];
 } bgq_weyl;
 
 typedef struct {
@@ -520,10 +520,7 @@ typedef enum {
 } bgq_hmflags;
 
 
-typedef struct {
-	bgq_weyl_vec *tup;
-	bgq_weyl_vec *tdown;
-} bgq_recvt_consptr;
+
 
 //TODO: make incomplete type
 //TODO: Move to bgq_spinorfield.h
@@ -557,8 +554,8 @@ typedef struct {
 	//TODO: We may even interleave these with the data itself, but may cause alignment issues
 	// Idea: sizeof(bgq_weyl_ptr_t)==10*8==80, so one bgq_weyl_ptr_t every 2(5;10) spinors solves the issue
 	// In case we write as fullspinor layout, the are not needed
-	bgq_weyl_ptr_t *sendptr;
-	bgq_weyl_vec **consptr[PHYSICAL_LD];
+	bgq_weyl_ptr_t_double *sendptr_double;
+	bgq_weyl_vec_double **consptr_double[PHYSICAL_LD];
 
 	bgq_weyl_ptr_t_float *sendptr_float;
 	bgq_weyl_vec_float **consptr_float[PHYSICAL_LD];
@@ -566,6 +563,8 @@ typedef struct {
 
 #define BGQ_SEC_FULLLAYOUT NAME2(sec_fullspinor,PRECISION)
 #define BGQ_SEC_WEYLLAYOUT NAME2(sec_collapsed,PRECISION)
+#define BGQ_SENDPTR NAME2(sendptr,PRECISION)
+#define BGQ_CONSPTR NAME2(consptr,PRECISION)
 
 // Index translations
 EXTERN_FIELD size_t *g_bgq_collapsed2halfvolume[PHYSICAL_LP];
@@ -1099,7 +1098,7 @@ EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
 		case sec_temp_tup:
 		case sec_temp_tdown:
 			if (BGQ_UNVECTORIZE || !COMM_T) {
-				secsize = LOCAL_HALO_T/PHYSICAL_LP * sizeof(bgq_weyl_vec);
+				secsize = LOCAL_HALO_T/PHYSICAL_LP * sizeof(bgq_weyl_vec_double);
 			} else {
 				secsize = 0;
 			}
@@ -1159,7 +1158,7 @@ EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
 	return result;
 }
 EXTERN_INLINE size_t bgq_spinorfield_indexOfSection(bgq_weylfield_section sec) {
-	return bgq_weyl_section_offset(sec)/sizeof(bgq_weyl_vec);
+	return bgq_weyl_section_offset(sec)/sizeof(bgq_weyl_vec_double);
 }
 
 
@@ -1296,13 +1295,13 @@ EXTERN_INLINE void bgq_direction_move_global(ucoord *t, ucoord *x, ucoord *y, uc
 
 EXTERN_INLINE ucoord bgq_offset2index(size_t offset) {
 	assert(bgq_weyl_section_offset(0) <= offset && offset <= bgq_weyl_section_offset(sec_end));
-	assert(offset % sizeof(bgq_weyl_vec) == 0);
-	return offset / sizeof(bgq_weyl_vec);
+	assert(offset % sizeof(bgq_weyl_vec_double) == 0);
+	return offset / sizeof(bgq_weyl_vec_double);
 }
 
 
 EXTERN_INLINE size_t bgq_index2offset(ucoord index) {
-	size_t offset = index * sizeof(bgq_weyl_vec);
+	size_t offset = index * sizeof(bgq_weyl_vec_double);
 	assert(bgq_weyl_section_offset(0) <= offset && offset < bgq_weyl_section_offset(sec_end));
 	return offset;
 }

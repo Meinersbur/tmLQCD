@@ -253,7 +253,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 
 	// 0. Expect data from other neighbor node
 	if (!nocomm) {
-		bgq_comm_recv(nospi);
+		bgq_comm_recv(nospi, floatprecision);
 	}
 
 
@@ -304,7 +304,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	if ((PHYSICAL_SURFACE > 0) && !nocomm) {
 		bgq_master_sync(); // Wait for threads to finish surface before sending it
 		//TODO: ensure there are no other communications pending
-		bgq_comm_send(nospi);
+		bgq_comm_send(nospi, floatprecision);
 		targetfield->waitingForRecv = true;
 	}
 	if ((PHYSICAL_SURFACE > 0) && !nodatamove) {
@@ -327,7 +327,10 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 			static bgq_work_datamove work_datamovet;
 			work_datamovet.spinorfield = targetfield;
 			work_datamovet.opts = opts;
-			bgq_master_call(&bgq_HoppingMatrix_datamovet_worker, &work_datamovet);
+			if (layout & ly_sloppy)
+				bgq_master_call(&bgq_HoppingMatrix_datamovet_worker_float, &work_datamovet);
+			else
+				bgq_master_call(&bgq_HoppingMatrix_datamovet_worker_double, &work_datamovet);
 		}
 	}
 

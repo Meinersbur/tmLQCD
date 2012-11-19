@@ -26,4 +26,8 @@ void bgq_HoppingMatrix_worker_datamove_double(void *arg_untyped, size_t tid, siz
 void bgq_HoppingMatrix_worker_datamove_float(void *arg_untyped, size_t tid, size_t threads);
 #define bgq_HoppingMatrix_worker_datamove NAME2(bgq_HoppingMatrix_worker_datamove,PRECISION)
 
+void bgq_HoppingMatrix_datamovet_worker_double(void *arg_untyped, size_t tid, size_t threads);
+void bgq_HoppingMatrix_datamovet_worker_float(void *arg_untyped, size_t tid, size_t threads);
+#define bgq_HoppingMatrix_datamovet_worker NAME2(bgq_HoppingMatrix_datamovet_worker,PRECISION)
+
 #endif /* BGQ_WORKERS_H_ */

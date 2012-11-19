@@ -21,9 +21,11 @@
 
 
 
-static MPI_Request g_bgq_request_recv[PHYSICAL_LD];
-static MPI_Request g_bgq_request_send[PHYSICAL_LD];
+static MPI_Request g_bgq_request_recv_double[PHYSICAL_LD];
+static MPI_Request g_bgq_request_send_double[PHYSICAL_LD];
 
+static MPI_Request g_bgq_request_recv_float[PHYSICAL_LD];
+static MPI_Request g_bgq_request_send_float[PHYSICAL_LD];
 
 
 
@@ -152,8 +154,11 @@ static int bgq_direction2rank(bgq_direction d) {
 }
 
 
-static MPI_Request g_bgq_request_recv[PHYSICAL_LD];
-static MPI_Request g_bgq_request_send[PHYSICAL_LD];
+static MPI_Request g_bgq_request_recv_double[PHYSICAL_LD];
+static MPI_Request g_bgq_request_send_double[PHYSICAL_LD];
+
+static MPI_Request g_bgq_request_recv_float[PHYSICAL_LD];
+static MPI_Request g_bgq_request_send_float[PHYSICAL_LD];
 
 
 #ifdef SPI
@@ -168,11 +173,11 @@ static inline unsigned bgq_abcde2spirank(Personality_t *pers, uint8_t a, uint8_t
 		pers->Network_Config.Enodes
 	};
 	torus_t dims = {
-	  pers->Network_Config.Anodes,
-	  pers->Network_Config.Bnodes,
-	  pers->Network_Config.Cnodes,
-	  pers->Network_Config.Dnodes,
-	  pers->Network_Config.Enodes
+		pers->Network_Config.Anodes,
+		pers->Network_Config.Bnodes,
+		pers->Network_Config.Cnodes,
+		pers->Network_Config.Dnodes,
+		pers->Network_Config.Enodes
 	};
 
 	unsigned numNodes = tdims.a * tdims.b * tdims.c * tdims.d * tdims.e;
@@ -238,34 +243,34 @@ static void bgq_comm_test(bool nospi) {
 	for (ucoord cd = 0; cd < COMMDIR_COUNT; cd+=1) {
 		bgq_direction d = bgq_commdir2direction(cd);
 		bgq_weylfield_section sec = bgq_direction2section(d, true);
-		ucoord index_end = bgq_section_size(sec) / sizeof(bgq_weyl_vec);
+		ucoord index_end = bgq_section_size(sec) / sizeof(bgq_weyl_vec_double);
 		for (size_t i = 0; i < index_end; i += 1) {
 			for (ucoord v = 0; v < 2; v += 1){
 				for (ucoord c = 0; c < 3; c += 1){
 					for (ucoord k = 0; k < 2; k += 1){
-						g_bgq_sec_send[d][i].s[v][c][k] = (double) g_cart_id + g_proc_id * _Complex_I;
+						g_bgq_sec_send_double[d][i].s[v][c][k] = (double) g_cart_id + g_proc_id * _Complex_I;
 					}
 				}
 			}
 		}
 	}
 
-	bgq_comm_recv(nospi);
-	bgq_comm_send(nospi);
-	bgq_comm_wait(nospi);
+	bgq_comm_recv(nospi, false);
+	bgq_comm_send(nospi, false);
+	bgq_comm_wait(nospi, false);
 
 	for (ucoord cd = 0; cd < COMMDIR_COUNT; cd+=1) {
 		bgq_direction d = bgq_commdir2direction(cd);
 		assert(bgq_direction_isDistributed(d));
 
 		bgq_weylfield_section sec = bgq_direction2section(d, false);
-		ucoord index_end = bgq_section_size(sec) / sizeof(bgq_weyl_vec);
+		ucoord index_end = bgq_section_size(sec) / sizeof(bgq_weyl_vec_double);
 		int rank_neighbor = bgq_direction2rank(d);
 		for (size_t i = 0; i < index_end; i += 1) {
 			for (ucoord v = 0; v < 2; v += 1) {
 				for (ucoord c = 0; c < 3; c += 1) {
 					for (ucoord k = 0; k < 2; k += 1) {
-						complexdouble val = g_bgq_sec_recv[d][i].s[v][c][k];
+						complexdouble val = g_bgq_sec_recv_double[d][i].s[v][c][k];
 						if (creal(val) != rank_neighbor) {
 							printf("Node %d: Exchange doesn't work for dir %d: %d != %f (proc=%f) at point %zu\n", g_proc_id, d, rank_neighbor, creal(val), cimag(val), i);
 							exit(1);
@@ -297,19 +302,23 @@ static void bgq_comm_common_init(void) {
 		bgq_weylfield_section sec_send = bgq_direction2section(d, true);
 		bgq_weylfield_section sec_recv = bgq_direction2section(d, false);
 
-		g_bgq_sec_send[d] = (bgq_weyl_vec*)(buf + bgq_weyl_section_offset(sec_send) - bgq_weyl_section_offset(sec_comm));
-		assert((uint8_t*)g_bgq_sec_send[d] <= bufend);
+		g_bgq_sec_send_double[d] = (bgq_weyl_vec_double*)(buf + bgq_weyl_section_offset(sec_send) - bgq_weyl_section_offset(sec_comm));
+		assert((uint8_t*)g_bgq_sec_send_double[d] <= bufend);
+		g_bgq_sec_send_float[d] = (bgq_weyl_vec_float*)g_bgq_sec_send_double[d];
 
-		g_bgq_sec_recv[d] = (bgq_weyl_vec*)(buf + bgq_weyl_section_offset(sec_recv) - bgq_weyl_section_offset(sec_comm));
-		assert((uint8_t*)g_bgq_sec_recv[d] <= bufend);
+		g_bgq_sec_recv_double[d] = (bgq_weyl_vec_double*)(buf + bgq_weyl_section_offset(sec_recv) - bgq_weyl_section_offset(sec_comm));
+		assert((uint8_t*)g_bgq_sec_recv_double[d] <= bufend);
+		g_bgq_sec_recv_float[d] = (bgq_weyl_vec_float*)g_bgq_sec_recv_double[d];
 
-		assert((uintptr_t)g_bgq_sec_send[d] % BGQ_ALIGNMENT_L2 == 0);
-		assert((uintptr_t)g_bgq_sec_recv[d] % BGQ_ALIGNMENT_L2 == 0);
+		assert((uintptr_t)g_bgq_sec_send_double[d] % BGQ_ALIGNMENT_L2 == 0);
+		assert((uintptr_t)g_bgq_sec_recv_double[d] % BGQ_ALIGNMENT_L2 == 0);
 	}
 
 	if (BGQ_UNVECTORIZE || !COMM_T) {
-		g_bgq_sec_temp_tup = malloc_aligned(LOCAL_HALO_T/PHYSICAL_LP *sizeof(bgq_weyl_vec),BGQ_ALIGNMENT_L2);
-		g_bgq_sec_temp_tdown = malloc_aligned(LOCAL_HALO_T/PHYSICAL_LP *sizeof(bgq_weyl_vec),BGQ_ALIGNMENT_L2);
+		g_bgq_sec_temp_tup_double = malloc_aligned(LOCAL_HALO_T/PHYSICAL_LP *sizeof(bgq_weyl_vec_double),BGQ_ALIGNMENT_L2);
+		g_bgq_sec_temp_tup_float = (bgq_weyl_vec_float*)g_bgq_sec_temp_tup_double;
+		g_bgq_sec_temp_tdown_double = malloc_aligned(LOCAL_HALO_T/PHYSICAL_LP *sizeof(bgq_weyl_vec_double),BGQ_ALIGNMENT_L2);
+		g_bgq_sec_temp_tdown_float = (bgq_weyl_vec_float*)g_bgq_sec_temp_tdown_double;
 		//g_bgq_sec_vrecv_tup = malloc_aligned(PHYSICAL_HALO_T,BGQ_ALIGNMENT_L2);
 		//g_bgq_sec_vrecv_tdown = malloc_aligned(PHYSICAL_HALO_T,BGQ_ALIGNMENT_L2);
 	}
@@ -338,13 +347,15 @@ void bgq_comm_mpi_init(void) {
 		bgq_weylfield_section sec_recv = bgq_direction2section(d_src, false);
 		size_t secsize = bgq_weyl_section_offset(sec_recv+1) - bgq_weyl_section_offset(sec_recv);
 		assert(secsize > 0);
-		MPI_CHECK(MPI_Recv_init(g_bgq_sec_recv[d_src], secsize / sizeof(complexdouble), MPI_DOUBLE_COMPLEX, bgq_direction2rank(d_src), d_dst, g_cart_grid, &g_bgq_request_recv[cd]));
+		MPI_CHECK(MPI_Recv_init(g_bgq_sec_recv_double[d_src], secsize / sizeof(complex_double), MPI_DOUBLE_COMPLEX, bgq_direction2rank(d_src), d_dst, g_cart_grid, &g_bgq_request_recv_double[cd]));
+		MPI_CHECK(MPI_Recv_init(g_bgq_sec_recv_float[d_src], secsize / sizeof(complex_double), MPI_COMPLEX, bgq_direction2rank(d_src), d_dst, g_cart_grid, &g_bgq_request_recv_float[cd]));
 		//master_print("MPI_CHECK(MPI_Recv_init(%zu, %zu, %zu, %zu, %zu, %zu, %zu))\n", (size_t)(g_bgq_sec_recv[d_src]), secsize / sizeof(double), (size_t)(MPI_DOUBLE), (size_t)bgq_direction2rank(d_src), (size_t)d_dst, (size_t)g_cart_grid, (size_t)(&g_bgq_request_recv[commdir_src]));
 
 		ucoord commdir_dst = bgq_direction2commdir(d_dst);
 		bgq_weylfield_section sec_send = bgq_direction2section(d_dst, true);
 		assert(secsize == bgq_weyl_section_offset(sec_send+1) - bgq_weyl_section_offset(sec_send));
-		MPI_CHECK(MPI_Send_init(g_bgq_sec_send[d_dst], secsize / sizeof(complexdouble), MPI_DOUBLE_COMPLEX, bgq_direction2rank(d_dst), d_dst, g_cart_grid, &g_bgq_request_send[cd]));
+		MPI_CHECK(MPI_Send_init(g_bgq_sec_send_double[d_dst], secsize / sizeof(complex_double), MPI_DOUBLE_COMPLEX, bgq_direction2rank(d_dst), d_dst, g_cart_grid, &g_bgq_request_send_double[cd]));
+		MPI_CHECK(MPI_Send_init(g_bgq_sec_send_float[d_dst], secsize / sizeof(complex_double), MPI_COMPLEX, bgq_direction2rank(d_dst), d_dst, g_cart_grid, &g_bgq_request_send_float[cd]));
 		//master_print("MPI_CHECK(MPI_Send_init(%zu, %zu, %zu, %zu, %zu, %zu, %zu))\n", g_bgq_sec_send[d_dst], secsize / sizeof(double), MPI_DOUBLE, bgq_direction2rank(d_dst), d_dst, g_cart_grid, &g_bgq_request_send[commdir_dst]);
 	}
 
@@ -469,7 +480,7 @@ void bgq_comm_spi_init(void) {
 
 
 //TODO: inline?
-void bgq_comm_recv(bool nospi) {
+void bgq_comm_recv(bool nospi, bool sloppy) {
 	assert(omp_get_thread_num()==0);
 	//master_print("Comm Receiving...\n");
 #ifdef SPI
@@ -480,11 +491,14 @@ void bgq_comm_recv(bool nospi) {
 	}
 #endif
 
-	MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_recv));
+	if (sloppy)
+		MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_recv_float));
+	else
+		MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_recv_double));
 }
 
 
-void bgq_comm_send(bool nospi) {
+void bgq_comm_send(bool nospi, bool sloppy) {
 	assert(omp_get_thread_num()==0);
 	//master_print("Comm Sending...\n");
 #ifdef SPI
@@ -502,17 +516,20 @@ void bgq_comm_send(bool nospi) {
 	}
 #endif
 
-	MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_send));
+	if (sloppy)
+		MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_send_float));
+	else
+		MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_send_double));
 }
 
 
-void bgq_comm_wait(bool nospi) {
+void bgq_comm_wait(bool nospi, bool sloppy) {
 	assert(omp_get_thread_num()==0);
 	//master_print("Comm Waiting...\n");
 
 #if BGQ_QPX
 	uint64_t ppc32 = mfspr(SPRN_PPR32);
-	ThreadPriority_Low(); // If there is some other work to be done on this node, give it priority
+	ThreadPriority_Low(); // If there is some other work to be done on this node, give it priority instead of busy waiting in here
 #endif
 
 #ifdef SPI
@@ -547,16 +564,24 @@ void bgq_comm_wait(bool nospi) {
 #endif
 	{
 		MPI_Status recv_status[COMMDIR_COUNT];
-		MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_recv, recv_status));
+		if (sloppy)
+			MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_recv_float, recv_status));
+		else
+			MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_recv_double, recv_status));
 
 		MPI_Status send_status[COMMDIR_COUNT];
-		MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_send, send_status));
+		if (sloppy)
+			MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_send_float, send_status));
+		else
+			MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_send_double, send_status));
 
 #ifndef NDEBUG
 		for (ucoord commdir = 0; commdir < COMMDIR_COUNT; commdir += 1) {
 			bgq_direction d = bgq_commdir2direction(commdir);
 			bgq_weylfield_section sec = bgq_direction2section(d,false);
 			size_t size = bgq_weyl_section_offset(sec+1) - bgq_weyl_section_offset(sec);
+			if (sloppy)
+				size /= 2;
 			assert(get_MPI_count(&recv_status[commdir]) == size);
 		}
 #endif
