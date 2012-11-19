@@ -1478,6 +1478,14 @@ EXTERN_INLINE size_t bgq_sectionrange_size(bgq_weylfield_section sec_begin, bgq_
 
 EXTERN_FIELD uint64_t flopaccumulator EXTERN_INIT(0);
 
+
+EXTERN_INLINE bgq_direction bgq_direction_compose(bgq_dimension dim, bool isDown) {
+	return 2*dim + isDown;
+}
+
+
+
+
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD
 #undef EXTERN_INIT

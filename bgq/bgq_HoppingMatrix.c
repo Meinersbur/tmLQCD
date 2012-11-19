@@ -13,6 +13,7 @@
 #include "bgq_qpx.h"
 #include "bgq_dispatch.h"
 #include "bgq_comm.h"
+#include "bgq_workers.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -107,114 +108,6 @@ static void bgq_HoppingMatrix_kamul_worker_readWeyllayout_float(void *arg, size_
 #define BGQ_HOPPINGMATRIXWORKER_INC_ 1
 #include "bgq_HoppingMatrixWorker.inc.c"
 #undef PRECISION
-}
-
-
-typedef struct {
-	bool isOdd;
-	bgq_weylfield_controlblock *field;
-} bgq_unvectorize_workload;
-
-static void bgq_HoppingMatrix_unvectorize(void *arg_untyped, size_t tid, size_t threads) {
-	assert(BGQ_UNVECTORIZE);
-	assert(COMM_T);
-	bgq_unvectorize_workload *arg = arg_untyped;
-	bool isOdd = arg->isOdd;
-	bgq_weylfield_controlblock *field = arg->field;
-
-	const size_t workload_tdown = LOCAL_HALO_T/(PHYSICAL_LP*PHYSICAL_LK);
-	const size_t workload_tup = workload_tdown;
-	const size_t workload = workload_tdown + workload_tup;
-	const size_t threadload = (workload+threads-1)/threads;
-	const size_t begin = tid*threadload;
-	const size_t end = min_sizet(workload, begin+threadload);
-	for (size_t i = begin; i < end; ) {
-		WORKLOAD_DECL(i, workload);
-
-		if (WORKLOAD_SPLIT(workload_tup)) {
-			const size_t beginj = WORKLOAD_PARAM(workload_tup);
-			const size_t endj = min_sizet(workload_tup, beginj+threadload);
-			for (size_t j = beginj; j < endj; j+=1) {
-#ifndef NDEBUG
-				size_t offset1 = bgq_pointer2offset(field, &g_bgq_sec_temp_tup[2*j]);
-				ucoord index1 = bgq_offset2index(offset1);
-				ucoord ic1 = bgq_index2collapsed(isOdd, index1, 0);
-				ucoord ih1 = bgq_collapsed2halfvolume(isOdd, ic1);
-				ucoord t1 = bgq_halfvolume2t(isOdd, ih1, 0);
-				ucoord x1 = bgq_halfvolume2x(ih1);
-				ucoord y1 = bgq_halfvolume2y(ih1);
-				ucoord z1 = bgq_halfvolume2z(ih1);
-				size_t offset2 = bgq_pointer2offset(field, &g_bgq_sec_temp_tup[2*j+1]);
-				ucoord index2 = bgq_offset2index(offset2);
-				ucoord ic2 = bgq_index2collapsed(isOdd, index2, 0);
-				ucoord ih2 = bgq_collapsed2halfvolume(isOdd, ic2);
-				ucoord t2 = bgq_halfvolume2t(isOdd, ih2, 0);
-				ucoord x2 = bgq_halfvolume2x(ih2);
-				ucoord y2 = bgq_halfvolume2y(ih2);
-				ucoord z2 = bgq_halfvolume2z(ih2);
-#endif
-
-				bgq_su3_weyl_decl(weyl1);
-				bgq_su3_weyl_load_double(weyl1, &g_bgq_sec_temp_tup[2*j]);
-						bgq_weylqpxk_expect(weyl1, 1, t1, x1, y1, z1, TDOWN, false);
-
-				bgq_su3_weyl_decl(weyl2);
-				bgq_su3_weyl_load_double(weyl2, &g_bgq_sec_temp_tup[2*j+1]);
-						bgq_weylqpxk_expect(weyl2, 1, t2, x2, y2, z2, TDOWN, false);
-
-				bgq_su3_weyl_decl(weyl);
-				bgq_su3_weyl_rmerge(weyl, weyl1, weyl2);
-						bgq_weylqpxk_expect(weyl, 0, t1, x1, y1, z1, TDOWN, false);
-						bgq_weylqpxk_expect(weyl, 1, t2, x2, y2, z2, TDOWN, false);
-
-				bgq_su3_weyl_store_double(&g_bgq_sec_send[TUP][j], weyl);
-			}
-			i += (endj - beginj);
-		} else if (WORKLOAD_SPLIT(workload_tdown)) {
-			const size_t beginj = WORKLOAD_PARAM(workload_tdown);
-			const size_t endj = min_sizet(workload_tup, beginj+threadload);
-			for (size_t j = beginj; j < endj; j+=1) {
-#ifndef NDEBUG
-				size_t offset1 = bgq_pointer2offset(field, &g_bgq_sec_temp_tdown[2*j]);
-				ucoord index1 = bgq_offset2index(offset1);
-				ucoord ic1 = bgq_index2collapsed(isOdd, index1, 0);
-				ucoord ih1 = bgq_collapsed2halfvolume(isOdd, ic1);
-				ucoord t1 = bgq_halfvolume2t(isOdd, ih1, 1);
-				ucoord x1 = bgq_halfvolume2x(ih1);
-				ucoord y1 = bgq_halfvolume2y(ih1);
-				ucoord z1 = bgq_halfvolume2z(ih1);
-				size_t offset2 = bgq_pointer2offset(field, &g_bgq_sec_temp_tdown[2*j+1]);
-				ucoord index2 = bgq_offset2index(offset2);
-				ucoord ic2 = bgq_index2collapsed(isOdd, index2, 0);
-				ucoord ih2 = bgq_collapsed2halfvolume(isOdd, ic2);
-				ucoord t2 = bgq_halfvolume2t(isOdd, ih2, 1);
-				ucoord x2 = bgq_halfvolume2x(ih2);
-				ucoord y2 = bgq_halfvolume2y(ih2);
-				ucoord z2 = bgq_halfvolume2z(ih2);
-#endif
-
-				bgq_su3_weyl_decl(weyl1);
-				bgq_su3_weyl_load_double(weyl1, &g_bgq_sec_temp_tdown[2*j]);
-						bgq_weylqpxk_expect(weyl1, 0, t1, x1, y1, z1, TUP, false);
-
-				bgq_su3_weyl_decl(weyl2);
-				bgq_su3_weyl_load_double(weyl2, &g_bgq_sec_temp_tdown[2*j+1]);
-						bgq_weylqpxk_expect(weyl2, 0, t2, x2, y2, z2, TUP, false);
-
-				bgq_su3_weyl_decl(weyl);
-				bgq_su3_weyl_lmerge(weyl, weyl1, weyl2);
-						bgq_weylqpxk_expect(weyl, 0, t1, x1, y1, z1, TUP, false);
-						bgq_weylqpxk_expect(weyl, 1, t2, x2, y2, z2, TUP, false);
-
-				bgq_su3_weyl_store_double(&g_bgq_sec_send[TDOWN][j], weyl);
-			}
-			i += (endj - beginj);
-		} else {
-			UNREACHABLE
-		}
-
-		WORKLOAD_CHECK
-	}
 }
 
 
@@ -399,7 +292,10 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 		static bgq_unvectorize_workload work_unvectorize;
 		work_unvectorize.isOdd = isOdd;
 		work_unvectorize.field = targetfield;
-		bgq_master_call(&bgq_HoppingMatrix_unvectorize, &work_unvectorize);
+		if (layout & ly_sloppy)
+			bgq_master_call(&bgq_HoppingMatrix_unvectorize_float, &work_unvectorize);
+		else
+			bgq_master_call(&bgq_HoppingMatrix_unvectorize_double, &work_unvectorize);
 	}
 
 
