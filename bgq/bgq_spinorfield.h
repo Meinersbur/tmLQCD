@@ -257,17 +257,30 @@ EXTERN_INLINE void bgq_weylvec_expect(bgq_weyl_vec_double weyl, ucoord t1, ucoor
 bgq_spinor bgq_legacy_getspinor(spinor *spinor, ucoord t, ucoord x, ucoord y, ucoord z);
 bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, size_t t, size_t x, size_t y, size_t z) ;
 
-void bgq_weylveck_written(bgq_weyl_vec_double *targetweyl, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
+void bgq_weylveck_written_double(bgq_weyl_vec_double *targetweyl, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
+void bgq_weylveck_written_float(bgq_weyl_vec_float *targetweyl, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
 
+
+#define bgq_weylvec_written NAME2(bgq_weylvec_written,PRECISION)
 
 #ifdef BGQ_COORDCHECK
-#define bgq_weylvec_written(targetweyl, t1, t2, x, y, z, d, isSrc) bgq_weylvec_written_impl(targetweyl, t1, t2, x, y, z, d, isSrc)
+#define bgq_weylvec_written_double(targetweyl, t1, t2, x, y, z, d, isSrc) bgq_weylvec_written_impl_double(targetweyl, t1, t2, x, y, z, d, isSrc)
 #else
-#define bgq_weylvec_written(targetweyl, t1, t2, x, y, z, d, isSrc)
+#define bgq_weylvec_written_double(targetweyl, t1, t2, x, y, z, d, isSrc)
 #endif
-EXTERN_INLINE void bgq_weylvec_written_impl(bgq_weyl_vec_double *targetweyl, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
-	bgq_weylveck_written(targetweyl, 0, t1, x,y,z,d,isSrc);
-	bgq_weylveck_written(targetweyl, 1, t2, x,y,z,d,isSrc);
+EXTERN_INLINE void bgq_weylvec_written_impl_double(bgq_weyl_vec_double *targetweyl, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
+	bgq_weylveck_written_double(targetweyl, 0, t1, x, y, z, d, isSrc);
+	bgq_weylveck_written_double(targetweyl, 1, t2, x, y, z, d, isSrc);
+}
+
+#ifdef BGQ_COORDCHECK
+#define bgq_weylvec_written_float(targetweyl, t1, t2, x, y, z, d, isSrc) bgq_weylvec_written_impl_float(targetweyl, t1, t2, x, y, z, d, isSrc)
+#else
+#define bgq_weylvec_written_float(targetweyl, t1, t2, x, y, z, d, isSrc)
+#endif
+EXTERN_INLINE void bgq_weylvec_written_impl_float(bgq_weyl_vec_float *targetweyl, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
+	bgq_weylveck_written_float(targetweyl, 0, t1, x, y, z, d, isSrc);
+	bgq_weylveck_written_float(targetweyl, 1, t2, x, y, z, d, isSrc);
 }
 
 
@@ -352,22 +365,24 @@ bgq_weyl_vec_double *bgq_section_baseptr_double(bgq_weylfield_controlblock *fiel
 bgq_weyl_vec_float *bgq_section_baseptr_float(bgq_weylfield_controlblock *field, bgq_weylfield_section section);
 
 
+
 typedef enum {
-	ly_none,
-	ly_full_double,
-	ly_full_float,
-	ly_weyl_double,
-	ly_weyl_float,
-	ly_full_double_mul,
-	ly_full_float_mul,
-	ly_weyl_double_mul,
-	ly_weyl_float_mul,
-} bgq_spinorfield_layout;
-typedef enum {
-	ly_sloppy = (1<<0),
-	ly_weyl = (1<<1),
-	ly_mul = (1<<2)
+	ly_available = (1<<0),
+	ly_sloppy = (1<<1),
+	ly_weyl = (1<<2),
+	ly_mul = (1<<3)
 } bgq_spinorfield_layoutflags;
+typedef enum {
+	ly_none=0,
+	ly_full_double=ly_available,
+	ly_full_float=ly_available|ly_sloppy,
+	ly_weyl_double=ly_available|ly_weyl,
+	ly_weyl_float=ly_available|ly_weyl|ly_sloppy,
+	ly_full_double_mul=ly_available|ly_mul,
+	ly_full_float_mul=ly_available|ly_mul|ly_sloppy,
+	ly_weyl_double_mul=ly_available|ly_mul|ly_weyl,
+	ly_weyl_float_mul=ly_available|ly_mul|ly_weyl|ly_sloppy,
+} bgq_spinorfield_layout;
 
 
 EXTERN_INLINE bgq_spinorfield_layout bgq_spinorfield_bestLayout(bgq_weylfield_controlblock *field) {
@@ -391,11 +406,21 @@ EXTERN_INLINE void bgq_spinorfield_readSpinor(bgq_su3_spinor_params(*target), bg
 	assert(field->isInitialized);
 	bgq_su3_spinor_decl(spinor);
 
+#ifndef NDEBUG
+	ucoord ih = bgq_collapsed2halfvolume(field->isOdd, ic);
+	ucoord t1 = bgq_halfvolume2t1(field->isOdd, ih);
+	ucoord t2 = bgq_halfvolume2t2(field->isOdd, ih);
+	ucoord tv = bgq_halfvolume2tv(ih);
+	ucoord x = bgq_halfvolume2x(ih);
+	ucoord y = bgq_halfvolume2y(ih);
+	ucoord z = bgq_halfvolume2z(ih);
+#endif
+
 	if (layout & ly_weyl) {
 		assert(field->hasWeylfieldData);
 		if (layout & ly_sloppy) {
 			assert(field->isWeyllayoutSloppy);
-			bgq_weylsite_float *weylsite = &field->sec_collapsed_float[ic];
+			bgq_weylsite_float *weylsite = (bgq_weylsite_float *)((uint8_t*)&field->sec_collapsed_float[ic] - 16);
 
 			#define PRECISION float
 			#define BGQ_READWEYLLAYOUT_INC_
@@ -403,7 +428,7 @@ EXTERN_INLINE void bgq_spinorfield_readSpinor(bgq_su3_spinor_params(*target), bg
 			#undef PRECISION
 		} else {
 			assert(!field->isWeyllayoutSloppy);
-			bgq_weylsite_double *weylsite = &field->sec_collapsed_double[ic];
+			bgq_weylsite_double *weylsite = (bgq_weylsite_double *)((uint8_t*)&field->sec_collapsed_double[ic] - 32);
 
 			#define PRECISION double
 			#define BGQ_READWEYLLAYOUT_INC_

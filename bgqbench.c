@@ -550,15 +550,17 @@ static char *omp_threads_desc[] = { "1","2", "4", "8", "16", "32", "33", "48", "
 static bgq_hmflags flags[] = {
         (DEFOPTS | hm_withcheck) & ~hm_nokamul,
         DEFOPTS,
-//		DEFOPTS | hm_nospi,
-//		DEFOPTS | hm_nooverlap,
+        DEFOPTS | hm_floatprecision,
+		DEFOPTS | hm_nospi,
+		DEFOPTS | hm_nooverlap,
 		DEFOPTS | hm_nocom,
 		DEFOPTS | hm_nocom |             hm_nodistribute | hm_nodatamove,
 		DEFOPTS | hm_nocom | hm_nobody |                   hm_nodatamove,
 		DEFOPTS | hm_nocom | hm_nobody | hm_nodistribute                ,
-		DEFOPTS |            hm_nobody | hm_nodistribute | hm_nodatamove,
 		DEFOPTS | hm_nocom                               | hm_nodatamove,
-//		DEFOPTS | hm_nospi | hm_nobody | hm_nodistribute | hm_nodatamove,
+		DEFOPTS | hm_nocom                               | hm_nodatamove | hm_floatprecision,
+		DEFOPTS |            hm_nobody | hm_nodistribute | hm_nodatamove,
+		DEFOPTS | hm_nospi | hm_nobody | hm_nodistribute | hm_nodatamove,
 		DEFOPTS | hm_nocom | hm_nobody | hm_nodistribute | hm_nodatamove,
 		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitdisable,
 		DEFOPTS                       | hm_prefetchimplicitconfirmed,
@@ -567,16 +569,18 @@ static bgq_hmflags flags[] = {
     };
 static char* flags_desc[] = {
 		"kamul",
-		"+nokamul",
-//		"MPI",
-//		"+nooverlap",
+		"dslash dbl",
+		"dslash sgl",
+		"MPI",
+		"+nooverlap",
 		"+nocomm",
 		"bodyonly",
 		"distonly",
 		"dmovonly",
+		"volonly dbl",
+		"volonly sgl",
 		"SPI only",
-		"volonly",
-//		"MPI only",
+		"MPI only",
 		"idle",
 		"pf disable",
 		"pf stream",
@@ -895,7 +899,7 @@ static int check_hopmat(void *arg_untyped) {
 
 	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 	double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], true);
-	//assert(compare_transfer == 0);
+	assert(compare_transfer == 0);
 	// Must be exact copy
 
 	for (ucoord z = 0; z < LOCAL_LZ ; z += 1) {
@@ -941,18 +945,22 @@ static int check_hopmat(void *arg_untyped) {
 
 	bgq_savebgqref();
 	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], true);
-	//assert(compare_even < 0.01);
+#ifndef BGQ_COORDCHECK
+	assert(compare_even < 0.01);
+#endif
 
 
 	bgq_spinorfield_transfer(false, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max]);
 	compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max], true);
-	//assert(compare_transfer == 0);
+	assert(compare_transfer == 0);
 
 	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k], &g_bgq_spinorfields[k+k_max], hmflags);
 	HoppingMatrix_switch(true, g_spinor_field[k], g_spinor_field[k+k_max], hmflags);
 
 	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], true);
-	//assert(compare_odd < 0.01);
+#ifndef BGQ_COORDCHECK
+	assert(compare_odd < 0.01);
+#endif
 
 
 	master_print("Comparison to reference version: even=%f odd=%f max difference\n", compare_even, compare_odd);

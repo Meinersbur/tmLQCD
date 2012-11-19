@@ -215,14 +215,14 @@ void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work,  bool nokamul, bgq
 }
 
 
-
-
-
 void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield, bgq_hmflags opts) {
 	assert(targetfield); // to be initialized
 
 	assert(spinorfield);
 	assert(spinorfield != targetfield);
+
+
+#if 0
 	assert(spinorfield->isInitialized);
 	assert(spinorfield->isOdd == !isOdd);
 	bool readFullspinor;
@@ -234,6 +234,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 		assert(!"Input does not contain data");
 		UNREACHABLE
 	}
+#endif
 
 	bool nocomm = opts & hm_nocom;
 	bool nooverlap = opts & hm_nooverlap;
@@ -245,11 +246,12 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	bool noprefetchstream = opts & hm_noprefetchstream;
 	bool floatprecision = opts & hm_floatprecision;
 
+	bgq_spinorfield_layout layout = bgq_spinorfield_bestLayout(spinorfield);
 	bgq_spinorfield_setup(targetfield, isOdd, false, false, false, true, floatprecision);
-	bgq_spinorfield_setup(spinorfield, !isOdd, readFullspinor, false, !readFullspinor, false, false);
+	bgq_spinorfield_setup(spinorfield, !isOdd, !(layout & ly_weyl), false, (layout & ly_weyl), false, false);
 	assert(targetfield->isOdd == isOdd);
 
-	bgq_spinorfield_layout layout = bgq_spinorfield_bestLayout(spinorfield);
+
 
 	// 0. Expect data from other neighbor node
 	if (!nocomm) {
@@ -307,9 +309,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 		bgq_comm_send(nospi, floatprecision);
 		targetfield->waitingForRecv = true;
 	}
-	if ((PHYSICAL_SURFACE > 0) && !nodatamove) {
-		targetfield->pendingDatamove = true;
-	}
+	targetfield->pendingDatamove = (PHYSICAL_SURFACE > 0) && !nodatamove;
 	targetfield->hmflags = opts;
 
 	if (nooverlap) {

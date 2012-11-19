@@ -116,14 +116,6 @@ void bgq_weyl_expect(bgq_weyl_nonvec weyl, ucoord t, ucoord x, ucoord y, ucoord 
 }
 
 
-
-
-
-
-
-
-
-
 static bgq_weyl_vec_double *bgq_offset2pointer_double(bgq_weylfield_controlblock *field, size_t offset) {
 	assert(field);
 	assert(offset % sizeof(bgq_weyl_vec_double) == 0);
@@ -171,6 +163,7 @@ static bgq_weyl_vec_double *bgq_encodedoffset2pointer(bgq_weylfield_controlblock
 }
 #endif
 
+
 static size_t bgq_weylfield_bufferoffset2consecutiveoffset(bool isOdd, size_t offset, size_t k) {
 	assert(offset);
 	assert(offset % sizeof(bgq_weyl_vec_double) == 0);
@@ -178,10 +171,10 @@ static size_t bgq_weylfield_bufferoffset2consecutiveoffset(bool isOdd, size_t of
 	size_t index = bgq_offset2index(offset);
 
 	//bgq_direction d = bgq_section2direction(sec);
-//assert(d == bgq_offset2ddst(offset));
+	//assert(d == bgq_offset2ddst(offset));
 	bgq_direction d = bgq_offset2ddst(offset);
 	ucoord ic = g_bgq_index2collapsed[isOdd][index];
-	assert(ic!=-1);
+	assert(ic != -1);
 	return bgq_collapsed2consecutiveoffset(ic, d);
 }
 
@@ -238,7 +231,7 @@ static bgq_weyl_nonvec bgq_weyl_coord_encode(ucoord t, ucoord x, ucoord y, ucoor
 	return result;
 }
 
-static void bgq_weylveck_write(bgq_weyl_vec_double *target, ucoord k, bgq_weyl_nonvec data) {
+static void bgq_weylveck_write_double(bgq_weyl_vec_double *target, ucoord k, bgq_weyl_nonvec data) {
 	for (ucoord i = 0; i < 2; i += 1) {
 		for (ucoord l = 0; l < 3; l += 1) {
 			target->s[i][l][k] = data.s[i][l];
@@ -246,42 +239,28 @@ static void bgq_weylveck_write(bgq_weyl_vec_double *target, ucoord k, bgq_weyl_n
 	}
 }
 
-void bgq_weylveck_written(bgq_weyl_vec_double *targetweyl, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
+
+static void bgq_weylveck_write_float(bgq_weyl_vec_float *target, ucoord k, bgq_weyl_nonvec data) {
+	for (ucoord i = 0; i < 2; i += 1) {
+		for (ucoord l = 0; l < 3; l += 1) {
+			target->s[i][l][k] = data.s[i][l];
+		}
+	}
+}
+
+#define bgq_weylveck_written NAME2(bgq_weylveck_written,PRECISION)
+void bgq_weylveck_written_double(bgq_weyl_vec_double *targetweyl, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 #ifdef BGQ_COORDCHECK
 	bgq_weyl_nonvec coord = bgq_weyl_coord_encode(t,x,y,z,d,isSrc);
-	bgq_weylveck_write(targetweyl, k, coord);
+	bgq_weylveck_write_double(targetweyl, k, coord);
 #endif
 }
 
 
-static void bgq_spinorfield_fulllayout_clear(bgq_weylfield_controlblock *field) {
+void bgq_weylveck_written_float(bgq_weyl_vec_float *targetweyl, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 #ifdef BGQ_COORDCHECK
-	bool isOdd = field->isOdd;
-	for (ucoord z = 0; z < LOCAL_LZ ; z += 1) {
-		for (ucoord y = 0; y < LOCAL_LY ; y += 1) {
-			for (ucoord x = 0; x < LOCAL_LX ; x += 1) {
-				for (ucoord t = 0; t < LOCAL_LT ; t += 1) {
-					if (bgq_local2isOdd(t, x, y, z) != isOdd)
-						continue;
-					ucoord ic = bgq_local2collapsed(t, x, y, z);
-					ucoord k = bgq_local2k(t, x, y, z);
-					bgq_spinorveck_written(&field->sec_fullspinor[ic], k, t,x,y,z);
-				}
-			}
-		}
-	}
-
-#if 0
-	bool isOdd = field->isOdd;
-	for (ucoord ic = 0; ic < PHYSICAL_VOLUME; ic += 1) {
-		ucoord t1 = bgq_collapsed2t(isOdd, ic, 0);
-		ucoord t2 = bgq_collapsed2t(isOdd, ic, 1);
-		ucoord x = bgq_collapsed2x(isOdd, ic);
-		ucoord y = bgq_collapsed2y(isOdd, ic);
-		ucoord z = bgq_collapsed2z(isOdd, ic);
-		field->sec_fullspinor[ic] = bgq_spinor_mergevec(bgq_spinor_coord_encode(t1, x, y, z), bgq_spinor_coord_encode(t2, x, y, z));
-	}
-#endif
+	bgq_weyl_nonvec coord = bgq_weyl_coord_encode(t,x,y,z,d,isSrc);
+	bgq_weylveck_write_float(targetweyl, k, coord);
 #endif
 }
 
@@ -374,6 +353,7 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		field->isOdd = isOdd;
 		field->isFulllayoutSloppy = false;
 		field->isWeyllayoutSloppy = false;
+		field->pendingDatamove = false;
 
 		field->isInitialized = true;
 	}
@@ -463,7 +443,7 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		//field->sec_fullspinor_body = spinorsite;
 	}
 	if (actionInitFulllayout) {
-		bgq_spinorfield_fulllayout_clear(field);
+		//bgq_spinorfield_fulllayout_clear(field);
 	}
 
 
@@ -541,7 +521,9 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 	if (writeWeyl || writeFullspinor) {
 		// Data is going to be written, so what actually is stored here changes
 		field->hasWeylfieldData = writeWeyl;
+		field->isWeyllayoutSloppy = writeFloat;
 		field->hasFullspinorData = writeFullspinor;
+		field->isFulllayoutSloppy = writeFloat;
 	}
 }
 
@@ -614,15 +596,15 @@ bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, ucoord t
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
 
-	assert(bgq_local2isOdd(t,x,y,z)==field->isOdd);
-	ucoord ic = bgq_local2collapsed(t,x,y,z);
-	ucoord k = bgq_local2k(t,x,y,z);
+	assert(bgq_local2isOdd(t, x, y, z) == field->isOdd);
+	ucoord ic = bgq_local2collapsed(t, x, y, z);
+	ucoord k = bgq_local2k(t, x, y, z);
 
 	bgq_spinorfield_layout layout = bgq_spinorfield_bestLayout(field);
 	bgq_spinorfield_setup(field, field->isOdd, !(layout & ly_weyl), false, (layout & ly_weyl), false, false);
 	bgq_su3_spinor_decl(spinor);
 	bgq_spinorfield_readSpinor(bgq_su3_spinor_vars(&spinor), field, ic, layout);
-	return bgq_spinor_fromqpx(spinor,k);
+	return bgq_spinor_fromqpx(spinor, k);
 
 #if 0
 	if (field->hasFullspinorData) {
@@ -835,9 +817,13 @@ bgq_weyl_vec_double *bgq_section_baseptr_double(bgq_weylfield_controlblock *fiel
 
 	switch (section) {
 	case sec_surface:
+		if (PHYSICAL_SURFACE==0)
+			return NULL;
 		result = (bgq_weyl_vec_double*)&field->sec_collapsed_double[bgq_surface2collapsed(0)];
 		break;
 	case sec_body:
+		if (PHYSICAL_BODY==0)
+			return NULL;
 		result = (bgq_weyl_vec_double*)&field->sec_collapsed_double[bgq_body2collapsed(0)];
 		break;
 	case sec_send_tup:
@@ -913,9 +899,13 @@ bgq_weyl_vec_float *bgq_section_baseptr_float(bgq_weylfield_controlblock *field,
 
 	switch (section) {
 	case sec_surface:
+		if (PHYSICAL_SURFACE==0)
+			return NULL;
 		result = (bgq_weyl_vec_float*)&field->sec_collapsed_float[bgq_surface2collapsed(0)];
 		break;
 	case sec_body:
+		if (PHYSICAL_BODY==0)
+			return NULL;
 		result = (bgq_weyl_vec_float*)&field->sec_collapsed_float[bgq_body2collapsed(0)];
 		break;
 	case sec_send_tup:
