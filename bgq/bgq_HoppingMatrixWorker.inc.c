@@ -46,7 +46,7 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 
 	bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][begin];
 	gaugesite = (bgq_gaugesite*)(((uint8_t*)gaugesite)-32);
-	bgq_weylsite *weylsite = &spinorfield->sec_collapsed[begin];
+	bgq_weylsite *weylsite = &spinorfield->BGQ_SEC_WEYLLAYOUT[begin];
 	weylsite = (bgq_weylsite*)(((uint8_t*)weylsite)-32);
 
 	if (true || readFulllayout) {
@@ -105,7 +105,7 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 
 		if (readFulllayout) {
 			bgq_su3_matrix_prefetch(gaugesite);
-			bgq_spinorsite *spinorsite = &spinorfield->sec_fullspinor[ic];
+			bgq_spinorsite *spinorsite = &spinorfield->BGQ_SEC_FULLLAYOUT[ic];
 			//assert(spinorsite->s[1][0][0]!=0);
 			//bgq_su3_spinor_prefetch_double(&spinorfield->sec_fullspinor[ic+1]); // TODO: This prefetch is too early
 			//bgq_HoppingMatrix_loadFulllayout(spinor, spinorsite, t1, t2, x, y, z);

@@ -312,27 +312,34 @@ void bgq_gaugefield_init(void);
 
 typedef struct {
 	complex_double s[4][3][PHYSICAL_LK]; /* 4*3*2*sizeof(COMPLEX_PRECISION) = 384;192 bytes (6;3 L1 cache lines) */
-} bgq_spinorsite;
-typedef bgq_spinorsite bgq_spinor_vec;
-typedef bgq_spinorsite (*bgq_spinorfield);
-
+} bgq_spinorsite_double;
 typedef struct {
 	complex_float s[4][3][PHYSICAL_LK];
 } bgq_spinorsite_float;
+//typedef bgq_spinorsite_double bgq_spinorsite;
+#define bgq_spinorsite NAME2(bgq_spinorsite,PRECISION)
+
+typedef bgq_spinorsite_double bgq_spinor_vec_double;
+typedef bgq_spinorsite_float bgq_spinor_vec_float;
+#define bgq_spinorsite NAME2(bgq_spinorsite,PRECISION)
+//typedef bgq_spinorsite_double (*bgq_spinorfield);
 
 typedef struct {
 	complex_double s[2][3][PHYSICAL_LK]; // 192 byte (3 L1 cache lines)
-} bgq_weyl_vec;
+} bgq_weyl_vec_double;
 typedef struct {
 	complex_float s[2][3][PHYSICAL_LK]; // 96 byte (1.5 L1 cache lines)
 } bgq_weyl_vec_float;
+typedef bgq_weyl_vec_double bgq_weyl_vec;
 
 typedef struct {
 	bgq_weyl_vec d[PHYSICAL_LD];
-} bgq_weylsite;
+} bgq_weylsite_double;
 typedef struct {
 	bgq_weyl_vec_float d[PHYSICAL_LD];
 } bgq_weylsite_float;
+#define bgq_weylsite NAME2(bgq_weylsite,PRECISION)
+//typedef bgq_weylsite_double bgq_weylsite;
 
 typedef struct {
 	uint32_t d[PHYSICAL_LD];
@@ -519,6 +526,7 @@ typedef struct {
 } bgq_recvt_consptr;
 
 //TODO: make incomplete type
+//TODO: Move to bgq_spinorfield.h
 typedef struct {
 	bool isInitialized;
 	bool isOdd;
@@ -535,15 +543,15 @@ typedef struct {
 	//bgq_weyl_vec *sec_index; // obsolete
 	//bgq_weyl_vec *sec_send[PHYSICAL_LD]; // obsolete
 	//bgq_weyl_vec *sec_recv[PHYSICAL_LD]; // obsolete
-	bgq_weylsite *sec_collapsed;
+	bgq_weylsite_double *sec_collapsed_double;
 	bgq_weylsite_float *sec_collapsed_float;
-	bgq_weylsite *sec_surface;
-	bgq_weylsite *sec_body;
+	//bgq_weylsite *sec_surface;
+	//bgq_weylsite *sec_body;
 	uint8_t *sec_end;
 
-	bgq_spinorsite *sec_fullspinor;
-	bgq_spinorsite *sec_fullspinor_surface;
-	bgq_spinorsite *sec_fullspinor_body;
+	bgq_spinorsite_double *sec_fullspinor_double;
+	//bgq_spinorsite *sec_fullspinor_surface;
+	//bgq_spinorsite *sec_fullspinor_body;
 	bgq_spinorsite_float *sec_fullspinor_float;
 
 	//TODO: We may even interleave these with the data itself, but may cause alignment issues
@@ -555,6 +563,9 @@ typedef struct {
 	bgq_weyl_ptr_t_float *sendptr_float;
 	bgq_weyl_vec_float **consptr_float[PHYSICAL_LD];
 } bgq_weylfield_controlblock;
+
+#define BGQ_SEC_FULLLAYOUT NAME2(sec_fullspinor,PRECISION)
+#define BGQ_SEC_WEYLLAYOUT NAME2(sec_collapsed,PRECISION)
 
 // Index translations
 EXTERN_FIELD size_t *g_bgq_collapsed2halfvolume[PHYSICAL_LP];
@@ -1099,9 +1110,9 @@ EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
 		case sec_recv_tdown:
 			if (COMM_T) {
 				if (BGQ_UNVECTORIZE) {
-					secsize = LOCAL_HALO_T/(PHYSICAL_LP*PHYSICAL_LK) * sizeof(bgq_weyl_vec);
+					secsize = LOCAL_HALO_T/(PHYSICAL_LP*PHYSICAL_LK) * sizeof(bgq_weyl_vec_double);
 				} else {
-					secsize = LOCAL_HALO_T/PHYSICAL_LP * sizeof(bgq_weyl_vec);
+					secsize = LOCAL_HALO_T/PHYSICAL_LP * sizeof(bgq_weyl_vec_double);
 				}
 			} else {
 				secsize = 0;
@@ -1115,25 +1126,25 @@ EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
 		case sec_send_xdown:
 		case sec_recv_xup:
 		case sec_recv_xdown:
-			secsize = PHYSICAL_HALO_X * sizeof(bgq_weyl_vec);
+			secsize = PHYSICAL_HALO_X * sizeof(bgq_weyl_vec_double);
 			break;
 		case sec_send_yup:
 		case sec_send_ydown:
 		case sec_recv_yup:
 		case sec_recv_ydown:
-			secsize = PHYSICAL_HALO_Y * sizeof(bgq_weyl_vec);
+			secsize = PHYSICAL_HALO_Y * sizeof(bgq_weyl_vec_double);
 			break;
 		case sec_send_zup:
 		case sec_send_zdown:
 		case sec_recv_zup:
 		case sec_recv_zdown:
-			secsize = PHYSICAL_HALO_Z * sizeof(bgq_weyl_vec);
+			secsize = PHYSICAL_HALO_Z * sizeof(bgq_weyl_vec_double);
 			break;
 		case sec_surface:
-			secsize = PHYSICAL_SURFACE * sizeof(bgq_weylsite);
+			secsize = PHYSICAL_SURFACE * sizeof(bgq_weylsite_double);
 			break;
 		case sec_body:
-			secsize = PHYSICAL_BODY * sizeof(bgq_weylsite);
+			secsize = PHYSICAL_BODY * sizeof(bgq_weylsite_double);
 			break;
 		default:
 			UNREACHABLE
@@ -1184,7 +1195,7 @@ EXTERN_INLINE size_t bgq_decode_offset(uint32_t code) { assert(code+1);
 }
 
 EXTERN_INLINE size_t bgq_weyllayout_collapsed2consecutiveoffset(bool isOdd, ucoord ic, bgq_direction d) {
-	return bgq_weyl_section_offset(sec_collapsed) + ic*sizeof(bgq_weylsite) + d*sizeof(bgq_weyl_vec);
+	return bgq_weyl_section_offset(sec_collapsed) + ic*sizeof(bgq_weylsite_double) + d*sizeof(bgq_weyl_vec_double);
 }
 //size_t bgq_weyllayout_halfvolume2consecutiveoffset(bool isOdd_dst, size_t ih_dst, bgq_direction d_dst);
 bgq_direction bgq_offset2ddst(size_t offset);
@@ -1353,7 +1364,7 @@ size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr) ;
 
 EXTERN_INLINE size_t bgq_collapsed2consecutiveoffset(ucoord ic, bgq_direction d) {
 	assert(0 <= ic && ic < PHYSICAL_VOLUME);
-	return bgq_weyl_section_offset(sec_collapsed) + ic*sizeof(bgq_weylsite) + d*sizeof(bgq_weyl_vec);
+	return bgq_weyl_section_offset(sec_collapsed) + ic*sizeof(bgq_weylsite_double) + d*sizeof(bgq_weyl_vec_double);
 }
 
 

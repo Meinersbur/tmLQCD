@@ -79,6 +79,9 @@ EXTERN_INLINE void bgq_gaugeqpx_expect_raw(bgq_su3_mparams(gaugeqpx),ucoord t1, 
 }
 
 
+
+
+
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD
 #undef EXTERN_INIT

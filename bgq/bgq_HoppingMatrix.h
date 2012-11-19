@@ -34,14 +34,14 @@
 
 void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield, bgq_hmflags opts);
 
-
+//obsolete
 #define bgq_HoppingMatrix_loadFulllayout(spinor,addr,t_left,t_right,x,y,z) bgq_HoppingMatrix_loadFulllayout_raw(bgq_su3_spinor_vars(&spinor),addr,t_left,t_right,x,y,z)
-EXTERN_INLINE void bgq_HoppingMatrix_loadFulllayout_raw(bgq_su3_spinor_params(* restrict target), bgq_spinorsite * restrict addr, size_t t1, size_t t2, size_t x, size_t y, size_t z) {
+EXTERN_INLINE void bgq_HoppingMatrix_loadFulllayout_raw(bgq_su3_spinor_params(* restrict target), bgq_spinorsite_double * restrict addr, size_t t1, size_t t2, size_t x, size_t y, size_t z) {
 	bgq_su3_spinor_load_double(*target, addr);
 	bgq_spinorqpx_expect(*target, t1, t2, x, y, z);
 }
 
-
+#if 0
 #define bgq_HoppingMatrix_loadWeyllayout_tup(target, spinorsite, t1, t2, x,y,z) bgq_HoppingMatrix_loadWeyllayout_tup_raw(bgq_su3_spinor_vars(&target), spinorsite, t1, t2, x, y, z)
 EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_tup_raw(bgq_su3_spinor_params(* restrict target), bgq_weylsite * restrict spinorsite, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z) {
 	bgq_su3_spinor_decl(result);
@@ -78,6 +78,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_tdown_raw(bgq_su3_spinor_par
 
 	bgq_su3_spinor_mov(*target, result);
 }
+
 
 
 #define bgq_HoppingMatrix_loadWeyllayout(target, spinorsite, t1, t2, x,y,z) bgq_HoppingMatrix_loadWeyllayout_raw(bgq_su3_spinor_vars(&target), spinorsite, t1, t2, x, y, z)
@@ -205,7 +206,7 @@ EXTERN_INLINE void bgq_HoppingMatrix_storeFulllayout_raw(bgq_spinorsite *targetp
 	//TODO: Callers should care for prefetching
 	bgq_su3_spinor_store_double(targetptr, spinor);
 }
-
+#endif
 
 #if 0
 EXTERN_INLINE void bgq_HoppingMatrix_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, bgq_su3_spinor_params(spinor)) {
@@ -722,6 +723,8 @@ EXTERN_INLINE void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t 
 #endif
 
 
+
+
 typedef struct {
 	bool isOdd_src;
 	bool isOdd_dst;
@@ -733,7 +736,7 @@ typedef struct {
 } bgq_HoppingMatrix_workload;
 
 
-void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work, bool nokamul, bool readFulllayout);
+void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work,  bool nokamul, bgq_spinorfield_layout layout);
 
 
 #undef EXTERN_INLINE

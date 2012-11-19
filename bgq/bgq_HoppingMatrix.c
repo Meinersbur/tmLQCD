@@ -20,41 +20,93 @@
 
 #define PRECISION double
 
-static void bgq_HoppingMatrix_nokamul_worker_readFulllayout(void *arg, size_t tid, size_t threads) {
+static void bgq_HoppingMatrix_nokamul_worker_readFulllayout_double(void *arg, size_t tid, size_t threads) {
 	//bgq_HoppingMatrix_worker(arg,tid,threads,false,true);
 
 	bool const kamul = false;
 	bool const readFulllayout = true;
 
+#define PRECISION double
 #define BGQ_HOPPINGMATRIXWORKER_INC_ 1
 #include "bgq_HoppingMatrixWorker.inc.c"
+#undef PRECISION
 }
-static void bgq_HoppingMatrix_kamul_worker_readFulllayout(void *arg, size_t tid, size_t threads) {
+static void bgq_HoppingMatrix_nokamul_worker_readFulllayout_float(void *arg, size_t tid, size_t threads) {
+	//bgq_HoppingMatrix_worker(arg,tid,threads,false,true);
+
+	bool const kamul = false;
+	bool const readFulllayout = true;
+
+#define PRECISION float
+#define BGQ_HOPPINGMATRIXWORKER_INC_ 1
+#include "bgq_HoppingMatrixWorker.inc.c"
+#undef PRECISION
+}
+static void bgq_HoppingMatrix_kamul_worker_readFulllayout_double(void *arg, size_t tid, size_t threads) {
 	//bgq_HoppingMatrix_worker(arg,tid,threads,true,true);
 
 	bool const kamul = true;
 	bool const readFulllayout = true;
 
+#define PRECISION double
 #define BGQ_HOPPINGMATRIXWORKER_INC_ 1
 #include "bgq_HoppingMatrixWorker.inc.c"
+#undef PRECISION
 }
-static void bgq_HoppingMatrix_nokamul_worker_readWeyllayout(void *arg, size_t tid, size_t threads) {
+static void bgq_HoppingMatrix_kamul_worker_readFulllayout_float(void *arg, size_t tid, size_t threads) {
+	//bgq_HoppingMatrix_worker(arg,tid,threads,true,true);
+
+	bool const kamul = true;
+	bool const readFulllayout = true;
+
+#define PRECISION float
+#define BGQ_HOPPINGMATRIXWORKER_INC_ 1
+#include "bgq_HoppingMatrixWorker.inc.c"
+#undef PRECISION
+}
+static void bgq_HoppingMatrix_nokamul_worker_readWeyllayout_double(void *arg, size_t tid, size_t threads) {
 	//bgq_HoppingMatrix_worker(arg,tid,threads,false,false);
 
 	bool const kamul = false;
 	bool const readFulllayout = false;
 
+#define PRECISION double
 #define BGQ_HOPPINGMATRIXWORKER_INC_ 1
 #include "bgq_HoppingMatrixWorker.inc.c"
+#undef PRECISION
 }
-static void bgq_HoppingMatrix_kamul_worker_readWeyllayout(void *arg, size_t tid, size_t threads) {
+static void bgq_HoppingMatrix_nokamul_worker_readWeyllayout_float(void *arg, size_t tid, size_t threads) {
+	//bgq_HoppingMatrix_worker(arg,tid,threads,false,false);
+
+	bool const kamul = false;
+	bool const readFulllayout = false;
+
+#define PRECISION float
+#define BGQ_HOPPINGMATRIXWORKER_INC_ 1
+#include "bgq_HoppingMatrixWorker.inc.c"
+#undef PRECISION
+}
+static void bgq_HoppingMatrix_kamul_worker_readWeyllayout_double(void *arg, size_t tid, size_t threads) {
 	//bgq_HoppingMatrix_worker(arg,tid,threads,true,false);
 
 	bool const kamul = true;
 	bool const readFulllayout = false;
 
+#define PRECISION double
 #define BGQ_HOPPINGMATRIXWORKER_INC_ 1
 #include "bgq_HoppingMatrixWorker.inc.c"
+#undef PRECISION
+}
+static void bgq_HoppingMatrix_kamul_worker_readWeyllayout_float(void *arg, size_t tid, size_t threads) {
+	//bgq_HoppingMatrix_worker(arg,tid,threads,true,false);
+
+	bool const kamul = true;
+	bool const readFulllayout = false;
+
+#define PRECISION float
+#define BGQ_HOPPINGMATRIXWORKER_INC_ 1
+#include "bgq_HoppingMatrixWorker.inc.c"
+#undef PRECISION
 }
 
 
@@ -103,11 +155,11 @@ static void bgq_HoppingMatrix_unvectorize(void *arg_untyped, size_t tid, size_t 
 #endif
 
 				bgq_su3_weyl_decl(weyl1);
-				bgq_su3_weyl_load(weyl1, &g_bgq_sec_temp_tup[2*j]);
+				bgq_su3_weyl_load_double(weyl1, &g_bgq_sec_temp_tup[2*j]);
 						bgq_weylqpxk_expect(weyl1, 1, t1, x1, y1, z1, TDOWN, false);
 
 				bgq_su3_weyl_decl(weyl2);
-				bgq_su3_weyl_load(weyl2, &g_bgq_sec_temp_tup[2*j+1]);
+				bgq_su3_weyl_load_double(weyl2, &g_bgq_sec_temp_tup[2*j+1]);
 						bgq_weylqpxk_expect(weyl2, 1, t2, x2, y2, z2, TDOWN, false);
 
 				bgq_su3_weyl_decl(weyl);
@@ -115,7 +167,7 @@ static void bgq_HoppingMatrix_unvectorize(void *arg_untyped, size_t tid, size_t 
 						bgq_weylqpxk_expect(weyl, 0, t1, x1, y1, z1, TDOWN, false);
 						bgq_weylqpxk_expect(weyl, 1, t2, x2, y2, z2, TDOWN, false);
 
-				bgq_su3_weyl_store(&g_bgq_sec_send[TUP][j], weyl);
+				bgq_su3_weyl_store_double(&g_bgq_sec_send[TUP][j], weyl);
 			}
 			i += (endj - beginj);
 		} else if (WORKLOAD_SPLIT(workload_tdown)) {
@@ -142,11 +194,11 @@ static void bgq_HoppingMatrix_unvectorize(void *arg_untyped, size_t tid, size_t 
 #endif
 
 				bgq_su3_weyl_decl(weyl1);
-				bgq_su3_weyl_load(weyl1, &g_bgq_sec_temp_tdown[2*j]);
+				bgq_su3_weyl_load_double(weyl1, &g_bgq_sec_temp_tdown[2*j]);
 						bgq_weylqpxk_expect(weyl1, 0, t1, x1, y1, z1, TUP, false);
 
 				bgq_su3_weyl_decl(weyl2);
-				bgq_su3_weyl_load(weyl2, &g_bgq_sec_temp_tdown[2*j+1]);
+				bgq_su3_weyl_load_double(weyl2, &g_bgq_sec_temp_tdown[2*j+1]);
 						bgq_weylqpxk_expect(weyl2, 0, t2, x2, y2, z2, TUP, false);
 
 				bgq_su3_weyl_decl(weyl);
@@ -154,7 +206,7 @@ static void bgq_HoppingMatrix_unvectorize(void *arg_untyped, size_t tid, size_t 
 						bgq_weylqpxk_expect(weyl, 0, t1, x1, y1, z1, TUP, false);
 						bgq_weylqpxk_expect(weyl, 1, t2, x2, y2, z2, TUP, false);
 
-				bgq_su3_weyl_store(&g_bgq_sec_send[TDOWN][j], weyl);
+				bgq_su3_weyl_store_double(&g_bgq_sec_send[TDOWN][j], weyl);
 			}
 			i += (endj - beginj);
 		} else {
@@ -166,21 +218,74 @@ static void bgq_HoppingMatrix_unvectorize(void *arg_untyped, size_t tid, size_t 
 }
 
 
-void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work, bool nokamul, bool readFulllayout) {
+void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work,  bool nokamul, bgq_spinorfield_layout layout) {
 	assert(work);
 	size_t sites = work->ic_end - work->ic_begin;
 	uint64_t old = flopaccumulator;
+
+	bgq_worker_func func;
+	if (nokamul) {
+		switch (layout) {
+		case ly_full_double:
+			func = &bgq_HoppingMatrix_nokamul_worker_readFulllayout_double;
+			break;
+		case ly_full_float:
+			func = &bgq_HoppingMatrix_nokamul_worker_readFulllayout_float;
+			break;
+		case ly_weyl_double:
+			func = &bgq_HoppingMatrix_nokamul_worker_readWeyllayout_double;
+			break;
+		case ly_weyl_float:
+			func = &bgq_HoppingMatrix_nokamul_worker_readWeyllayout_float;
+			break;
+		default:
+			UNREACHABLE
+		}
+	} else {
+		switch (layout) {
+		case ly_full_double:
+			func = &bgq_HoppingMatrix_kamul_worker_readFulllayout_double;
+			break;
+		case ly_full_float:
+			func = &bgq_HoppingMatrix_kamul_worker_readFulllayout_float;
+			break;
+		case ly_weyl_double:
+			func = &bgq_HoppingMatrix_kamul_worker_readWeyllayout_double;
+			break;
+		case ly_weyl_float:
+			func = &bgq_HoppingMatrix_kamul_worker_readWeyllayout_float;
+			break;
+		default:
+			UNREACHABLE
+		}
+	}
+	bgq_master_call(func, work);
+	uint64_t flopPerSite = (
+			/*accum spinor*/	7/*dirs*/ * (4 * 3)/*cmplx per spinor*/ * 2/*flops accum*/ +
+			/*su3 mul*/			8/*dirs*/ * 2/*su3vec per weyl*/ * (6*9 + 2*3)/*flop per su3 mv-mul*/
+	);
+	if (!nokamul)
+		flopPerSite += /*kamul*/			8/*dirs*/ * (2 * 3)/*cmplx per weyl*/ * 6/*flops cmplx mul*/;
+	if (layout & ly_weyl)
+		flopPerSite += /*weyl reduce*/     8/*dirs*/ * 2/*weyl per dir*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/;
+	flopaccumulator += sites * PHYSICAL_LK * flopPerSite;
+#if 0
 	if (readFulllayout) {
 		if (nokamul) {
-			//master_print("readFulllayout nokamul\n");
-			bgq_master_call(&bgq_HoppingMatrix_nokamul_worker_readFulllayout, work);
+			if (inputfield->isFulllayoutSloppy)
+				bgq_master_call(&bgq_HoppingMatrix_nokamul_worker_readFulllayout_float, work);
+			 else
+				 bgq_master_call(&bgq_HoppingMatrix_nokamul_worker_readFulllayout_double, work);
 			flopaccumulator += sites * PHYSICAL_LK * (
 				/*weyl reduce*/     8/*dirs*/ * 2/*weyl per dir*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/ +
 				/*su3 mul*/			8/*dirs*/ * 2/*su3vec per weyl*/ * (6*9 + 2*3)/*flop per su3 mv-mul*/
 			);
+
 		} else {
-			//master_print("readFulllayout kamul\n");
-			bgq_master_call(&bgq_HoppingMatrix_kamul_worker_readFulllayout, work);
+			if (inputfield->isFulllayoutSloppy)
+				bgq_master_call(&bgq_HoppingMatrix_kamul_worker_readFulllayout_float, work);
+			else
+				bgq_master_call(&bgq_HoppingMatrix_kamul_worker_readFulllayout_double, work);
 			flopaccumulator += sites * PHYSICAL_LK * (
 				/*weyl reduce*/     8/*dirs*/ * 2/*weyl per dir*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/ +
 				/*su3 mul*/			8/*dirs*/ * 2/*su3vec per weyl*/ * (6*9 + 2*3)/*flop per su3 mv-mul*/ +
@@ -190,16 +295,20 @@ void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work, bool nokamul, bool
 	} else {
 		// readWeyl
 		if (nokamul) {
-			//master_print("readWeyllayout nokamul\n");
-			bgq_master_call(&bgq_HoppingMatrix_nokamul_worker_readWeyllayout, work);
+			if (inputfield->isWeyllayoutSloppy)
+				bgq_master_call(&bgq_HoppingMatrix_nokamul_worker_readWeyllayout_float, work);
+			else
+				bgq_master_call(&bgq_HoppingMatrix_nokamul_worker_readWeyllayout_double, work);
 			flopaccumulator += sites * PHYSICAL_LK * (
 				/*accum spinor*/	7/*dirs*/ * (4 * 3)/*cmplx per spinor*/ * 2/*flops accum*/ +
 				/*weyl reduce*/     8/*dirs*/ * 2/*weyl per dir*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/ +
 				/*su3 mul*/			8/*dirs*/ * 2/*su3vec per weyl*/ * (6*9 + 2*3)/*flop per su3 mv-mul*/
 			);
 		} else {
-			//master_print("readWeyllayout kamul\n");
-			bgq_master_call(&bgq_HoppingMatrix_kamul_worker_readWeyllayout, work);
+			if (inputfield->isWeyllayoutSloppy)
+				bgq_master_call(&bgq_HoppingMatrix_kamul_worker_readWeyllayout_float, work);
+			else
+				bgq_master_call(&bgq_HoppingMatrix_kamul_worker_readWeyllayout_double, work);
 			flopaccumulator += sites * PHYSICAL_LK * (
 				/*accum spinor*/	7/*dirs*/ * (4 * 3)/*cmplx per spinor*/ * 2/*flops accum*/ +
 				/*weyl reduce*/     8/*dirs*/ * 2/*weyl per dir*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/ +
@@ -208,19 +317,13 @@ void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work, bool nokamul, bool
 			);
 		}
 	}
+#endif
 	//master_print("nokamul=%d readFulllayout=%d sites=%zu flopaccum=%llu diff=%llu\n", nokamul, readFulllayout, sites, flopaccumulator, flopaccumulator-old);
 }
 
-typedef enum {
-	ly_full_double,
-	ly_full_float,
-	ly_weyl_double,
-	ly_weyl_float,
-	ly_full_double_mul,
-	ly_full_float_mul,
-	ly_weyl_double_mul,
-	ly_weyl_float_mul,
-} bgq_spinorfield_layout;
+
+
+
 
 void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield, bgq_hmflags opts) {
 	assert(targetfield); // to be initialized
@@ -253,6 +356,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	bgq_spinorfield_setup(spinorfield, !isOdd, readFullspinor, false, !readFullspinor, false, false);
 	assert(targetfield->isOdd == isOdd);
 
+	bgq_spinorfield_layout layout = bgq_spinorfield_bestLayout(spinorfield);
 
 	// 0. Expect data from other neighbor node
 	if (!nocomm) {
@@ -286,7 +390,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 
 	// Compute surface and put data into the send buffers
 	if ((PHYSICAL_SURFACE > 0) && !nodistribute) {
-		bgq_HoppingMatrix_work(&work_surface, nokamul, readFullspinor);
+		bgq_HoppingMatrix_work(&work_surface, nokamul, layout);
 	}
 
 
@@ -320,7 +424,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 
 // 3. Compute the body
 	if ((PHYSICAL_BODY > 0) && !nobody) {
-		bgq_HoppingMatrix_work(&work_body, nokamul, readFullspinor);
+		bgq_HoppingMatrix_work(&work_body, nokamul, layout);
 		if (!COMM_T && !nodatamove) {
 			// Copy the data from HALO_T into the required locations
 			bgq_master_sync();

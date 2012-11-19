@@ -840,7 +840,7 @@ static bgq_spinor_nonvec bgq_spinor_coord_encode(scoord t, scoord x, scoord y, s
 }
 
 
-static void bgq_spinorveck_write(bgq_spinorsite *target, ucoord k, bgq_spinor data) {
+static void bgq_spinorveck_write(bgq_spinorsite_double *target, ucoord k, bgq_spinor data) {
 	for (ucoord i = 0; i < 4; i+=1) {
 		for (ucoord l = 0; l < 3; l+=1) {
 			target->s[i][l][k] = data.v[i].c[l];
@@ -848,7 +848,7 @@ static void bgq_spinorveck_write(bgq_spinorsite *target, ucoord k, bgq_spinor da
 	}
 }
 
-static void bgq_spinorveck_written(bgq_spinorsite *targetspinor, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z) {
+static void bgq_spinorveck_written(bgq_spinorsite_double *targetspinor, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z) {
 #ifdef BGQ_COORDCHECK
 	bgq_spinor coord = bgq_spinor_coord_encode(t,x,y,z);
 	bgq_spinorveck_write(targetspinor, k, coord);
@@ -1002,7 +1002,10 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		fullspinorAvailable = false;
 		weylAvailable = false;
 		field->sec_weyl = NULL;
-		field->sec_fullspinor = NULL;
+		field->sec_collapsed_double = NULL;
+		field->sec_collapsed_float = NULL;
+		field->sec_fullspinor_double = NULL;
+		field->sec_fullspinor_float = NULL;
 		field->hasFullspinorData = false;
 		field->hasWeylfieldData = false;
 		field->waitingForRecv = false;
@@ -1027,7 +1030,7 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		//TODO: We may implement a field data translation if the calling func does not support this layout
 	}
 	if (writeFullspinor) {
-		if (field->sec_fullspinor==NULL) {
+		if (field->sec_fullspinor_double==NULL) {
 			actionAllocFulllayout = true;
 			actionInitFulllayout = true;
 		} else if (field->isOdd != isOdd) {
@@ -1084,14 +1087,15 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 
 
 	if (actionAllocFulllayout) {
-		size_t fullfieldsize = PHYSICAL_VOLUME * sizeof(bgq_spinorsite);
-		bgq_spinorsite *spinorsite = malloc_aligned(fullfieldsize, BGQ_ALIGNMENT_L2);
+		size_t fullfieldsize = PHYSICAL_VOLUME * sizeof(bgq_spinorsite_double);
+		void *spinorsite = malloc_aligned(fullfieldsize, BGQ_ALIGNMENT_L2);
 
-		field->sec_fullspinor = spinorsite;
-		field->sec_fullspinor_surface = spinorsite;
-		spinorsite += PHYSICAL_SURFACE;
+		field->sec_fullspinor_double = spinorsite;
+		field->sec_fullspinor_float = spinorsite;
+		//field->sec_fullspinor_surface = spinorsite;
+		spinorsite = (bgq_spinorsite_double*)spinorsite + PHYSICAL_SURFACE;
 
-		field->sec_fullspinor_body = spinorsite;
+		//field->sec_fullspinor_body = spinorsite;
 	}
 	if (actionInitFulllayout) {
 		bgq_spinorfield_fulllayout_clear(field);
@@ -1099,13 +1103,14 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 
 
 	if (actionAllocWeyllayout) {
-		size_t weylfieldsize = PHYSICAL_VOLUME * sizeof(bgq_weylsite);
+		size_t weylfieldsize = PHYSICAL_VOLUME * sizeof(bgq_weylsite_double);
 		uint8_t *weylbase = ((uint8_t*)malloc_aligned(weylfieldsize, BGQ_ALIGNMENT_L2));
 
 		field->sec_weyl = weylbase;
-		field->sec_collapsed = (bgq_weylsite*) (weylbase + bgq_weyl_section_offset(sec_collapsed));
-		field->sec_surface = (bgq_weylsite*) (weylbase + bgq_weyl_section_offset(sec_surface));
-		field->sec_body = (bgq_weylsite*) (weylbase + bgq_weyl_section_offset(sec_body));
+		field->sec_collapsed_double = (bgq_weylsite_double*) (weylbase + bgq_weyl_section_offset(sec_collapsed));
+		field->sec_collapsed_float = (bgq_weylsite_float*)field->sec_collapsed_double;
+		//field->sec_surface = (bgq_weylsite*) (weylbase + bgq_weyl_section_offset(sec_surface));
+		//field->sec_body = (bgq_weylsite*) (weylbase + bgq_weyl_section_offset(sec_body));
 		field->sec_end = weylbase + bgq_weyl_section_offset(sec_end);
 
 		field->sendptr = malloc_aligned(PHYSICAL_VOLUME * sizeof(*field->sendptr), BGQ_ALIGNMENT_L2);
@@ -1190,7 +1195,7 @@ void bgq_spinorfield_transfer(bool isOdd, bgq_weylfield_controlblock *targetfiel
 		ucoord ih = bgq_local2halfvolume(t,x,y,z);
 		ucoord ic = bgq_local2collapsed(t,x,y,z);
 		ucoord k = bgq_local2k(t,x,y,z);
-		bgq_spinorsite *targetspinor = &targetfield->sec_fullspinor[ic];
+		bgq_spinorsite_double *targetspinor = &targetfield->sec_fullspinor_double[ic];
 		//bgq_spinorveck_expect(*targetspinor, k, t,x,y,z);
 		for (int v = 0; v < 4; v+=1) {
 			for (int c = 0; c < 3; c+=1) {
@@ -1229,6 +1234,14 @@ bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, ucoord t
 	assert(bgq_local2isOdd(t,x,y,z)==field->isOdd);
 	ucoord ic = bgq_local2collapsed(t,x,y,z);
 	ucoord k = bgq_local2k(t,x,y,z);
+
+	bgq_spinorfield_layout layout = bgq_spinorfield_bestLayout(field);
+	bgq_spinorfield_setup(field, field->isOdd, !(layout & ly_weyl), false, (layout & ly_weyl), false, false);
+	bgq_su3_spinor_decl(spinor);
+	bgq_spinorfield_readSpinor(bgq_su3_spinor_vars(&spinor), field, ic, layout);
+	return bgq_spinor_fromqpx(spinor,k);
+
+#if 0
 	if (field->hasFullspinorData) {
 		bgq_spinorfield_setup(field, field->isOdd, true, false, false, false, false);
 		bgq_spinorsite spinor = field->sec_fullspinor[ic];
@@ -1246,6 +1259,7 @@ bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, ucoord t
 		bgq_spinor dummy;
 		return dummy;
 	}
+#endif
 }
 
 
@@ -1438,10 +1452,10 @@ bgq_weyl_vec *bgq_section_baseptr(bgq_weylfield_controlblock *field, bgq_weylfie
 
 	switch (section) {
 	case sec_surface:
-		result = (bgq_weyl_vec*)field->sec_surface;
+		result = (bgq_weyl_vec_double*)&field->sec_collapsed_double[bgq_surface2collapsed(0)];
 		break;
 	case sec_body:
-		result = (bgq_weyl_vec*)field->sec_body;
+		result = (bgq_weyl_vec_double*)&field->sec_collapsed_double[bgq_body2collapsed(0)];
 		break;
 	case sec_send_tup:
 		result = g_bgq_sec_send[TUP];

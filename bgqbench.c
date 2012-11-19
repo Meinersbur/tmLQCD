@@ -88,14 +88,14 @@
 #include <l1p/sprefetch.h>
 #endif
 
-typedef bgq_spinorfield bgq_spinorfield_double;
-typedef bgq_spinorfield bgq_spinorfield_float;
+//typedef bgq_spinorfield bgq_spinorfield_double;
+//typedef bgq_spinorfield bgq_spinorfield_float;
 
-typedef bgq_gaugefield bgq_gaugefield_double;
-typedef bgq_gaugefield bgq_gaugefield_float;
+//typedef bgq_gaugefield bgq_gaugefield_double;
+//typedef bgq_gaugefield bgq_gaugefield_float;
 
-typedef bgq_gaugesite bgq_gaugesite_double;
-typedef bgq_gaugesite bgq_gaugesite_float;
+//typedef bgq_gaugesite bgq_gaugesite_double;
+//typedef bgq_gaugesite bgq_gaugesite_float;
 
 typedef void (*benchfunc_t)(bgq_hmflags flags, int k, int k_max);
 /* END MK */
@@ -879,7 +879,8 @@ static void benchmark_hopmatkernel(bgq_hmflags flags, int k, int k_max) {
 	work.ic_begin = 0;
 	work.ic_end = PHYSICAL_VOLUME;
 	work.noprefetchstream = flags & hm_noprefetchstream;
-	bgq_HoppingMatrix_work(&work, flags & hm_nokamul, g_bgq_spinorfields[k].hasFullspinorData);
+	bgq_spinorfield_layout layout = bgq_spinorfield_bestLayout(&g_bgq_spinorfields[k]);
+	bgq_HoppingMatrix_work(&work, flags & hm_nokamul, layout);
 }
 
 typedef struct {
@@ -989,15 +990,15 @@ static void exec_bench(int j_max, int k_max) {
 	uint64_t ws = 0;
 	uint64_t indices = 0;
 	uint64_t forcomm = 0;
-	ws += PHYSICAL_VOLUME * sizeof(bgq_weylsite); // input spinorfield
-	indices += PHYSICAL_VOLUME * sizeof(bgq_weylsite*); // sendptr
-	indices += (2*LOCAL_HALO_T/PHYSICAL_LP+2*PHYSICAL_HALO_X+2*PHYSICAL_HALO_Y+2*PHYSICAL_HALO_Z)*sizeof(bgq_weylsite*); // consptr
+	ws += PHYSICAL_VOLUME * sizeof(bgq_weylsite_double); // input spinorfield
+	indices += PHYSICAL_VOLUME * sizeof(bgq_weylsite_double*); // sendptr
+	indices += (2*LOCAL_HALO_T/PHYSICAL_LP+2*PHYSICAL_HALO_X+2*PHYSICAL_HALO_Y+2*PHYSICAL_HALO_Z)*sizeof(bgq_weylsite_double*); // consptr
 	ws += PHYSICAL_VOLUME * sizeof(bgq_gaugesite); // gauge field
 	forcomm += bgq_weyl_section_offset(sec_comm_end) - bgq_weyl_section_offset(sec_comm); // for communication
 
 	ws += forcomm;
 	ws += indices;
-	uint64_t ws_write = ws + PHYSICAL_VOLUME * sizeof(bgq_weylsite); // target spinor
+	uint64_t ws_write = ws + PHYSICAL_VOLUME * sizeof(bgq_weylsite_double); // target spinor
 	master_print("Working set size: %.1fMB (%.1fMB incl target) (%.1fMB index, %.1fMB commbuf)\n", (double)ws/(1024.0*1024.0), (double)ws_write/(1024.0*1024.0),indices/MEBI,forcomm/MEBI);
 
 	master_print("VOLUME=%d PHYSICAL_VOLUME=%zu PHYSICAL_BODY=%zu PHYSICAL_SURFACE=%zu\n", VOLUME, PHYSICAL_VOLUME, PHYSICAL_BODY, PHYSICAL_SURFACE);

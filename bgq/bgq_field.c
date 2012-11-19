@@ -691,7 +691,7 @@ void bgq_spinorfields_init(size_t std_count, size_t chi_count) {
 	size_t tot_count = std_count + chi_count;
 	g_bgq_spinorfields_count = tot_count;
 
-	g_bgq_spinorfields = malloc(tot_count * sizeof(bgq_weylsite));
+	g_bgq_spinorfields = malloc(tot_count * sizeof(bgq_weylfield_controlblock));
 	//memset(g_bgq_spinorfields, -1, tot_count * sizeof(bgq_weylsite));
 	//g_bgq_spinorfields_data = malloc_aligned(tot_count * field_datasize, 128);
 	//memset(g_bgq_spinorfields_data, -1, tot_count * field_datasize);

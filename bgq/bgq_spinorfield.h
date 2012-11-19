@@ -105,7 +105,7 @@ EXTERN_INLINE bgq_spinor bgq_spinor_fromqpx_raw(bgq_su3_spinor_params(spinor), u
 }
 
 
-EXTERN_INLINE bgq_spinor bgq_spinor_fromvec(bgq_spinor_vec spinorvec, ucoord k) {
+EXTERN_INLINE bgq_spinor bgq_spinor_fromvec(bgq_spinor_vec_double spinorvec, ucoord k) {
 	assert(0 <= k && k < PHYSICAL_LK);
 
 	bgq_spinor result;
@@ -167,12 +167,12 @@ EXTERN_INLINE void bgq_spinor_expect(bgq_spinor spinor, scoord t,scoord x,scoord
 }
 
 
-EXTERN_INLINE void bgq_spinorveck_expect(bgq_spinor_vec spinor, ucoord k, scoord t,scoord x,scoord y,scoord z) {
+EXTERN_INLINE void bgq_spinorveck_expect(bgq_spinor_vec_double spinor, ucoord k, scoord t,scoord x,scoord y,scoord z) {
 	assert(0 <= k && k < PHYSICAL_LK);
 	bgq_spinor_expect(bgq_spinor_fromvec(spinor,k),t,x,y,z);
 }
 
-EXTERN_INLINE void bgq_spinorvec_expect(bgq_spinor_vec spinor, scoord t1, scoord t2, scoord x,scoord y,scoord z) {
+EXTERN_INLINE void bgq_spinorvec_expect(bgq_spinor_vec_double spinor, scoord t1, scoord t2, scoord x,scoord y,scoord z) {
 	bgq_spinor_expect(bgq_spinor_fromvec(spinor,0),t1,x,y,z);
 	bgq_spinor_expect(bgq_spinor_fromvec(spinor,1),t2,x,y,z);
 }
@@ -351,24 +351,48 @@ size_t bgq_fieldpointer2offset(void *ptr);
 bgq_weyl_vec* bgq_section_baseptr(bgq_weylfield_controlblock *field, bgq_weylfield_section section);
 
 
-EXTERN_INLINE void readSpinor(bgq_su3_spinor_params(*target), bgq_weylfield_controlblock *field, ucoord ic, bool hasFulllayout, bool isFulllayoutSloppy, bool hasWeyllayout, bool isWeyllayoutSloppy) {
+typedef enum {
+	ly_none,
+	ly_full_double,
+	ly_full_float,
+	ly_weyl_double,
+	ly_weyl_float,
+	ly_full_double_mul,
+	ly_full_float_mul,
+	ly_weyl_double_mul,
+	ly_weyl_float_mul,
+} bgq_spinorfield_layout;
+typedef enum {
+	ly_sloppy = (1<<0),
+	ly_weyl = (1<<1),
+	ly_mul = (1<<2)
+} bgq_spinorfield_layoutflags;
+
+
+EXTERN_INLINE bgq_spinorfield_layout bgq_spinorfield_bestLayout(bgq_weylfield_controlblock *field) {
+	assert(field);
+	assert(field->isInitialized);
+	assert(field->hasFullspinorData || field->hasWeylfieldData);
+
+	if (field->hasFullspinorData) {
+		return field->isFulllayoutSloppy ? ly_full_float : ly_full_double;
+	} else if (field->hasWeylfieldData) {
+		return field->isWeyllayoutSloppy ? ly_weyl_float : ly_weyl_double;
+	} else {
+		assert(!"Field has no data available");
+		return ly_none;
+	}
+}
+
+
+EXTERN_INLINE void bgq_spinorfield_readSpinor(bgq_su3_spinor_params(*target), bgq_weylfield_controlblock *field, ucoord ic, bgq_spinorfield_layout layout) {
 	assert(field);
 	assert(field->isInitialized);
 	bgq_su3_spinor_decl(spinor);
 
-	if (hasFulllayout) {
-		assert(field->hasFullspinorData);
-		if (isFulllayoutSloppy) {
-			assert(field->isFulllayoutSloppy);
-			bgq_su3_spinor_load_float(spinor, &field->sec_fullspinor_float[ic]);
-		} else {
-			assert(!field->isFulllayoutSloppy);
-			bgq_su3_spinor_load_double(spinor, &field->sec_fullspinor[ic]);
-		}
-	} else if (hasWeyllayout) {
+	if (layout & ly_weyl) {
 		assert(field->hasWeylfieldData);
-
-		if (isWeyllayoutSloppy) {
+		if (layout & ly_sloppy) {
 			assert(field->isWeyllayoutSloppy);
 			bgq_weylsite_float *weylsite = &field->sec_collapsed_float[ic];
 
@@ -378,21 +402,30 @@ EXTERN_INLINE void readSpinor(bgq_su3_spinor_params(*target), bgq_weylfield_cont
 			#undef PRECISION
 		} else {
 			assert(!field->isWeyllayoutSloppy);
-			bgq_weylsite *weylsite = &field->sec_collapsed[ic];
+			bgq_weylsite_double *weylsite = &field->sec_collapsed_double[ic];
 
 			#define PRECISION double
 			#define BGQ_READWEYLLAYOUT_INC_
 			#include "bgq_ReadWeyllayout.inc.c"
 			#undef PRECISION
 		}
-
-
 	} else {
-		UNREACHABLE
+		assert(field->hasFullspinorData);
+		if (layout & ly_sloppy) {
+			assert(field->isFulllayoutSloppy);
+			bgq_su3_spinor_load_float(spinor, &field->sec_fullspinor_float[ic]);
+		} else {
+			assert(!field->isFulllayoutSloppy);
+			bgq_su3_spinor_load_double(spinor, &field->sec_fullspinor_double[ic]);
+		}
 	}
 
 	bgq_su3_spinor_mov(*target, spinor);
 }
+
+
+
+
 
 
 #undef EXTERN_INLINE

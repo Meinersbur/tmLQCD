@@ -13,7 +13,10 @@
 
 #include <stdbool.h>
 
+
 #ifndef REDUCTION_NAME
+
+//#define PRECISION double
 #define REDUCTION_NAME bgq_reduce
 #define REDUCTION_ARGFIELDS 2
 #define REDUCTION_EXTRAPARMS double factor
@@ -85,7 +88,7 @@ typedef struct {
 #define REDUCTION_REF(varname) (&varname)
 #define REDUCTION_SITE_DECL(varname)
 
-static inline void NAME2(REDUCTION_NAME,worker)(void *arg_untyped, size_t tid, size_t threads IF1ARG(, bool readFulllayout1) IF2ARG(, bool readFulllayout2)) {
+static inline void NAME2(REDUCTION_NAME,worker)(void *arg_untyped, size_t tid, size_t threads IF1ARG(, bgq_spinorfield_layout layout1) IF2ARG(, bgq_spinorfield_layout layout2)) {
 	NAME2(REDUCTION_NAME,args_t) *arg = (NAME2(REDUCTION_NAME,args_t)*)arg_untyped;
 	bool isOdd = arg->isOdd;
 #if REDUCTION_ARGFIELDS>=1
@@ -116,24 +119,12 @@ static inline void NAME2(REDUCTION_NAME,worker)(void *arg_untyped, size_t tid, s
 
 #if REDUCTION_ARGFIELDS>=1
 		bgq_su3_spinor_decl(spinor1);
-		if (readFulllayout1) {
-			bgq_spinorsite *fulladdr1 = &argfield1->sec_fullspinor[ic];
-			bgq_HoppingMatrix_loadFulllayout(spinor1, fulladdr1,t1,t2,x,y,z);
-		} else {
-			bgq_weylsite *weyladdr1 = &argfield1->sec_collapsed[ic];
-			bgq_HoppingMatrix_loadWeyllayout(spinor1, weyladdr1,t1,t2,x,y,z);
-		}
+		bgq_spinorfield_readSpinor(bgq_su3_spinor_vars(&spinor1), argfield1, ic, layout1);
 #endif
 
 #if REDUCTION_ARGFIELDS>=2
 		bgq_su3_spinor_decl(spinor2);
-		if (readFulllayout2) {
-			bgq_spinorsite *fulladdr2 = &argfield2->sec_fullspinor[ic];
-			bgq_HoppingMatrix_loadFulllayout(spinor2, fulladdr2,t1,t2,x,y,z);
-		} else {
-			bgq_weylsite *weyladdr2 = &argfield2->sec_collapsed[ic];
-			bgq_HoppingMatrix_loadWeyllayout(spinor2, weyladdr2,t1,t2,x,y,z);
-		}
+		bgq_spinorfield_readSpinor(bgq_su3_spinor_vars(&spinor2), argfield1, ic, layout2);
 #endif
 
 		REDUCTION_RETURNTYPE(siteresult);
@@ -162,24 +153,12 @@ static inline void NAME2(REDUCTION_NAME,worker)(void *arg_untyped, size_t tid, s
 
 #if REDUCTION_ARGFIELDS>=1
 		bgq_su3_spinor_decl(spinor1);
-		if (readFulllayout1) {
-			bgq_spinorsite *fulladdr1 = &argfield1->sec_fullspinor[ic];
-			bgq_HoppingMatrix_loadFulllayout(spinor1, fulladdr1,t1,t2,x,y,z);
-		} else {
-			bgq_weylsite *weyladdr1 = &argfield1->sec_collapsed[ic];
-			bgq_HoppingMatrix_loadWeyllayout(spinor1, weyladdr1,t1,t2,x,y,z);
-		}
+		bgq_spinorfield_readSpinor(bgq_su3_spinor_vars(&spinor1), argfield1, ic, layout1);
 #endif
 
 #if REDUCTION_ARGFIELDS>=2
 		bgq_su3_spinor_decl(spinor2);
-		if (readFulllayout2) {
-			bgq_spinorsite *fulladdr2 = &argfield2->sec_fullspinor[ic];
-			bgq_HoppingMatrix_loadFulllayout(spinor2, fulladdr2,t1,t2,x,y,z);
-		} else {
-			bgq_weylsite *weyladdr2 = &argfield2->sec_collapsed[ic];
-			bgq_HoppingMatrix_loadWeyllayout(spinor2, weyladdr2,t1,t2,x,y,z);
-		}
+		bgq_spinorfield_readSpinor(bgq_su3_spinor_vars(&spinor2), argfield1, ic, layout2);
 #endif
 
 		REDUCTION_RETURNTYPE(siteresult);
