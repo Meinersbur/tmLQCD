@@ -311,20 +311,28 @@ void bgq_gaugefield_init(void);
 
 
 typedef struct {
-	COMPLEX_PRECISION s[4][3][PHYSICAL_LK]; /* 4*3*2*sizeof(COMPLEX_PRECISION) = 384;192 bytes (6;3 L1 cache lines) */
+	complex_double s[4][3][PHYSICAL_LK]; /* 4*3*2*sizeof(COMPLEX_PRECISION) = 384;192 bytes (6;3 L1 cache lines) */
 } bgq_spinorsite;
 typedef bgq_spinorsite bgq_spinor_vec;
 typedef bgq_spinorsite (*bgq_spinorfield);
 
 typedef struct {
-	COMPLEX_PRECISION s[2][3][PHYSICAL_LK]; // 192 byte (3 L1 cache lines)
+	complex_float s[4][3][PHYSICAL_LK];
+} bgq_spinorsite_float;
+
+typedef struct {
+	complex_double s[2][3][PHYSICAL_LK]; // 192 byte (3 L1 cache lines)
 } bgq_weyl_vec;
-
-
+typedef struct {
+	complex_float s[2][3][PHYSICAL_LK]; // 96 byte (1.5 L1 cache lines)
+} bgq_weyl_vec_float;
 
 typedef struct {
 	bgq_weyl_vec d[PHYSICAL_LD];
 } bgq_weylsite;
+typedef struct {
+	bgq_weyl_vec_float d[PHYSICAL_LD];
+} bgq_weylsite_float;
 
 typedef struct {
 	uint32_t d[PHYSICAL_LD];
@@ -333,6 +341,10 @@ typedef struct {
 typedef struct {
 	bgq_weyl_vec *d[PHYSICAL_LD];
 } bgq_weyl_ptr_t;
+
+typedef struct {
+	bgq_weyl_vec_float *d[PHYSICAL_LD];
+} bgq_weyl_ptr_t_float;
 
 
 typedef struct {
@@ -496,7 +508,8 @@ typedef enum {
 	hm_withcheck = 1 << 14,
 	hm_nodistribute = 1 << 15,
 	hm_nodatamove = 1 << 16,
-	hm_nospi = 1 << 17
+	hm_nospi = 1 << 17,
+	hm_floatprecision = 1 << 18
 } bgq_hmflags;
 
 
@@ -507,21 +520,23 @@ typedef struct {
 
 //TODO: make incomplete type
 typedef struct {
-	bool isInitinialized;
+	bool isInitialized;
 	bool isOdd;
-	bool isSloppy; // To be implemented
 	bool hasWeylfieldData;
+	bool isWeyllayoutSloppy;
 	bool waitingForRecv; /* true==Need to wait for SPI recv and then copy data to consecutive area; false==All data available in sec_surface and sec_body */
 	//bool waitingForRecvNoSPI;
 	bgq_hmflags hmflags;
 	bool pendingDatamove;
 	bool hasFullspinorData;
+	bool isFulllayoutSloppy;
 
 	uint8_t *sec_weyl;
 	//bgq_weyl_vec *sec_index; // obsolete
 	//bgq_weyl_vec *sec_send[PHYSICAL_LD]; // obsolete
 	//bgq_weyl_vec *sec_recv[PHYSICAL_LD]; // obsolete
 	bgq_weylsite *sec_collapsed;
+	bgq_weylsite_float *sec_collapsed_float;
 	bgq_weylsite *sec_surface;
 	bgq_weylsite *sec_body;
 	uint8_t *sec_end;
@@ -529,6 +544,7 @@ typedef struct {
 	bgq_spinorsite *sec_fullspinor;
 	bgq_spinorsite *sec_fullspinor_surface;
 	bgq_spinorsite *sec_fullspinor_body;
+	bgq_spinorsite_float *sec_fullspinor_float;
 
 	//TODO: We may even interleave these with the data itself, but may cause alignment issues
 	// Idea: sizeof(bgq_weyl_ptr_t)==10*8==80, so one bgq_weyl_ptr_t every 2(5;10) spinors solves the issue
@@ -536,12 +552,8 @@ typedef struct {
 	bgq_weyl_ptr_t *sendptr;
 	bgq_weyl_vec **consptr[PHYSICAL_LD];
 
-	//bgq_weyl_vec **consptr_recvtup;
-	//bgq_weyl_vec **consptr_recvtdown;
-	//bgq_weyl_vec **destptrFromRecv;
-
-	//bgq_weyl_vec **sendptr_tup;
-	//bgq_weyl_vec **sendptr_tdown;
+	bgq_weyl_ptr_t_float *sendptr_float;
+	bgq_weyl_vec_float **consptr_float[PHYSICAL_LD];
 } bgq_weylfield_controlblock;
 
 // Index translations

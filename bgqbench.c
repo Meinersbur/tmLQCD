@@ -287,8 +287,8 @@ static void HoppingMatrix_switch(bool isOdd, spinor *l, spinor *k, bgq_hmflags h
 static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 	const size_t k = 0;
 	// To ensure that zero is used in case of nocomm
-	bgq_spinorfield_setup(&g_bgq_spinorfields[k], true, false, false, false, true);
-	bgq_spinorfield_setup(&g_bgq_spinorfields[k + k_max], false, false, false, false, true);
+	bgq_spinorfield_setup(&g_bgq_spinorfields[k], true, false, false, false, true, false);
+	bgq_spinorfield_setup(&g_bgq_spinorfields[k + k_max], false, false, false, false, true, false);
 	// Flow:
 	// [k]isOdd -> [k+k_max]isEven -> [k]isOdd
 
@@ -319,7 +319,7 @@ static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], true);
 	assert(compare_odd < 0.01);
 #else
-	bgq_spinorfield_setup(&g_bgq_spinorfields[k], true, false, false, true, false); // Wait for data transmission
+	bgq_spinorfield_setup(&g_bgq_spinorfields[k], true, false, false, true, false, false); // Wait for data transmission
 #endif
 
 #ifndef BGQ_COORDCHECK
@@ -1003,8 +1003,8 @@ static void exec_bench(int j_max, int k_max) {
 	master_print("VOLUME=%d PHYSICAL_VOLUME=%zu PHYSICAL_BODY=%zu PHYSICAL_SURFACE=%zu\n", VOLUME, PHYSICAL_VOLUME, PHYSICAL_BODY, PHYSICAL_SURFACE);
 
 	for (int k = 0; k < k_max; k += 1) {
-		bgq_spinorfield_setup(&g_bgq_spinorfields[k],       true,  false, true, false, true);
-		bgq_spinorfield_setup(&g_bgq_spinorfields[k+k_max], false, false, true, false, true);
+		bgq_spinorfield_setup(&g_bgq_spinorfields[k],       true,  false, true, false, true, false);
+		bgq_spinorfield_setup(&g_bgq_spinorfields[k+k_max], false, false, true, false, true, false);
 	}
 
 	for (int k = 0; k < k_max; k += 1) {

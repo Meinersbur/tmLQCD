@@ -18,6 +18,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define PRECISION double
 
 static void bgq_HoppingMatrix_nokamul_worker_readFulllayout(void *arg, size_t tid, size_t threads) {
 	//bgq_HoppingMatrix_worker(arg,tid,threads,false,true);
@@ -210,14 +211,23 @@ void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work, bool nokamul, bool
 	//master_print("nokamul=%d readFulllayout=%d sites=%zu flopaccum=%llu diff=%llu\n", nokamul, readFulllayout, sites, flopaccumulator, flopaccumulator-old);
 }
 
+typedef enum {
+	ly_full_double,
+	ly_full_float,
+	ly_weyl_double,
+	ly_weyl_float,
+	ly_full_double_mul,
+	ly_full_float_mul,
+	ly_weyl_double_mul,
+	ly_weyl_float_mul,
+} bgq_spinorfield_layout;
 
 void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield, bgq_hmflags opts) {
 	assert(targetfield); // to be initialized
 
 	assert(spinorfield);
 	assert(spinorfield != targetfield);
-	assert(spinorfield->isInitinialized);
-	assert(spinorfield->isSloppy == false);
+	assert(spinorfield->isInitialized);
 	assert(spinorfield->isOdd == !isOdd);
 	bool readFullspinor;
 	if (spinorfield->hasFullspinorData) {
@@ -237,9 +247,10 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	bool nobody = opts & hm_nobody;
 	bool nospi = opts & hm_nospi;
 	bool noprefetchstream = opts & hm_noprefetchstream;
+	bool floatprecision = opts & hm_floatprecision;
 
-	bgq_spinorfield_setup(targetfield, isOdd, false, false, false, true);
-	bgq_spinorfield_setup(spinorfield, !isOdd, readFullspinor, false, !readFullspinor, false);
+	bgq_spinorfield_setup(targetfield, isOdd, false, false, false, true, floatprecision);
+	bgq_spinorfield_setup(spinorfield, !isOdd, readFullspinor, false, !readFullspinor, false, false);
 	assert(targetfield->isOdd == isOdd);
 
 
@@ -303,7 +314,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 
 	if (nooverlap) {
 		// Do not wait until data is required, but do it here
-		bgq_spinorfield_setup(targetfield, isOdd, false, false, true, false);
+		bgq_spinorfield_setup(targetfield, isOdd, false, false, true, false, false);
 	}
 
 

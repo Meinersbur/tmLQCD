@@ -256,13 +256,13 @@ static inline REDUCTION_RETURNTYPE(REDUCTION_NAME)(
 #if REDUCTION_ARGFIELDS>=1
 	bool useFulllayout1 = argfield1->hasFullspinorData;
 	bool useWeyllayout1 = !useFulllayout1;
-	bgq_spinorfield_setup(argfield1, isOdd, useFulllayout1, false, useWeyllayout1, false);
+	bgq_spinorfield_setup(argfield1, isOdd, useFulllayout1, false, useWeyllayout1, false, false);
 #endif
 
 #if REDUCTION_ARGFIELDS>=2
 	bool useFulllayout2 = argfield2->hasFullspinorData;
 	bool useWeyllayout2 = !useFulllayout2;
-	bgq_spinorfield_setup(argfield2, isOdd, useFulllayout2, false, useWeyllayout2, false);
+	bgq_spinorfield_setup(argfield2, isOdd, useFulllayout2, false, useWeyllayout2, false, false);
 #endif
 
 	bgq_master_sync();

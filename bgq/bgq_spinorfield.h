@@ -126,7 +126,9 @@ EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_extractfromqpxvec_raw(bgq_su3_weyl_params
 }
 
 
-void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl);
+void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl, bool writeFloat);
+void bgq_spinorfield_setup_double(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl);
+void bgq_spinorfield_setup_float(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl);
 void bgq_spinorfield_transfer(bool isOdd, bgq_weylfield_controlblock *targetfield, spinor* sourcefield);
 double bgq_spinorfield_compare(bool isOdd, bgq_weylfield_controlblock *bgqfield, spinor *reffield, bool silent);
 
@@ -347,6 +349,50 @@ void bgq_savebgqref_impl();
 
 size_t bgq_fieldpointer2offset(void *ptr);
 bgq_weyl_vec* bgq_section_baseptr(bgq_weylfield_controlblock *field, bgq_weylfield_section section);
+
+
+EXTERN_INLINE void readSpinor(bgq_su3_spinor_params(*target), bgq_weylfield_controlblock *field, ucoord ic, bool hasFulllayout, bool isFulllayoutSloppy, bool hasWeyllayout, bool isWeyllayoutSloppy) {
+	assert(field);
+	assert(field->isInitialized);
+	bgq_su3_spinor_decl(spinor);
+
+	if (hasFulllayout) {
+		assert(field->hasFullspinorData);
+		if (isFulllayoutSloppy) {
+			assert(field->isFulllayoutSloppy);
+			bgq_su3_spinor_load_float(spinor, &field->sec_fullspinor_float[ic]);
+		} else {
+			assert(!field->isFulllayoutSloppy);
+			bgq_su3_spinor_load_double(spinor, &field->sec_fullspinor[ic]);
+		}
+	} else if (hasWeyllayout) {
+		assert(field->hasWeylfieldData);
+
+		if (isWeyllayoutSloppy) {
+			assert(field->isWeyllayoutSloppy);
+			bgq_weylsite_float *weylsite = &field->sec_collapsed_float[ic];
+
+			#define PRECISION float
+			#define BGQ_READWEYLLAYOUT_INC_
+			#include "bgq_ReadWeyllayout.inc.c"
+			#undef PRECISION
+		} else {
+			assert(!field->isWeyllayoutSloppy);
+			bgq_weylsite *weylsite = &field->sec_collapsed[ic];
+
+			#define PRECISION double
+			#define BGQ_READWEYLLAYOUT_INC_
+			#include "bgq_ReadWeyllayout.inc.c"
+			#undef PRECISION
+		}
+
+
+	} else {
+		UNREACHABLE
+	}
+
+	bgq_su3_spinor_mov(*target, spinor);
+}
 
 
 #undef EXTERN_INLINE

@@ -45,6 +45,9 @@
 typedef _Complex double complexdouble;
 typedef _Complex float complexfloat;
 
+typedef _Complex double complex_double;
+typedef _Complex float complex_float;
+
 #define _CONCAT(X,Y) X##Y
 #define CONCAT(X,Y) _CONCAT(X,Y)
 

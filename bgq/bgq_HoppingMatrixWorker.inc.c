@@ -1,14 +1,16 @@
 
-#define PRECISION double
-
 #ifndef BGQ_HOPPINGMATRIXWORKER_INC_
 #include "bgq_utils.h"
 #include "bgq_HoppingMatrix.h"
 
 #include <stdbool.h>
 
+#define PRECISION double
+
+
 void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul, bool readFulllayout)
 #endif
+
 {
 	bgq_HoppingMatrix_workload *work = arg;
 	bool isOdd = work->isOdd_src;

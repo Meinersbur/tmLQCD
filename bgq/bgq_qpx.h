@@ -324,10 +324,19 @@ typedef struct {
 
 #define bgq_qvlfdxa(dst,addr,offset) \
 	bgq_lda_double(dst,offset,addr)
-
 #define bgq_qvlfduxa(dst,addr,offset) \
 	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
 	bgq_lda_double(dst,0,addr)
+
+#define bgq_qvlfsxa(dst,addr,offset) \
+	bgq_lda_double(dst,offset,addr)
+#define bgq_qvlfsuxa(dst,addr,offset) \
+	do {                               \
+		(addr) += (offset);            \
+		bgq_lda_double(dst,0,addr);    \
+	} while (0)
+
+
 
 #define bgq_qvstfduxa(data,addr,offset) \
 	(addr) = (void*)((uintptr_t)(addr) + (offset)); \

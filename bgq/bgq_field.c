@@ -697,7 +697,7 @@ void bgq_spinorfields_init(size_t std_count, size_t chi_count) {
 	//memset(g_bgq_spinorfields_data, -1, tot_count * field_datasize);
 
 	for (size_t i = 0; i < tot_count; i += 1) { // Defer initialization to when it is used the first time
-		g_bgq_spinorfields[i].isInitinialized = false;
+		g_bgq_spinorfields[i].isInitialized = false;
 	}
 }
 
