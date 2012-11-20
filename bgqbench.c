@@ -82,6 +82,8 @@
 #include <omp.h>
 #include "bgq/mypapi.h"
 #include <getopt.h>
+#define __USE_GNU
+#include <fenv.h>
 
 #ifdef XLC
 #include <l1p/pprefetch.h>
@@ -208,7 +210,20 @@ static uint64_t compute_flop(bgq_hmflags opts, uint64_t lup_body, uint64_t lup_s
 static void benchmark_setup_worker(void *argptr, size_t tid, size_t threads) {
 	mypapi_init();
 
+#ifndef NDEBUG
+	feenableexcept(FE_DIVBYZERO|FE_INVALID| FE_OVERFLOW| FE_UNDERFLOW);
+#endif
+
 #if BGQ_QPX
+
+  //  fenv_t myfenv;
+
+    //fegetenv(&myfenv);
+   // myfenv.trapstate=1;
+  //  fesetenv(&myfenv);
+   // fp_enable_all();   /* fp_enable_all documentation link here */
+
+
 	const master_args *args = argptr;
 	const int j_max = args->j_max;
 	const int k_max = args->k_max;
@@ -358,7 +373,7 @@ static int benchmark_master(void *argptr) {
 	const int k_max = args->k_max;
 	const benchfunc_t benchfunc = args->benchfunc;
 	const bgq_hmflags opts = args->opts;
-	//const bool nocom = opts & hm_nocom;
+	const bool nocom = opts & hm_nocom;
 	//const bool nooverlap = opts & hm_nooverlap;
 	//const bool nokamul = opts & hm_nokamul;
 	//const bool noprefetchlist = opts & hm_noprefetchlist;
@@ -368,16 +383,35 @@ static int benchmark_master(void *argptr) {
 	//const bool nobody = opts & hm_nobody;
 	//const bool nosurface = opts & hm_nosurface;
 	//const bool experimental = opts & hm_experimental;
+	bool floatprecision = opts & hm_floatprecision;
 	//const bgq_hmflags implicitprefetch = opts & (hm_prefetchimplicitdisable | hm_prefetchimplicitoptimistic | hm_prefetchimplicitconfirmed);
 	bool withcheck = opts & hm_withcheck;
 
 	// Setup thread options (prefetch setting, performance counters, etc.)
 	bgq_master_call(&benchmark_setup_worker, argptr);
 
+
 	double err = 0;
 	if (withcheck) {
 		err = runcheck(opts, k_max);
 	}
+
+
+	// Give us a fresh environment
+	for (ucoord k = 0; k <= 2*k_max; k+=1) {
+		if (g_bgq_spinorfields[k].isInitialized) {
+			if (g_bgq_spinorfields[k].sec_collapsed_double)
+				memset(g_bgq_spinorfields[k].sec_collapsed_double, 0, PHYSICAL_VOLUME * sizeof(*g_bgq_spinorfields[k].sec_collapsed_double));
+		}
+	}
+	if (nocom) {
+		for (ucoord d = 0; d < PHYSICAL_LD; d+=1) {
+			memset(g_bgq_sec_recv_double[d], 0, bgq_section_size(bgq_direction2section(d, false)));
+		}
+	}
+	random_spinor_field(g_spinor_field[0], VOLUME / 2, 0);
+	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[0], g_spinor_field[0]);
+
 
 	uint64_t sumotime = 0;
 	for (int i = 0; i < 20; i += 1) {
@@ -549,8 +583,8 @@ static char *omp_threads_desc[] = { "1","2", "4", "8", "16", "32", "33", "48", "
 
 static bgq_hmflags flags[] = {
         (DEFOPTS | hm_withcheck) & ~hm_nokamul,
+        (DEFOPTS | hm_floatprecision | hm_withcheck) & ~hm_nokamul,
         DEFOPTS,
-        DEFOPTS | hm_floatprecision,
 		DEFOPTS | hm_nospi,
 		DEFOPTS | hm_nooverlap,
 		DEFOPTS | hm_nocom,
@@ -568,9 +602,9 @@ static bgq_hmflags flags[] = {
 		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitoptimistic
     };
 static char* flags_desc[] = {
-		"kamul",
-		"dslash dbl",
-		"dslash sgl",
+		"kamul dbl",
+		"kamul sgl",
+		"nokamul",
 		"MPI",
 		"+nooverlap",
 		"+nocomm",
@@ -842,7 +876,10 @@ static void exec_table(benchfunc_t benchmark, bgq_hmflags additional_opts, int j
 			}
 
 			char str[80] = { 0 };
-			snprintf(str, sizeof(str), "%.2f mlup/s%s", (double) result.lup / (result.avgtime * MEGA), (result.error > 0.001) ? "X" : "");
+			if (result.avgtime == 0)
+				snprintf(str, sizeof(str), "~ %s", (result.error > 0.001) ? "X" : "");
+			else
+				snprintf(str, sizeof(str), "%.2f mlup/s%s", (double) result.lup / (result.avgtime * MEGA), (result.error > 0.001) ? "X" : "");
 			if (g_proc_id == 0)
 				printf("%"SCELLWIDTH"s|", str);
 			if (g_proc_id == 0)
@@ -874,6 +911,11 @@ static void benchmark_hopmat(bgq_hmflags flags, int k, int k_max) {
 }
 
 static void benchmark_hopmatkernel(bgq_hmflags flags, int k, int k_max) {
+	bool floppyprecision = flags & hm_floatprecision;
+
+	bgq_spinorfield_layout layout = bgq_spinorfield_prepareRead(&g_bgq_spinorfields[k], true, true, !floppyprecision, floppyprecision, false);
+	bgq_spinorfield_prepareWrite(&g_bgq_spinorfields[k+k_max], false, floppyprecision ? ly_weyl_float : ly_weyl_double);
+
 	bgq_master_sync();
 	static bgq_HoppingMatrix_workload work;
 	work.isOdd_src = true;
@@ -883,24 +925,26 @@ static void benchmark_hopmatkernel(bgq_hmflags flags, int k, int k_max) {
 	work.ic_begin = 0;
 	work.ic_end = PHYSICAL_VOLUME;
 	work.noprefetchstream = flags & hm_noprefetchstream;
-	bgq_spinorfield_layout layout = bgq_spinorfield_bestLayout(&g_bgq_spinorfields[k]);
 	bgq_HoppingMatrix_work(&work, flags & hm_nokamul, layout);
 }
 
 typedef struct {
 	size_t k_max;
+	bgq_hmflags opts;
 } checkargs_t;
 
 static int check_hopmat(void *arg_untyped) {
 	checkargs_t *args = arg_untyped;
 	ucoord k_max = args->k_max;
 	ucoord k = 0;
-	bgq_hmflags hmflags = 0;
+	bgq_hmflags hmflags = args->opts;
 
 	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 	double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], true);
+#ifndef BGQ_COORDCHECK
 	assert(compare_transfer == 0);
 	// Must be exact copy
+#endif
 
 	for (ucoord z = 0; z < LOCAL_LZ ; z += 1) {
 		for (ucoord y = 0; y < LOCAL_LY ; y += 1) {
@@ -952,7 +996,9 @@ static int check_hopmat(void *arg_untyped) {
 
 	bgq_spinorfield_transfer(false, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max]);
 	compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max], true);
+#ifndef BGQ_COORDCHECK
 	assert(compare_transfer == 0);
+#endif
 
 	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k], &g_bgq_spinorfields[k+k_max], hmflags);
 	HoppingMatrix_switch(true, g_spinor_field[k], g_spinor_field[k+k_max], hmflags);
@@ -963,7 +1009,7 @@ static int check_hopmat(void *arg_untyped) {
 #endif
 
 
-	master_print("Comparison to reference version: even=%f odd=%f max difference\n", compare_even, compare_odd);
+	master_print("Comparison to reference version: even=%e odd=%e max difference\n", compare_even, compare_odd);
 	return EXIT_SUCCESS;
 }
 
@@ -1022,10 +1068,19 @@ static void exec_bench(int j_max, int k_max) {
 		bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 	}
 
-	checkargs_t checkargs = {
-	        .k_max = k_max
+	master_print("Double: ");
+	checkargs_t checkargs_double = {
+	        .k_max = k_max,
+	        .opts = 0
 	};
-	bgq_parallel(&check_hopmat, &checkargs);
+	bgq_parallel(&check_hopmat, &checkargs_double);
+
+	master_print("Float: ");
+	checkargs_t checkargs_float = {
+	        .k_max = k_max,
+	        .opts = hm_floatprecision
+	};
+	bgq_parallel(&check_hopmat, &checkargs_float);
 
 	master_print("Benchmark: hopmatkernel\n");
 	exec_table(&benchmark_hopmatkernel, 0, j_max, k_max);

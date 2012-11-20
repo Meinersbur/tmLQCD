@@ -354,7 +354,7 @@ void bgq_indices_init() {
 	assert(g_comm_x == (g_nb_x_up != g_proc_id));
 	assert(g_comm_y == (g_nb_y_up != g_proc_id));
 	assert(g_comm_z == (g_nb_z_up != g_proc_id));
-	g_comm_t = true;
+	//g_comm_t = true;
 	//g_comm_x = true;
 	//g_comm_y = true;
 	//g_comm_z = true;
@@ -683,8 +683,6 @@ void bgq_indices_init() {
 }
 
 
-//uint8_t *g_bgq_spinorfields_data = NULL;
-
 void bgq_spinorfields_init(size_t std_count, size_t chi_count) {
 	bgq_indices_init();
 
@@ -702,20 +700,39 @@ void bgq_spinorfields_init(size_t std_count, size_t chi_count) {
 }
 
 
-
-size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr) {
+size_t bgq_pointer2offset_raw(bgq_weylfield_controlblock *field, void *ptr, bool check) {
 	for (bgq_weylfield_section sec = 0; sec < sec_end; sec+=1) {
-		size_t secsize = bgq_section_size(sec);
-		bgq_weyl_vec_double *baseptr = bgq_section_baseptr_double(field, sec);
-		if ((uint8_t*)baseptr <= (uint8_t*)ptr && (uint8_t*)ptr < (uint8_t*)baseptr+secsize) {
-			size_t baseoffset = bgq_weyl_section_offset(sec);
-			size_t result = baseoffset + ((uint8_t*)ptr - (uint8_t*)baseptr);
-			assert(result%sizeof(bgq_weyl_vec_double)==0);
-			assert(result < bgq_weyl_section_offset(sec_end));
-			return result;
+		size_t secsize_double = bgq_section_size(sec);
+		size_t secsize_float = secsize_double/2;
+
+		if (field->isWeyllayoutSloppy) {
+			bgq_weyl_vec_float *baseptr = bgq_section_baseptr_float(field, sec);
+			if ((uint8_t*)baseptr <= (uint8_t*)ptr && (uint8_t*)ptr < (uint8_t*)baseptr+secsize_float) {
+				size_t baseoffset = bgq_weyl_section_offset(sec);
+				size_t result = baseoffset + 2*((uint8_t*)ptr - (uint8_t*)baseptr);
+				assert(result % sizeof(bgq_weyl_vec_float) == 0);
+				assert(result < bgq_weyl_section_offset(sec_end));
+				return result;
+			}
+		} else {
+			bgq_weyl_vec_double *baseptr = bgq_section_baseptr_double(field, sec);
+			if ((uint8_t*)baseptr <= (uint8_t*)ptr && (uint8_t*)ptr < (uint8_t*)baseptr+secsize_double) {
+				size_t baseoffset = bgq_weyl_section_offset(sec);
+				size_t result = baseoffset + ((uint8_t*)ptr - (uint8_t*)baseptr);
+				assert(result % sizeof(bgq_weyl_vec_double) == 0);
+				assert(result < bgq_weyl_section_offset(sec_end));
+				return result;
+			}
 		}
 	}
+	if (check) {
 	assert(!"Pointer to non-field location");
 	UNREACHABLE
+	}
 	return -1;
+}
+
+
+size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr) {
+	return bgq_pointer2offset_raw(field, ptr, true);
 }

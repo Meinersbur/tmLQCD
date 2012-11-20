@@ -325,15 +325,17 @@ typedef struct {
 #define bgq_qvlfdxa(dst,addr,offset) \
 	bgq_lda_double(dst,offset,addr)
 #define bgq_qvlfduxa(dst,addr,offset) \
-	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
-	bgq_lda_double(dst,0,addr)
+	do { \
+		(addr) = (void*)((uintptr_t)(addr) + (offset)); \
+		bgq_lda_double(dst,0,addr); \
+	} while (0)
 
 #define bgq_qvlfsxa(dst,addr,offset) \
 	bgq_lda_double(dst,offset,addr)
 #define bgq_qvlfsuxa(dst,addr,offset) \
 	do {                               \
-		(addr) += (offset);            \
-		bgq_lda_double(dst,0,addr);    \
+		(addr) = (void*)((uintptr_t)(addr) + (offset)); \
+		bgq_lda_float(dst,0,addr);    \
 	} while (0)
 
 
@@ -2024,6 +2026,11 @@ EXTERN_INLINE uint64_t bgq_wcycles() {
 	return MPI_Wtick();
 }
 #endif
+
+
+#define BGQ_VECTORSIZE NAME2(BGQ_VECTORSIZE,PRECISION)
+#define BGQ_VECTORSIZE_double 32
+#define BGQ_VECTORSIZE_float 16
 
 
 #undef EXTERN_INLINE

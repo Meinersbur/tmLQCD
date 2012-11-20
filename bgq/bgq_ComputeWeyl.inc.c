@@ -46,15 +46,15 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_setbgqvalue_src(t2, x, y, z, TDOWN, BGQREF_TUP, bgq_cmplxval2(weyl_tdown_v1_c0));
 
 		bgq_su3_mdecl(gauge_tup);
-		bgq_qvlfuxa(gauge_tup_c00, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tup_c01, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tup_c02, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tup_c10, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tup_c11, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tup_c12, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tup_c20, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tup_c21, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tup_c22, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tup_c00, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tup_c01, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tup_c02, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tup_c10, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tup_c11, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tup_c12, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tup_c20, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tup_c21, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tup_c22, gaugesite, 32);
 				bgq_gaugeqpx_expect(gauge_tup, t1, t2, x, y, z, TUP, true);
 				bgq_setdesc(BGQREF_TUP_GAUGE, "BGQREF_TUP_GAUGE");
 				bgq_setbgqvalue_src(t1, x, y, z, TDOWN, BGQREF_TUP_GAUGE, bgq_cmplxval1(gauge_tup_c00));
@@ -98,15 +98,15 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		bgq_su3_reduce_weyl_tdown(weyl_tup, spinor);
 
 		bgq_su3_mdecl(gauge_tdown);
-		bgq_qvlfuxa(gauge_tdown_c00, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tdown_c01, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tdown_c02, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tdown_c10, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tdown_c11, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tdown_c12, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tdown_c20, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tdown_c21, gaugesite, 32);
-		bgq_qvlfuxa(gauge_tdown_c22, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tdown_c00, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tdown_c01, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tdown_c02, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tdown_c10, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tdown_c11, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tdown_c12, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tdown_c20, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tdown_c21, gaugesite, 32);
+		bgq_qvlfduxa(gauge_tdown_c22, gaugesite, 32);
 				bgq_gaugeqpx_expect(gauge_tdown, t1, t2, x, y, z, TDOWN, true);
 				bgq_setdesc(BGQREF_TDOWN_GAUGE, "BGQREF_TDOWN_GAUGE");
 				bgq_setbgqvalue_src(t1, x, y, z, TUP, BGQREF_TDOWN_GAUGE, bgq_cmplxval1(gauge_tdown_c00));
@@ -147,15 +147,15 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 			bgq_su3_reduce_weyl_xup(weyl_xdown, spinor);
 
 			bgq_su3_mdecl(gauge_xup);
-			bgq_qvlfuxa(gauge_xup_c00, gaugesite, 32);
-			bgq_qvlfuxa(gauge_xup_c01, gaugesite, 32);
-			bgq_qvlfuxa(gauge_xup_c02, gaugesite, 32);
-			bgq_qvlfuxa(gauge_xup_c10, gaugesite, 32);
-			bgq_qvlfuxa(gauge_xup_c11, gaugesite, 32);
-			bgq_qvlfuxa(gauge_xup_c12, gaugesite, 32);
-			bgq_qvlfuxa(gauge_xup_c20, gaugesite, 32);
-			bgq_qvlfuxa(gauge_xup_c21, gaugesite, 32);
-			bgq_qvlfuxa(gauge_xup_c22, gaugesite, 32);
+			bgq_qvlfduxa(gauge_xup_c00, gaugesite, 32);
+			bgq_qvlfduxa(gauge_xup_c01, gaugesite, 32);
+			bgq_qvlfduxa(gauge_xup_c02, gaugesite, 32);
+			bgq_qvlfduxa(gauge_xup_c10, gaugesite, 32);
+			bgq_qvlfduxa(gauge_xup_c11, gaugesite, 32);
+			bgq_qvlfduxa(gauge_xup_c12, gaugesite, 32);
+			bgq_qvlfduxa(gauge_xup_c20, gaugesite, 32);
+			bgq_qvlfduxa(gauge_xup_c21, gaugesite, 32);
+			bgq_qvlfduxa(gauge_xup_c22, gaugesite, 32);
 					bgq_gaugeqpx_expect(gauge_xup, t1, t2, x, y, z, XUP, true);
 
 			bgq_su3_weyl_mvmul(weyl_xdown, gauge_xup, weyl_xdown);
@@ -178,15 +178,15 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		bgq_su3_reduce_weyl_xdown(weyl_xup, spinor);
 
 		bgq_su3_mdecl(gauge_xdown);
-		bgq_qvlfuxa(gauge_xdown_c00, gaugesite, 32);
-		bgq_qvlfuxa(gauge_xdown_c01, gaugesite, 32);
-		bgq_qvlfuxa(gauge_xdown_c02, gaugesite, 32);
-		bgq_qvlfuxa(gauge_xdown_c10, gaugesite, 32);
-		bgq_qvlfuxa(gauge_xdown_c11, gaugesite, 32);
-		bgq_qvlfuxa(gauge_xdown_c12, gaugesite, 32);
-		bgq_qvlfuxa(gauge_xdown_c20, gaugesite, 32);
-		bgq_qvlfuxa(gauge_xdown_c21, gaugesite, 32);
-		bgq_qvlfuxa(gauge_xdown_c22, gaugesite, 32);
+		bgq_qvlfduxa(gauge_xdown_c00, gaugesite, 32);
+		bgq_qvlfduxa(gauge_xdown_c01, gaugesite, 32);
+		bgq_qvlfduxa(gauge_xdown_c02, gaugesite, 32);
+		bgq_qvlfduxa(gauge_xdown_c10, gaugesite, 32);
+		bgq_qvlfduxa(gauge_xdown_c11, gaugesite, 32);
+		bgq_qvlfduxa(gauge_xdown_c12, gaugesite, 32);
+		bgq_qvlfduxa(gauge_xdown_c20, gaugesite, 32);
+		bgq_qvlfduxa(gauge_xdown_c21, gaugesite, 32);
+		bgq_qvlfduxa(gauge_xdown_c22, gaugesite, 32);
 				bgq_gaugeqpx_expect(gauge_xdown, t1, t2, x, y, z, XDOWN, true);
 
 		bgq_su3_weyl_mvinvmul(weyl_xup, gauge_xdown, weyl_xup);
@@ -209,15 +209,15 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		bgq_su3_reduce_weyl_yup(weyl_ydown, spinor);
 
 		bgq_su3_mdecl(gauge_yup);
-		bgq_qvlfuxa(gauge_yup_c00, gaugesite, 32);
-		bgq_qvlfuxa(gauge_yup_c01, gaugesite, 32);
-		bgq_qvlfuxa(gauge_yup_c02, gaugesite, 32);
-		bgq_qvlfuxa(gauge_yup_c10, gaugesite, 32);
-		bgq_qvlfuxa(gauge_yup_c11, gaugesite, 32);
-		bgq_qvlfuxa(gauge_yup_c12, gaugesite, 32);
-		bgq_qvlfuxa(gauge_yup_c20, gaugesite, 32);
-		bgq_qvlfuxa(gauge_yup_c21, gaugesite, 32);
-		bgq_qvlfuxa(gauge_yup_c22, gaugesite, 32);
+		bgq_qvlfduxa(gauge_yup_c00, gaugesite, 32);
+		bgq_qvlfduxa(gauge_yup_c01, gaugesite, 32);
+		bgq_qvlfduxa(gauge_yup_c02, gaugesite, 32);
+		bgq_qvlfduxa(gauge_yup_c10, gaugesite, 32);
+		bgq_qvlfduxa(gauge_yup_c11, gaugesite, 32);
+		bgq_qvlfduxa(gauge_yup_c12, gaugesite, 32);
+		bgq_qvlfduxa(gauge_yup_c20, gaugesite, 32);
+		bgq_qvlfduxa(gauge_yup_c21, gaugesite, 32);
+		bgq_qvlfduxa(gauge_yup_c22, gaugesite, 32);
 				bgq_gaugeqpx_expect(gauge_yup, t1, t2, x, y, z, YUP, true);
 
 		bgq_su3_weyl_mvmul(weyl_ydown, gauge_yup, weyl_ydown);
@@ -240,15 +240,15 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		bgq_su3_reduce_weyl_ydown(weyl_yup, spinor);
 
 		bgq_su3_mdecl(gauge_ydown);
-		bgq_qvlfuxa(gauge_ydown_c00, gaugesite, 32);
-		bgq_qvlfuxa(gauge_ydown_c01, gaugesite, 32);
-		bgq_qvlfuxa(gauge_ydown_c02, gaugesite, 32);
-		bgq_qvlfuxa(gauge_ydown_c10, gaugesite, 32);
-		bgq_qvlfuxa(gauge_ydown_c11, gaugesite, 32);
-		bgq_qvlfuxa(gauge_ydown_c12, gaugesite, 32);
-		bgq_qvlfuxa(gauge_ydown_c20, gaugesite, 32);
-		bgq_qvlfuxa(gauge_ydown_c21, gaugesite, 32);
-		bgq_qvlfuxa(gauge_ydown_c22, gaugesite, 32);
+		bgq_qvlfduxa(gauge_ydown_c00, gaugesite, 32);
+		bgq_qvlfduxa(gauge_ydown_c01, gaugesite, 32);
+		bgq_qvlfduxa(gauge_ydown_c02, gaugesite, 32);
+		bgq_qvlfduxa(gauge_ydown_c10, gaugesite, 32);
+		bgq_qvlfduxa(gauge_ydown_c11, gaugesite, 32);
+		bgq_qvlfduxa(gauge_ydown_c12, gaugesite, 32);
+		bgq_qvlfduxa(gauge_ydown_c20, gaugesite, 32);
+		bgq_qvlfduxa(gauge_ydown_c21, gaugesite, 32);
+		bgq_qvlfduxa(gauge_ydown_c22, gaugesite, 32);
 				bgq_gaugeqpx_expect(gauge_ydown, t1, t2, x, y, z, YDOWN, true);
 
 		bgq_su3_weyl_mvinvmul(weyl_yup, gauge_ydown, weyl_yup);
@@ -271,15 +271,15 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 			bgq_su3_reduce_weyl_zup(weyl_zdown, spinor);
 
 			bgq_su3_mdecl(gauge_zup);
-			bgq_qvlfuxa(gauge_zup_c00, gaugesite, 32);
-			bgq_qvlfuxa(gauge_zup_c01, gaugesite, 32);
-			bgq_qvlfuxa(gauge_zup_c02, gaugesite, 32);
-			bgq_qvlfuxa(gauge_zup_c10, gaugesite, 32);
-			bgq_qvlfuxa(gauge_zup_c11, gaugesite, 32);
-			bgq_qvlfuxa(gauge_zup_c12, gaugesite, 32);
-			bgq_qvlfuxa(gauge_zup_c20, gaugesite, 32);
-			bgq_qvlfuxa(gauge_zup_c21, gaugesite, 32);
-			bgq_qvlfuxa(gauge_zup_c22, gaugesite, 32);
+			bgq_qvlfduxa(gauge_zup_c00, gaugesite, 32);
+			bgq_qvlfduxa(gauge_zup_c01, gaugesite, 32);
+			bgq_qvlfduxa(gauge_zup_c02, gaugesite, 32);
+			bgq_qvlfduxa(gauge_zup_c10, gaugesite, 32);
+			bgq_qvlfduxa(gauge_zup_c11, gaugesite, 32);
+			bgq_qvlfduxa(gauge_zup_c12, gaugesite, 32);
+			bgq_qvlfduxa(gauge_zup_c20, gaugesite, 32);
+			bgq_qvlfduxa(gauge_zup_c21, gaugesite, 32);
+			bgq_qvlfduxa(gauge_zup_c22, gaugesite, 32);
 					bgq_gaugeqpx_expect(gauge_zup, t1, t2, x, y, z, ZUP, true);
 
 			bgq_su3_weyl_mvmul(weyl_zdown, gauge_zup, weyl_zdown);
@@ -302,15 +302,15 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		bgq_su3_reduce_weyl_zdown(weyl_zup, spinor);
 
 		bgq_su3_mdecl(gauge_zdown);
-		bgq_qvlfuxa(gauge_zdown_c00, gaugesite, 32);
-		bgq_qvlfuxa(gauge_zdown_c01, gaugesite, 32);
-		bgq_qvlfuxa(gauge_zdown_c02, gaugesite, 32);
-		bgq_qvlfuxa(gauge_zdown_c10, gaugesite, 32);
-		bgq_qvlfuxa(gauge_zdown_c11, gaugesite, 32);
-		bgq_qvlfuxa(gauge_zdown_c12, gaugesite, 32);
-		bgq_qvlfuxa(gauge_zdown_c20, gaugesite, 32);
-		bgq_qvlfuxa(gauge_zdown_c21, gaugesite, 32);
-		bgq_qvlfuxa(gauge_zdown_c22, gaugesite, 32);
+		bgq_qvlfduxa(gauge_zdown_c00, gaugesite, 32);
+		bgq_qvlfduxa(gauge_zdown_c01, gaugesite, 32);
+		bgq_qvlfduxa(gauge_zdown_c02, gaugesite, 32);
+		bgq_qvlfduxa(gauge_zdown_c10, gaugesite, 32);
+		bgq_qvlfduxa(gauge_zdown_c11, gaugesite, 32);
+		bgq_qvlfduxa(gauge_zdown_c12, gaugesite, 32);
+		bgq_qvlfduxa(gauge_zdown_c20, gaugesite, 32);
+		bgq_qvlfduxa(gauge_zdown_c21, gaugesite, 32);
+		bgq_qvlfduxa(gauge_zdown_c22, gaugesite, 32);
 				bgq_gaugeqpx_expect(gauge_zdown, t1, t2, x, y, z, ZDOWN, true);
 
 		bgq_su3_weyl_mvinvmul(weyl_zup, gauge_zdown, weyl_zup);

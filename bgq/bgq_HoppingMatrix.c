@@ -19,7 +19,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define PRECISION double
 
 static void bgq_HoppingMatrix_nokamul_worker_readFulllayout_double(void *arg, size_t tid, size_t threads) {
 	//bgq_HoppingMatrix_worker(arg,tid,threads,false,true);
@@ -216,25 +215,9 @@ void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work,  bool nokamul, bgq
 
 
 void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield, bgq_hmflags opts) {
-	assert(targetfield); // to be initialized
-
 	assert(spinorfield);
+	assert(targetfield);
 	assert(spinorfield != targetfield);
-
-
-#if 0
-	assert(spinorfield->isInitialized);
-	assert(spinorfield->isOdd == !isOdd);
-	bool readFullspinor;
-	if (spinorfield->hasFullspinorData) {
-		readFullspinor = true;
-	} else if (spinorfield->hasWeylfieldData) {
-		readFullspinor = false;
-	} else {
-		assert(!"Input does not contain data");
-		UNREACHABLE
-	}
-#endif
 
 	bool nocomm = opts & hm_nocom;
 	bool nooverlap = opts & hm_nooverlap;
@@ -246,10 +229,14 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	bool noprefetchstream = opts & hm_noprefetchstream;
 	bool floatprecision = opts & hm_floatprecision;
 
-	bgq_spinorfield_layout layout = bgq_spinorfield_bestLayout(spinorfield);
-	bgq_spinorfield_setup(targetfield, isOdd, false, false, false, true, floatprecision);
-	bgq_spinorfield_setup(spinorfield, !isOdd, !(layout & ly_weyl), false, (layout & ly_weyl), false, false);
-	assert(targetfield->isOdd == isOdd);
+	bgq_spinorfield_layout layout = bgq_spinorfield_prepareRead(spinorfield, !isOdd, true, !floatprecision, floatprecision, false);
+	bgq_spinorfield_prepareWrite(targetfield, isOdd, floatprecision ? ly_weyl_float : ly_weyl_double);
+
+
+
+	//bgq_spinorfield_setup(targetfield, isOdd, false, false, false, true, floatprecision);
+	//bgq_spinorfield_setup(spinorfield, !isOdd, !(layout & ly_weyl), false, (layout & ly_weyl), false, false);
+	//assert(targetfield->isOdd == isOdd);
 
 
 
@@ -294,12 +281,11 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 		static bgq_unvectorize_workload work_unvectorize;
 		work_unvectorize.isOdd = isOdd;
 		work_unvectorize.field = targetfield;
-		if (layout & ly_sloppy)
+		if (floatprecision)
 			bgq_master_call(&bgq_HoppingMatrix_unvectorize_float, &work_unvectorize);
 		else
 			bgq_master_call(&bgq_HoppingMatrix_unvectorize_double, &work_unvectorize);
 	}
-
 
 
 // 2. Start communication
@@ -327,7 +313,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 			static bgq_work_datamove work_datamovet;
 			work_datamovet.spinorfield = targetfield;
 			work_datamovet.opts = opts;
-			if (layout & ly_sloppy)
+			if (floatprecision)
 				bgq_master_call(&bgq_HoppingMatrix_datamovet_worker_float, &work_datamovet);
 			else
 				bgq_master_call(&bgq_HoppingMatrix_datamovet_worker_double, &work_datamovet);

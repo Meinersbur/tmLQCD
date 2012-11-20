@@ -140,7 +140,7 @@ void bgq_HoppingMatrix_datamovet_worker(void *arg_untyped, size_t tid, size_t th
 
 
 
-EXTERN_INLINE void bgq_spinor_expect(bgq_spinor spinor, scoord t,scoord x,scoord y,scoord z) {
+EXTERN_INLINE void bgq_spinor_expect(bgq_spinor spinor, scoord t, scoord x, scoord y, scoord z) {
 #ifdef BGQ_COORDCHECK
 	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= x && x < LOCAL_LX);
@@ -283,7 +283,28 @@ EXTERN_INLINE void bgq_weylvec_written_impl_float(bgq_weyl_vec_float *targetweyl
 	bgq_weylveck_written_float(targetweyl, 1, t2, x, y, z, d, isSrc);
 }
 
+void bgq_spinorveck_written_double(bgq_spinorsite_double *targetspinor, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z);
+void bgq_spinorveck_written_float(bgq_spinorsite_float *targetspinor, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z);
 
+#ifdef BGQ_COORDCHECK
+#define bgq_spinorvec_written_double(target, t1, t2, x, y, z) bgq_spinorvec_written_impl_double(target, t1, t2, x, y, z)
+#else
+#define bgq_spinorvec_written_double(target, t1, t2, x, y, z)
+#endif
+EXTERN_INLINE void bgq_spinorvec_written_impl_double(bgq_spinor_vec_double *target, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z) {
+	bgq_spinorveck_written_double(target, 0, t1, x, y, z);
+	bgq_spinorveck_written_double(target, 1, t2, x, y, z);
+}
+
+#ifdef BGQ_COORDCHECK
+#define bgq_spinorvec_written_float(target, t1, t2, x, y, z) bgq_spinorvec_written_impl_float(target, t1, t2, x, y, z)
+#else
+#define bgq_spinorvec_written_float(target, t1, t2, x, y, z)
+#endif
+EXTERN_INLINE void bgq_spinorvec_written_impl_float(bgq_spinor_vec_float *target, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z) {
+	bgq_spinorveck_written_float(target, 0, t1, x, y, z);
+	bgq_spinorveck_written_float(target, 1, t2, x, y, z);
+}
 
 
 
@@ -404,7 +425,6 @@ EXTERN_INLINE bgq_spinorfield_layout bgq_spinorfield_bestLayout(bgq_weylfield_co
 EXTERN_INLINE void bgq_spinorfield_readSpinor(bgq_su3_spinor_params(*target), bgq_weylfield_controlblock *field, ucoord ic, bgq_spinorfield_layout layout) {
 	assert(field);
 	assert(field->isInitialized);
-	bgq_su3_spinor_decl(spinor);
 
 #ifndef NDEBUG
 	ucoord ih = bgq_collapsed2halfvolume(field->isOdd, ic);
@@ -416,10 +436,11 @@ EXTERN_INLINE void bgq_spinorfield_readSpinor(bgq_su3_spinor_params(*target), bg
 	ucoord z = bgq_halfvolume2z(ih);
 #endif
 
+	bgq_su3_spinor_decl(spinor);
 	if (layout & ly_weyl) {
-		assert(field->hasWeylfieldData);
+		//assert(field->hasWeylfieldData);
 		if (layout & ly_sloppy) {
-			assert(field->isWeyllayoutSloppy);
+			//assert(field->isWeyllayoutSloppy);
 			bgq_weylsite_float *weylsite = (bgq_weylsite_float *)((uint8_t*)&field->sec_collapsed_float[ic] - 16);
 
 			#define PRECISION float
@@ -427,7 +448,7 @@ EXTERN_INLINE void bgq_spinorfield_readSpinor(bgq_su3_spinor_params(*target), bg
 			#include "bgq_ReadWeyllayout.inc.c"
 			#undef PRECISION
 		} else {
-			assert(!field->isWeyllayoutSloppy);
+			//assert(!field->isWeyllayoutSloppy);
 			bgq_weylsite_double *weylsite = (bgq_weylsite_double *)((uint8_t*)&field->sec_collapsed_double[ic] - 32);
 
 			#define PRECISION double
@@ -436,13 +457,13 @@ EXTERN_INLINE void bgq_spinorfield_readSpinor(bgq_su3_spinor_params(*target), bg
 			#undef PRECISION
 		}
 	} else {
-		assert(field->hasFullspinorData);
+		//assert(field->hasFullspinorData);
 		if (layout & ly_sloppy) {
-			assert(field->isFulllayoutSloppy);
 			bgq_su3_spinor_load_float(spinor, &field->sec_fullspinor_float[ic]);
+					bgq_spinorqpx_expect(spinor, t1, t2, x, y, z);
 		} else {
-			assert(!field->isFulllayoutSloppy);
 			bgq_su3_spinor_load_double(spinor, &field->sec_fullspinor_double[ic]);
+					bgq_spinorqpx_expect(spinor, t1, t2, x, y, z);
 		}
 	}
 
@@ -450,7 +471,8 @@ EXTERN_INLINE void bgq_spinorfield_readSpinor(bgq_su3_spinor_params(*target), bg
 }
 
 
-
+void bgq_spinorfield_prepareWrite(bgq_weylfield_controlblock *field, bool isOdd, bgq_spinorfield_layout layout);
+bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *field, bool isOdd, bool acceptWeyl, bool acceptDouble, bool acceptSloppy, bool acceptMul);
 
 
 

@@ -1359,7 +1359,9 @@ EXTERN_INLINE ucoord bgq_collapsed_dst2src(bool isOdd_dst, ucoord ic_dst, bgq_di
 }
 
 
-size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr) ;
+size_t bgq_pointer2offset_raw(bgq_weylfield_controlblock *field, void *ptr, bool check);
+size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr);
+
 
 EXTERN_INLINE size_t bgq_collapsed2consecutiveoffset(ucoord ic, bgq_direction d) {
 	assert(0 <= ic && ic < PHYSICAL_VOLUME);
