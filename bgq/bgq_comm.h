@@ -29,6 +29,7 @@ void bgq_comm_wait(bool nospi, bool sloppy);
 
 
 EXTERN_FIELD uint8_t *g_bgq_sec_comm;
+EXTERN_FIELD uint8_t *g_bgq_sec_comm_float;
 EXTERN_FIELD bgq_weyl_vec_double *g_bgq_sec_recv_double[PHYSICAL_LD];
 EXTERN_FIELD bgq_weyl_vec_double *g_bgq_sec_send_double[PHYSICAL_LD];
 

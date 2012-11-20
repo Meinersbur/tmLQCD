@@ -39,8 +39,8 @@ unsigned int spi_num_dirs = NUM_DIRS;
 // in bytes!
 uint64_t totalMessageSize;
 // Allocate static memory for descriptors
-char SPIDescriptorsMemory[ NUM_DIRS * sizeof(MUHWI_Descriptor_t) + 64/*for alignment*/];
-char SPIDescriptorsMemory32[ NUM_DIRS * sizeof(MUHWI_Descriptor_t) + 64/*for alignment*/];
+char SPIDescriptorsMemory[NUM_DIRS * sizeof(MUHWI_Descriptor_t) + 64/*for alignment*/];
+char SPIDescriptorsMemory32[NUM_DIRS * sizeof(MUHWI_Descriptor_t) + 64/*for alignment*/];
 // pointer to descriptor array
 MUHWI_Descriptor_t *SPIDescriptors;
 MUHWI_Descriptor_t *SPIDescriptors32;

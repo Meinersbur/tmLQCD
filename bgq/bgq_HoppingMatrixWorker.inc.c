@@ -37,11 +37,11 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 	if (!noprefetchstream) {
 		bgq_prefetch_forward(&g_bgq_gaugefield_fromCollapsed[isOdd][begin]);
 		if (readFulllayout) {
-			bgq_prefetch_forward(&spinorfield->sec_fullspinor[begin]);
+			bgq_prefetch_forward(&spinorfield->BGQ_SEC_FULLLAYOUT[begin]);
 		} else {
-			bgq_prefetch_forward(&spinorfield->sec_collapsed[begin]);
+			bgq_prefetch_forward(&spinorfield->BGQ_SEC_WEYLLAYOUT[begin]);
 		}
-		bgq_prefetch_forward(&targetfield->sendptr[begin]);
+		bgq_prefetch_forward(&targetfield->BGQ_SENDPTR[begin]);
 	}
 
 	bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][begin];
@@ -140,7 +140,7 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 		{
 			bgq_su3_weylnext_prefetch_double(weylsite);
 
-			// TUP
+			// T+ /////////////////////////////////////////////////////////////////////////
 			{
 				bgq_su3_weyl_decl(weylnext_tup);
 				bgq_qvlfduxa(weylnext_tup_v0_c0, weylsite, 32);
@@ -154,7 +154,7 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 
 			bgq_su3_weylnext_prefetch_double(weylsite);
 
-			// TDOWN
+			// T- /////////////////////////////////////////////////////////////////////////
 			{
 				bgq_su3_weyl_decl(weylnext_tdown);
 				bgq_qvlfduxa(weylnext_tdown_v0_c0, weylsite, 32);
@@ -252,13 +252,13 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 			}
 		}
 		ucoord ic_comp = ic_load;
-		ic_load+=1;
+		ic_load += 1;
 		for (; ic_load<end; ic_load+=1) {
 			bgq_su3_spinor_decl(spinor);
 			bgq_su3_spinor_mov(spinor, spinornext);
 			//weylsite = (bgq_weylsite*)(((uintptr_t)&spinorfield->sec_collapsed[ic_load])-32);
 			//gaugesite = (bgq_gaugesite *)(((uintptr_t)&g_bgq_gaugefield_fromCollapsed[isOdd][ic_comp])-32);
-			bgq_weyl_ptr_t *targetptrs = &targetfield->sendptr[ic_comp];// 8*sizeof(bgq_weyl_vec*)=64 bytes
+			bgq_weyl_ptr_t *targetptrs = &targetfield->BGQ_SENDPTR[ic_comp];// 8*sizeof(bgq_weyl_vec*)=64 bytes
 
 			bgq_su3_weylnext_prefetch_double(weylsite);
 			bgq_su3_matrixnext_prefetch_double(gaugesite);
@@ -561,7 +561,7 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 		{
 			bgq_su3_spinor_decl(spinor);
 			bgq_su3_spinor_mov(spinor, spinornext);
-			bgq_weyl_ptr_t *targetptrs = &targetfield->sendptr[ic_comp];
+			bgq_weyl_ptr_t *targetptrs = &targetfield->BGQ_SENDPTR[ic_comp];
 
 			// tup
 			{

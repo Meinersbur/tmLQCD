@@ -503,7 +503,6 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 					field->sendptr_double[ic_src].d[d_dst] = ptr;
 				}
 
-
 				{
 					bgq_weyl_vec_float *ptr = bgq_index2pointer_float(field, index);
 					field->isWeyllayoutSloppy = true;
@@ -651,15 +650,13 @@ bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, ucoord t
 
 
 
-
-
 char *(g_idxdesc[BGQREF_count]);
 complexdouble *g_bgqvalue = NULL;
 complexdouble *g_refvalue = NULL;
 
 
 void bgq_initbgqref_impl() {
-	int datasize = sizeof(complexdouble) * VOLUME * lengthof(g_idxdesc);
+	size_t datasize = sizeof(complexdouble) * VOLUME * lengthof(g_idxdesc);
 	if (g_refvalue == NULL) {
 		g_bgqvalue = malloc_aligned(datasize, BGQ_ALIGNMENT_L2);
 		g_refvalue = malloc_aligned(datasize, BGQ_ALIGNMENT_L2);
@@ -809,6 +806,8 @@ void bgq_savebgqref_impl() {
 
 		master_print("Cmp data written to %s and %s\n", reffilename, bgqfilename);
 	}
+
+	bgq_initbgqref();
 }
 
 

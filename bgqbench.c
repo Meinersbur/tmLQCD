@@ -931,6 +931,7 @@ static void benchmark_hopmatkernel(bgq_hmflags flags, int k, int k_max) {
 typedef struct {
 	size_t k_max;
 	bgq_hmflags opts;
+	bool doSave;
 } checkargs_t;
 
 static int check_hopmat(void *arg_untyped) {
@@ -938,6 +939,9 @@ static int check_hopmat(void *arg_untyped) {
 	ucoord k_max = args->k_max;
 	ucoord k = 0;
 	bgq_hmflags hmflags = args->opts;
+	bool doSave = args->doSave;
+
+	bgq_initbgqref();
 
 	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 	double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], true);
@@ -987,7 +991,8 @@ static int check_hopmat(void *arg_untyped) {
 		}
 	}
 
-	bgq_savebgqref();
+	if (doSave)
+		bgq_savebgqref();
 	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], true);
 #ifndef BGQ_COORDCHECK
 	assert(compare_even < 0.01);
@@ -1071,14 +1076,16 @@ static void exec_bench(int j_max, int k_max) {
 	master_print("Double: ");
 	checkargs_t checkargs_double = {
 	        .k_max = k_max,
-	        .opts = 0
+	        .opts = 0,
+	        .doSave = false
 	};
 	bgq_parallel(&check_hopmat, &checkargs_double);
 
 	master_print("Float: ");
 	checkargs_t checkargs_float = {
 	        .k_max = k_max,
-	        .opts = hm_floatprecision
+	        .opts = hm_floatprecision,
+	        .doSave = true
 	};
 	bgq_parallel(&check_hopmat, &checkargs_float);
 

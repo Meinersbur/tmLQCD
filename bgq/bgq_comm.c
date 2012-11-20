@@ -189,19 +189,19 @@ static inline unsigned bgq_abcde2spirank(Personality_t *pers, uint8_t a, uint8_t
 
 static void setup_destinations(Personality_t *pers) {
 	torus_t tcoords = {
-			pers->Network_Config.Acoord,
-			pers->Network_Config.Bcoord,
-			pers->Network_Config.Ccoord,
-			pers->Network_Config.Dcoord,
-			pers->Network_Config.Ecoord
+		pers->Network_Config.Acoord,
+		pers->Network_Config.Bcoord,
+		pers->Network_Config.Ccoord,
+		pers->Network_Config.Dcoord,
+		pers->Network_Config.Ecoord
 	};
 
 	torus_t tdims = {
-			pers->Network_Config.Anodes,
-			pers->Network_Config.Bnodes,
-			pers->Network_Config.Cnodes,
-			pers->Network_Config.Dnodes,
-			pers->Network_Config.Enodes
+		pers->Network_Config.Anodes,
+		pers->Network_Config.Bnodes,
+		pers->Network_Config.Cnodes,
+		pers->Network_Config.Dnodes,
+		pers->Network_Config.Enodes
 	};
 
 	//numNodes = tdims.a * tdims.b * tdims.c * tdims.d * tdims.e;
@@ -231,13 +231,15 @@ static void setup_destinations(Personality_t *pers) {
 		nb2dest[cd].hintsABCD = 0;
 		nb2dest[cd].hintsE = 0;
 		//printf("node %d: %d(%d,%d,%d,%d,%d)-%d->%d(%d,%d,%d,%d,%d)\n", g_proc_id, mySpirank, tcoords.a, tcoords.b, tcoords.c, tcoords.e, tcoords.d, cd, nbrank, nb.a, nb.b, nb.c, nb.d, nb.e);
+
+		//nb2dest[COMMDIR_COUNT + cd] = nb2dest[cd];
 	}
 }
 #endif
 
 
 
-static void bgq_comm_test(bool nospi) {
+static void bgq_comm_test(bool nospi, bool sloppy) {
 	  // test communication
 
 	for (ucoord cd = 0; cd < COMMDIR_COUNT; cd+=1) {
@@ -255,9 +257,9 @@ static void bgq_comm_test(bool nospi) {
 		}
 	}
 
-	bgq_comm_recv(nospi, false);
-	bgq_comm_send(nospi, false);
-	bgq_comm_wait(nospi, false);
+	bgq_comm_recv(nospi, sloppy);
+	bgq_comm_send(nospi, sloppy);
+	bgq_comm_wait(nospi, sloppy);
 
 	for (ucoord cd = 0; cd < COMMDIR_COUNT; cd+=1) {
 		bgq_direction d = bgq_commdir2direction(cd);
@@ -281,7 +283,7 @@ static void bgq_comm_test(bool nospi) {
 		}
 	}
 
-	master_print("Communication nospi=%d tested successfully\n", nospi);
+	master_print("%s Communication sloppy=%d tested successfully\n", nospi ? "MPI" : "MU SPI", sloppy);
 }
 
 
@@ -292,10 +294,12 @@ static void bgq_comm_common_init(void) {
 	g_bgq_comm_common_initialized = true;
 	bgq_indices_init();
 
+	{
 	size_t commbufsize = bgq_weyl_section_offset(sec_comm_end) - bgq_weyl_section_offset(sec_comm);
-	uint8_t *buf = (uint8_t*)malloc_aligned(commbufsize, BGQ_ALIGNMENT_L2);
+	uint8_t *buf = (uint8_t*)malloc_aligned(commbufsize + commbufsize/*some memory is wasted here, but no additional work to be done for alignment*/, BGQ_ALIGNMENT_L2);
 	uint8_t *bufend = buf + commbufsize;
 	g_bgq_sec_comm = buf;
+	g_bgq_sec_comm_float = buf + commbufsize;
 	for (bgq_direction d = 0; d < PHYSICAL_LD; d+=1) {
 		bgq_dimension dim = bgq_direction2dimension(d);
 
@@ -304,20 +308,21 @@ static void bgq_comm_common_init(void) {
 
 		g_bgq_sec_send_double[d] = (bgq_weyl_vec_double*)(buf + bgq_weyl_section_offset(sec_send) - bgq_weyl_section_offset(sec_comm));
 		assert((uint8_t*)g_bgq_sec_send_double[d] <= bufend);
-		g_bgq_sec_send_float[d] = (bgq_weyl_vec_float*)g_bgq_sec_send_double[d];
+		g_bgq_sec_send_float[d] = (bgq_weyl_vec_float*)((uint8_t*)g_bgq_sec_send_double[d] + commbufsize);
 
 		g_bgq_sec_recv_double[d] = (bgq_weyl_vec_double*)(buf + bgq_weyl_section_offset(sec_recv) - bgq_weyl_section_offset(sec_comm));
 		assert((uint8_t*)g_bgq_sec_recv_double[d] <= bufend);
-		g_bgq_sec_recv_float[d] = (bgq_weyl_vec_float*)g_bgq_sec_recv_double[d];
+		g_bgq_sec_recv_float[d] = (bgq_weyl_vec_float*)((uint8_t*)g_bgq_sec_recv_double[d] + commbufsize);
 
 		assert((uintptr_t)g_bgq_sec_send_double[d] % BGQ_ALIGNMENT_L2 == 0);
 		assert((uintptr_t)g_bgq_sec_recv_double[d] % BGQ_ALIGNMENT_L2 == 0);
 	}
+	}
 
 	if (BGQ_UNVECTORIZE || !COMM_T) {
-		g_bgq_sec_temp_tup_double = malloc_aligned(LOCAL_HALO_T/PHYSICAL_LP *sizeof(bgq_weyl_vec_double),BGQ_ALIGNMENT_L2);
+		g_bgq_sec_temp_tup_double = malloc_aligned(LOCAL_HALO_T/PHYSICAL_LP *sizeof(bgq_weyl_vec_double), BGQ_ALIGNMENT_L2);
 		g_bgq_sec_temp_tup_float = (bgq_weyl_vec_float*)g_bgq_sec_temp_tup_double;
-		g_bgq_sec_temp_tdown_double = malloc_aligned(LOCAL_HALO_T/PHYSICAL_LP *sizeof(bgq_weyl_vec_double),BGQ_ALIGNMENT_L2);
+		g_bgq_sec_temp_tdown_double = malloc_aligned(LOCAL_HALO_T/PHYSICAL_LP *sizeof(bgq_weyl_vec_double), BGQ_ALIGNMENT_L2);
 		g_bgq_sec_temp_tdown_float = (bgq_weyl_vec_float*)g_bgq_sec_temp_tdown_double;
 		//g_bgq_sec_vrecv_tup = malloc_aligned(PHYSICAL_HALO_T,BGQ_ALIGNMENT_L2);
 		//g_bgq_sec_vrecv_tdown = malloc_aligned(PHYSICAL_HALO_T,BGQ_ALIGNMENT_L2);
@@ -359,11 +364,12 @@ void bgq_comm_mpi_init(void) {
 		//master_print("MPI_CHECK(MPI_Send_init(%zu, %zu, %zu, %zu, %zu, %zu, %zu))\n", g_bgq_sec_send[d_dst], secsize / sizeof(double), MPI_DOUBLE, bgq_direction2rank(d_dst), d_dst, g_cart_grid, &g_bgq_request_send[commdir_dst]);
 	}
 
-
-	bgq_comm_test(true);
+	bgq_comm_test(true, false);
+	bgq_comm_test(true, true);
 }
 
 
+static uint64_t totalMessageSize_float;
 
 static bool g_bgq_comm_spi_initialized = false;
 void bgq_comm_spi_init(void) {
@@ -374,14 +380,19 @@ void bgq_comm_spi_init(void) {
 	bgq_comm_common_init();
 
 
-	size_t messageSizes[PHYSICAL_LD];
-	size_t roffsets[PHYSICAL_LD];
-	size_t soffsets[PHYSICAL_LD];
-	//size_t totalMessageSize = 0;
+	size_t messageSizes[2*COMMDIR_COUNT];
+	size_t roffsets[2*COMMDIR_COUNT];
+	size_t soffsets[2*COMMDIR_COUNT];
+
+	size_t messageSizes_float[COMMDIR_COUNT];
+	//size_t roffsets_flaot[COMMDIR_COUNT];
+	//size_t soffsets_float[COMMDIR_COUNT];
 
 	// here comes the SPI initialization
 	int spi_num_dirs = COMMDIR_COUNT;
-
+	totalMessageSize = 0;
+	totalMessageSize_float = 0;
+	size_t bufsize_double = bgq_weyl_section_offset(sec_send_end) - bgq_weyl_section_offset(sec_send_begin);
 	for (ucoord cd = 0; cd < COMMDIR_COUNT; cd+=1) {
 		bgq_direction d_src = bgq_commdir2direction(cd);
 		bgq_direction d_dst = bgq_direction_revert(d_src);
@@ -407,9 +418,25 @@ void bgq_comm_spi_init(void) {
 		assert((roffsets[cd] + secsize) <= (bgq_weyl_section_offset(sec_recv_end) - bgq_weyl_section_offset(sec_recv_begin)));
 		totalMessageSize += secsize;
 
+
+		size_t secsize_float = secsize/2;
+		messageSizes_float[commdir] = secsize_float;
+		messageSizes[COMMDIR_COUNT+commdir] = secsize_float;
+		//soffsets_float[commdir] = bufsize_double + soffsets[commdir];
+		soffsets[COMMDIR_COUNT+commdir] = bufsize_double + soffsets[commdir];
+		//roffsets_commdir[cd] = bufsize_double + roffsets[cd];
+		roffsets[COMMDIR_COUNT+cd] = bufsize_double + roffsets[cd];
+		totalMessageSize_float += secsize_float;
+
 		//master_print("SPI %llu: d=%llu msize=%zu soffset=%zu d_dst=%llu roffset=%zu\n", cd, d_src, messageSizes[commdir], soffsets[commdir], d_dst, roffsets[cd]);
 	}
 	assert(totalMessageSize == bgq_weyl_section_offset(sec_recv_end) - bgq_weyl_section_offset(sec_recv_begin));
+	assert(totalMessageSize_float == totalMessageSize/2);
+
+
+
+
+
 
 	do_dynamic = 0; // Use static routing (since only neighbor-to-neighbor communication)
 
@@ -426,21 +453,21 @@ void bgq_comm_spi_init(void) {
 	setup_destinations(&pers);
 
 	// adjust the SPI pointers to the send and receive buffers
-	SPIrecvBuffers = (char*)g_bgq_sec_recv[0];
+	SPIrecvBuffers = (char*)g_bgq_sec_recv_double[0];
 	assert((uintptr_t)SPIrecvBuffers % BGQ_ALIGNMENT_L2 == 0);
-	SPIsendBuffers = (char*)g_bgq_sec_send[0];
+	SPIsendBuffers = (char*)g_bgq_sec_send_double[0];
 	assert((uintptr_t)SPIsendBuffers % BGQ_ALIGNMENT_L2 == 0);
 
 	// Setup the FIFO handles
 	rc = msg_InjFifoInit(&injFifoHandle,
 			 0,                      /* startingSubgroupId */
 			 0,                      /* startingFifoId     */
-			 spi_num_dirs,           /* numFifos   */
+			 COMMDIR_COUNT,          /* numFifos   */
 			 INJ_MEMORY_FIFO_SIZE+1, /* fifoSize */
 			 NULL                    /* Use default attributes */
 			 );
 	if(rc != 0) {
-		fprintf(stderr, "msg_InjFifoInit failed with rc=%d\n",rc);
+		fprintf(stderr, "msg_InjFifoInit failed with rc=%d\n", rc);
 		exit(1);
 	}
 
@@ -452,7 +479,10 @@ void bgq_comm_spi_init(void) {
 	// Create descriptors
 	// Injection Direct Put Descriptor, one for each neighbour
 	SPIDescriptors = (MUHWI_Descriptor_t*)(((uint64_t)SPIDescriptorsMemory+64)&~(64-1));
-	create_descriptors(SPIDescriptors, messageSizes, soffsets, roffsets, spi_num_dirs);
+	create_descriptors(SPIDescriptors, messageSizes, soffsets, roffsets, COMMDIR_COUNT);
+
+	SPIDescriptors32 = (MUHWI_Descriptor_t*)(((uint64_t)SPIDescriptorsMemory32+64)&~(64-1));
+	create_descriptors(SPIDescriptors32, messageSizes_float, soffsets, roffsets, COMMDIR_COUNT);
 
     // Initialize the barrier, resetting the hardware.
     rc = MUSPI_GIBarrierInit(&GIBarrier, 0 /*comm world class route */);
@@ -474,7 +504,8 @@ void bgq_comm_spi_init(void) {
 #endif
 
 
-	bgq_comm_test(false);
+	bgq_comm_test(false, false);
+	bgq_comm_test(false, true);
 #endif
 }
 
@@ -482,11 +513,12 @@ void bgq_comm_spi_init(void) {
 //TODO: inline?
 void bgq_comm_recv(bool nospi, bool sloppy) {
 	assert(omp_get_thread_num()==0);
-	//master_print("Comm Receiving...\n");
+	//master_print("Comm Receiving... nospi=%d sloppy=%d\n", nospi, sloppy);
+
 #ifdef SPI
 	if (!nospi) {
 	    // reset the recv counter
-	    recvCounter = totalMessageSize;
+	    recvCounter = sloppy ? totalMessageSize_float : totalMessageSize;
 		return;
 	}
 #endif
@@ -500,18 +532,20 @@ void bgq_comm_recv(bool nospi, bool sloppy) {
 
 void bgq_comm_send(bool nospi, bool sloppy) {
 	assert(omp_get_thread_num()==0);
-	//master_print("Comm Sending...\n");
+	//master_print("Comm Sending... nospi=%d sloppy=%d\n", nospi, sloppy);
+
 #ifdef SPI
 	if (!nospi) {
 		// make sure everybody has reset recvCounter
 		global_barrier(); //TODO: Can we get rid of it?
-	    for (size_t cd = 0; cd < COMMDIR_COUNT; cd+=1) {
-	      descCount[cd] = msg_InjFifoInject(injFifoHandle, cd, &SPIDescriptors[cd]);
-	      if (descCount[cd] == -1) {
-	    	 printf("msg_InjFifoInject failed, most likely because there is no room in the fifo\n");
-	    	 abort();
-	      }
-	    }
+
+		for (size_t cd = 0; cd < COMMDIR_COUNT; cd += 1) {
+			descCount[cd] = msg_InjFifoInject(injFifoHandle, cd, sloppy ? &SPIDescriptors32[cd] : &SPIDescriptors[cd]);
+			if (descCount[cd] == -1) {
+				printf("msg_InjFifoInject failed, most likely because there is no room in the fifo\n");
+				abort();
+			}
+		}
 		return;
 	}
 #endif
@@ -525,7 +559,7 @@ void bgq_comm_send(bool nospi, bool sloppy) {
 
 void bgq_comm_wait(bool nospi, bool sloppy) {
 	assert(omp_get_thread_num()==0);
-	//master_print("Comm Waiting...\n");
+	//master_print("Comm Waiting... nospi=%d sloppy=%d\n", nospi, sloppy);
 
 #if BGQ_QPX
 	uint64_t ppc32 = mfspr(SPRN_PPR32);
@@ -535,24 +569,27 @@ void bgq_comm_wait(bool nospi, bool sloppy) {
 #ifdef SPI
 	if (!nospi) {
 		uint64_t startTime = 0;
+		uint64_t expectedBytes = sloppy ? totalMessageSize_float : totalMessageSize;
 
 		// Wait for all data is received
-		 //printf("node %d: %llu bytes to be received\n", g_proc_id, totalMessageSize);
+		 //printf("node %d: %llu bytes to be received\n", g_proc_id, expectedBytes);
 		 while(recvCounter > 0) {
 			 // Check range of pending bytes to receive
-			 assert(recvCounter <= totalMessageSize);
+			 assert(recvCounter <= expectedBytes);
 
+#if 0
 			 if (GetTimeBase() - startTime >= 1600) {
-				 //printf("node %d: %llu bytes left\n", g_proc_id, recvCounter);
+				 printf("node %d: %llu bytes left\n", g_proc_id, recvCounter);
 				 startTime = GetTimeBase();
 			 }
+#endif
 		 }
 		 //printf("node %d: All data received\n", g_proc_id);
 
 		 // Wait for all data sent
 		while (true) {
 			size_t sendDone = 0;
-			for (unsigned j = 0; j < COMMDIR_COUNT; j+=1) {
+			for (size_t j = 0; j < COMMDIR_COUNT; j += 1) {
 				sendDone += msg_InjFifoCheckCompletion(injFifoHandle, j, descCount[j]);
 			}
 			if (sendDone == COMMDIR_COUNT)
@@ -578,7 +615,7 @@ void bgq_comm_wait(bool nospi, bool sloppy) {
 #ifndef NDEBUG
 		for (ucoord commdir = 0; commdir < COMMDIR_COUNT; commdir += 1) {
 			bgq_direction d = bgq_commdir2direction(commdir);
-			bgq_weylfield_section sec = bgq_direction2section(d,false);
+			bgq_weylfield_section sec = bgq_direction2section(d, false);
 			size_t size = bgq_weyl_section_offset(sec+1) - bgq_weyl_section_offset(sec);
 			if (sloppy)
 				size /= 2;
