@@ -119,12 +119,12 @@ static inline void NAME2(REDUCTION_NAME,worker)(void *arg_untyped, size_t tid, s
 
 #if REDUCTION_ARGFIELDS>=1
 		bgq_su3_spinor_decl(spinor1);
-		bgq_spinorfield_readSpinor(bgq_su3_spinor_vars(&spinor1), argfield1, ic, layout1);
+		bgq_spinorfield_readSpinor(&spinor1, argfield1, ic, layout1 &ly_weyl, layout1 &ly_sloppy, layout1 &ly_mul);
 #endif
 
 #if REDUCTION_ARGFIELDS>=2
 		bgq_su3_spinor_decl(spinor2);
-		bgq_spinorfield_readSpinor(bgq_su3_spinor_vars(&spinor2), argfield1, ic, layout2);
+		bgq_spinorfield_readSpinor(&spinor2, argfield2, ic, layout2&ly_weyl, layout2&ly_sloppy, layout2&ly_mul);
 #endif
 
 		REDUCTION_RETURNTYPE(siteresult);
@@ -153,12 +153,12 @@ static inline void NAME2(REDUCTION_NAME,worker)(void *arg_untyped, size_t tid, s
 
 #if REDUCTION_ARGFIELDS>=1
 		bgq_su3_spinor_decl(spinor1);
-		bgq_spinorfield_readSpinor(bgq_su3_spinor_vars(&spinor1), argfield1, ic, layout1);
+		bgq_spinorfield_readSpinor(&spinor1, argfield1, ic, layout1&ly_weyl, layout1&ly_sloppy ,layout1&ly_mul);
 #endif
 
 #if REDUCTION_ARGFIELDS>=2
 		bgq_su3_spinor_decl(spinor2);
-		bgq_spinorfield_readSpinor(bgq_su3_spinor_vars(&spinor2), argfield1, ic, layout2);
+		bgq_spinorfield_readSpinor(&spinor2, argfield1, ic, layout2&ly_weyl, layout2&ly_sloppy ,layout2&ly_mul);
 #endif
 
 		REDUCTION_RETURNTYPE(siteresult);

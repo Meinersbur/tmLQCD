@@ -30,16 +30,51 @@
 
 
 
-
-
 void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_weylfield_controlblock *spinorfield, bgq_hmflags opts);
 
-//obsolete
-#define bgq_HoppingMatrix_loadFulllayout(spinor,addr,t_left,t_right,x,y,z) bgq_HoppingMatrix_loadFulllayout_raw(bgq_su3_spinor_vars(&spinor),addr,t_left,t_right,x,y,z)
-EXTERN_INLINE void bgq_HoppingMatrix_loadFulllayout_raw(bgq_su3_spinor_params(* restrict target), bgq_spinorsite_double * restrict addr, size_t t1, size_t t2, size_t x, size_t y, size_t z) {
+
+
+#define bgq_HoppingMatrix_loadFulllayout NAME2(bgq_HoppingMatrix_loadFulllayout,PRECISION)
+
+#define bgq_HoppingMatrix_loadFulllayout_double(spinor,addr,t_left,t_right,x,y,z) bgq_HoppingMatrix_loadFulllayout_double_raw(bgq_su3_spinor_vars(&spinor),addr,t_left,t_right,x,y,z)
+EXTERN_INLINE void bgq_HoppingMatrix_loadFulllayout_double_raw(bgq_su3_spinor_params(* restrict target), bgq_spinorsite_double * restrict addr, size_t t1, size_t t2, size_t x, size_t y, size_t z) {
 	bgq_su3_spinor_load_double(*target, addr);
 	bgq_spinorqpx_expect(*target, t1, t2, x, y, z);
 }
+
+#define bgq_HoppingMatrix_loadFulllayout_float(spinor,addr,t_left,t_right,x,y,z) bgq_HoppingMatrix_loadFulllayout_float_raw(bgq_su3_spinor_vars(&spinor),addr,t_left,t_right,x,y,z)
+EXTERN_INLINE void bgq_HoppingMatrix_loadFulllayout_float_raw(bgq_su3_spinor_params(* restrict target), bgq_spinorsite_double * restrict addr, size_t t1, size_t t2, size_t x, size_t y, size_t z) {
+	bgq_su3_spinor_load_float(*target, addr);
+	bgq_spinorqpx_expect(*target, t1, t2, x, y, z);
+}
+
+
+#define bgq_HoppingMatrix_loadWeyllayout NAME2(bgq_HoppingMatrix_loadWeyllayout,PRECISION)
+
+#define bgq_HoppingMatrix_loadWeyllayout_double(target, spinorsite, t1, t2, x,y,z) bgq_HoppingMatrix_loadWeyllayout_double_raw(bgq_su3_spinor_vars(&target), spinorsite, t1, t2, x, y, z)
+EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_double_raw(bgq_su3_spinor_params(* restrict target), bgq_weylsite_double * restrict weylsite, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z) {
+	bgq_su3_spinor_decl(spinor);
+
+#define PRECISION double
+	#define BGQ_READWEYLLAYOUT_INC_
+	#include "bgq_ReadWeyllayout.inc.c"
+#undef PRECISION
+
+	bgq_su3_spinor_mov(*target, spinor);
+}
+
+#define bgq_HoppingMatrix_loadWeyllayout_float(target, spinorsite, t1, t2, x,y,z) bgq_HoppingMatrix_loadWeyllayout_float_raw(bgq_su3_spinor_vars(&target), spinorsite, t1, t2, x, y, z)
+EXTERN_INLINE void bgq_HoppingMatrix_loadWeyllayout_float_raw(bgq_su3_spinor_params(* restrict target), bgq_weylsite_float * restrict weylsite, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z) {
+	bgq_su3_spinor_decl(spinor);
+
+#define PRECISION float
+	#define BGQ_READWEYLLAYOUT_INC_
+	#include "bgq_ReadWeyllayout.inc.c"
+#undef PRECISION
+
+	bgq_su3_spinor_mov(*target, spinor);
+}
+
 
 #if 0
 #define bgq_HoppingMatrix_loadWeyllayout_tup(target, spinorsite, t1, t2, x,y,z) bgq_HoppingMatrix_loadWeyllayout_tup_raw(bgq_su3_spinor_vars(&target), spinorsite, t1, t2, x, y, z)

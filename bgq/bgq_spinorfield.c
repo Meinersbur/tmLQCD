@@ -70,7 +70,7 @@ double bgq_spinorfield_compare(bool isOdd, bgq_weylfield_controlblock *bgqfield,
 
 							if (diff > 0.01) {
 								if (!silent && first)
-									master_print("Coordinate (%zu,%zu,%zu,%zu)(%zu,%zu): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t, x, y, z, v, c, creal(refvalue), cimag(refvalue), creal(bgqvalue), cimag(bgqvalue), diff);
+									master_print("Coordinate (%zu,%zu,%zu,%zu)(%zu,%zu): ref=(%f + %fi) != bgq=(%f + %fi) off by %f\n", t, x, y, z, v, c, creal(refvalue), cimag(refvalue), creal(bgqvalue), cimag(bgqvalue), diff);
 								if (first)
 									count += 1;
 								first = false;
@@ -153,15 +153,6 @@ static bgq_weyl_vec_double *bgq_index2pointer_double(bgq_weylfield_controlblock 
 static bgq_weyl_vec_float *bgq_index2pointer_float(bgq_weylfield_controlblock *field, ucoord index) {
 	return bgq_offset2pointer_float(field, bgq_index2offset(index));
 }
-
-#if 0
-static bgq_weyl_vec_double *bgq_encodedoffset2pointer(bgq_weylfield_controlblock *field, size_t code) {
-	size_t offset = bgq_decode_offset(code);
-	assert(offset % sizeof(bgq_weyl_vec_double) == 0);
-	assert(bgq_weyl_section_offset(0) <= offset && offset < bgq_weyl_section_offset(sec_end));
-	return bgq_offset2pointer(field, offset);
-}
-#endif
 
 
 static size_t bgq_weylfield_bufferoffset2consecutiveoffset(bool isOdd, size_t offset, size_t k) {
@@ -624,7 +615,7 @@ bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, ucoord t
 	bgq_spinorfield_layout layout = bgq_spinorfield_prepareRead(field, field->isOdd, true, true, true, false);
 	//bgq_spinorfield_setup(field, field->isOdd, !(layout & ly_weyl), false, (layout & ly_weyl), false, false);
 	bgq_su3_spinor_decl(spinor);
-	bgq_spinorfield_readSpinor(bgq_su3_spinor_vars(&spinor), field, ic, layout);
+	bgq_spinorfield_readSpinor(&spinor, field, ic, layout&ly_weyl, layout&ly_sloppy, layout&ly_mul);
 	return bgq_spinor_fromqpx(spinor, k);
 
 #if 0
@@ -1029,7 +1020,7 @@ static void bgq_spinorfield_rewrite_worker(void *arg_untyped, size_t tid, size_t
 #endif
 
 		bgq_su3_spinor_decl(spinor);
-		bgq_spinorfield_readSpinor(bgq_su3_spinor_vars(&spinor), field, ic, layout);
+		bgq_spinorfield_readSpinor(&spinor, field, ic, layout&ly_weyl, layout&ly_sloppy, layout&ly_weyl);
 
 		if (sloppy) {
 			bgq_spinor_vec_float *fulladdr = &field->sec_fullspinor_float[ic];
@@ -1078,7 +1069,7 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 	}
 
 
-	bgq_spinorfield_layout result = ly_none;
+	bgq_spinorfield_layout result = -1;
 
 	//TODO: This is not meant to be fast; If you need something fast, special-case it (i.e. accept more inputs)
 	if (actionRewrite) {
@@ -1114,7 +1105,7 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 		result = bgq_spinorfield_bestLayout(field);
 	}
 
-	assert(result);
+	assert(result!=-1);
 	assert(acceptWeyl || !(result&ly_weyl));
 	assert(acceptDouble || result&ly_sloppy);
 	assert(acceptSloppy || !(result&ly_sloppy));
@@ -1122,7 +1113,3 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 
 	return result;
 }
-
-
-
-

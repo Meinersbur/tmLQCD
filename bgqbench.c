@@ -84,6 +84,8 @@
 #include <getopt.h>
 #define __USE_GNU
 #include <fenv.h>
+#include "bgq/bgq_stdoperators.h"
+#include "bgq/bgq_stdreductions.h"
 
 #ifdef XLC
 #include <l1p/pprefetch.h>
@@ -993,7 +995,7 @@ static int check_hopmat(void *arg_untyped) {
 
 	if (doSave)
 		bgq_savebgqref();
-	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], true);
+	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], false);
 #ifndef BGQ_COORDCHECK
 	assert(compare_even < 0.01);
 #endif
@@ -1008,7 +1010,7 @@ static int check_hopmat(void *arg_untyped) {
 	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k], &g_bgq_spinorfields[k+k_max], hmflags);
 	HoppingMatrix_switch(true, g_spinor_field[k], g_spinor_field[k+k_max], hmflags);
 
-	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], true);
+	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], false);
 #ifndef BGQ_COORDCHECK
 	assert(compare_odd < 0.01);
 #endif
@@ -1016,6 +1018,19 @@ static int check_hopmat(void *arg_untyped) {
 
 	master_print("Comparison to reference version: even=%e odd=%e max difference\n", compare_even, compare_odd);
 	return EXIT_SUCCESS;
+}
+
+
+static int check_linalg(void *arg_untyped) {
+	checkargs_t *arg = (checkargs_t*)arg_untyped;
+	int k_max = arg->k_max;
+	int k = 0;
+
+	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
+
+	bgq_spinorfield_diff_double(&g_bgq_spinorfields[k+k_max], &g_bgq_spinorfields[k], &g_bgq_spinorfields[k]);
+
+	return 0;
 }
 
 
@@ -1079,6 +1094,7 @@ static void exec_bench(int j_max, int k_max) {
 	        .opts = 0,
 	        .doSave = false
 	};
+	bgq_parallel(&check_linalg, &checkargs_double);
 	bgq_parallel(&check_hopmat, &checkargs_double);
 
 	master_print("Float: ");
