@@ -17,9 +17,9 @@ echo DEPART : `date`
 
 INPUT_FILE_TINY=benchmark.input_tiny.${LOADL_STEP_ID} 
 cat > ${INPUT_FILE_TINY} <<+EOF
-T=32
-LX=16
-LY=8
+T=8
+LX=4
+LY=4
 LZ=4
 +EOF
 
@@ -50,7 +50,7 @@ LZ=64
 
 
 
-export OMP_NUM_THREADS=64
+export OMP_NUM_THREADS=2
 export OMP_PROC_BIND=TRUE # Always TRUE on BG/Q
 export PAMID_RZV=2147483647
 export BG_COREDUMPDISABLED=0

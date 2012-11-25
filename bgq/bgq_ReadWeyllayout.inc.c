@@ -35,8 +35,8 @@ void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weyl
 		bgq_qvlfuxa(weylnext_tup_v1_c2, weylsite, BGQ_VECTORSIZE);
 				bgq_weylqpx_expect(weylnext_tup, t1, t2, x, y, z, TUP, false);
 				bgq_setdesc(BGQREF_TUP_RECV, "BGQREF_TUP_RECV");
-				bgq_setbgqvalue(t1, x, y, z, BGQREF_TUP_RECV, bgq_cmplxval1(weylnext_tup_v1_c0));
-				bgq_setbgqvalue(t2, x, y, z, BGQREF_TUP_RECV, bgq_cmplxval2(weylnext_tup_v1_c0));
+				bgq_setbgqvalue(t1, x, y, z, BGQREF_TUP_RECV, bgq_cmplxval1(weylnext_tup_v0_c0));
+				bgq_setbgqvalue(t2, x, y, z, BGQREF_TUP_RECV, bgq_cmplxval2(weylnext_tup_v0_c0));
 		bgq_su3_expand_weyl_tup(spinor, weylnext_tup);
 	}
 
@@ -53,12 +53,12 @@ void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weyl
 		bgq_qvlfuxa(weylnext_tdown_v1_c2, weylsite, BGQ_VECTORSIZE);
 				bgq_weylqpx_expect(weylnext_tdown, t1, t2, x, y, z, TDOWN, false);
 				bgq_setdesc(BGQREF_TDOWN_RECV, "BGQREF_TDOWN_RECV");
-				bgq_setbgqvalue(t1, x, y, z, BGQREF_TDOWN_RECV, bgq_cmplxval1(weylnext_tdown_v1_c0));
-				bgq_setbgqvalue(t2, x, y, z, BGQREF_TDOWN_RECV, bgq_cmplxval2(weylnext_tdown_v1_c0));
+				bgq_setbgqvalue(t1, x, y, z, BGQREF_TDOWN_RECV, bgq_cmplxval1(weylnext_tdown_v0_c0));
+				bgq_setbgqvalue(t2, x, y, z, BGQREF_TDOWN_RECV, bgq_cmplxval2(weylnext_tdown_v0_c0));
 		bgq_su3_accum_weyl_tdown(spinor, weylnext_tdown);
 				bgq_setdesc(BGQREF_TDOWN_ACCUM, "BGQREF_TDOWN_ACCUM");
-				bgq_setbgqvalue(t1, x, y, z, BGQREF_TDOWN_ACCUM, bgq_cmplxval1(spinor_v1_c0));
-				bgq_setbgqvalue(t2, x, y, z, BGQREF_TDOWN_ACCUM, bgq_cmplxval2(spinor_v1_c0));
+				bgq_setbgqvalue(t1, x, y, z, BGQREF_TDOWN_ACCUM, bgq_cmplxval1(spinor_v0_c0));
+				bgq_setbgqvalue(t2, x, y, z, BGQREF_TDOWN_ACCUM, bgq_cmplxval2(spinor_v0_c0));
 	}
 
 	bgq_su3_weylnext_prefetch(weylsite);
@@ -73,7 +73,13 @@ void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weyl
 		bgq_qvlfuxa(weylnext_xup_v1_c1, weylsite, BGQ_VECTORSIZE);
 		bgq_qvlfuxa(weylnext_xup_v1_c2, weylsite, BGQ_VECTORSIZE);
 				bgq_weylqpx_expect(weylnext_xup, t1, t2, x, y, z, XUP, false);
+				bgq_setdesc(BGQREF_XUP_RECV, "BGQREF_XUP_RECV");
+				bgq_setbgqvalue(t1, x, y, z, BGQREF_XUP_RECV, bgq_cmplxval1(weylnext_xup_v0_c0));
+				bgq_setbgqvalue(t2, x, y, z, BGQREF_XUP_RECV, bgq_cmplxval2(weylnext_xup_v0_c0));
 		bgq_su3_accum_weyl_xup(spinor, weylnext_xup);
+				bgq_setdesc(BGQREF_XUP_ACCUM, "BGQREF_XDOWN_ACCUM");
+				bgq_setbgqvalue(t1, x, y, z, BGQREF_XUP_ACCUM, bgq_cmplxval1(spinor_v0_c0));
+				bgq_setbgqvalue(t2, x, y, z, BGQREF_XUP_ACCUM, bgq_cmplxval2(spinor_v0_c0));
 	}
 
 	bgq_su3_weylnext_prefetch(weylsite);
@@ -88,7 +94,13 @@ void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weyl
 		bgq_qvlfuxa(weylnext_xdown_v1_c1, weylsite, BGQ_VECTORSIZE);
 		bgq_qvlfuxa(weylnext_xdown_v1_c2, weylsite, BGQ_VECTORSIZE);
 				bgq_weylqpx_expect(weylnext_xdown, t1, t2, x, y, z, XDOWN, false);
+				bgq_setdesc(BGQREF_XDOWN_RECV, "BGQREF_XDOWN_RECV");
+				bgq_setbgqvalue(t1, x, y, z, BGQREF_XDOWN_RECV, bgq_cmplxval1(weylnext_xdown_v0_c0));
+				bgq_setbgqvalue(t2, x, y, z, BGQREF_XDOWN_RECV, bgq_cmplxval2(weylnext_xdown_v0_c0));
 		bgq_su3_accum_weyl_xdown(spinor, weylnext_xdown);
+				bgq_setdesc(BGQREF_XDOWN_ACCUM, "BGQREF_XDOWN_ACCUM");
+				bgq_setbgqvalue(t1, x, y, z, BGQREF_XDOWN_ACCUM, bgq_cmplxval1(spinor_v0_c0));
+				bgq_setbgqvalue(t2, x, y, z, BGQREF_XDOWN_ACCUM, bgq_cmplxval2(spinor_v0_c0));
 	}
 
 	bgq_su3_weylnext_prefetch(weylsite);

@@ -545,11 +545,15 @@ typedef struct {
 	//bgq_weylsite *sec_surface;
 	//bgq_weylsite *sec_body;
 	uint8_t *sec_end;
+	bool has_weyllayout_double;
+	bool has_weyllayout_float;
 
 	bgq_spinorsite_double *sec_fullspinor_double;
 	//bgq_spinorsite *sec_fullspinor_surface;
 	//bgq_spinorsite *sec_fullspinor_body;
 	bgq_spinorsite_float *sec_fullspinor_float;
+	bool has_fulllayout_double;
+	bool has_fulllayout_float;
 
 	//TODO: We may even interleave these with the data itself, but may cause alignment issues
 	// Idea: sizeof(bgq_weyl_ptr_t)==10*8==80, so one bgq_weyl_ptr_t every 2(5;10) spinors solves the issue
@@ -1433,7 +1437,6 @@ EXTERN_INLINE bgq_weylfield_section bgq_section_commbuftran(bgq_weylfield_sectio
 }
 
 
-
 EXTERN_INLINE ucoord bgq_index2collapsed(bool isOdd, ucoord index, ucoord k) {
 	size_t offset = bgq_index2offset(index);
 	bgq_weylfield_section sec = bgq_sectionOfOffset(offset);
@@ -1464,10 +1467,7 @@ EXTERN_INLINE ucoord bgq_offset2collapsed(bool isOdd, size_t offset, ucoord k) {
 }
 
 
-
-
 EXTERN_FIELD size_t g_bgq_spinorfields_count;
-
 
 EXTERN_INLINE size_t bgq_section_size(bgq_weylfield_section sec) {
 	return bgq_weyl_section_offset(sec+1) - bgq_weyl_section_offset(sec);

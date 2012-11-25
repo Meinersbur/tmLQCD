@@ -159,7 +159,7 @@ static ucoord flop_per_bodysite(bgq_hmflags opts) {
 		result += 8/*dirs*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/;
 
 		// Su3 M*V
-		result += 8/*dirs*/ * 2/*su3vec per weyl*/ * (6 * 9 + 2*3)/*flop per su3 mv-mul*/;
+		result += 8/*dirs*/ * 2/*su3vec per weyl*/ * (9*6 + 6*2)/*flop per su3 mv-mul*/;
 
 		// Accummulate spinor
 		// Assuming readWeyllayout:
@@ -183,7 +183,7 @@ static ucoord flop_per_surfacesite(bgq_hmflags opts) {
 		result += 8/*dirs*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/;
 
 		// Su3 M*V
-		result += 8/*dirs*/ * 2/*su3vec per weyl*/ * (6 * 9 + 2*3)/*flop per su3 mv-mul*/;
+		result += 8/*dirs*/ * 2/*su3vec per weyl*/ * (9*6 + 6*2)/*flop per su3 mv-mul*/;
 
 		// Accummulate spinor
 		// Assuming readWeyllayout:
@@ -199,7 +199,6 @@ static ucoord flop_per_surfacesite(bgq_hmflags opts) {
 }
 
 
-
 static uint64_t compute_flop(bgq_hmflags opts, uint64_t lup_body, uint64_t lup_surface) {
 	uint64_t flop_body = flop_per_bodysite(opts) * lup_body;
 	uint64_t flop_surface = flop_per_surfacesite(opts) * lup_surface;
@@ -211,19 +210,10 @@ static void benchmark_setup_worker(void *argptr, size_t tid, size_t threads) {
 	mypapi_init();
 
 #ifndef NDEBUG
-	feenableexcept(FE_DIVBYZERO|FE_INVALID| FE_OVERFLOW| FE_UNDERFLOW);
+	//feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW);
 #endif
 
 #if BGQ_QPX
-
-  //  fenv_t myfenv;
-
-    //fegetenv(&myfenv);
-   // myfenv.trapstate=1;
-  //  fesetenv(&myfenv);
-   // fp_enable_all();   /* fp_enable_all documentation link here */
-
-
 	const master_args *args = argptr;
 	const int j_max = args->j_max;
 	const int k_max = args->k_max;
@@ -944,7 +934,7 @@ static int check_hopmat(void *arg_untyped) {
 	bgq_initbgqref();
 
 	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
-	double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], true);
+	double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], false);
 #ifndef BGQ_COORDCHECK
 	assert(compare_transfer == 0);
 	// Must be exact copy
@@ -961,8 +951,8 @@ static int check_hopmat(void *arg_untyped) {
 					bgq_spinor bgq = bgq_spinorfield_getspinor(&g_bgq_spinorfields[k], t, x, y, z);
 
 					bgq_setdesc(BGQREF_SOURCE, "BGQREF_SOURCE");
-					bgq_setrefvalue(t, x, y, z, BGQREF_SOURCE, ref.v[1].c[0]);
-					bgq_setbgqvalue(t, x, y, z, BGQREF_SOURCE, bgq.v[1].c[0]);
+					bgq_setrefvalue(t, x, y, z, BGQREF_SOURCE, ref.v[0].c[0]);
+					bgq_setbgqvalue(t, x, y, z, BGQREF_SOURCE, bgq.v[0].c[0]);
 				}
 			}
 		}
@@ -983,9 +973,9 @@ static int check_hopmat(void *arg_untyped) {
 
 					bgq_setdesc(BGQREF_RESULT, "BGQREF_RESULT");
 					//assert(ref.v[1].c[0]!=-2);
-					bgq_setrefvalue(t, x, y, z, BGQREF_RESULT, ref.v[1].c[0]);
+					bgq_setrefvalue(t, x, y, z, BGQREF_RESULT, ref.v[0].c[0]);
 					//assert(bgq.v[1].c[0]!=-2);
-					bgq_setbgqvalue(t, x, y, z, BGQREF_RESULT, bgq.v[1].c[0]);
+					bgq_setbgqvalue(t, x, y, z, BGQREF_RESULT, bgq.v[0].c[0]);
 				}
 			}
 		}
@@ -993,14 +983,14 @@ static int check_hopmat(void *arg_untyped) {
 
 	if (doSave)
 		bgq_savebgqref();
-	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], true);
+	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], false);
 #ifndef BGQ_COORDCHECK
 	assert(compare_even < 0.01);
 #endif
 
 
 	bgq_spinorfield_transfer(false, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max]);
-	compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max], true);
+	compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max], false);
 #ifndef BGQ_COORDCHECK
 	assert(compare_transfer == 0);
 #endif
@@ -1008,7 +998,7 @@ static int check_hopmat(void *arg_untyped) {
 	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k], &g_bgq_spinorfields[k+k_max], hmflags);
 	HoppingMatrix_switch(true, g_spinor_field[k], g_spinor_field[k+k_max], hmflags);
 
-	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], true);
+	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], false);
 #ifndef BGQ_COORDCHECK
 	assert(compare_odd < 0.01);
 #endif
@@ -1073,18 +1063,18 @@ static void exec_bench(int j_max, int k_max) {
 		bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 	}
 
-	master_print("Double: ");
+	//master_print("Double: ");
 	checkargs_t checkargs_double = {
 	        .k_max = k_max,
 	        .opts = 0,
 	        .doSave = false
 	};
-	bgq_parallel(&check_hopmat, &checkargs_double);
+	//bgq_parallel(&check_hopmat, &checkargs_double);
 
 	master_print("Float: ");
 	checkargs_t checkargs_float = {
 	        .k_max = k_max,
-	        .opts = hm_floatprecision,
+	        .opts = hm_floatprecision | hm_nobody,
 	        .doSave = true
 	};
 	bgq_parallel(&check_hopmat, &checkargs_float);

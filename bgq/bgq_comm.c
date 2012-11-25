@@ -240,7 +240,7 @@ static void setup_destinations(Personality_t *pers) {
 
 
 static void bgq_comm_test(bool nospi, bool sloppy) {
-	  // test communication
+	// test communication
 
 	for (ucoord cd = 0; cd < COMMDIR_COUNT; cd+=1) {
 		bgq_direction d = bgq_commdir2direction(cd);
@@ -294,13 +294,12 @@ static void bgq_comm_common_init(void) {
 	g_bgq_comm_common_initialized = true;
 	bgq_indices_init();
 
-	{
 	size_t commbufsize = bgq_weyl_section_offset(sec_comm_end) - bgq_weyl_section_offset(sec_comm);
 	uint8_t *buf = (uint8_t*)malloc_aligned(commbufsize + commbufsize/*some memory is wasted here, but no additional work to be done for alignment*/, BGQ_ALIGNMENT_L2);
 	uint8_t *bufend = buf + commbufsize;
 	g_bgq_sec_comm = buf;
 	g_bgq_sec_comm_float = buf + commbufsize;
-	for (bgq_direction d = 0; d < PHYSICAL_LD; d+=1) {
+	for (bgq_direction d = 0; d < PHYSICAL_LD; d += 1) {
 		bgq_dimension dim = bgq_direction2dimension(d);
 
 		bgq_weylfield_section sec_send = bgq_direction2section(d, true);
@@ -316,7 +315,6 @@ static void bgq_comm_common_init(void) {
 
 		assert((uintptr_t)g_bgq_sec_send_double[d] % BGQ_ALIGNMENT_L2 == 0);
 		assert((uintptr_t)g_bgq_sec_recv_double[d] % BGQ_ALIGNMENT_L2 == 0);
-	}
 	}
 
 	if (BGQ_UNVECTORIZE || !COMM_T) {
@@ -510,15 +508,25 @@ void bgq_comm_spi_init(void) {
 }
 
 
+static bool g_bgq_comm_mpiActive = false;
+static bool g_bgq_comm_mpiSloppy;
+#ifdef SPI
+static bool g_bgq_comm_spiActive = false;
+static bool g_bgq_comm_spiSloppy;
+#endif
+
 //TODO: inline?
 void bgq_comm_recv(bool nospi, bool sloppy) {
 	assert(omp_get_thread_num()==0);
 	//master_print("Comm Receiving... nospi=%d sloppy=%d\n", nospi, sloppy);
+	bgq_comm_wait(); // Ensute that previous communication has finished
 
 #ifdef SPI
 	if (!nospi) {
 	    // reset the recv counter
 	    recvCounter = sloppy ? totalMessageSize_float : totalMessageSize;
+	    g_bgq_comm_spiActive = true;
+	    g_bgq_comm_spiSloppy = sloppy;
 		return;
 	}
 #endif
@@ -527,49 +535,48 @@ void bgq_comm_recv(bool nospi, bool sloppy) {
 		MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_recv_float));
 	else
 		MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_recv_double));
+	g_bgq_comm_mpiActive = true;
+    g_bgq_comm_mpiSloppy = sloppy;
 }
 
 
-void bgq_comm_send(bool nospi, bool sloppy) {
+void bgq_comm_send() {
 	assert(omp_get_thread_num()==0);
+	assert(g_bgq_comm_spiActive || g_bgq_comm_mpiActive);
 	//master_print("Comm Sending... nospi=%d sloppy=%d\n", nospi, sloppy);
 
 #ifdef SPI
-	if (!nospi) {
+	if (g_bgq_comm_spiActive) {
 		// make sure everybody has reset recvCounter
-		global_barrier(); //TODO: Can we get rid of it?
+		global_barrier();
 
 		for (size_t cd = 0; cd < COMMDIR_COUNT; cd += 1) {
-			descCount[cd] = msg_InjFifoInject(injFifoHandle, cd, sloppy ? &SPIDescriptors32[cd] : &SPIDescriptors[cd]);
+			descCount[cd] = msg_InjFifoInject(injFifoHandle, cd, g_bgq_comm_spiSloppy ? &SPIDescriptors32[cd] : &SPIDescriptors[cd]);
 			if (descCount[cd] == -1) {
 				printf("msg_InjFifoInject failed, most likely because there is no room in the fifo\n");
 				abort();
 			}
 		}
-		return;
 	}
 #endif
 
-	if (sloppy)
-		MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_send_float));
-	else
-		MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_send_double));
+	if (g_bgq_comm_mpiActive) {
+		if (g_bgq_comm_mpiSloppy)
+			MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_send_float));
+		else
+			MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_send_double));
+	}
 }
 
 
-void bgq_comm_wait(bool nospi, bool sloppy) {
+void bgq_comm_wait() {
 	assert(omp_get_thread_num()==0);
 	//master_print("Comm Waiting... nospi=%d sloppy=%d\n", nospi, sloppy);
 
-#if BGQ_QPX
-	uint64_t ppc32 = mfspr(SPRN_PPR32);
-	ThreadPriority_Low(); // If there is some other work to be done on this node, give it priority instead of busy waiting in here
-#endif
-
 #ifdef SPI
-	if (!nospi) {
+	if (g_bgq_comm_spiActive) {
 		uint64_t startTime = 0;
-		uint64_t expectedBytes = sloppy ? totalMessageSize_float : totalMessageSize;
+		uint64_t expectedBytes = g_bgq_comm_spiSloppy ? totalMessageSize_float : totalMessageSize;
 
 		// Wait for all data is received
 		 //printf("node %d: %llu bytes to be received\n", g_proc_id, expectedBytes);
@@ -597,17 +604,19 @@ void bgq_comm_wait(bool nospi, bool sloppy) {
 		}
 
 		_bgq_msync();  // Ensure data is available to all cores.
-	} else
+		g_bgq_comm_spiActive = false;
+	}
 #endif
-	{
+
+	if (g_bgq_comm_mpiActive) {
 		MPI_Status recv_status[COMMDIR_COUNT];
-		if (sloppy)
+		if (g_bgq_comm_mpiSloppy)
 			MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_recv_float, recv_status));
 		else
 			MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_recv_double, recv_status));
 
 		MPI_Status send_status[COMMDIR_COUNT];
-		if (sloppy)
+		if (g_bgq_comm_mpiSloppy)
 			MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_send_float, send_status));
 		else
 			MPI_CHECK(MPI_Waitall(COMMDIR_COUNT, g_bgq_request_send_double, send_status));
@@ -617,16 +626,13 @@ void bgq_comm_wait(bool nospi, bool sloppy) {
 			bgq_direction d = bgq_commdir2direction(commdir);
 			bgq_weylfield_section sec = bgq_direction2section(d, false);
 			size_t size = bgq_weyl_section_offset(sec+1) - bgq_weyl_section_offset(sec);
-			if (sloppy)
+			if (g_bgq_comm_mpiSloppy)
 				size /= 2;
 			assert(get_MPI_count(&recv_status[commdir]) == size);
 		}
 #endif
+		g_bgq_comm_mpiActive = false;
 	}
-
-#if BGQ_QPX
-	mtspr(SPRN_PPR32, ppc32); // Restore original priority
-#endif
 }
 
 

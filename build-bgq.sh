@@ -16,6 +16,7 @@ CPPFLAGS="${CPPFLAGS} -DXLC=1"
 #CPPFLAGS="${CPPFLAGS} -DBGQ=1"
 CPPFLAGS="${CPPFLAGS} -DPAPI=1"
 CPPFLAGS="${CPPFLAGS} -DBGQ_UNVECTORIZE=1"
+#CPPFLAGS="${CPPFLAGS} -DBGQ_COORDCHECK=1"
 
 
 CFLAGS=""
@@ -38,17 +39,19 @@ CFLAGS="${CFLAGS} -qstrict=order"
 
 
 LIBS=""
+LIBS="${LIBS} -lhmc"
+LIBS="${LIBS} -lbgq" 
+LIBS="${LIBS} -lhmc" # libbgq links to Symbols in DirectPut.c, that is inluded in libhmc.a
 LIBS="${LIBS} -lxl"
 LIBS="${LIBS} -lxlopt"
 LIBS="${LIBS} -lxlf90_r"
 LIBS="${LIBS} -lxlfmath"
 LIBS="${LIBS} -lxlsmp"
 LIBS="${LIBS} -lpthread"
-LIBS="${LIBS} -lbgq"
 LIBS="${LIBS} -lSPI_l1p"
 LIBS="${LIBS} -lSPI"
 LIBS="${LIBS} -lbgpm"
-LIBS="${LIBS} -lhmc"
+
 
 LDFLAGS=""
 #LDFLAGS="${LDFLAGS} -qipa=level=2"

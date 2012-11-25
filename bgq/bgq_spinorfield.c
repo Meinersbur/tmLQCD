@@ -70,7 +70,7 @@ double bgq_spinorfield_compare(bool isOdd, bgq_weylfield_controlblock *bgqfield,
 
 							if (diff > 0.01) {
 								if (!silent && first)
-									master_print("Coordinate (%zu,%zu,%zu,%zu)(%zu,%zu): ref=(%f + %fi) != bgb=(%f + %fi) off by %f\n", t, x, y, z, v, c, creal(refvalue), cimag(refvalue), creal(bgqvalue), cimag(bgqvalue), diff);
+									master_print("Coordinate (%zu,%zu,%zu,%zu)(%zu,%zu): ref=(%f + %fi) != bgq=(%f + %fi) off by %f\n", t, x, y, z, v, c, creal(refvalue), cimag(refvalue), creal(bgqvalue), cimag(bgqvalue), diff);
 								if (first)
 									count += 1;
 								first = false;
@@ -90,7 +90,7 @@ double bgq_spinorfield_compare(bool isOdd, bgq_weylfield_controlblock *bgqfield,
 
 	if (count > 0) {
 		if (!silent)
-			master_print("%zu sites of %d wrong\n", count, VOLUME/2);
+			master_print(" %zu sites of %d wrong\n", count, VOLUME/2);
 	}
 
 	return global_diff_max;
@@ -348,6 +348,141 @@ static bgq_weylfield_section bgq_direction2writesec(bgq_direction d) {
 }
 
 
+void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, bool isOdd, bgq_spinorfield_layout layout, bool disableOthers) {
+	assert(field);
+
+	if (!field->isInitialized) {
+		field->sec_weyl = NULL;
+		field->sec_collapsed_double = NULL;
+		field->sec_collapsed_float = NULL;
+		field->sec_fullspinor_double = NULL;
+		field->sec_fullspinor_float = NULL;
+		field->hasFullspinorData = false;
+		field->hasWeylfieldData = false;
+		field->waitingForRecv = false;
+		field->isOdd = isOdd;
+		field->isFulllayoutSloppy = false;
+		field->isWeyllayoutSloppy = false;
+		field->pendingDatamove = false;
+
+		field->has_fulllayout_double = false;
+		field->has_fulllayout_float = false;
+		field->has_weyllayout_double = false;
+		field->has_weyllayout_float = false;
+
+		field->isInitialized = true;
+	}
+
+	// Possible actions
+	bool actionInitWeylPtrs = false;
+
+
+	if (field->has_weyllayout_double && field->isOdd != isOdd) {
+		master_print("PERFORMANCE WARNING: Performance loss by reuse of spinorfield with different oddness\n");
+		actionInitWeylPtrs = true;
+	}
+
+	if (layout & ly_weyl) {
+		if (!field->has_weyllayout_double) {
+			field->sec_collapsed_double = malloc_aligned(PHYSICAL_VOLUME * sizeof(*field->sec_collapsed_double), BGQ_ALIGNMENT_L2);
+			field->sendptr_double = malloc_aligned(PHYSICAL_VOLUME * sizeof(*field->sendptr_double), BGQ_ALIGNMENT_L2);
+			for (size_t d = 0; d < PHYSICAL_LD; d+=1) {
+				bgq_dimension dim = bgq_direction2dimension(d);
+				field->consptr_double[d] = malloc_aligned(bgq_physical_halo_sites(dim) * sizeof(*field->consptr_double[d]), BGQ_ALIGNMENT_L2);
+				field->consptr_float[d] = malloc_aligned(bgq_physical_halo_sites(dim) * sizeof(*field->consptr_float[d]), BGQ_ALIGNMENT_L2);
+			}
+			actionInitWeylPtrs = true;
+		}
+
+		if (!field->has_weyllayout_float) {
+			field->sec_collapsed_float = (bgq_weylsite_float*)field->sec_collapsed_double;
+			field->sendptr_float = malloc_aligned(PHYSICAL_VOLUME * sizeof(*field->sendptr_float), BGQ_ALIGNMENT_L2);
+			for (size_t d = 0; d < PHYSICAL_LD; d+=1) {
+				bgq_dimension dim = bgq_direction2dimension(d);
+				field->consptr_float[d] = malloc_aligned(bgq_physical_halo_sites(dim) * sizeof(*field->consptr_float[d]), BGQ_ALIGNMENT_L2);
+			}
+			actionInitWeylPtrs = true;
+		}
+	} else {
+		if (!field->sec_fullspinor_double) {
+			field->sec_fullspinor_double = malloc_aligned(PHYSICAL_VOLUME * sizeof(bgq_spinorsite_double), BGQ_ALIGNMENT_L2);
+		}
+		if (!field->sec_fullspinor_float) {
+			field->sec_fullspinor_float = (bgq_spinorsite_float*)field->sec_fullspinor_double;
+		}
+	}
+
+
+
+	if (actionInitWeylPtrs) {
+		// For main kernel (surface & body)
+		for (ucoord ic_src = 0; ic_src < PHYSICAL_VOLUME; ic_src += 1) {
+			for (size_t d_dst = 0; d_dst < PHYSICAL_LD; d_dst += 1) {
+				ucoord index = g_bgq_collapsed2indexsend[isOdd/*_dst*/][ic_src].d[d_dst];
+
+				{
+					bgq_weyl_vec_double *ptr = bgq_index2pointer_double(field, index);
+					field->sendptr_double[ic_src].d[d_dst] = ptr;
+				}
+
+				{
+					bgq_weyl_vec_float *ptr = bgq_index2pointer_float(field, index);
+					field->sendptr_float[ic_src].d[d_dst] = ptr;
+				}
+			}
+		}
+
+
+		// For 5th phase (datamove)
+		for (ucoord d_dst = 0; d_dst < PHYSICAL_LD; d_dst+=1) {
+			bgq_direction d_src = bgq_direction_revert(d_dst);
+			bgq_dimension dim = bgq_direction2dimension(d_dst);
+			ucoord sites = bgq_physical_halo_sites(dim);
+			for (ucoord j = 0; j < sites; j+=1) {
+				bgq_weylfield_section sec = bgq_direction2writesec(d_src);
+				size_t baseoffset = bgq_weyl_section_offset(sec);
+				ucoord baseindex = bgq_offset2index(baseoffset);
+				ucoord index = baseindex + j;
+				ucoord ic_dst = g_bgq_index2collapsed[isOdd][index]; // Found out what the previous phase wrote here
+				size_t offset_cons = bgq_collapsed2consecutiveoffset(ic_dst, d_dst);
+
+				{
+					bgq_weyl_vec_double *ptr = bgq_offset2pointer_double(field, offset_cons);
+					field->consptr_double[d_dst][j] = ptr;
+				}
+
+				{
+					bgq_weyl_vec_float *ptr = bgq_offset2pointer_float(field, offset_cons);
+					field->consptr_float[d_dst][j] = ptr;
+				}
+			}
+		}
+	}
+
+	if (disableOthers) {
+		field->has_fulllayout_double = false;
+		field->has_fulllayout_float = false;
+		field->has_weyllayout_double = false;
+		field->has_weyllayout_float = false;
+	}
+
+	switch (layout) {
+	case ly_full_double:
+		field->has_fulllayout_double = true;
+		break;
+	case ly_full_float:
+		field->has_fulllayout_float = true;
+		break;
+	case ly_weyl_double:
+		field->has_weyllayout_double = true;
+		break;
+	case ly_weyl_float:
+		field->has_weyllayout_float = true;
+		break;
+	}
+}
+
+
 void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl, bool writeFloat) {
 	assert(field);
 	assert(readFullspinor || writeFullspinor || readWeyl || writeWeyl);
@@ -433,7 +568,7 @@ void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool r
 		bool nospi = field->hmflags & hm_nospi;
 
 		// 4. Wait for the communication to finish
-		bgq_comm_wait(nospi, field->isWeyllayoutSloppy);
+		bgq_comm_wait();
 		field->waitingForRecv = false;
 	}
 	if (actionDatamove) {
@@ -653,16 +788,18 @@ bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, ucoord t
 char *(g_idxdesc[BGQREF_count]);
 complexdouble *g_bgqvalue = NULL;
 complexdouble *g_refvalue = NULL;
-
+bool *g_hasvalue = NULL;
 
 void bgq_initbgqref_impl() {
 	size_t datasize = sizeof(complexdouble) * VOLUME * lengthof(g_idxdesc);
 	if (g_refvalue == NULL) {
 		g_bgqvalue = malloc_aligned(datasize, BGQ_ALIGNMENT_L2);
 		g_refvalue = malloc_aligned(datasize, BGQ_ALIGNMENT_L2);
+		g_hasvalue = malloc(VOLUME * sizeof(*g_hasvalue));
 	}
 	memset(g_bgqvalue, 0xFF, datasize);
 	memset(g_refvalue, 0xFF, datasize);
+	memset(g_hasvalue, 0, VOLUME * sizeof(*g_hasvalue));
 
 	for (int idx = 0; idx <  lengthof(g_idxdesc); idx+=1) {
 		g_idxdesc[idx] = NULL;
@@ -725,6 +862,7 @@ void bgq_setbgqvalue_impl(int t, int x, int y, int z, bgqref idx, complex_double
 	if (z >= LOCAL_LZ)
 		z = LOCAL_LZ-1;
 	g_bgqvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z] = val;
+	g_hasvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z] = true;
 	if (!g_idxdesc[idx])
 		g_idxdesc[idx] = "";
 }
@@ -791,9 +929,14 @@ void bgq_savebgqref_impl() {
 					for (int z = 0; z < LOCAL_LZ; z += 1) {
 						complexdouble refval = g_refvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z];
 						complexdouble bgqval = g_bgqvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z];
+						bool hasval = g_hasvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z];
 
 						fprintf(reffile, "%8f + %8fi	", creal(refval), cimag(refval));
-						fprintf(bgqfile, "%8f + %8fi	", creal(bgqval), cimag(bgqval));
+						if (hasval) {
+							fprintf(bgqfile, "%8f + %8fi	", creal(bgqval), cimag(bgqval));
+						} else {
+							fprintf(bgqfile, "                    	");
+						}
 					}
 					fprintf(reffile, "\n");
 					fprintf(bgqfile, "\n");
@@ -1116,7 +1259,7 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 
 	assert(result);
 	assert(acceptWeyl || !(result&ly_weyl));
-	assert(acceptDouble || result&ly_sloppy);
+	assert(acceptDouble || (result&ly_sloppy));
 	assert(acceptSloppy || !(result&ly_sloppy));
 	assert(acceptMul || !(result&ly_mul));
 

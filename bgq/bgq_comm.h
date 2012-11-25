@@ -23,8 +23,10 @@ void bgq_comm_spi_init(void);
 
 //TODO: inline?
 void bgq_comm_recv(bool nospi, bool sloppy);
-void bgq_comm_send(bool nospi, bool sloppy);
-void bgq_comm_wait(bool nospi, bool sloppy);
+void bgq_comm_send();
+void bgq_comm_wait();
+
+
 
 
 

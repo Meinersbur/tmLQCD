@@ -726,8 +726,8 @@ size_t bgq_pointer2offset_raw(bgq_weylfield_controlblock *field, void *ptr, bool
 		}
 	}
 	if (check) {
-	assert(!"Pointer to non-field location");
-	UNREACHABLE
+		assert(!"Pointer to non-field location");
+		UNREACHABLE
 	}
 	return -1;
 }
