@@ -86,6 +86,7 @@
 #include <fenv.h>
 #include "bgq/bgq_stdoperators.h"
 #include "bgq/bgq_stdreductions.h"
+#include "linalg/diff.h"
 
 #ifdef XLC
 #include <l1p/pprefetch.h>
@@ -1025,10 +1026,20 @@ static int check_linalg(void *arg_untyped) {
 	checkargs_t *arg = (checkargs_t*)arg_untyped;
 	int k_max = arg->k_max;
 	int k = 0;
+	double compare;
 
-	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
+	random_spinor_field(g_spinor_field[0], VOLUME / 2, 0);
+	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[0], g_spinor_field[0]);
 
-	bgq_spinorfield_diff_double(&g_bgq_spinorfields[k+k_max], &g_bgq_spinorfields[k], &g_bgq_spinorfields[k]);
+	random_spinor_field(g_spinor_field[1], VOLUME / 2, 0);
+	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[1], g_spinor_field[1]);
+
+
+	bgq_spinorfield_diff_double(&g_bgq_spinorfields[2], &g_bgq_spinorfields[0], &g_bgq_spinorfields[1]);
+	diff(g_spinor_field[2], g_spinor_field[0], g_spinor_field[1], VOLUME/2);
+	compare = bgq_spinorfield_compare(true, &g_bgq_spinorfields[2], g_spinor_field[2], true);
+	assert(compare < 0.01);
+
 
 	return 0;
 }

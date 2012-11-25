@@ -1076,9 +1076,6 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 		bgq_spinorfield_layout layout = bgq_spinorfield_bestLayout(field);
 		bgq_spinorfield_setup(field, isOdd, false, true, false, false, !acceptDouble);
 
-		if (acceptDouble) {
-			int a = 0;
-		}
 		if (!(layout&ly_weyl) && (void*)field->sec_fullspinor_float==(void*)field->sec_fullspinor_double) {
 			// This is bad: we are going to overwrite the data we need to read
 			// Solution: alloc a new memory area

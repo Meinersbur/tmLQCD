@@ -388,18 +388,18 @@ bgq_weyl_vec_float *bgq_section_baseptr_float(bgq_weylfield_controlblock *field,
 
 
 typedef enum {
-	ly_sloppy = (1<<0),
-	ly_weyl = (1<<1),
+	ly_weyl = (1<<0),
+	ly_sloppy = (1<<1),
 	ly_mul = (1<<2)
 } bgq_spinorfield_layoutflags;
 typedef enum {
 	ly_full_double=0,
-	ly_full_float=ly_sloppy,
 	ly_weyl_double=ly_weyl,
+	ly_full_float=ly_sloppy,
 	ly_weyl_float=ly_weyl|ly_sloppy,
 	ly_full_double_mul=ly_mul,
-	ly_full_float_mul=ly_mul|ly_sloppy,
 	ly_weyl_double_mul=ly_mul|ly_weyl,
+	ly_full_float_mul=ly_mul|ly_sloppy,
 	ly_weyl_float_mul=ly_mul|ly_weyl|ly_sloppy,
 } bgq_spinorfield_layout;
 #define BGQ_SPINORFIELD_LAYOUT_COUNT 8

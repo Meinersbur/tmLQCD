@@ -12,7 +12,7 @@
 
 
 
-static inline void bgq_site_diff(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor1), bgq_su3_spinor_params(spinor2), ucoord tv, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z) {
+static inline void bgq_site_diff(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor1), bgq_su3_spinor_params(spinor2), ucoord ic) {
 	bgq_su3_spinor_decl(result);
 
 	bgq_su3_vsub(result_v0, spinor1_v0, spinor2_v0);
@@ -24,10 +24,25 @@ static inline void bgq_site_diff(bgq_su3_spinor_params(*target), bgq_su3_spinor_
 }
 
 
+static inline void bgq_site_set(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor), ucoord ic) {
+	bgq_su3_spinor_decl(result);
+
+	bgq_su3_spinor_mov(result, spinor);
+
+	bgq_su3_spinor_mov(*target, result);
+}
 
 
 #define OPERATOR_NAME bgq_spinorfield_diff
 #define OPERATOR_ARGFIELDS 2
 #define OPERATOR_VECSITEFUNC bgq_site_diff
+#include "bgq_operator.inc.c"
+
+
+#define OPERATOR_NAME bgq_spinorfield_set
+#define OPERATOR_ARGFIELDS 0
+#define OPERATOR_VECSITEFUNC bgq_site_set
+#define OPERATOR_EXTRAPARMS bgq_su3_spinor_params(spinor)
+#define OPERATOR_EXTRAARGS bgq_su3_spinor_vars(spinor)
 #include "bgq_operator.inc.c"
 
