@@ -1035,7 +1035,7 @@ static int check_linalg(void *arg_untyped) {
 
 	double norm_bgq = bgq_spinorfield_sqrnorm_global(&g_bgq_spinorfields[1]);
 	double norm_ref = square_norm(g_spinor_field[1], VOLUME/2, true);
-	compare = abs(norm_bgq - norm_ref);
+	compare = fabs(norm_bgq - norm_ref);
 	assert(compare < 0.01);
 
 
