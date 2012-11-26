@@ -283,10 +283,11 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 		//TODO: ensure there are no other communications pending
 		bgq_comm_send(nospi, floatprecision);
 		//targetfield->waitingForRecv = true;
+		if (!nodatamove) {
+			targetfield->pendingDatamove = true;
+		}
 	}
-	if (!nodatamove) {
-		targetfield->pendingDatamove = true;
-	}
+
 	targetfield->hmflags = opts;
 
 	if (nooverlap) {

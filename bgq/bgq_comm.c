@@ -643,6 +643,7 @@ void bgq_comm_wait() {
 
 		_bgq_msync();  // Ensure data is available to all cores.
 		bgq_comm_datamove_field(g_bgq_comm_spiTarget);
+		g_bgq_comm_spiTarget = NULL;
 		g_bgq_comm_spiActive = false;
 	}
 #endif
@@ -672,10 +673,9 @@ void bgq_comm_wait() {
 #endif
 
 		bgq_comm_datamove_field(g_bgq_comm_mpiTarget);
+		g_bgq_comm_mpiTarget = NULL;
 		g_bgq_comm_mpiActive = false;
 	}
-
-
 }
 
 

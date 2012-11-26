@@ -374,6 +374,9 @@ void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, bool isOdd,
 		field->isInitialized = true;
 	}
 
+	assert(field->isInitialized);
+	assert(!field->pendingDatamove);
+
 	// Possible actions
 	bool actionInitWeylPtrs = false;
 
@@ -717,8 +720,9 @@ typedef struct {
 void bgq_spinorfield_transfer(bool isOdd, bgq_weylfield_controlblock *targetfield, spinor *sourcefield) {
 	bgq_spinorfield_prepareWrite(targetfield, isOdd, ly_full_double);
 	//bgq_spinorfield_setup(targetfield, isOdd, false, true, false, false, false);
-	size_t ioff = isOdd ? (VOLUME+RAND)/2 : 0;
 
+	bgq_master_sync(); // N o other thread should mess up with this data anymore
+	size_t ioff = isOdd ? (VOLUME+RAND)/2 : 0;
 	for (size_t i_eosub = 0; i_eosub < VOLUME/2; i_eosub+=1) {
 		size_t i_eo = i_eosub + ioff;
 		size_t i_lexic = g_eo2lexic[i_eo];
@@ -773,8 +777,8 @@ bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, ucoord t
 	ucoord k = bgq_local2k(t, x, y, z);
 
 	bgq_spinorfield_layout layout = bgq_spinorfield_prepareRead(field, field->isOdd, true, true, true, true);
-	bgq_master_sync();
 	//bgq_spinorfield_setup(field, field->isOdd, !(layout & ly_weyl), false, (layout & ly_weyl), false, false);
+	bgq_master_sync();
 	bgq_su3_spinor_decl(spinor);
 	bgq_spinorfield_readSpinor(&spinor, field, ic, layout&ly_weyl, layout&ly_sloppy, layout&ly_mul);
 	return bgq_spinor_fromqpx(spinor, k);
@@ -1167,6 +1171,19 @@ void bgq_spinorfield_prepareWrite(bgq_weylfield_controlblock *field, bool isOdd,
 		// Empty communication buffer so they can be reused
 		bgq_comm_wait();
 	}
+	if (field->pendingDatamove) {
+		// This is a bit strange; actually it means that the result of a HoppingMatrix has not been used
+		bgq_comm_wait();
+	}
+
+#ifndef NDEBUG
+	// Some debugging code in workers (especially datamove called above) needs to now whether the float or double field is currently active
+	// But exactly this we are going to change here, so in debug mode, wait for workers here
+	// Pay attention because this might mean that there could be race condition that exist in the release version, but not in debug version
+	// Alternative: In debug mode, use different malloc for float and double fields
+	bgq_master_sync();
+#endif
+
 	bgq_spinorfield_enableLayout(field, isOdd, layout, true);
 	//bgq_spinorfield_setup(field, isOdd, false, !(layout & ly_weyl), false, (layout & ly_weyl), layout & ly_sloppy);
 }
@@ -1275,11 +1292,9 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 		layout = bgq_spinorfield_bestLayout(field);
 	}
 
-	if (layout & ly_weyl) {
-		if (field->pendingDatamove) {
-			// 4, Wait for data to be received
-			bgq_comm_wait();
-		}
+	if (field->pendingDatamove) {
+		// 4, Wait for data to be received
+		bgq_comm_wait();
 	}
 
 	bgq_spinorfield_layout result = -1;

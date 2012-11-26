@@ -339,6 +339,17 @@ typedef struct {
 		bgq_lda_float(dst,0,addr);    \
 	} while (0)
 
+
+
+
+
+
+#define bgq_qvstfdxa(data,addr,offset) \
+	bgq_sta_double(data,offset,addr)
+#define bgq_qvstfduxa(data,addr,offset) \
+	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
+	bgq_sta_double(data,0,addr)
+
 #define bgq_qvstfsxa(dst,addr,offset) \
 	bgq_sta_float(dst,offset,addr)
 #define bgq_qvstfsuxa(dst,addr,offset) \
@@ -346,24 +357,6 @@ typedef struct {
 		(addr) = (void*)((uintptr_t)(addr) + (offset)); \
 		bgq_sta_float(dst,0,addr);    \
 	} while (0)
-
-
-
-#define bgq_qvstfduxa(data,addr,offset) \
-	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
-	bgq_sta_double(data,0,addr)
-
-#define bgq_qvstfdxa(data,addr,offset) \
-	bgq_sta_double(data,offset,addr)
-
-
-#define bgq_qvstfsuxa(data,addr,offset) \
-	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
-	bgq_sta_float(data,0,addr)
-
-#define bgq_qvstfsxa(data,addr,offset) \
-	bgq_sta_float(data,offset,addr)
-
 
 
 #define bgq_qvstfcsuxa(data,addr,offset) \
