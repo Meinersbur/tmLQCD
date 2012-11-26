@@ -87,6 +87,7 @@
 #include "bgq/bgq_stdoperators.h"
 #include "bgq/bgq_stdreductions.h"
 #include "linalg/diff.h"
+#include "linalg/square_norm.h"
 
 #ifdef XLC
 #include <l1p/pprefetch.h>
@@ -1032,6 +1033,12 @@ static int check_linalg(void *arg_untyped) {
 	assert(compare < 0.01);
 
 
+	double norm_bgq = bgq_spinorfield_sqrnorm_global(&g_bgq_spinorfields[1]);
+	double norm_ref = square_norm(g_spinor_field[1], VOLUME/2, true);
+	compare = fabs(norm_bgq - norm_ref);
+	assert(compare < 0.01);
+
+
 	return 0;
 }
 
@@ -1192,6 +1199,7 @@ int main(int argc, char *argv[]) {
 
 		//omp_num_threads = 1;
 		//omp_set_num_threads(omp_num_threads);
+		omp_num_threads = omp_get_max_threads();
 	}
 
 	init_omp_accumulators(omp_num_threads);

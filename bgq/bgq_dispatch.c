@@ -18,6 +18,8 @@
 #include <time.h> // nanosleep() system call
 #endif
 
+#include "../global.h"
+
 #include <omp.h>
 #include <assert.h>
 #include <stdbool.h>
@@ -67,6 +69,7 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 #pragma omp parallel
 	{
 		size_t tid = omp_get_thread_num();
+		omp_num_threads = omp_get_num_threads(); // For legacy linalg
 
 		// Start workers
 		if (tid != 0) {
