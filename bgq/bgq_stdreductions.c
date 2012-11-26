@@ -34,12 +34,12 @@ static inline bgq_vectorkahan_t bgq_reduce_initkahan() {
 }
 
 
-#define bgq_kahan_add(prev, val) bgq_kahan_add_raw(prev, bgq_vars(val))
-static inline bgq_vectorkahan_t bgq_kahan_add_raw(bgq_vectorkahan_t prev, bgq_params(val)) {
+#define bgq_kahan_add(ks, kc, val) bgq_kahan_add_raw(bgq_vars(ks), bgq_vars(kc), bgq_vars(val))
+static inline void bgq_kahan_add_raw(bgq_params(*accumulator_ks), bgq_params(*accumulator_kc), bgq_params(val)) {
 	bgq_vector4double_decl(ks);
 	bgq_vector4double_decl(kc);
-	bgq_mov(ks, prev.ks);
-	bgq_mov(kc, prev.kc);
+	bgq_mov(ks, *accumulator_ks);
+	bgq_mov(kc, *accumulator_kc);
 
 	bgq_vector4double_decl(tr); // val+compensation
 	bgq_vector4double_decl(ts); // next sum
@@ -51,11 +51,10 @@ static inline bgq_vectorkahan_t bgq_kahan_add_raw(bgq_vectorkahan_t prev, bgq_pa
 	bgq_mov(ks, ts);
 	bgq_sub(kc, tr, tt); // error
 
-	bgq_vectorkahan_t result;
-    bgq_mov(result.ks, ks);
-    bgq_mov(result.kc, kc);
-    return result;
+    bgq_mov(*accumulator_ks, ks);
+    bgq_mov(*accumulator_kc, kc);
 }
+
 
 
 static inline void bgq_reduce_prod(bgq_vectorsum_t *sum, bgq_su3_spinor_params(spinor1), bgq_su3_spinor_params(spinor2), ucoord ic) {
@@ -128,7 +127,7 @@ static inline void bgq_reduce_prod_r(bgq_vectorsum_t *accumulator, bgq_su3_spino
 
 
 
-static inline void bgq_reduce_norm(bgq_vectorkahan_t *accumulator, bgq_su3_spinor_params(spinor), ucoord ic) {
+void bgq_reduce_norm(bgq_vectorkahan_t *accumulator, bgq_su3_spinor_params(spinor), ucoord ic) {
 	bgq_vector4double_decl(siteresult);
 	bgq_mul(siteresult, spinor_v0_c0, spinor_v0_c0);
 	bgq_madd(siteresult, spinor_v0_c1, spinor_v0_c1, siteresult);
@@ -143,8 +142,9 @@ static inline void bgq_reduce_norm(bgq_vectorkahan_t *accumulator, bgq_su3_spino
 	bgq_madd(siteresult, spinor_v3_c1, spinor_v3_c1, siteresult);
 	bgq_madd(siteresult, spinor_v3_c2, spinor_v3_c2, siteresult);
 
-	*accumulator = bgq_kahan_add(*accumulator, siteresult);
+	bgq_kahan_add(&accumulator->ks, &accumulator->kc, siteresult);
 }
+
 
 
 static inline void bgq_combine_add(bgq_vectorsum_t *arg1, bgq_vectorsum_t arg2) {
@@ -158,17 +158,13 @@ static inline void bgq_combine_add(bgq_vectorsum_t *arg1, bgq_vectorsum_t arg2) 
 
 
 static inline void bgq_combine_kahan(bgq_vectorkahan_t *arg1, bgq_vectorkahan_t arg2) {
-	bgq_vectorkahan_t result = *arg1;
-
 #if 1
-	result = bgq_kahan_add(result, arg2.kc);
-	result = bgq_kahan_add(result, arg2.ks);
+	bgq_kahan_add(&arg1->ks, &arg1->kc, arg2.kc);
+	bgq_kahan_add(&arg1->ks, &arg1->kc, arg2.ks);
 #else
 	bgq_add(result.ks, arg1->ks, arg2.ks);
 	bgq_add(result.kc, arg1->kc, arg2.kc);
 #endif
-
-	*arg1 = result;
 }
 
 

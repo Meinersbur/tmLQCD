@@ -50,7 +50,7 @@ LZ=64
 
 
 
-export OMP_NUM_THREADS=2
+export OMP_NUM_THREADS=64
 export OMP_PROC_BIND=TRUE # Always TRUE on BG/Q
 export PAMID_RZV=2147483647
 export BG_COREDUMPDISABLED=0
@@ -70,11 +70,11 @@ export XLSMPOPTS="procs=${PROCS}"
 echo ================================================================================
 runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
 echo ================================================================================
-#runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_SMALL} 
+runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_SMALL} 
 echo ================================================================================
-#runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_MEDIUM} 
+runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_MEDIUM} 
 echo ================================================================================
-#runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_BIG} 
+runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_BIG} 
 echo ================================================================================
 #runjob --np 1 --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
 

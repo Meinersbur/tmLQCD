@@ -1083,8 +1083,8 @@ static void exec_bench(int j_max, int k_max) {
 	ws += indices;
 	uint64_t ws_write = ws + PHYSICAL_VOLUME * sizeof(bgq_weylsite_double); // target spinor
 	master_print("Working set size: %.1fMB (%.1fMB incl target) (%.1fMB index, %.1fMB commbuf)\n", (double)ws/(1024.0*1024.0), (double)ws_write/(1024.0*1024.0),indices/MEBI,forcomm/MEBI);
-
 	master_print("VOLUME=%d PHYSICAL_VOLUME=%zu PHYSICAL_BODY=%zu PHYSICAL_SURFACE=%zu\n", VOLUME, PHYSICAL_VOLUME, PHYSICAL_BODY, PHYSICAL_SURFACE);
+	master_print("Surface-to-volume ratio (the lower the better): %g%%\n", 100.0 * PHYSICAL_SURFACE / PHYSICAL_VOLUME);
 
 	for (int k = 0; k < k_max; k += 1) {
 		//bgq_spinorfield_setup(&g_bgq_spinorfields[k],       true,  false, true, false, true, false);
@@ -1115,6 +1115,7 @@ static void exec_bench(int j_max, int k_max) {
 	};
 	master_print("Float: ");
 	bgq_parallel(&check_hopmat, &checkargs_float);
+
 
 	master_print("Benchmark: hopmatkernel\n");
 	exec_table(&benchmark_hopmatkernel, 0, hm_withcheck, j_max, k_max);

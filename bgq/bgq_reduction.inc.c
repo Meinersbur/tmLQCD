@@ -73,12 +73,12 @@ static inline void bgq_reduction_combine(double *sum, double intermediateSum) {
 
 #define REDUCTION_LAYOUTNAME_ly_full_double Fulllayout
 #define REDUCTION_LAYOUTNAME_ly_weyl_double Weyllayout
-#define REDUCTION_LAYOUTNAME_ly_full_sloppy FulllayoutSloppy
-#define REDUCTION_LAYOUTNAME_ly_weyl_sloppy WeyllayoutSloppy
+#define REDUCTION_LAYOUTNAME_ly_full_float FulllayoutSloppy
+#define REDUCTION_LAYOUTNAME_ly_weyl_float WeyllayoutSloppy
 #define REDUCTION_LAYOUTNAME_0 REDUCTION_LAYOUTNAME_ly_full_double
 #define REDUCTION_LAYOUTNAME_1 REDUCTION_LAYOUTNAME_ly_weyl_double
-#define REDUCTION_LAYOUTNAME_2 REDUCTION_LAYOUTNAME_ly_full_sloppy
-#define REDUCTION_LAYOUTNAME_3 REDUCTION_LAYOUTNAME_ly_weyl_sloppy
+#define REDUCTION_LAYOUTNAME_2 REDUCTION_LAYOUTNAME_ly_full_float
+#define REDUCTION_LAYOUTNAME_3 REDUCTION_LAYOUTNAME_ly_weyl_float
 
 
 #if !ISEMPTY(REDUCTION_EXTRAPARMS)
