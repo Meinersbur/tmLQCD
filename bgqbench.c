@@ -1063,7 +1063,7 @@ static void exec_bench(int j_max, int k_max) {
 		bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 	}
 
-	//master_print("Double: ");
+	master_print("Double: ");
 	checkargs_t checkargs_double = {
 	        .k_max = k_max,
 	        .opts = 0,
@@ -1074,7 +1074,7 @@ static void exec_bench(int j_max, int k_max) {
 	master_print("Float: ");
 	checkargs_t checkargs_float = {
 	        .k_max = k_max,
-	        .opts = hm_floatprecision | hm_nobody,
+	        .opts = hm_floatprecision,
 	        .doSave = true
 	};
 	bgq_parallel(&check_hopmat, &checkargs_float);

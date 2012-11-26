@@ -331,11 +331,19 @@ typedef struct {
 	} while (0)
 
 #define bgq_qvlfsxa(dst,addr,offset) \
-	bgq_lda_double(dst,offset,addr)
+	bgq_lda_float(dst,offset,addr)
 #define bgq_qvlfsuxa(dst,addr,offset) \
 	do {                               \
 		(addr) = (void*)((uintptr_t)(addr) + (offset)); \
 		bgq_lda_float(dst,0,addr);    \
+	} while (0)
+
+#define bgq_qvstfsxa(dst,addr,offset) \
+	bgq_sta_float(dst,offset,addr)
+#define bgq_qvstfsuxa(dst,addr,offset) \
+	do {                               \
+		(addr) = (void*)((uintptr_t)(addr) + (offset)); \
+		bgq_sta_float(dst,0,addr);    \
 	} while (0)
 
 
@@ -1109,7 +1117,7 @@ do {\
 #endif
 
 #if BGQ_QPX
-#define bgq_su3_spinor_store_float(addr,src) \
+#define bgq_su3_spinor_store_float(addr,spinor) \
 	do {\
 		void *ptr = (addr); \
 		bgq_qvstfsuxa(NAME3(spinor,v0,c0), ptr, 0);  \
@@ -1743,8 +1751,8 @@ do { \
 #define bgq_su3_spinor_zeroload_double(addr) \
 	do { \
 		void *ptr = (addr); \
-		bgq_l1_zero(ptr); \
 		asm ( \
+			"dcbz       0,%[ptr]  \n" \
 			"dcbz  %[c64],%[ptr]  \n" \
 			"dcbz %[c128],%[ptr]  \n" \
 			"dcbz %[c192],%[ptr]  \n" \
@@ -1780,11 +1788,29 @@ do { \
 	// 384
 #endif
 
+#if BGQ_QPX
+#define bgq_su3_spinor_zeroload_float(addr)
+#if 0
+		do { \
+			void *ptr = (addr); \
+			bgq_l1_zero(ptr); \
+			asm ( \
+				"dcbz       0,%[ptr]  \n" \
+				"dcbz  %[c64],%[ptr]  \n" \
+				"dcbz %[c128],%[ptr]  \n" \
+				: : [ptr] "r" (ptr), \
+				  [c64] "b" (64), \
+				  [c128] "b" (128) \
+			); \
+		} while (0)
+		// 192 bytes
+#endif
+#else
 #define bgq_su3_spinor_zeroload_float(addr) \
 	bgq_l1_zero((char*)(addr) + 0);          \
 	bgq_prefetchforwrite((char*)(addr) +  128)
 	// 192
-
+#endif
 
 
 
@@ -1802,6 +1828,7 @@ do { \
 		  [c128] "b" (128) \
 		); \
 	} while (0)
+	// 192 byte
 #else
 #define bgq_su3_weyl_zeroload_double(addr) \
 	bgq_l1_zero((char*)(addr) + 0);          \
@@ -1810,16 +1837,19 @@ do { \
 #endif
 
 #if BGQ_QPX
-#define bgq_su3_weyl_zeroload_float(addr) \
+#define bgq_su3_weyl_zeroload_float(addr)
+#if 0
 	do { \
 		void *ptr = (addr); \
 		asm ( \
 		"dcbz       0,%[ptr]  \n" \
-		"dcbz %[c64],%[ptr]  \n" \
+		"dcbtst %[c64],%[ptr]  \n" \
 		: : [ptr] "r" (ptr), \
 		   [c64] "b" (64) \
 		); \
 	} while (0)
+	// 96 byte
+#endif
 #else
 #define bgq_su3_weyl_zeroload_float(addr)    \
 	bgq_prefetchforwrite((char*)(addr) +  0); \
@@ -1870,59 +1900,116 @@ do { \
 	// 144 bytes
 
 
-#define bgq_su3_spinor_invalidate NAME2(bgq_su3_spinor_invalidate,PRECISION)
-#define bgq_su3_spinor_invalidate_double(addr) \
-		do { \
-			void *ptr = (addr); \
-			asm ( \
-				"dcbi       0,%[ptr]  \n" \
-				"dcbi  %[c64],%[ptr]  \n" \
-				"dcbi %[c128],%[ptr]  \n" \
-				"dcbi %[c192],%[ptr]  \n" \
-				"dcbi %[c256],%[ptr]  \n" \
-				"dcbi %[c320],%[ptr]  \n" \
-				: [ptr] "r" (ptr) \
-				: [c64] "b" (64), \
-				  [c128] "b" (128), \
-				  [c192] "b" (192), \
-				  [c256] "b" (256), \
-				  [c320] "b" (320) \
-			); \
-			} while (0)
-	// 384 bytes
-#define bgq_su3_spinor_invalidate_float(addr) \
-	bgq_dcbi_0((char*)(addr) +   0);    \
-	bgq_dcbi_0((char*)(addr) +  64);    \
-	bgq_dcbi_0((char*)(addr) + 128)
+
+
+#define bgq_su3_weyl_prestore NAME2(bgq_su3_weyl_prestore,PRECISION)
+
+#ifdef BGQ_QPX
+#define bgq_su3_weyl_prestore_double(addr) \
+	do { \
+		void *ptr = (addr); \
+		asm ( \
+		"dcbtst       0,%[ptr]  \n" \
+		"dcbtst  %[c64],%[ptr]  \n" \
+		"dcbtst %[c128],%[ptr]  \n" \
+		: : [ptr] "r" (ptr), \
+		   [c64] "b" (64), \
+		  [c128] "b" (128) \
+		); \
+	} while (0)
+	// 192 byte
+#else
+#define bgq_su3_weyl_prestore_double(addr) \
+	do { \
+		bgq_prefetchforwrite((char*)(addr) +   0); \
+		bgq_prefetchforwrite((char*)(addr) +  64); \
+		bgq_prefetchforwrite((char*)(addr) + 128); \
+	while (0)
 	// 192 bytes
+#endif
 
-#define bgq_su3_matrix_invalidate NAME2(bgq_su3_matrix_invalidate,PRECISION)
-#define bgq_su3_matrix_invalidate_double(addr) \
-		do { \
-			void *ptr = (addr); \
-			asm ( \
-				"dcbi       0,%[ptr]  \n" \
-				"dcbi  %[c64],%[ptr]  \n" \
-				"dcbi %[c128],%[ptr]  \n" \
-				"dcbi %[c192],%[ptr]  \n" \
-				"dcbi %[c256],%[ptr]  \n" \
-				: [ptr] "r" (ptr) \
-				: [c64] "b" (64), \
-				  [c128] "b" (128), \
-				  [c192] "b" (192), \
-				  [c256] "b" (256) \
-			); \
-			} while (0) /* make it consume a semicolon */
-	// 288 bytes
-#define bgq_su3_matrix_invalidate_float(addr) \
-	bgq_dcbi_0((char*)(addr) +   0);    \
-	bgq_dcbi_0((char*)(addr) +  64);    \
-	bgq_dcbi_0((char*)(addr) + 128)
-	// 144 bytes
+#ifdef BGQ_QPX
+#define bgq_su3_weyl_prestore_float(addr) \
+	do { \
+		void *ptr = (addr); \
+		asm ( \
+		"dcbtst       0,%[ptr]  \n" \
+		"dcbtst  %[c64],%[ptr]  \n" \
+		: : [ptr] "r" (ptr), \
+		   [c64] "b" (64) \
+		); \
+	} while (0)
+	// 96 byte
+#else
+#define bgq_su3_weyl_prestore_float(addr) \
+	do { \
+		bgq_prefetchforwrite((char*)(addr) +   0); \
+		bgq_prefetchforwrite((char*)(addr) +  64); \
+	while (0)
+	// 96 bytes
+#endif
 
 
+#define bgq_su3_spinor_prestore NAME2(bgq_su3_spinor_prestore,PRECISION)
+
+#ifdef BGQ_QPX
+#define bgq_su3_spinor_prestore_double(addr) \
+	do { \
+		void *ptr = (addr); \
+		asm ( \
+		"dcbtst       0,%[ptr]  \n" \
+		"dcbtst  %[c64],%[ptr]  \n" \
+		"dcbtst %[c128],%[ptr]  \n" \
+		"dcbtst %[c192],%[ptr]  \n" \
+		"dcbtst %[c256],%[ptr]  \n" \
+		"dcbtst %[c320],%[ptr]  \n" \
+		: : [ptr] "r" (ptr), \
+		   [c64] "b" (64), \
+		  [c128] "b" (128), \
+		  [c192] "b" (192), \
+		  [c256] "b" (256), \
+		  [c320] "b" (320) \
+		); \
+	} while (0)
+	// 384 bytes
+#else
+#define bgq_su3_spinor_prestore_double(addr) \
+	do { \
+		bgq_prefetchforwrite((char*)(addr) +   0); \
+		bgq_prefetchforwrite((char*)(addr) +  64); \
+		bgq_prefetchforwrite((char*)(addr) + 128); \
+		bgq_prefetchforwrite((char*)(addr) + 192); \
+		bgq_prefetchforwrite((char*)(addr) + 256); \
+		bgq_prefetchforwrite((char*)(addr) + 320); \
+	while (0)
+	// 384 bytes
+#endif
 
 
+
+#ifdef BGQ_QPX
+#define bgq_su3_spinor_prestore_float(addr) \
+	do { \
+		void *ptr = (addr); \
+		asm ( \
+		"dcbtst       0,%[ptr]  \n" \
+		"dcbtst  %[c64],%[ptr]  \n" \
+		"dcbtst %[c128],%[ptr]  \n" \
+		: : [ptr] "r" (ptr), \
+		   [c64] "b" (64), \
+		  [c128] "b" (128) \
+		); \
+	} while (0)
+	// 384 bytes
+#else
+#define bgq_su3_spinor_prestore_float(addr) \
+	do { \
+		bgq_prefetchforwrite((char*)(addr) +   0); \
+		bgq_prefetchforwrite((char*)(addr) +  64); \
+		bgq_prefetchforwrite((char*)(addr) + 128); \
+	while (0)
+	// 384 bytes
+#endif
 
 
 #ifndef XLC

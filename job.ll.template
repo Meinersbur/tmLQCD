@@ -17,9 +17,9 @@ echo DEPART : `date`
 
 INPUT_FILE_TINY=benchmark.input_tiny.${LOADL_STEP_ID} 
 cat > ${INPUT_FILE_TINY} <<+EOF
-T=8
-LX=4
-LY=4
+T=32
+LX=16
+LY=8
 LZ=4
 +EOF
 
@@ -68,7 +68,7 @@ export XLSMPOPTS="procs=${PROCS}"
 
 #env
 echo ================================================================================
-#runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
+runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
 echo ================================================================================
 #runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_SMALL} 
 echo ================================================================================
@@ -76,5 +76,5 @@ echo ===========================================================================
 echo ================================================================================
 #runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_BIG} 
 echo ================================================================================
-runjob --np 1 --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
+#runjob --np 1 --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
 

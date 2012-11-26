@@ -785,21 +785,25 @@ bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, ucoord t
 
 
 
+
 char *(g_idxdesc[BGQREF_count]);
 complexdouble *g_bgqvalue = NULL;
 complexdouble *g_refvalue = NULL;
-bool *g_hasvalue = NULL;
+bool *g_bgqhasvalue = NULL;
+bool *g_refhasvalue = NULL;
 
 void bgq_initbgqref_impl() {
 	size_t datasize = sizeof(complexdouble) * VOLUME * lengthof(g_idxdesc);
 	if (g_refvalue == NULL) {
 		g_bgqvalue = malloc_aligned(datasize, BGQ_ALIGNMENT_L2);
 		g_refvalue = malloc_aligned(datasize, BGQ_ALIGNMENT_L2);
-		g_hasvalue = malloc(VOLUME * sizeof(*g_hasvalue));
+		g_bgqhasvalue = malloc(VOLUME * lengthof(g_idxdesc) * sizeof(*g_bgqhasvalue));
+		g_refhasvalue = malloc(VOLUME * lengthof(g_idxdesc) * sizeof(*g_refhasvalue));
 	}
 	memset(g_bgqvalue, 0xFF, datasize);
 	memset(g_refvalue, 0xFF, datasize);
-	memset(g_hasvalue, 0, VOLUME * sizeof(*g_hasvalue));
+	memset(g_refhasvalue, 0, VOLUME * lengthof(g_idxdesc) * sizeof(*g_refhasvalue));
+	memset(g_bgqhasvalue, 0, VOLUME * lengthof(g_idxdesc) * sizeof(*g_bgqhasvalue));
 
 	for (int idx = 0; idx <  lengthof(g_idxdesc); idx+=1) {
 		g_idxdesc[idx] = NULL;
@@ -830,6 +834,7 @@ void bgq_setrefvalue_impl(int t, int x, int y, int z, bgqref idx, complexdouble 
 	if (z >= LOCAL_LZ)
 		z = LOCAL_LZ-1;
 	g_refvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z] = val;
+	g_refhasvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z] = true;
 	if (!g_idxdesc[idx])
 		g_idxdesc[idx] = "";
 }
@@ -862,7 +867,7 @@ void bgq_setbgqvalue_impl(int t, int x, int y, int z, bgqref idx, complex_double
 	if (z >= LOCAL_LZ)
 		z = LOCAL_LZ-1;
 	g_bgqvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z] = val;
-	g_hasvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z] = true;
+	g_bgqhasvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z] = true;
 	if (!g_idxdesc[idx])
 		g_idxdesc[idx] = "";
 }
@@ -929,10 +934,16 @@ void bgq_savebgqref_impl() {
 					for (int z = 0; z < LOCAL_LZ; z += 1) {
 						complexdouble refval = g_refvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z];
 						complexdouble bgqval = g_bgqvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z];
-						bool hasval = g_hasvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z];
+						bool refhasval = g_refhasvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z];
+						bool bgqhasval = g_bgqhasvalue[(((idx*LOCAL_LT + t)*LOCAL_LX + x)*LOCAL_LY + y)*LOCAL_LZ + z];
 
-						fprintf(reffile, "%8f + %8fi	", creal(refval), cimag(refval));
-						if (hasval) {
+						if (refhasval) {
+							fprintf(reffile, "%8f + %8fi	", creal(refval), cimag(refval));
+						} else {
+							fprintf(reffile, "                    	");
+						}
+
+						if (bgqhasval) {
 							fprintf(bgqfile, "%8f + %8fi	", creal(bgqval), cimag(bgqval));
 						} else {
 							fprintf(bgqfile, "                    	");

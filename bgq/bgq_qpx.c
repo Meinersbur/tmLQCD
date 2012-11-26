@@ -276,7 +276,7 @@ void bgq_qpx_unittest(void) {
 	}
 
 	memset(&store_float[0], 0, sizeof(store_float));
-	bgq_su3_spinor_store_float(&store_float[0], weyl);
+	bgq_su3_spinor_store_float(&store_float[0], spinor);
 	for (unsigned i = 0; i < 4*3*4;i+=1) {
 		if (store_float[i] != (i+1)) {
 			failed = true;
