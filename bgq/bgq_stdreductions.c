@@ -15,10 +15,7 @@ typedef struct {
 
 
 
-typedef struct {
-	bgq_vector4double_decl(ks); // sum
-	bgq_vector4double_decl(kc); // compensation or carried error (i.e. ks+kc yields better approximation than just ks)
-} bgq_vectorkahan_t;
+
 
 static inline bgq_vectorsum_t bgq_reduce_initzero() {
 	bgq_vectorsum_t result;
@@ -26,11 +23,10 @@ static inline bgq_vectorsum_t bgq_reduce_initzero() {
 	return result;
 }
 
-static inline bgq_vectorkahan_t bgq_reduce_initkahan() {
-	bgq_vectorkahan_t result;
-	bgq_zero(result.ks);
-	bgq_zero(result.kc);
-	return result;
+
+static inline void bgq_reduce_initkahan(bgq_params(*ks), bgq_params(*kc)) {
+	bgq_zero(*ks);
+	bgq_zero(*kc);
 }
 
 
@@ -126,8 +122,7 @@ static inline void bgq_reduce_prod_r(bgq_vectorsum_t *accumulator, bgq_su3_spino
 
 
 
-
-void bgq_reduce_norm(bgq_vectorkahan_t *accumulator, bgq_su3_spinor_params(spinor), ucoord ic) {
+void bgq_reduce_norm(bgq_params(*ks), bgq_params(*kc), bgq_su3_spinor_params(spinor), ucoord ic) {
 	bgq_vector4double_decl(siteresult);
 	bgq_mul(siteresult, spinor_v0_c0, spinor_v0_c0);
 	bgq_madd(siteresult, spinor_v0_c1, spinor_v0_c1, siteresult);
@@ -142,7 +137,7 @@ void bgq_reduce_norm(bgq_vectorkahan_t *accumulator, bgq_su3_spinor_params(spino
 	bgq_madd(siteresult, spinor_v3_c1, spinor_v3_c1, siteresult);
 	bgq_madd(siteresult, spinor_v3_c2, spinor_v3_c2, siteresult);
 
-	bgq_kahan_add(&accumulator->ks, &accumulator->kc, siteresult);
+	bgq_kahan_add(ks, kc, siteresult);
 }
 
 
@@ -157,17 +152,17 @@ static inline void bgq_combine_add(bgq_vectorsum_t *arg1, bgq_vectorsum_t arg2) 
 }
 
 
-static inline void bgq_combine_kahan(bgq_vectorkahan_t *arg1, bgq_vectorkahan_t arg2) {
+static inline void bgq_combine_kahan(bgq_params(*ks1), bgq_params(*kc1), bgq_params(ks2), bgq_params(kc2)) {
 #if 1
-	bgq_kahan_add(&arg1->ks, &arg1->kc, arg2.kc);
-	bgq_kahan_add(&arg1->ks, &arg1->kc, arg2.ks);
+	bgq_kahan_add(ks1, kc1, kc2);
+	bgq_kahan_add(ks1, kc1, ks2);
 #else
 	bgq_add(result.ks, arg1->ks, arg2.ks);
 	bgq_add(result.kc, arg1->kc, arg2.kc);
 #endif
 }
 
-
+#if 0
 #define REDUCTION_NAME bgq_spinorfield_innerprod_raw
 #define REDUCTION_ARGFIELDS 2
 #define REDUCTION_RETURNTYPE(...) bgq_vectorsum_t (__VA_ARGS__)
@@ -210,23 +205,28 @@ double bgq_spinorfield_innerprod_r_global(bgq_weylfield_controlblock *field1, bg
 	MPI_Allreduce(&localresult, &globalresult, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 	return globalresult;
 }
+#endif
+
 
 
 #define REDUCTION_NAME bgq_spinorfield_sqrnorm_raw
 #define REDUCTION_ARGFIELDS 1
-#define REDUCTION_RETURNTYPE(...) bgq_vectorkahan_t (__VA_ARGS__)
+#define REDUCTION_REDTYPES bgq_types,bgq_types
+#define REDUCTION_REDARGS bgq_vars(ks),bgq_vars(kc)
 #define REDUCTION_VARINIT bgq_reduce_initkahan
 #define REDUCTION_SITEREDUCEFUNC bgq_reduce_norm
 #define REDUCTION_COMBINEFUNC bgq_combine_kahan
 #include "bgq_reduction.inc.c"
 
 double bgq_spinorfield_sqrnorm_local(bgq_weylfield_controlblock *field) {
-	bgq_vectorkahan_t rawresult = bgq_spinorfield_sqrnorm_raw(field);
-	double localresult = bgq_elem0(rawresult.kc) + bgq_elem1(rawresult.kc) + bgq_elem2(rawresult.kc) + bgq_elem3(rawresult.kc); // This is probably useless
-	localresult += bgq_elem0(rawresult.ks);
-	localresult += bgq_elem1(rawresult.ks);
-	localresult += bgq_elem2(rawresult.ks);
-	localresult += bgq_elem3(rawresult.ks);
+	bgq_vector4double_decl(ks);
+	bgq_vector4double_decl(kc);
+	bgq_spinorfield_sqrnorm_raw(bgq_vars(&ks), bgq_vars(&kc), field);
+	double localresult = bgq_elem0(kc) + bgq_elem1(kc) + bgq_elem2(kc) + bgq_elem3(kc); // This is probably useless
+	localresult += bgq_elem0(ks);
+	localresult += bgq_elem1(ks);
+	localresult += bgq_elem2(ks);
+	localresult += bgq_elem3(ks);
 	return localresult;
 }
 

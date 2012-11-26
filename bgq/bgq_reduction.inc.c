@@ -20,14 +20,16 @@
 #define REDUCTION_ARGFIELDS 2
 #define REDUCTION_EXTRAPARMS double factor
 #define REDUCTION_EXTRAARGS factor
-#define REDUCTION_RETURNTYPE(varname) double (varname) /* remember this can be a struct */
+#define REDUCTION_REDTYPES double
+#define REDUCTION_REDARGS sum
+//#define REDUCTION_RETURNTYPE(varname) double (varname) /* remember this can be a struct */
 
 #define REDUCTION_VARINIT bgq_initzero
 #define REDUCTION_SITEREDUCEFUNC bgq_sitereduce
 #define REDUCTION_COMBINEFUNC bgq_reduction_combine  /* must be associative (commutative?) */
 
-static inline double bgq_initzero() {
-	return 0;
+static inline double bgq_initzero(double *sum) {
+	*sum = 0;
 }
 
 static inline void bgq_sitereduce(double *sum, bgq_su3_spinor_params(spinor1), bgq_su3_spinor_params(spinor2), double factor, ucoord ic) {
@@ -35,7 +37,7 @@ static inline void bgq_sitereduce(double *sum, bgq_su3_spinor_params(spinor1), b
 }
 
 static inline void bgq_reduction_combine(double *sum, double intermediateSum) {
-	*sum+=intermediateSum;
+	*sum += intermediateSum;
 }
 #endif
 
@@ -47,11 +49,33 @@ static inline void bgq_reduction_combine(double *sum, double intermediateSum) {
 #define REDUCTION_EXTRAARGS
 #endif
 
+#ifndef REDUCTION_REDTYPES
+#error Need to define REDUCTION_REDTYPES
+#endif
+#ifndef REDUCTION_REDARGS
+#error Need to define REDUCTION_REDARGS
+#endif
+
 #define REDUCTION_EXTRAPARMLIST IF_EMPTY_INPAREN((),(,),REDUCTION_EXTRAPARMS) REDUCTION_EXTRAPARMS
 #define REDUCTION_EXTRAARGLIST IF_EMPTY_INPAREN((),(,),REDUCTION_EXTRAARGS) REDUCTION_EXTRAARGS
 #define REDUCTION_EXTRA_ASSIGN(varname) (varname) = ((arg->extra).varname);
 #define REDUCTION_REF(varname) (&varname)
 #define REDUCTION_SITE_DECL(varname)
+
+#define REDUCTION_DECLARE_REF(type, varname) type (*varname)
+#define REDUCTION_REDREFPARMS PP_ZIP(REDUCTION_DECLARE_REF, (,), (REDUCTION_REDTYPES), (REDUCTION_REDARGS))
+
+#define REDUCTION_DECLARE(type, varname) type varname
+#define REDUCTION_REDPARMS PP_ZIP(REDUCTION_DECLARE, (,), (REDUCTION_REDTYPES), (REDUCTION_REDARGS))
+
+#define REDUCTION_DECLARE_DECL(type, varname) type varname;
+#define REDUCTION_REDDECL PP_ZIP(REDUCTION_DECLARE_DECL,,(REDUCTION_REDTYPES),(REDUCTION_REDARGS))
+
+#define REDUCTION_PTRARG(arg) &arg
+#define REDUCTION_REDPTRARGS  PREPROCESSOR_FOREACH(,(,),,,REDUCTION_PTRARG,REDUCTION_REDARGS)
+
+#define REDUCTION_THREADRESULT_ARG(arg) threadresult.arg
+
 
 #if REDUCTION_ARGFIELDS>=1
 #define IF1ARG(...) __VA_ARGS__
@@ -88,12 +112,17 @@ typedef struct {
 #endif
 
 typedef struct {
+	REDUCTION_REDDECL
+} NAME2(REDUCTION_NAME,threadresult_t);
+
+typedef struct {
 	bool isOdd;
 
 	IF1ARG(bgq_weylfield_controlblock *argfield1;)
 	IF2ARG(bgq_weylfield_controlblock *argfield2;)
 	IFEXTRA(bgq_reduction_extraparm_t extra;)
-	REDUCTION_RETURNTYPE((threadresult[64]));
+
+	NAME2(REDUCTION_NAME,threadresult_t) threadresult[64];
 } NAME2(REDUCTION_NAME,args_t);
 
 
@@ -111,7 +140,8 @@ static inline void NAME2(REDUCTION_NAME,worker)(void *arg_untyped, size_t tid, s
 	size_t threadload = (workload+threads-1)/threads;
 	ucoord beginj = tid*threadload;
 	ucoord endj = min_sizet((tid+1)*threadload,workload);
-	REDUCTION_RETURNTYPE(threadresult) = REDUCTION_VARINIT();
+	REDUCTION_REDDECL
+	REDUCTION_VARINIT(REDUCTION_REDPTRARGS);
 	for (ucoord ic = beginj; ic < endj; ic+=1) {
 #ifndef NDEBUG
 		ucoord ih = bgq_collapsed2halfvolume(isOdd, ic);
@@ -133,9 +163,10 @@ static inline void NAME2(REDUCTION_NAME,worker)(void *arg_untyped, size_t tid, s
 		bgq_spinorfield_readSpinor(&spinor2, argfield1, ic, readWeyllayout2, sloppy2, mul2);
 #endif
 
-		REDUCTION_SITEREDUCEFUNC(&threadresult IF1ARG(, bgq_su3_spinor_vars(spinor1)) IF2ARG(, bgq_su3_spinor_vars(spinor2)) REDUCTION_EXTRAARGLIST, ic);
+		REDUCTION_SITEREDUCEFUNC(REDUCTION_REDPTRARGS IF1ARG(, bgq_su3_spinor_vars(spinor1)) IF2ARG(, bgq_su3_spinor_vars(spinor2)) REDUCTION_EXTRAARGLIST, ic);
 	}
 
+	NAME2(REDUCTION_NAME,threadresult_t) threadresult = { REDUCTION_REDARGS };
 	arg->threadresult[tid] = threadresult;
 }
 
@@ -190,8 +221,9 @@ static bgq_worker_func NAME2(REDUCTION_NAME,worker_funcs)[BGQ_SPINORFIELD_LAYOUT
 #endif
 
 
-static inline REDUCTION_RETURNTYPE(REDUCTION_NAME)(
-	IF1ARG(bgq_weylfield_controlblock *argfield1)
+static inline void REDUCTION_NAME(
+	REDUCTION_REDREFPARMS
+	IF1ARG(, bgq_weylfield_controlblock *argfield1)
 	IF2ARG(, bgq_weylfield_controlblock *argfield2)
 	REDUCTION_EXTRAPARMLIST) {
 
@@ -234,13 +266,13 @@ static inline REDUCTION_RETURNTYPE(REDUCTION_NAME)(
 	bgq_master_call(workerfunc, &reduction_args);
 
 	size_t threads = omp_get_num_threads();
-	REDUCTION_RETURNTYPE(result) = REDUCTION_VARINIT();
-	for (size_t tid = 0; tid < threads; tid+=1) {
-		REDUCTION_RETURNTYPE(threadresult) = reduction_args.threadresult[tid];
-		REDUCTION_COMBINEFUNC(&result, threadresult);
-	}
 
-	return result;
+	REDUCTION_VARINIT(REDUCTION_REDARGS);
+	for (size_t tid = 0; tid < threads; tid+=1) {
+		NAME2(REDUCTION_NAME,threadresult_t) threadresult = reduction_args.threadresult[tid];
+
+		REDUCTION_COMBINEFUNC(REDUCTION_REDARGS PREPROCESSOR_FOREACH((,),(,),,,REDUCTION_THREADRESULT_ARG,REDUCTION_REDARGS));
+	}
 }
 
 

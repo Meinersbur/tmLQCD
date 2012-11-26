@@ -463,6 +463,7 @@ EXTERN_INLINE size_t lcm_sizet(size_t a, size_t b) {
 
 
 #define REMOVE_PAREN(...) __VA_ARGS__
+#define REMOVE_PAREN2(...) REMOVE_PAREN __VA_ARGS__
 
 #define _NUM_ARGS2(X,X64,X63,X62,X61,X60,X59,X58,X57,X56,X55,X54,X53,X52,X51,X50,X49,X48,X47,X46,X45,X44,X43,X42,X41,X40,X39,X38,X37,X36,X35,X34,X33,X32,X31,X30,X29,X28,X27,X26,X25,X24,X23,X22,X21,X20,X19,X18,X17,X16,X15,X14,X13,X12,X11,X10,X9,X8,X7,X6,X5,X4,X3,X2,X1,N,...) N
 #define NUM_ARGS(...) _NUM_ARGS2(0, __VA_ARGS__ ,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0)
@@ -493,6 +494,11 @@ _ISEMPTY(                                                               \
 #define _IS_EMPTY_CASE_0001 ,
 
 
+#define _UNPARENTHESIZE0(...) __VA_ARGS__
+#define _UNPARENTHESIZE1(...) REMOVE_PAREN __VA_ARGS__
+#define UNPARENTHESIZE(...) CONCAT(_UNPARENTHESIZE, HAS_COMMA(_TRIGGER_PARENTHESIS_ __VA_ARGS__))(__VA_ARGS__)
+
+
 #define _IFELSE_0(ifcase,elsecase) elsecase
 #define _IFELSE_1(ifcase,elsecase) ifcase
 #define IF_EMPTY(ifcase,elsecase,...) CONCAT(_IFELSE_, ISEMPTY(__VA_ARGS__)) (ifcase,elsecase)
@@ -508,63 +514,100 @@ _ISEMPTY(                                                               \
 //TODO: Version that accepts comma in parenthesis in arguments
 #define _PREPROCESSOR_FOREACH_VARARGS0(...) /* dummy version, never used */
 #define _PREPROCESSOR_FOREACH_VARARGS1(infix,callback,one) callback(one)
-#define _PREPROCESSOR_FOREACH_VARARGS2(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS1(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS3(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS2(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS4(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS3(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS5(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS4(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS6(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS5(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS7(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS6(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS8(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS7(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS9(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS8(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS10(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS9(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS11(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS10(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS12(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS11(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS13(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS12(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS14(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS13(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS15(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS14(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS16(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS15(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS17(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS16(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS18(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS17(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS19(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS18(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS20(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS19(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS21(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS20(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS22(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS21(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS23(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS22(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS24(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS23(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS25(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS24(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS26(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS25(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS27(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS26(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS28(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS27(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS29(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS28(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS30(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS29(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS31(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS30(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS32(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS31(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS33(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS32(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS34(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS33(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS35(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS34(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS36(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS35(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS37(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS36(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS38(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS37(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS39(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS38(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS40(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS39(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS41(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS40(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS42(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS41(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS43(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS42(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS44(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS43(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS45(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS44(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS46(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS45(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS47(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS46(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS48(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS47(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS49(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS48(infix,callback,__VA_ARGS__)
-#define _PREPROCESSOR_FOREACH_VARARGS50(infix,callback,one,...) callback(one) infix _PREPROCESSOR_FOREACH_VARARGS49(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS2(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS1(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS3(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS2(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS4(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS3(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS5(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS4(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS6(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS5(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS7(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS6(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS8(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS7(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS9(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS8(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS10(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS9(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS11(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS10(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS12(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS11(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS13(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS12(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS14(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS13(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS15(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS14(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS16(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS15(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS17(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS16(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS18(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS17(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS19(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS18(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS20(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS19(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS21(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS20(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS22(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS21(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS23(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS22(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS24(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS23(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS25(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS24(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS26(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS25(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS27(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS26(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS28(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS27(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS29(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS28(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS30(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS29(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS31(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS30(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS32(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS31(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS33(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS32(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS34(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS33(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS35(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS34(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS36(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS35(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS37(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS36(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS38(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS37(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS39(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS38(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS40(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS39(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS41(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS40(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS42(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS41(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS43(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS42(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS44(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS43(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS45(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS44(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS46(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS45(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS47(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS46(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS48(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS47(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS49(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS48(infix,callback,__VA_ARGS__)
+#define _PREPROCESSOR_FOREACH_VARARGS50(infix,callback,one,...) callback(one) UNPARENTHESIZE(infix) _PREPROCESSOR_FOREACH_VARARGS49(infix,callback,__VA_ARGS__)
 
-#define PREPROCESSOR_FOREACH(prefix,infix,postfix,emptycase,callback, ...) IF_EMPTY(emptycase,prefix CONCAT(_PREPROCESSOR_FOREACH_VARARGS, NUM_ARGS(__VA_ARGS__))(infix,callback,__VA_ARGS__) postfix,__VA_ARGS__)
-
-
-
+#define PREPROCESSOR_FOREACH(prefix,infix,postfix,emptycase,callback, ...) REMOVE_PAREN2(IF_EMPTY((UNPARENTHESIZE(emptycase)),(UNPARENTHESIZE(prefix) CONCAT(_PREPROCESSOR_FOREACH_VARARGS, NUM_ARGS(__VA_ARGS__))(infix,callback,__VA_ARGS__) UNPARENTHESIZE(postfix)),__VA_ARGS__))
 
 #define IDENTITY(...) __VA_ARGS__
 #define EMPTY(...)
+
+#define PP_UNARG0(one, ...) one
+#define PP_UNARG1(x1,one, ...) one
+#define PP_UNARG2(x1,x2,one, ...) one
+#define PP_UNARG3(x1,x2,x3,one, ...) one
+#define PP_UNARG4(x1,x2,x3,x4,one, ...) one
+#define PP_UNARG5(x1,x2,x3,x4,x5,one, ...) one
+#define PP_UNARG6(x1,x2,x3,x4,x5,x6,one, ...) one
+#define PP_UNARG7(x1,x2,x3,x4,x5,x6,x7,one, ...) one
+#define PP_UNARG8(x1,x2,x3,x4,x5,x6,x7,x8,one, ...) one
+#define PP_UNARG9(x1,x2,x3,x4,x5,x6,x7,x8,x9,one, ...) one
+
+#define PP_GETARG0(...) PP_UNARG0(__VA_ARGS__,/*dummy*/)
+#define PP_GETARG1(...) PP_UNARG1(__VA_ARGS__,/*dummy*/)
+#define PP_GETARG2(...) PP_UNARG2(__VA_ARGS__,/*dummy*/)
+#define PP_GETARG3(...) PP_UNARG3(__VA_ARGS__,/*dummy*/)
+#define PP_GETARG4(...) PP_UNARG4(__VA_ARGS__,/*dummy*/)
+#define PP_GETARG5(...) PP_UNARG5(__VA_ARGS__,/*dummy*/)
+#define PP_GETARG6(...) PP_UNARG6(__VA_ARGS__,/*dummy*/)
+#define PP_GETARG7(...) PP_UNARG7(__VA_ARGS__,/*dummy*/)
+#define PP_GETARG8(...) PP_UNARG8(__VA_ARGS__,/*dummy*/)
+#define PP_GETARG9(...) PP_UNARG9(__VA_ARGS__,/*dummy*/)
+
+#define PP_GETARG(arg, ...) CONCAT(PP_GETARG,arg) (__VA_ARGS__,/*dummy*/)
+
+#define PP_ZIP0(macro, infix)
+#define PP_ZIP1(macro, infix, list1,list2) macro(PP_GETARG0(REMOVE_PAREN list1),PP_GETARG0(REMOVE_PAREN list2))
+#define PP_ZIP2(macro, infix, list1,list2) PP_ZIP1(macro,infix,list1,list2) UNPARENTHESIZE(infix) macro(PP_GETARG1(REMOVE_PAREN list1),PP_GETARG1(REMOVE_PAREN list2))
+#define PP_ZIP3(macro, infix, list1,list2) PP_ZIP2(macro,infix,list1,list2) UNPARENTHESIZE(infix) macro(PP_GETARG2(REMOVE_PAREN list1),PP_GETARG2(REMOVE_PAREN list2))
+#define PP_ZIP4(macro, infix, list1,list2) PP_ZIP3(macro,infix,list1,list2) UNPARENTHESIZE(infix) macro(PP_GETARG3(REMOVE_PAREN list1),PP_GETARG3(REMOVE_PAREN list2))
+#define PP_ZIP5(macro, infix, list1,list2) PP_ZIP4(macro,infix,list1,list2) UNPARENTHESIZE(infix) macro(PP_GETARG4(REMOVE_PAREN list1),PP_GETARG4(REMOVE_PAREN list2))
+#define PP_ZIP6(macro, infix, list1,list2) PP_ZIP5(macro,infix,list1,list2) UNPARENTHESIZE(infix) macro(PP_GETARG5(REMOVE_PAREN list1),PP_GETARG5(REMOVE_PAREN list2))
+#define PP_ZIP7(macro, infix, list1,list2) PP_ZIP6(macro,infix,list1,list2) UNPARENTHESIZE(infix) macro(PP_GETARG6(REMOVE_PAREN list1),PP_GETARG6(REMOVE_PAREN list2))
+#define PP_ZIP8(macro, infix, list1,list2) PP_ZIP7(macro,infix,list1,list2) UNPARENTHESIZE(infix) macro(PP_GETARG7(REMOVE_PAREN list1),PP_GETARG7(REMOVE_PAREN list2))
+#define PP_ZIP9(macro, infix, list1,list2) PP_ZIP8(macro,infix,list1,list2) UNPARENTHESIZE(infix) macro(PP_GETARG8(REMOVE_PAREN list1),PP_GETARG8(REMOVE_PAREN list2))
+#define PP_ZIP10(macro, infix, list1,list2) PP_ZIP9(macro,infix,list1,list2) UNPARENTHESIZE(infix) macro(PP_GETARG9(REMOVE_PAREN list1),PP_GETARG9(REMOVE_PAREN list2))
+#define PP_ZIP(macro, infix, list1, list2) CONCAT(PP_ZIP,NUM_ARGS(REMOVE_PAREN list1))(macro,infix,list1,list2)
+
+
+
 
 
 #undef EXTERN_INLINE

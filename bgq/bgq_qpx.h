@@ -91,6 +91,9 @@ typedef struct {
 #define bgq_vars(name) \
 	NAME2(name,q0),NAME2(name,q1),NAME2(name,q2),NAME2(name,q3)
 
+#define bgq_types \
+	double,double,double,double
+
 #define bgq_params(name) \
 	double NAME2(name,q0),double NAME2(name,q1),double NAME2(name,q2),double NAME2(name,q3)
 
@@ -388,6 +391,9 @@ typedef struct {
 
 #define bgq_params(name) \
 	vector4double (name)
+
+#define bgq_types \
+		vector4double
 
 #define bgq_vector4double_decl(name) \
 	vector4double name
@@ -2043,7 +2049,7 @@ static inline void mbar() {
 
 
 #define REORDER_BARRIER \
-	asm volatile ("");
+	__asm volatile ("");
 
 
 
