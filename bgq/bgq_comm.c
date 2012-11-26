@@ -9,6 +9,8 @@
 #include "bgq_comm.h"
 
 #include "bgq_field.h"
+#include "bgq_dispatch.h"
+#include "bgq_workers.h"
 
 #ifdef SPI
 #include "../DirectPut.h"
@@ -257,7 +259,7 @@ static void bgq_comm_test(bool nospi, bool sloppy) {
 		}
 	}
 
-	bgq_comm_recv(nospi, sloppy);
+	bgq_comm_recv(nospi, sloppy, NULL);
 	bgq_comm_send(nospi, sloppy);
 	bgq_comm_wait(nospi, sloppy);
 
@@ -294,27 +296,29 @@ static void bgq_comm_common_init(void) {
 	g_bgq_comm_common_initialized = true;
 	bgq_indices_init();
 
-	size_t commbufsize = bgq_weyl_section_offset(sec_comm_end) - bgq_weyl_section_offset(sec_comm);
-	uint8_t *buf = (uint8_t*)malloc_aligned(commbufsize + commbufsize/*some memory is wasted here, but no additional work to be done for alignment*/, BGQ_ALIGNMENT_L2);
-	uint8_t *bufend = buf + commbufsize;
-	g_bgq_sec_comm = buf;
-	g_bgq_sec_comm_float = buf + commbufsize;
-	for (bgq_direction d = 0; d < PHYSICAL_LD; d += 1) {
-		bgq_dimension dim = bgq_direction2dimension(d);
+	if (PHYSICAL_SURFACE > 0) {
+		size_t commbufsize = bgq_weyl_section_offset(sec_comm_end) - bgq_weyl_section_offset(sec_comm);
+		uint8_t *buf = (uint8_t*)malloc_aligned(commbufsize + commbufsize/*some memory is wasted here, but no additional work to be done for alignment*/, BGQ_ALIGNMENT_L2);
+		uint8_t *bufend = buf + commbufsize;
+		g_bgq_sec_comm = buf;
+		g_bgq_sec_comm_float = buf + commbufsize;
+		for (bgq_direction d = 0; d < PHYSICAL_LD; d += 1) {
+			bgq_dimension dim = bgq_direction2dimension(d);
 
-		bgq_weylfield_section sec_send = bgq_direction2section(d, true);
-		bgq_weylfield_section sec_recv = bgq_direction2section(d, false);
+			bgq_weylfield_section sec_send = bgq_direction2section(d, true);
+			bgq_weylfield_section sec_recv = bgq_direction2section(d, false);
 
-		g_bgq_sec_send_double[d] = (bgq_weyl_vec_double*)(buf + bgq_weyl_section_offset(sec_send) - bgq_weyl_section_offset(sec_comm));
-		assert((uint8_t*)g_bgq_sec_send_double[d] <= bufend);
-		g_bgq_sec_send_float[d] = (bgq_weyl_vec_float*)((uint8_t*)g_bgq_sec_send_double[d] + commbufsize);
+			g_bgq_sec_send_double[d] = (bgq_weyl_vec_double*)(buf + bgq_weyl_section_offset(sec_send) - bgq_weyl_section_offset(sec_comm));
+			assert((uint8_t*)g_bgq_sec_send_double[d] <= bufend);
+			g_bgq_sec_send_float[d] = (bgq_weyl_vec_float*)((uint8_t*)g_bgq_sec_send_double[d] + commbufsize);
 
-		g_bgq_sec_recv_double[d] = (bgq_weyl_vec_double*)(buf + bgq_weyl_section_offset(sec_recv) - bgq_weyl_section_offset(sec_comm));
-		assert((uint8_t*)g_bgq_sec_recv_double[d] <= bufend);
-		g_bgq_sec_recv_float[d] = (bgq_weyl_vec_float*)((uint8_t*)g_bgq_sec_recv_double[d] + commbufsize);
+			g_bgq_sec_recv_double[d] = (bgq_weyl_vec_double*)(buf + bgq_weyl_section_offset(sec_recv) - bgq_weyl_section_offset(sec_comm));
+			assert((uint8_t*)g_bgq_sec_recv_double[d] <= bufend);
+			g_bgq_sec_recv_float[d] = (bgq_weyl_vec_float*)((uint8_t*)g_bgq_sec_recv_double[d] + commbufsize);
 
-		assert((uintptr_t)g_bgq_sec_send_double[d] % BGQ_ALIGNMENT_L2 == 0);
-		assert((uintptr_t)g_bgq_sec_recv_double[d] % BGQ_ALIGNMENT_L2 == 0);
+			assert((uintptr_t)g_bgq_sec_send_double[d] % BGQ_ALIGNMENT_L2 == 0);
+			assert((uintptr_t)g_bgq_sec_recv_double[d] % BGQ_ALIGNMENT_L2 == 0);
+		}
 	}
 
 	if (BGQ_UNVECTORIZE || !COMM_T) {
@@ -334,6 +338,8 @@ void bgq_comm_mpi_init(void) {
 		return;
 	g_bgq_comm_mpi_initialized = true;
 	bgq_comm_common_init();
+	if (PHYSICAL_SURFACE == 0)
+		return;
 
 	for (ucoord cd = 0; cd < COMMDIR_COUNT; cd+=1) {
 		bgq_direction d_src = bgq_commdir2direction(cd);
@@ -376,7 +382,8 @@ void bgq_comm_spi_init(void) {
 		return;
 	g_bgq_comm_spi_initialized = true;
 	bgq_comm_common_init();
-
+	if (PHYSICAL_SURFACE == 0)
+		return;
 
 	size_t messageSizes[2*COMMDIR_COUNT];
 	size_t roffsets[2*COMMDIR_COUNT];
@@ -510,13 +517,17 @@ void bgq_comm_spi_init(void) {
 
 static bool g_bgq_comm_mpiActive = false;
 static bool g_bgq_comm_mpiSloppy;
+static bgq_weylfield_controlblock *g_bgq_comm_mpiTarget;
 #ifdef SPI
 static bool g_bgq_comm_spiActive = false;
 static bool g_bgq_comm_spiSloppy;
+static bgq_weylfield_controlblock *g_bgq_comm_spiTarget;
 #endif
 
 //TODO: inline?
-void bgq_comm_recv(bool nospi, bool sloppy) {
+void bgq_comm_recv(bool nospi, bool sloppy, bgq_weylfield_controlblock *targetfield) {
+	if (PHYSICAL_SURFACE == 0)
+		return;
 	assert(omp_get_thread_num()==0);
 	//master_print("Comm Receiving... nospi=%d sloppy=%d\n", nospi, sloppy);
 	bgq_comm_wait(); // Ensute that previous communication has finished
@@ -527,6 +538,7 @@ void bgq_comm_recv(bool nospi, bool sloppy) {
 	    recvCounter = sloppy ? totalMessageSize_float : totalMessageSize;
 	    g_bgq_comm_spiActive = true;
 	    g_bgq_comm_spiSloppy = sloppy;
+	    g_bgq_comm_spiTarget = targetfield;
 		return;
 	}
 #endif
@@ -537,15 +549,18 @@ void bgq_comm_recv(bool nospi, bool sloppy) {
 		MPI_CHECK(MPI_Startall(COMMDIR_COUNT, g_bgq_request_recv_double));
 	g_bgq_comm_mpiActive = true;
     g_bgq_comm_mpiSloppy = sloppy;
+    g_bgq_comm_mpiTarget = targetfield;
 }
 
 
 void bgq_comm_send() {
+	if (PHYSICAL_SURFACE == 0)
+		return;
 	assert(omp_get_thread_num()==0);
-	assert(g_bgq_comm_spiActive || g_bgq_comm_mpiActive);
 	//master_print("Comm Sending... nospi=%d sloppy=%d\n", nospi, sloppy);
 
 #ifdef SPI
+	assert(g_bgq_comm_spiActive || g_bgq_comm_mpiActive);
 	if (g_bgq_comm_spiActive) {
 		// make sure everybody has reset recvCounter
 		global_barrier();
@@ -569,7 +584,30 @@ void bgq_comm_send() {
 }
 
 
+static void bgq_comm_datamove_field(bgq_weylfield_controlblock *targetfield) {
+	assert(PHYSICAL_SURFACE > 0);
+	if (!targetfield)
+		return; // bgq_comm_test
+
+	// 5. Move received to correct location, so the communication buffers can be reused
+	if (targetfield->pendingDatamove) {
+		bgq_master_sync();
+		static bgq_work_datamove work;
+		work.spinorfield = targetfield;
+		work.opts = targetfield->hmflags;
+		assert(targetfield->has_weyllayout_float + targetfield->has_weyllayout_double == 1);
+		if (targetfield->has_weyllayout_float)
+			bgq_master_call(&bgq_HoppingMatrix_worker_datamove_float, &work);
+		if (targetfield->has_weyllayout_double)
+			bgq_master_call(&bgq_HoppingMatrix_worker_datamove_double, &work);
+		targetfield->pendingDatamove = false;
+	}
+}
+
+
 void bgq_comm_wait() {
+	if (PHYSICAL_SURFACE == 0)
+		return;
 	assert(omp_get_thread_num()==0);
 	//master_print("Comm Waiting... nospi=%d sloppy=%d\n", nospi, sloppy);
 
@@ -604,6 +642,7 @@ void bgq_comm_wait() {
 		}
 
 		_bgq_msync();  // Ensure data is available to all cores.
+		bgq_comm_datamove_field(g_bgq_comm_spiTarget);
 		g_bgq_comm_spiActive = false;
 	}
 #endif
@@ -631,8 +670,12 @@ void bgq_comm_wait() {
 			assert(get_MPI_count(&recv_status[commdir]) == size);
 		}
 #endif
+
+		bgq_comm_datamove_field(g_bgq_comm_mpiTarget);
 		g_bgq_comm_mpiActive = false;
 	}
+
+
 }
 
 

@@ -527,16 +527,21 @@ typedef enum {
 typedef struct {
 	bool isInitialized;
 	bool isOdd;
-	bool hasWeylfieldData;
-	bool isWeyllayoutSloppy;
-	bool waitingForRecv; /* true==Need to wait for SPI recv and then copy data to consecutive area; false==All data available in sec_surface and sec_body */
+	//bool hasWeylfieldData;
+	//bool isWeyllayoutSloppy;
+	//bool waitingForRecv; /* true==Need to wait for SPI recv and then copy data to consecutive area; false==All data available in sec_surface and sec_body */
 	//bool waitingForRecvNoSPI;
 	bgq_hmflags hmflags;
 	bool pendingDatamove;
-	bool hasFullspinorData;
-	bool isFulllayoutSloppy;
+	//bool hasFullspinorData;
+	//bool isFulllayoutSloppy;
 
-	uint8_t *sec_weyl;
+	bool has_weyllayout_double;
+	bool has_weyllayout_float;
+	bool has_fulllayout_double;
+	bool has_fulllayout_float;
+
+	//uint8_t *sec_weyl;
 	//bgq_weyl_vec *sec_index; // obsolete
 	//bgq_weyl_vec *sec_send[PHYSICAL_LD]; // obsolete
 	//bgq_weyl_vec *sec_recv[PHYSICAL_LD]; // obsolete
@@ -544,16 +549,14 @@ typedef struct {
 	bgq_weylsite_float *sec_collapsed_float;
 	//bgq_weylsite *sec_surface;
 	//bgq_weylsite *sec_body;
-	uint8_t *sec_end;
-	bool has_weyllayout_double;
-	bool has_weyllayout_float;
+	//uint8_t *sec_end;
+
 
 	bgq_spinorsite_double *sec_fullspinor_double;
 	//bgq_spinorsite *sec_fullspinor_surface;
 	//bgq_spinorsite *sec_fullspinor_body;
 	bgq_spinorsite_float *sec_fullspinor_float;
-	bool has_fulllayout_double;
-	bool has_fulllayout_float;
+
 
 	//TODO: We may even interleave these with the data itself, but may cause alignment issues
 	// Idea: sizeof(bgq_weyl_ptr_t)==10*8==80, so one bgq_weyl_ptr_t every 2(5;10) spinors solves the issue

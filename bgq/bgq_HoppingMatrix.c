@@ -232,10 +232,10 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	bgq_spinorfield_layout layout = bgq_spinorfield_prepareRead(spinorfield, !isOdd, true, !floatprecision, floatprecision, false);
 	bgq_spinorfield_prepareWrite(targetfield, isOdd, floatprecision ? ly_weyl_float : ly_weyl_double);
 
-	if (floatprecision)
-		memset(targetfield->sec_collapsed_float, 0xFF, PHYSICAL_VOLUME * sizeof(*targetfield->sec_collapsed_float));
-	else
-		memset(targetfield->sec_collapsed_double, 0xFF, PHYSICAL_VOLUME * sizeof(*targetfield->sec_collapsed_double));
+	//if (floatprecision)
+	//	memset(targetfield->sec_collapsed_float, 0xFF, PHYSICAL_VOLUME * sizeof(*targetfield->sec_collapsed_float));
+	//else
+	//	memset(targetfield->sec_collapsed_double, 0xFF, PHYSICAL_VOLUME * sizeof(*targetfield->sec_collapsed_double));
 
 	//bgq_spinorfield_setup(targetfield, isOdd, false, false, false, true, floatprecision);
 	//bgq_spinorfield_setup(spinorfield, !isOdd, !(layout & ly_weyl), false, (layout & ly_weyl), false, false);
@@ -245,7 +245,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 
 	// 0. Expect data from other neighbor node
 	if (!nocomm) {
-		bgq_comm_recv(nospi, floatprecision);
+		bgq_comm_recv(nospi, floatprecision, targetfield);
 	}
 
 
@@ -282,14 +282,17 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 		bgq_master_sync(); // Wait for threads to finish surface before sending it
 		//TODO: ensure there are no other communications pending
 		bgq_comm_send(nospi, floatprecision);
-		targetfield->waitingForRecv = true;
+		//targetfield->waitingForRecv = true;
 	}
-	targetfield->pendingDatamove = (PHYSICAL_SURFACE > 0) && !nodatamove;
+	if (!nodatamove) {
+		targetfield->pendingDatamove = true;
+	}
 	targetfield->hmflags = opts;
 
 	if (nooverlap) {
 		// Do not wait until data is required, but do it here
-		bgq_spinorfield_setup(targetfield, isOdd, false, false, true, false, false);
+		bgq_spinorfield_prepareRead(targetfield, isOdd, true, true, true, true);
+		//bgq_spinorfield_setup(targetfield, isOdd, false, false, true, false, false);
 	}
 
 

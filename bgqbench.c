@@ -84,6 +84,9 @@
 #include <getopt.h>
 #define __USE_GNU
 #include <fenv.h>
+#include "bgq/bgq_stdoperators.h"
+#include "bgq/bgq_stdreductions.h"
+#include "linalg/diff.h"
 
 #ifdef XLC
 #include <l1p/pprefetch.h>
@@ -292,8 +295,9 @@ static void HoppingMatrix_switch(bool isOdd, spinor *l, spinor *k, bgq_hmflags h
 static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 	const size_t k = 0;
 	// To ensure that zero is used in case of nocomm
-	bgq_spinorfield_setup(&g_bgq_spinorfields[k], true, false, false, false, true, false);
-	bgq_spinorfield_setup(&g_bgq_spinorfields[k + k_max], false, false, false, false, true, false);
+	//bgq_spinorfield_enableLayout(&g_bgq_spinorfields[k], false, ly_weyl)
+	//bgq_spinorfield_setup(&g_bgq_spinorfields[k], true, false, false, false, true, false);
+	//bgq_spinorfield_setup(&g_bgq_spinorfields[k + k_max], false, false, false, false, true, false);
 	// Flow:
 	// [k]isOdd -> [k+k_max]isEven -> [k]isOdd
 
@@ -1009,6 +1013,29 @@ static int check_hopmat(void *arg_untyped) {
 }
 
 
+static int check_linalg(void *arg_untyped) {
+	checkargs_t *arg = (checkargs_t*)arg_untyped;
+	int k_max = arg->k_max;
+	int k = 0;
+	double compare;
+
+	random_spinor_field(g_spinor_field[0], VOLUME / 2, 0);
+	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[0], g_spinor_field[0]);
+
+	random_spinor_field(g_spinor_field[1], VOLUME / 2, 0);
+	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[1], g_spinor_field[1]);
+
+
+	bgq_spinorfield_diff_double(&g_bgq_spinorfields[2], &g_bgq_spinorfields[0], &g_bgq_spinorfields[1]);
+	diff(g_spinor_field[2], g_spinor_field[0], g_spinor_field[1], VOLUME/2);
+	compare = bgq_spinorfield_compare(true, &g_bgq_spinorfields[2], g_spinor_field[2], false);
+	assert(compare < 0.01);
+
+
+	return 0;
+}
+
+
 static void exec_bench(int j_max, int k_max) {
 	if (g_proc_id==0)
 		bgq_qpx_unittest();
@@ -1053,8 +1080,8 @@ static void exec_bench(int j_max, int k_max) {
 	master_print("VOLUME=%d PHYSICAL_VOLUME=%zu PHYSICAL_BODY=%zu PHYSICAL_SURFACE=%zu\n", VOLUME, PHYSICAL_VOLUME, PHYSICAL_BODY, PHYSICAL_SURFACE);
 
 	for (int k = 0; k < k_max; k += 1) {
-		bgq_spinorfield_setup(&g_bgq_spinorfields[k],       true,  false, true, false, true, false);
-		bgq_spinorfield_setup(&g_bgq_spinorfields[k+k_max], false, false, true, false, true, false);
+		//bgq_spinorfield_setup(&g_bgq_spinorfields[k],       true,  false, true, false, true, false);
+		//bgq_spinorfield_setup(&g_bgq_spinorfields[k+k_max], false, false, true, false, true, false);
 	}
 
 	for (int k = 0; k < k_max; k += 1) {
@@ -1069,7 +1096,8 @@ static void exec_bench(int j_max, int k_max) {
 	        .opts = 0,
 	        .doSave = false
 	};
-	//bgq_parallel(&check_hopmat, &checkargs_double);
+	bgq_parallel(&check_linalg, &checkargs_double);
+	bgq_parallel(&check_hopmat, &checkargs_double);
 
 	master_print("Float: ");
 	checkargs_t checkargs_float = {

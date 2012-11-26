@@ -322,6 +322,7 @@ typedef struct {
 	NAME2(dst,q2) = 0;     \
 	NAME2(dst,q3) = 0
 
+
 #define bgq_qvlfdxa(dst,addr,offset) \
 	bgq_lda_double(dst,offset,addr)
 #define bgq_qvlfduxa(dst,addr,offset) \
@@ -352,9 +353,22 @@ typedef struct {
 	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
 	bgq_sta_double(data,0,addr)
 
-#define bgq_qvstfcduxa(data,addr,offset) \
+#define bgq_qvstfdxa(data,addr,offset) \
+	bgq_sta_double(data,offset,addr)
+
+
+#define bgq_qvstfsuxa(data,addr,offset) \
 	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
-	bgq_st2a_double(data,0,addr)
+	bgq_sta_float(data,0,addr)
+
+#define bgq_qvstfsxa(data,addr,offset) \
+	bgq_sta_float(data,offset,addr)
+
+
+
+#define bgq_qvstfcsuxa(data,addr,offset) \
+	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
+	bgq_st2a_float(data,0,addr)
 
 
 

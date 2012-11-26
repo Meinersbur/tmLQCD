@@ -149,7 +149,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvxyz(bgq_weylfield_contr
 		//TODO: Inline assembler
 		bgq_weyl_vec *weyladdr_src = &g_bgq_sec_recv[d][j];
 		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[d][j];
-		assert((bgq_weyl_vec *)spinorfield->sec_weyl <= weyladdr_dst && weyladdr_dst < (bgq_weyl_vec *)spinorfield->sec_end);
+		//assert((bgq_weyl_vec *)spinorfield->sec_weyl <= weyladdr_dst && weyladdr_dst < (bgq_weyl_vec *)spinorfield->sec_end);
 
 		bgq_prefetch(&spinorfield->BGQ_CONSPTR[d][j+1]);
 		bgq_su3_weyl_prefetch(&g_bgq_sec_recv[d][j+1]);
