@@ -701,11 +701,28 @@ void bgq_spinorfields_init(size_t std_count, size_t chi_count) {
 
 
 size_t bgq_pointer2offset_raw(bgq_weylfield_controlblock *field, void *ptr, bool check) {
+	if (!field) {
+		if (check) {
+			assert(!"No field passed");
+		}
+		return -1;
+	}
+	if (!field->isInitialized) {
+		if (check) {
+			assert(!"Field not initialized");
+		}
+		return -1;
+	}
+
 	for (bgq_weylfield_section sec = 0; sec < sec_end; sec+=1) {
 		size_t secsize_double = bgq_section_size(sec);
 		size_t secsize_float = secsize_double/2;
 
-		if (field->isWeyllayoutSloppy) {
+		if (field->has_weyllayout_float && field->has_weyllayout_double && ((void*)field->sec_collapsed_double == (void*)field->sec_collapsed_float)) {
+			assert(!"Double and float pointers indistinguishable");
+		}
+
+		if (field->has_weyllayout_float) {
 			bgq_weyl_vec_float *baseptr = bgq_section_baseptr_float(field, sec);
 			if ((uint8_t*)baseptr <= (uint8_t*)ptr && (uint8_t*)ptr < (uint8_t*)baseptr+secsize_float) {
 				size_t baseoffset = bgq_weyl_section_offset(sec);
@@ -714,7 +731,9 @@ size_t bgq_pointer2offset_raw(bgq_weylfield_controlblock *field, void *ptr, bool
 				assert(result < bgq_weyl_section_offset(sec_end));
 				return result;
 			}
-		} else {
+		}
+
+		if (field->has_weyllayout_double) {
 			bgq_weyl_vec_double *baseptr = bgq_section_baseptr_double(field, sec);
 			if ((uint8_t*)baseptr <= (uint8_t*)ptr && (uint8_t*)ptr < (uint8_t*)baseptr+secsize_double) {
 				size_t baseoffset = bgq_weyl_section_offset(sec);
@@ -726,8 +745,8 @@ size_t bgq_pointer2offset_raw(bgq_weylfield_controlblock *field, void *ptr, bool
 		}
 	}
 	if (check) {
-	assert(!"Pointer to non-field location");
-	UNREACHABLE
+		assert(!"Pointer to non-field location");
+		UNREACHABLE
 	}
 	return -1;
 }

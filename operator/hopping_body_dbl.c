@@ -116,12 +116,12 @@
     _vector_assign(temp.s3,rho_v1);
 
 
-    bgq_setrefvalue(t,x,y,z, BGQREF_TUP_SOURCE, sp->s1.c0);
-    bgq_setrefvalue(t,x,y,z, BGQREF_TUP, psi_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TUP_SOURCE, sp->s0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TUP, psi_v0.c0);
     bgq_setrefvalue(t,x,y,z, BGQREF_TUP_GAUGE, up->c00);
-    bgq_setrefvalue(t,x,y,z, BGQREF_TUP_WEYL, chi_v1.c0);
-    bgq_setrefvalue(t,x,y,z, BGQREF_TUP_KAMUL, rho_v1.c0);
-    bgq_setrefvalue(t,x,y,z, BGQREF_TUP_RECV, rho_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TUP_WEYL, chi_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TUP_KAMUL, rho_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TUP_RECV, rho_v0.c0);
 
     /*********************** direction -t ************************/
 #    if ((defined _GAUGE_COPY))
@@ -145,11 +145,12 @@
     _vector_sub_assign(temp.s3,rho_v1); // 6
 
 
+    bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN, psi_v0.c0);
     bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_GAUGE, um->c00);
-    bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_KAMUL, rho_v1.c0);
-    bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_RECV, rho_v1.c0);
-
-    bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_ACCUM, temp.s1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_WEYL, chi_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_KAMUL, rho_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_RECV, rho_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_ACCUM, temp.s0.c0);
 
 
     /*********************** direction +x ************************/
@@ -174,9 +175,12 @@
     _vector_add_assign(temp.s1,rho_v1);
     _vector_i_sub_assign(temp.s2,rho_v1);
 
-    bgq_setrefvalue(t,x,y,z, BGQREF_XUP_RECV, rho_v1.c0);
-    bgq_setrefvalue(t,x,y,z, BGQREF_XUP_KAMUL, rho_v1.c0);
-    bgq_setrefvalue(t,x,y,z, BGQREF_XUP_ACCUM, temp.s1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XUP, psi_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XUP_GAUGE, up->c00);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XUP_WEYL, chi_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XUP_KAMUL, rho_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XUP_RECV, rho_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XUP_ACCUM, temp.s0.c0);
 
     /*********************** direction -x ************************/
 #    if ((defined _GAUGE_COPY))
@@ -199,12 +203,12 @@
     _vector_add_assign(temp.s1,rho_v1);
     _vector_i_add_assign(temp.s2,rho_v1);
 
-    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN, psi_v1.c0);
-    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN_GAUGE, um->c02);
-    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN_WEYL, chi_v1.c0);
-    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN_KAMUL, rho_v1.c0);
-    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN_RECV, rho_v1.c0);
-    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN_ACCUM, temp.s1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN, psi_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN_GAUGE, um->c00);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN_WEYL, chi_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN_KAMUL, rho_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN_RECV, rho_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_XDOWN_ACCUM, temp.s0.c0);
 
     /*********************** direction +y ************************/
 #    ifndef _GAUGE_COPY
@@ -228,8 +232,8 @@
     _vector_add_assign(temp.s1,rho_v1);
     _vector_sub_assign(temp.s2,rho_v1);
 
-    bgq_setrefvalue(t,x,y,z, BGQREF_YUP_RECV, rho_v1.c0);
-    bgq_setrefvalue(t,x,y,z, BGQREF_YUP_ACCUM, temp.s1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_YUP_RECV, rho_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_YUP_ACCUM, temp.s0.c0);
 
     /*********************** direction -y ************************/
 #    if ((defined _GAUGE_COPY))
@@ -242,7 +246,7 @@
 
     _hop_y_m();
 
-    bgq_setrefvalue(t,x,y,z, BGQREF_YDOWN_ACCUM, temp.s1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_YDOWN_ACCUM, temp.s0.c0);
 
     /*********************** direction +z ************************/
 #    ifndef _GAUGE_COPY
@@ -266,11 +270,11 @@
     _vector_add_assign(temp.s1,rho_v1);
     _vector_i_add_assign(temp.s3,rho_v1);
 
-    bgq_setrefvalue(t,x,y,z, BGQREF_ZUP, psi_v1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_ZUP, psi_v0.c0);
     bgq_setrefvalue(t,x,y,z, BGQREF_ZUP_GAUGE, up->c00);
-    bgq_setrefvalue(t,x,y,z, BGQREF_ZUP_KAMUL, rho_v1.c0);
-    bgq_setrefvalue(t,x,y,z, BGQREF_ZUP_RECV, rho_v1.c0);
-    bgq_setrefvalue(t,x,y,z, BGQREF_ZUP_ACCUM, temp.s1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_ZUP_KAMUL, rho_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_ZUP_RECV, rho_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_ZUP_ACCUM, temp.s0.c0);
 
     /*********************** direction -z ************************/
 #ifndef OMP
@@ -293,5 +297,5 @@
     _store_res();
 #endif
 
-    bgq_setrefvalue(t,x,y,z, BGQREF_ACCUM, temp.s1.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_ACCUM, temp.s0.c0);
   }

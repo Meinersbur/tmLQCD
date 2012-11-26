@@ -154,12 +154,12 @@ void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work,  bool nokamul, bgq
 	bgq_master_call(func, work);
 	uint64_t flopPerSite = (
 			/*accum spinor*/	7/*dirs*/ * (4 * 3)/*cmplx per spinor*/ * 2/*flops accum*/ +
-			/*su3 mul*/			8/*dirs*/ * 2/*su3vec per weyl*/ * (6*9 + 2*3)/*flop per su3 mv-mul*/
+			/*su3 mul*/			8/*dirs*/ * 2/*su3vec per weyl*/ * (9*6/*cmpl mul*/ + 6*2/*cmplx add*/)/*flop per su3 mv-mul*/
 	);
 	if (!nokamul)
 		flopPerSite += /*kamul*/			8/*dirs*/ * (2 * 3)/*cmplx per weyl*/ * 6/*flops cmplx mul*/;
 	if (layout & ly_weyl)
-		flopPerSite += /*weyl reduce*/     8/*dirs*/ * 2/*weyl per dir*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/;
+		flopPerSite += /*weyl reduce*/      8/*dirs*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/;
 	flopaccumulator += sites * PHYSICAL_LK * flopPerSite;
 #if 0
 	if (readFulllayout) {
@@ -232,7 +232,10 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	bgq_spinorfield_layout layout = bgq_spinorfield_prepareRead(spinorfield, !isOdd, true, !floatprecision, floatprecision, false);
 	bgq_spinorfield_prepareWrite(targetfield, isOdd, floatprecision ? ly_weyl_float : ly_weyl_double);
 
-
+	//if (floatprecision)
+	//	memset(targetfield->sec_collapsed_float, 0xFF, PHYSICAL_VOLUME * sizeof(*targetfield->sec_collapsed_float));
+	//else
+	//	memset(targetfield->sec_collapsed_double, 0xFF, PHYSICAL_VOLUME * sizeof(*targetfield->sec_collapsed_double));
 
 	//bgq_spinorfield_setup(targetfield, isOdd, false, false, false, true, floatprecision);
 	//bgq_spinorfield_setup(spinorfield, !isOdd, !(layout & ly_weyl), false, (layout & ly_weyl), false, false);
@@ -242,14 +245,15 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 
 	// 0. Expect data from other neighbor node
 	if (!nocomm) {
-		bgq_comm_recv(nospi, floatprecision);
+		bgq_comm_recv(nospi, floatprecision, targetfield);
 	}
 
 
 	// 1. Distribute
-	bgq_master_sync();
-	static bgq_HoppingMatrix_workload work_surface;
-	if (PHYSICAL_SURFACE > 0) {
+	// Compute surface and put data into the send buffers
+	if ((PHYSICAL_SURFACE > 0) && !nodistribute) {
+		bgq_master_sync();
+		static bgq_HoppingMatrix_workload work_surface;
 		work_surface.isOdd_src = !isOdd;
 		work_surface.isOdd_dst = isOdd;
 		work_surface.targetfield = targetfield;
@@ -257,21 +261,6 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 		work_surface.ic_begin = bgq_surface2collapsed(0);
 		work_surface.ic_end = bgq_surface2collapsed(PHYSICAL_SURFACE-1)+1;
 		work_surface.noprefetchstream = noprefetchstream;
-	}
-
-	static bgq_HoppingMatrix_workload work_body;
-	if (PHYSICAL_BODY > 0) {
-		work_body.isOdd_src = !isOdd;
-		work_body.isOdd_dst = isOdd;
-		work_body.targetfield = targetfield;
-		work_body.spinorfield = spinorfield;
-		work_body.ic_begin = bgq_body2collapsed(0);
-		work_body.ic_end = bgq_body2collapsed(PHYSICAL_BODY-1)+1;
-		work_body.noprefetchstream = noprefetchstream;
-	}
-
-	// Compute surface and put data into the send buffers
-	if ((PHYSICAL_SURFACE > 0) && !nodistribute) {
 		bgq_HoppingMatrix_work(&work_surface, nokamul, layout);
 	}
 
@@ -293,19 +282,31 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 		bgq_master_sync(); // Wait for threads to finish surface before sending it
 		//TODO: ensure there are no other communications pending
 		bgq_comm_send(nospi, floatprecision);
-		targetfield->waitingForRecv = true;
+		//targetfield->waitingForRecv = true;
 	}
-	targetfield->pendingDatamove = (PHYSICAL_SURFACE > 0) && !nodatamove;
+	if (!nodatamove) {
+		targetfield->pendingDatamove = true;
+	}
 	targetfield->hmflags = opts;
 
 	if (nooverlap) {
 		// Do not wait until data is required, but do it here
-		bgq_spinorfield_setup(targetfield, isOdd, false, false, true, false, false);
+		bgq_spinorfield_prepareRead(targetfield, isOdd, true, true, true, true);
+		//bgq_spinorfield_setup(targetfield, isOdd, false, false, true, false, false);
 	}
 
 
 // 3. Compute the body
 	if ((PHYSICAL_BODY > 0) && !nobody) {
+		bgq_master_sync();
+		static bgq_HoppingMatrix_workload work_body;
+		work_body.isOdd_src = !isOdd;
+		work_body.isOdd_dst = isOdd;
+		work_body.targetfield = targetfield;
+		work_body.spinorfield = spinorfield;
+		work_body.ic_begin = bgq_body2collapsed(0);
+		work_body.ic_end = bgq_body2collapsed(PHYSICAL_BODY-1)+1;
+		work_body.noprefetchstream = noprefetchstream;
 		bgq_HoppingMatrix_work(&work_body, nokamul, layout);
 		if (!COMM_T && !nodatamove) {
 			// Copy the data from HALO_T into the required locations

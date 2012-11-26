@@ -38,6 +38,26 @@ typedef struct {
 	COMPLEX_PRECISION s[2][3]; // 96 byte
 } bgq_weyl_nonvec;
 
+
+typedef enum {
+	ly_weyl = (1<<0),
+	ly_sloppy = (1<<1),
+	ly_mul = (1<<2)
+} bgq_spinorfield_layoutflags;
+typedef enum {
+	ly_full_double=0,
+	ly_weyl_double=ly_weyl,
+	ly_full_float=ly_sloppy,
+	ly_weyl_float=ly_weyl|ly_sloppy,
+	ly_full_double_mul=ly_mul,
+	ly_weyl_double_mul=ly_mul|ly_weyl,
+	ly_full_float_mul=ly_mul|ly_sloppy,
+	ly_weyl_float_mul=ly_mul|ly_weyl|ly_sloppy,
+	ly_none=-1,
+} bgq_spinorfield_layout;
+#define BGQ_SPINORFIELD_LAYOUT_COUNT 8
+
+
 #define bgq_weyl_fromqpx(arg) bgq_weyl_fromqpx_raw(bgq_su3_weyl_vars(arg))
 EXTERN_INLINE bgq_weyl_vec_double bgq_weyl_fromqpx_raw(bgq_su3_weyl_params(weyl)) {
 	bgq_weyl_vec_double result;
@@ -126,9 +146,11 @@ EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_extractfromqpxvec_raw(bgq_su3_weyl_params
 }
 
 
-void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl, bool writeFloat);
-void bgq_spinorfield_setup_double(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl);
-void bgq_spinorfield_setup_float(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl);
+
+void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, bool isOdd, bgq_spinorfield_layout layout, bool disableOthers);
+//void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl, bool writeFloat); // obsolete
+//void bgq_spinorfield_setup_double(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl); // obsolete
+//void bgq_spinorfield_setup_float(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl); // obsolete
 void bgq_spinorfield_transfer(bool isOdd, bgq_weylfield_controlblock *targetfield, spinor* sourcefield);
 double bgq_spinorfield_compare(bool isOdd, bgq_weylfield_controlblock *bgqfield, spinor *reffield, bool silent);
 
@@ -311,7 +333,9 @@ EXTERN_INLINE void bgq_spinorvec_written_impl_float(bgq_spinor_vec_float *target
 typedef enum {
 	BGQREF_SOURCE,
 
+	BGQREF_TDOWN,
 	BGQREF_TDOWN_GAUGE,
+	BGQREF_TDOWN_WEYL,
 	BGQREF_TDOWN_KAMUL,
 
 	BGQREF_TUP_SOURCE,
@@ -320,6 +344,9 @@ typedef enum {
 	BGQREF_TUP_WEYL,
 	BGQREF_TUP_KAMUL,
 
+	BGQREF_XUP,
+	BGQREF_XUP_GAUGE,
+	BGQREF_XUP_WEYL,
 	BGQREF_XUP_KAMUL,
 
 	BGQREF_XDOWN,
@@ -387,38 +414,8 @@ bgq_weyl_vec_float *bgq_section_baseptr_float(bgq_weylfield_controlblock *field,
 
 
 
-typedef enum {
-	ly_weyl = (1<<0),
-	ly_sloppy = (1<<1),
-	ly_mul = (1<<2)
-} bgq_spinorfield_layoutflags;
-typedef enum {
-	ly_full_double=0,
-	ly_weyl_double=ly_weyl,
-	ly_full_float=ly_sloppy,
-	ly_weyl_float=ly_weyl|ly_sloppy,
-	ly_full_double_mul=ly_mul,
-	ly_weyl_double_mul=ly_mul|ly_weyl,
-	ly_full_float_mul=ly_mul|ly_sloppy,
-	ly_weyl_float_mul=ly_mul|ly_weyl|ly_sloppy,
-} bgq_spinorfield_layout;
-#define BGQ_SPINORFIELD_LAYOUT_COUNT 8
 
 
-EXTERN_INLINE bgq_spinorfield_layout bgq_spinorfield_bestLayout(bgq_weylfield_controlblock *field) {
-	assert(field);
-	assert(field->isInitialized);
-	assert(field->hasFullspinorData || field->hasWeylfieldData);
-
-	if (field->hasFullspinorData) {
-		return field->isFulllayoutSloppy ? ly_full_float : ly_full_double;
-	} else if (field->hasWeylfieldData) {
-		return field->isWeyllayoutSloppy ? ly_weyl_float : ly_weyl_double;
-	} else {
-		assert(!"Field has no data available");
-		return -1;
-	}
-}
 
 #define bgq_spinorfield_readSpinor(target, field, ic, readWeyllayout, sloppy, mul) bgq_spinorfield_readSpinor_raw(bgq_su3_spinor_vars(target), field, ic, readWeyllayout, sloppy, mul)
 EXTERN_INLINE void bgq_spinorfield_readSpinor_raw(bgq_su3_spinor_params(*target), bgq_weylfield_controlblock *field, ucoord ic, bool readWeyllayout, bool sloppy, bool mul) {
