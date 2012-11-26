@@ -232,10 +232,12 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	bgq_spinorfield_layout layout = bgq_spinorfield_prepareRead(spinorfield, !isOdd, true, !floatprecision, floatprecision, false);
 	bgq_spinorfield_prepareWrite(targetfield, isOdd, floatprecision ? ly_weyl_float : ly_weyl_double);
 
-	//if (floatprecision)
-	//	memset(targetfield->sec_collapsed_float, 0xFF, PHYSICAL_VOLUME * sizeof(*targetfield->sec_collapsed_float));
-	//else
-	//	memset(targetfield->sec_collapsed_double, 0xFF, PHYSICAL_VOLUME * sizeof(*targetfield->sec_collapsed_double));
+#ifndef NDEBUG
+	if (floatprecision)
+		memset(targetfield->sec_collapsed_float, 0xFF, PHYSICAL_VOLUME * sizeof(*targetfield->sec_collapsed_float));
+	else
+		memset(targetfield->sec_collapsed_double, 0xFF, PHYSICAL_VOLUME * sizeof(*targetfield->sec_collapsed_double));
+#endif
 
 	//bgq_spinorfield_setup(targetfield, isOdd, false, false, false, true, floatprecision);
 	//bgq_spinorfield_setup(spinorfield, !isOdd, !(layout & ly_weyl), false, (layout & ly_weyl), false, false);
@@ -281,7 +283,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	if ((PHYSICAL_SURFACE > 0) && !nocomm) {
 		bgq_master_sync(); // Wait for threads to finish surface before sending it
 		//TODO: ensure there are no other communications pending
-		bgq_comm_send(nospi, floatprecision);
+		bgq_comm_send();
 		//targetfield->waitingForRecv = true;
 		if (!nodatamove) {
 			targetfield->pendingDatamove = true;

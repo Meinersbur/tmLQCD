@@ -252,16 +252,25 @@ static void bgq_comm_test(bool nospi, bool sloppy) {
 			for (ucoord v = 0; v < 2; v += 1){
 				for (ucoord c = 0; c < 3; c += 1){
 					for (ucoord k = 0; k < 2; k += 1){
-						g_bgq_sec_send_double[d][i].s[v][c][k] = (double) g_cart_id + g_proc_id * _Complex_I;
+						if (sloppy)
+							g_bgq_sec_send_float[d][i].s[v][c][k] = g_cart_id + g_proc_id * _Complex_I;
+						else
+							g_bgq_sec_send_double[d][i].s[v][c][k] = g_cart_id + g_proc_id * _Complex_I;
+
+						g_bgq_sec_recv_double[d][i].s[v][c][k] = -1;
+						g_bgq_sec_recv_float[d][i].s[v][c][k] = -1;
 					}
 				}
 			}
 		}
+
 	}
 
+
+
 	bgq_comm_recv(nospi, sloppy, NULL);
-	bgq_comm_send(nospi, sloppy);
-	bgq_comm_wait(nospi, sloppy);
+	bgq_comm_send();
+	bgq_comm_wait();
 
 	for (ucoord cd = 0; cd < COMMDIR_COUNT; cd+=1) {
 		bgq_direction d = bgq_commdir2direction(cd);
@@ -274,10 +283,10 @@ static void bgq_comm_test(bool nospi, bool sloppy) {
 			for (ucoord v = 0; v < 2; v += 1) {
 				for (ucoord c = 0; c < 3; c += 1) {
 					for (ucoord k = 0; k < 2; k += 1) {
-						complexdouble val = g_bgq_sec_recv_double[d][i].s[v][c][k];
+						complexdouble val = sloppy ?  g_bgq_sec_recv_float[d][i].s[v][c][k] : g_bgq_sec_recv_double[d][i].s[v][c][k];
 						if (creal(val) != rank_neighbor) {
 							printf("Node %d: Exchange doesn't work for dir %d: %d != %f (proc=%f) at point %zu\n", g_proc_id, d, rank_neighbor, creal(val), cimag(val), i);
-							exit(1);
+							abort();
 						}
 					}
 				}
@@ -298,7 +307,7 @@ static void bgq_comm_common_init(void) {
 
 	if (PHYSICAL_SURFACE > 0) {
 		size_t commbufsize = bgq_weyl_section_offset(sec_comm_end) - bgq_weyl_section_offset(sec_comm);
-		uint8_t *buf = (uint8_t*)malloc_aligned(commbufsize + commbufsize/*some memory is wasted here, but no additional work to be done for alignment*/, BGQ_ALIGNMENT_L2);
+		uint8_t *buf = (uint8_t*)malloc_aligned(commbufsize /*+ commbufsize    some memory is wasted here, but no additional work to be done for alignment*/, BGQ_ALIGNMENT_L2);
 		uint8_t *bufend = buf + commbufsize;
 		g_bgq_sec_comm = buf;
 		g_bgq_sec_comm_float = buf + commbufsize;
@@ -310,11 +319,11 @@ static void bgq_comm_common_init(void) {
 
 			g_bgq_sec_send_double[d] = (bgq_weyl_vec_double*)(buf + bgq_weyl_section_offset(sec_send) - bgq_weyl_section_offset(sec_comm));
 			assert((uint8_t*)g_bgq_sec_send_double[d] <= bufend);
-			g_bgq_sec_send_float[d] = (bgq_weyl_vec_float*)((uint8_t*)g_bgq_sec_send_double[d] + commbufsize);
+			g_bgq_sec_send_float[d] = (bgq_weyl_vec_float*)((uint8_t*)g_bgq_sec_send_double[d] + 0);
 
 			g_bgq_sec_recv_double[d] = (bgq_weyl_vec_double*)(buf + bgq_weyl_section_offset(sec_recv) - bgq_weyl_section_offset(sec_comm));
 			assert((uint8_t*)g_bgq_sec_recv_double[d] <= bufend);
-			g_bgq_sec_recv_float[d] = (bgq_weyl_vec_float*)((uint8_t*)g_bgq_sec_recv_double[d] + commbufsize);
+			g_bgq_sec_recv_float[d] = (bgq_weyl_vec_float*)((uint8_t*)g_bgq_sec_recv_double[d] + 0);
 
 			assert((uintptr_t)g_bgq_sec_send_double[d] % BGQ_ALIGNMENT_L2 == 0);
 			assert((uintptr_t)g_bgq_sec_recv_double[d] % BGQ_ALIGNMENT_L2 == 0);
@@ -482,7 +491,7 @@ void bgq_comm_spi_init(void) {
 	setup_mregions_bats_counters(bufferSize);
 
 	// Create descriptors
-	// Injection Direct Put Descriptor, one for each neighbour
+	// Injection Direct Put Descriptor, one for each neighbor
 	SPIDescriptors = (MUHWI_Descriptor_t*)(((uint64_t)SPIDescriptorsMemory+64)&~(64-1));
 	create_descriptors(SPIDescriptors, messageSizes, soffsets, roffsets, COMMDIR_COUNT);
 
@@ -530,7 +539,7 @@ void bgq_comm_recv(bool nospi, bool sloppy, bgq_weylfield_controlblock *targetfi
 		return;
 	assert(omp_get_thread_num()==0);
 	//master_print("Comm Receiving... nospi=%d sloppy=%d\n", nospi, sloppy);
-	bgq_comm_wait(); // Ensute that previous communication has finished
+	bgq_comm_wait(); // Ensure that previous communication has finished
 
 #ifdef SPI
 	if (!nospi) {
@@ -553,7 +562,7 @@ void bgq_comm_recv(bool nospi, bool sloppy, bgq_weylfield_controlblock *targetfi
 }
 
 
-void bgq_comm_send() {
+void bgq_comm_send(void) {
 	if (PHYSICAL_SURFACE == 0)
 		return;
 	assert(omp_get_thread_num()==0);
@@ -605,7 +614,7 @@ static void bgq_comm_datamove_field(bgq_weylfield_controlblock *targetfield) {
 }
 
 
-void bgq_comm_wait() {
+void bgq_comm_wait(void) {
 	if (PHYSICAL_SURFACE == 0)
 		return;
 	assert(omp_get_thread_num()==0);

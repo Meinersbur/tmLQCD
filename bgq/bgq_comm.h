@@ -23,8 +23,8 @@ void bgq_comm_spi_init(void);
 
 //TODO: inline?
 void bgq_comm_recv(bool nospi, bool sloppy, bgq_weylfield_controlblock *targetfield);
-void bgq_comm_send();
-void bgq_comm_wait();
+void bgq_comm_send(void);
+void bgq_comm_wait(void);
 
 
 

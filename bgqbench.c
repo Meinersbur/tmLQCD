@@ -836,7 +836,7 @@ static void print_stats(benchstat *stats) {
 }
 
 
-static void exec_table(benchfunc_t benchmark, bgq_hmflags additional_opts, int j_max, int k_max) {
+static void exec_table(benchfunc_t benchmark, bgq_hmflags additional_opts, bgq_hmflags kill_opts,  int j_max, int k_max) {
 //static void exec_table(bool sloppiness, hm_func_double hm_double, hm_func_float hm_float, bgq_hmflags additional_opts) {
 	benchstat excerpt;
 
@@ -860,7 +860,7 @@ static void exec_table(benchfunc_t benchmark, bgq_hmflags additional_opts, int j
 		benchstat stats[lengthof(flags)];
 		for (int i3 = 0; i3 < lengthof(flags); i3 += 1) {
 			bgq_hmflags hmflags = flags[i3];
-			hmflags = hmflags | additional_opts;
+			hmflags = (hmflags | additional_opts) & ~kill_opts;
 
 			benchstat result = runbench(benchmark, hmflags, k_max, j_max, threads);
 			stats[i3] = result;
@@ -1110,11 +1110,11 @@ static void exec_bench(int j_max, int k_max) {
 	bgq_parallel(&check_hopmat, &checkargs_float);
 
 	master_print("Benchmark: hopmatkernel\n");
-	exec_table(&benchmark_hopmatkernel, 0, j_max, k_max);
+	exec_table(&benchmark_hopmatkernel, 0, hm_withcheck, j_max, k_max);
 	print_repeat("\n", 2);
 
 	master_print("Benchmark: HoppingMatrix\n");
-	exec_table(&benchmark_hopmat, 0, j_max, k_max);
+	exec_table(&benchmark_hopmat, 0, 0, j_max, k_max);
 	print_repeat("\n", 2);
 
 	master_print("Benchmarking done\n");
