@@ -139,8 +139,8 @@ complex_double bgq_spinorfield_innerprod_local(bgq_weylfield_controlblock *field
 complex_double bgq_spinorfield_innerprod_global(bgq_weylfield_controlblock *field1, bgq_weylfield_controlblock *field2) {
 	complex_double localresult = bgq_spinorfield_innerprod_local(field1, field2);
 	complex_double globalresult;
-	MPI_Allreduce(&localresult, &localresult, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
-	return localresult;
+	MPI_Allreduce(&localresult, &globalresult, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
+	return globalresult;
 }
 
 
@@ -161,12 +161,12 @@ double bgq_spinorfield_innerprod_r_local(bgq_weylfield_controlblock *field1, bgq
 double bgq_spinorfield_innerprod_r_global(bgq_weylfield_controlblock *field1, bgq_weylfield_controlblock *field2) {
 	double localresult = bgq_spinorfield_innerprod_r_local(field1, field2);
 	double globalresult;
-	MPI_Allreduce(&localresult, &localresult, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-	return localresult;
+	MPI_Allreduce(&localresult, &globalresult, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	return globalresult;
 }
 
 
-#define REDUCTION_NAME bgq_spinorfield_norm_raw
+#define REDUCTION_NAME bgq_spinorfield_sqrnorm_raw
 #define REDUCTION_ARGFIELDS 1
 #define REDUCTION_RETURNTYPE(...) bgq_vectorsum_t (__VA_ARGS__)
 #define REDUCTION_VARINIT bgq_reduce_initzero
@@ -174,17 +174,17 @@ double bgq_spinorfield_innerprod_r_global(bgq_weylfield_controlblock *field1, bg
 #define REDUCTION_COMBINEFUNC bgq_combine_add
 #include "bgq_reduction.inc.c"
 
-double bgq_spinorfield_norm_local(bgq_weylfield_controlblock *field) {
-	bgq_vectorsum_t rawresult = bgq_spinorfield_norm_raw(field);
+double bgq_spinorfield_sqrnorm_local(bgq_weylfield_controlblock *field) {
+	bgq_vectorsum_t rawresult = bgq_spinorfield_sqrnorm_raw(field);
 	double localresult = bgq_elem0(rawresult.sum) +  bgq_elem1(rawresult.sum) +  bgq_elem2(rawresult.sum) +  bgq_elem3(rawresult.sum);
 	return localresult;
 }
 
-double bgq_spinorfield_norm_global(bgq_weylfield_controlblock *field) {
-	double localresult = bgq_spinorfield_norm_local(field);
+double bgq_spinorfield_sqrnorm_global(bgq_weylfield_controlblock *field) {
+	double localresult = bgq_spinorfield_sqrnorm_local(field);
 	double globalresult;
-	MPI_Allreduce(&localresult, &localresult, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-	return localresult;
+	MPI_Allreduce(&localresult, &globalresult, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	return globalresult;
 }
 
 
@@ -220,9 +220,9 @@ double square_norm(spinor *P, int N, int parallel) {
 	bgq_weylfield_controlblock *field = (bgq_weylfield_controlblock*)P;
 
 	if (parallel)
-		return bgq_spinorfield_norm_global(field);
+		return bgq_spinorfield_sqrnorm_global(field);
 	else
-		return bgq_spinorfield_norm_local(field);
+		return bgq_spinorfield_sqrnorm_local(field);
 }
 
 #endif

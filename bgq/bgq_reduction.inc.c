@@ -233,7 +233,7 @@ static inline REDUCTION_RETURNTYPE(REDUCTION_NAME)(
 	reduction_args = call_args;
 	bgq_master_call(workerfunc, &reduction_args);
 
-	size_t threads = omp_get_thread_num();
+	size_t threads = omp_get_num_threads();
 	REDUCTION_RETURNTYPE(result) = REDUCTION_VARINIT();
 	for (size_t tid = 0; tid < threads; tid+=1) {
 		REDUCTION_RETURNTYPE(threadresult) = reduction_args.threadresult[tid];

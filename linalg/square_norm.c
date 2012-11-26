@@ -258,7 +258,7 @@ double square_norm(const spinor * const P, const int N, const int parallel)
 #endif
 
 #ifdef OMP
-#pragma omp parallel
+//#pragma omp parallel
   {
     int thread_num = omp_get_thread_num();
     g_omp_acc_re[thread_num] = 0.0;
@@ -270,7 +270,7 @@ double square_norm(const spinor * const P, const int N, const int parallel)
   kc = 0.0;
   
 #ifdef OMP
-#pragma omp for
+//#pragma omp for
 #endif    
   for (int ix  =  0; ix < N; ix++) {
     s = P + ix;
