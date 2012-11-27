@@ -68,7 +68,8 @@ static double _Complex rs00, rs01, rs02, rs10, rs11, rs12, rs20, rs21, rs22,
 
 /* this is the hopping part only */
 void local_H(spinor * const rr, spinor * const s, su3 * u, int * _idx) {
-
+	spinorfield_enable(rr, false);
+	spinorfield_enable(s, true);
   int * idx = _idx;
   su3 * restrict up ALIGN;
   su3 * restrict um ALIGN;
@@ -441,7 +442,8 @@ static inline void m3addandstore(spinor * restrict const r, spinor * restrict co
 
 /* this is the hopping part only */
 static inline void local_H(spinor * const rr, spinor * const s, su3 * restrict u, int * _idx) {
-
+	spinorfield_enable(rr, false);
+	spinorfield_enable(s, true);
   int * idx = _idx;
 
   /****** direction +0 ******/
@@ -487,6 +489,8 @@ static spinor rs __attribute__ ((aligned (16)));
 
 /* Serially Checked ! */
 void D_psi(spinor * const P, spinor * const Q){
+	spinorfield_enable(P, false);
+	spinorfield_enable(Q, true);
   int ix,iy,iz;
   su3 *up,*um;
   spinor *s,*sp,*sm,*rn;
@@ -883,6 +887,8 @@ void D_psi(spinor * const P, spinor * const Q){
  **********************************/
 /* Checked! */
 void D_psi(spinor * const P, spinor * const Q){
+	spinorfield_enable(P, false);
+	spinorfield_enable(Q, true);
   int ix,iy,iz;
   static _Complex double fact1;
   su3 * restrict up ALIGN;
@@ -1136,6 +1142,8 @@ void D_psi(spinor * const P, spinor * const Q){
 static _Complex double rho1,rho2;
 
 void D_psi(spinor * const P, spinor * const Q){
+	spinorfield_enable(P, false);
+	spinorfield_enable(Q, true);
   int ix,iy;
   su3 * restrict up,* restrict um;
   spinor * restrict rr,* restrict s,* restrict sp,* restrict sm;
@@ -1244,6 +1252,8 @@ void D_psi_prec(spinor * const P, spinor * const Q){
 /* double copy                                                */
 
 void Block_D_psi(block * blk, spinor * const rr, spinor * const s) {
+	spinorfield_enable(rr, false);
+	spinorfield_enable(s, true);
   int i;
   spinor *r = rr;
   spinor *t = s;
@@ -1289,6 +1299,8 @@ void Block_D_psi(block * blk, spinor * const rr, spinor * const s) {
 
 /* Apply Hopping Matrix to a even(odd) spinor */
 void Block_H_psi(block * blk, spinor * const rr, spinor * const s, const int eo) {
+	spinorfield_enable(rr, false);
+	spinorfield_enable(s, true);
   int i;
   spinor *r = rr;
   su3 * u = blk->u;

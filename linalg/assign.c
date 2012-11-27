@@ -41,6 +41,8 @@
 /* S and R must not overlap */
 void assign(spinor * const R, spinor * const S, const int N)
 {
+	spinorfield_enable(R, false);
+	spinorfield_enable(S, true);
   memcpy(R, S, N*sizeof(spinor));
   return;
 }

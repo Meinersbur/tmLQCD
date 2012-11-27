@@ -43,6 +43,9 @@ void assign_mul_add_mul_add_mul_r(spinor * const R, spinor * const S, spinor * c
 				  const double c1,const double c2,const double c3,
 				  const int N)
 {
+	spinorfield_enable(R, true);
+	spinorfield_enable(S, true);
+	spinorfield_enable(U, true);
 #ifdef OMP
 #pragma omp parallel
   {

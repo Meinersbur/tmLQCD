@@ -49,6 +49,9 @@
 
 void diff(spinor * const Q,spinor * const R,spinor * const S, const int N)
 {
+	spinorfield_enable(Q, false);
+	spinorfield_enable(R, true);
+	spinorfield_enable(S, true);
   int ix = 1;
   double *s ALIGN;
   double *sp ALIGN;
@@ -202,6 +205,9 @@ void diff(spinor * const Q,spinor * const R,spinor * const S, const int N)
 #elif (defined BGQ && defined XLC)
 
 void diff(spinor * const Q,const spinor * const R,const spinor * const S, const int N) {
+	spinorfield_enable(Q, false);
+	spinorfield_enable(R, true);
+	spinorfield_enable(S, true);
 #ifdef OMP
 #pragma omp parallel
   {
@@ -269,6 +275,9 @@ void diff(spinor * const Q,const spinor * const R,const spinor * const S, const 
 
 void diff(spinor * const Q, const spinor * const R, const spinor * const S, const int N)
 {
+	spinorfield_enable(Q, false);
+	spinorfield_enable(R, true);
+	spinorfield_enable(S, true);
 #ifdef OMP
 #pragma omp parallel
   {

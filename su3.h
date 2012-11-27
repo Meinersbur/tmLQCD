@@ -33,6 +33,7 @@
  *******************************************************************************/
 
 #include <complex.h>
+#include <stdbool.h>
 #if (defined XLC && defined BGL)
 # include "bgl.h"
 #endif
@@ -665,5 +666,7 @@ _sse_store_up(r);
   (t).c22 = (u).c2 * conj((v).c2) + (w).c2 * conj((z).c2);
 
 
+
+void spinorfield_enable(const spinor *legacyField, bool read); // The const is bogus and does not help the compiler to optimize anything; however, it suppresses a warning
 
 #endif

@@ -37,7 +37,9 @@
 #if ( defined SSE2 || defined SSE3 )
 void assign_add_mul_r_add_mul(spinor * const R, spinor * const S, spinor * const U,
 			      const double c1,const double c2, const int N) {
-
+	spinorfield_enable(R, true);
+	spinorfield_enable(S, true);
+	spinorfield_enable(U, true);
   int ix;
   su3_vector *s,*r,*t;
   r=&R[0].s0;
@@ -86,6 +88,9 @@ void assign_add_mul_r_add_mul(spinor * const R, spinor * const S, spinor * const
 /* j, k input, l output */
 void assign_add_mul_r_add_mul(spinor * const R, spinor * const S, spinor * const U,
 			      const double c1,const double c2, const int N) {
+	spinorfield_enable(R, true);
+	spinorfield_enable(S, true);
+	spinorfield_enable(U, true);
 #ifdef OMP
 #pragma omp parallel
   {

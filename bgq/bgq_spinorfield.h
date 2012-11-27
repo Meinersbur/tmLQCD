@@ -584,7 +584,7 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 //bgq_weylfield_controlblock *bgq_translate_spinorfield(spinor *legacyField);
 void bgq_spinorfield_prepareLegacy(bgq_weylfield_controlblock *field, bool isOdd, bool read);
 
-void spinorfield_enable(spinor *legacyField, bool read);
+void spinorfield_enable(const spinor *legacyField, bool read);
 
 
 #undef EXTERN_INLINE

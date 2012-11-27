@@ -36,6 +36,9 @@
 /* S,U input, R inoutput, c1 input */
 void mul_diff_r(spinor * const R,spinor * const S,spinor * const U, const double c1, const int N)
 {
+	spinorfield_enable(R, false);
+	spinorfield_enable(S, true);
+	spinorfield_enable(U, true);
 #ifdef OMP
 #pragma omp parallel
   {

@@ -1560,8 +1560,8 @@ bgq_weylfield_controlblock *bgq_translate_spinorfield(spinor *legacyField) {
 }
 
 
-void spinorfield_enable(spinor *legacyField, bool read) {
-	bgq_weylfield_controlblock *field = bgq_translate_spinorfield(legacyField);
+void spinorfield_enable(const spinor *legacyField, bool read) {
+	bgq_weylfield_controlblock *field = bgq_translate_spinorfield((spinor *)legacyField);
 	bgq_spinorfield_prepareLegacy(field, field->isOdd, read);
 }
 

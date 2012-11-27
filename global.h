@@ -36,7 +36,6 @@
 #endif
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdbool.h>
 #ifdef MPI
 #  include <mpi.h>
 #endif
@@ -286,8 +285,6 @@ EXTERN int ** g_idn3d;
 
 void fatal_error(char const *error, char const *function);
 void *rpl_malloc(size_t n);
-
-void spinorfield_enable(spinor *legacyField, bool read);
 
 #ifdef MAIN_PROGRAM
 #endif
