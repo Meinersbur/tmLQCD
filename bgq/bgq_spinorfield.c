@@ -15,6 +15,7 @@
 #include "bgq_workers.h"
 
 #include "../geometry_eo.h"
+#include "../read_input.h"
 
 #include <mpi.h>
 #include <sys/stat.h>
@@ -33,7 +34,7 @@ typedef struct {
 double bgq_spinorfield_compare(bool isOdd, bgq_weylfield_controlblock *bgqfield, spinor *reffield, bool silent) {
 	assert(bgqfield);
 	assert(reffield);
-	assert(bgqfield->isInitialized);
+	//assert(bgqfield->isInitialized);
 	assert(bgqfield->isOdd == isOdd);
 
 	//bool readFulllayout = bgqfield->hasFullspinorData;
@@ -342,54 +343,27 @@ static bgq_weylfield_section bgq_direction2writesec(bgq_direction d) {
 }
 
 
+
 void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, bool isOdd, bgq_spinorfield_layout layout, bool disableOthers) {
 	assert(field);
-
-	if (!field->isInitialized) {
-		//field->sec_weyl = NULL;
-		field->sec_collapsed_double = NULL;
-		field->sec_collapsed_float = NULL;
-		field->sec_fullspinor_double = NULL;
-		field->sec_fullspinor_float = NULL;
-		//field->hasFullspinorData = false;
-		//field->hasWeylfieldData = false;
-		//field->waitingForRecv = false;
-		field->isOdd = isOdd;
-		//field->isFulllayoutSloppy = false;
-		//field->isWeyllayoutSloppy = false;
-		field->pendingDatamove = false;
-
-		field->has_fulllayout_double = false;
-		field->has_fulllayout_float = false;
-		field->has_weyllayout_double = false;
-		field->has_weyllayout_float = false;
-
-		field->sendptr_double = NULL;
-		field->sendptr_float = NULL;
-		for (size_t d = 0; d < PHYSICAL_LD; d+=1) {
-			field->consptr_double[d] = NULL;
-			field->consptr_float[d] = NULL;
-		}
-
-		field->isInitialized = true;
-	}
-
-	assert(field->isInitialized);
 	assert(!field->pendingDatamove);
+
+	if (layout == ly_legacy) {
+		assert(disableOthers && "Legacy layout must be enabled exclusively");
+	}
 
 	// Possible actions
 	bool actionInitWeylPtrs = false;
 
 
-	if (field->isOdd != isOdd) {
-		if (field->sendptr_double) {
-			master_print("PERFORMANCE WARNING: Performance loss by reuse of spinorfield with different oddness\n");
-			actionInitWeylPtrs = true;
-		}
-		if (!disableOthers && (field->has_fulllayout_double || field->has_fulllayout_float || field->has_weyllayout_double || field->has_weyllayout_float)) {
-			assert(!"Cannot reuse field data because of different oddness");
-			disableOthers = true;
-		}
+	if (field->sendptr_double && field->isOdd != isOdd) {
+		master_print("PERFORMANCE WARNING: Performance loss by reuse of spinorfield with different oddness\n");
+		actionInitWeylPtrs = true;
+	}
+
+	if (!disableOthers && (field->has_fulllayout_double || field->has_fulllayout_float || field->has_weyllayout_double || field->has_weyllayout_float)) {
+		assert(!"Cannot reuse field data because of different oddness");
+		disableOthers = true;
 	}
 
 	// Allocate necessary fields
@@ -477,6 +451,7 @@ void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, bool isOdd,
 		field->has_fulllayout_float = false;
 		field->has_weyllayout_double = false;
 		field->has_weyllayout_float = false;
+		field->has_legacy = false;
 	}
 
 
@@ -493,6 +468,9 @@ void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, bool isOdd,
 		break;
 	case ly_weyl_float:
 		field->has_weyllayout_float = true;
+		break;
+	case ly_legacy:
+		field->has_legacy = true;
 		break;
 	default:
 		assert(!"Not yet implemented");
@@ -780,7 +758,7 @@ bgq_spinor bgq_spinorfield_getspinor(bgq_weylfield_controlblock *field, ucoord t
 	//bgq_spinorfield_setup(field, field->isOdd, !(layout & ly_weyl), false, (layout & ly_weyl), false, false);
 	bgq_master_sync();
 	bgq_su3_spinor_decl(spinor);
-	bgq_spinorfield_readSpinor(&spinor, field, ic, layout&ly_weyl, layout&ly_sloppy, layout&ly_mul);
+	bgq_spinorfield_readSpinor(&spinor, field, ic, layout&ly_weyl, layout&ly_sloppy, layout&ly_mul, false);
 	return bgq_spinor_fromqpx(spinor, k);
 
 #if 0
@@ -1001,7 +979,7 @@ size_t bgq_fieldpointer2offset(void *ptr) {
 
 bgq_weyl_vec_double *bgq_section_baseptr_double(bgq_weylfield_controlblock *field, bgq_weylfield_section section) {
 	assert(field);
-	assert(field->isInitialized);
+	//assert(field->isInitialized);
 	bgq_weyl_vec_double *result = NULL;
 
 	switch (section) {
@@ -1083,7 +1061,7 @@ bgq_weyl_vec_double *bgq_section_baseptr_double(bgq_weylfield_controlblock *fiel
 
 bgq_weyl_vec_float *bgq_section_baseptr_float(bgq_weylfield_controlblock *field, bgq_weylfield_section section) {
 	assert(field);
-	assert(field->isInitialized);
+	//assert(field->isInitialized);
 	bgq_weyl_vec_float *result = NULL;
 
 	switch (section) {
@@ -1163,6 +1141,120 @@ bgq_weyl_vec_float *bgq_section_baseptr_float(bgq_weylfield_controlblock *field,
 }
 
 
+static bgq_spinorfield_layout bgq_spinorfield_bestLayout(bgq_weylfield_controlblock *field) {
+	assert(field);
+	//assert(field->isInitialized);
+
+	if (field->has_fulllayout_double) {
+		return ly_full_double;
+	} else if (field->has_weyllayout_double) {
+		return ly_full_double;
+	} else if (field->has_fulllayout_float) {
+		return ly_full_float;
+	} else if (field->has_weyllayout_float) {
+		return ly_weyl_float;
+	} else if (field->has_legacy) {
+		return ly_legacy;
+	}
+	return ly_none;
+
+#if 0
+	assert(field->hasFullspinorData || field->hasWeylfieldData);
+
+	if (field->hasFullspinorData) {
+		return field->isFulllayoutSloppy ? ly_full_float : ly_full_double;
+	} else if (field->hasWeylfieldData) {
+		return field->isWeyllayoutSloppy ? ly_weyl_float : ly_weyl_double;
+	} else {
+		assert(!"Field has no data available");
+		return -1;
+	}
+#endif
+}
+
+
+static inline void bgq_copyToLegacy_worker(void *arg_untyped, size_t tid, size_t threads, bool weyllayout, bool sloppy, bool mul, bool isLegacy) {
+	bgq_copyToLegacy_workload *arg = arg_untyped;
+	bool isOdd = arg->isOdd;
+	bgq_weylfield_controlblock *field = arg->field;
+	spinor *legacyField = arg->target;
+
+	assert(field->isOdd == isOdd);
+
+	const size_t workload = PHYSICAL_VOLUME;
+	const size_t threadload = (workload+threads-1)/threads;
+	const size_t begin = tid*threadload;
+	const size_t end = min_sizet(workload, begin+threadload);
+	for (ucoord ic = begin; ic<end; ic+=1) {
+		bgq_su3_spinor_decl(spinor);
+		bgq_spinorfield_readSpinor(&spinor, field, ic, weyllayout, sloppy, mul, isLegacy);
+
+		int eosub1 = bgq_collapsed2eosub(isOdd, ic, 0);
+		spinor *addr1 = &legacyField[eosub1];
+		bgq_st2a_double(spinor_v0_c0, 0, addr1);
+		bgq_qvstfcduxa(spinor_v0_c1, addr1, 16);
+		bgq_qvstfcduxa(spinor_v0_c2, addr1, 16);
+		bgq_qvstfcduxa(spinor_v1_c0, addr1, 16);
+		bgq_qvstfcduxa(spinor_v1_c1, addr1, 16);
+		bgq_qvstfcduxa(spinor_v1_c2, addr1, 16);
+		bgq_qvstfcduxa(spinor_v2_c0, addr1, 16);
+		bgq_qvstfcduxa(spinor_v2_c1, addr1, 16);
+		bgq_qvstfcduxa(spinor_v2_c2, addr1, 16);
+		bgq_qvstfcduxa(spinor_v3_c0, addr1, 16);
+		bgq_qvstfcduxa(spinor_v3_c1, addr1, 16);
+		bgq_qvstfcduxa(spinor_v3_c2, addr1, 16);
+
+		int eosub2 = bgq_collapsed2eosub(isOdd, ic, 1);
+		spinor *addr2 = &legacyField[eosub1];
+		bgq_vector4double_decl(right0);
+		bgq_vector4double_decl(right1);
+		bgq_vector4double_decl(right2);
+		bgq_vector4double_decl(right3);
+		bgq_vector4double_decl(right4);
+		bgq_vector4double_decl(right5);
+		bgq_rmerge(right0, spinor_v0_c0, spinor_v0_c1);
+		bgq_rmerge(right1, spinor_v0_c2, spinor_v1_c0);
+		bgq_rmerge(right2, spinor_v1_c1, spinor_v1_c2);
+		bgq_rmerge(right3, spinor_v2_c0, spinor_v2_c1);
+		bgq_rmerge(right4, spinor_v2_c1, spinor_v3_c0);
+		bgq_rmerge(right5, spinor_v3_c1, spinor_v3_c2);
+		bgq_sta_double(right0, 0, addr2);
+		bgq_qvstfduxa(right1, addr2, 16);
+		bgq_qvstfduxa(right2, addr2, 16);
+		bgq_qvstfduxa(right3, addr2, 16);
+		bgq_qvstfduxa(right4, addr2, 16);
+		bgq_qvstfduxa(right5, addr2, 16);
+	}
+}
+
+BGQ_SPINORFIELD_GENWORKER(bgq_copyToLegacy_worker)
+
+
+
+
+void bgq_spinorfield_prepareLegacy(bgq_weylfield_controlblock *field, bool isOdd, bool read) {
+	assert(field);
+
+	if (read) {
+		bgq_spinorfield_layout layout = bgq_spinorfield_bestLayout(field);
+		bgq_spinorfield_enableLayout(field, isOdd, ly_legacy, true);
+		assert(field->isOdd == isOdd);
+		bgq_worker_func worker = g_bgq_copyToLegacy_worker_list[layout];
+		assert(worker);
+
+		bgq_master_sync();
+		static bgq_copyToLegacy_workload work;
+		work.isOdd = isOdd;
+		work.field = field;
+		work.target = field->legacy_field;
+		bgq_master_call(worker, &work);
+	} else {
+		// No need to copy existing data
+		bgq_spinorfield_prepareWrite(field, isOdd, ly_legacy);
+	}
+}
+
+
 void bgq_spinorfield_prepareWrite(bgq_weylfield_controlblock *field, bool isOdd, bgq_spinorfield_layout layout) {
 	assert(field);
 
@@ -1185,7 +1277,6 @@ void bgq_spinorfield_prepareWrite(bgq_weylfield_controlblock *field, bool isOdd,
 #endif
 
 	bgq_spinorfield_enableLayout(field, isOdd, layout, true);
-	//bgq_spinorfield_setup(field, isOdd, false, !(layout & ly_weyl), false, (layout & ly_weyl), layout & ly_sloppy);
 }
 
 
@@ -1219,7 +1310,7 @@ static void bgq_spinorfield_rewrite_worker(void *arg_untyped, size_t tid, size_t
 
 		bgq_su3_spinor_decl(spinor);
 		//bgq_spinorfield_enableLayout(field, isOdd, )
-		bgq_spinorfield_readSpinor(&spinor, field, ic, layout&ly_weyl, layout&ly_sloppy, layout&ly_weyl);
+		bgq_spinorfield_readSpinor(&spinor, field, ic, layout&ly_weyl, layout&ly_sloppy, layout&ly_weyl, false);
 
 		if (sloppy) {
 			bgq_spinor_vec_float *fulladdr = &field->sec_fullspinor_float[ic];
@@ -1234,43 +1325,11 @@ static void bgq_spinorfield_rewrite_worker(void *arg_untyped, size_t tid, size_t
 }
 
 
-static bgq_spinorfield_layout bgq_spinorfield_bestLayout(bgq_weylfield_controlblock *field) {
-	assert(field);
-	assert(field->isInitialized);
-
-	if (field->has_fulllayout_double) {
-		return ly_full_double;
-	} else if (field->has_weyllayout_double) {
-		return ly_full_double;
-	} else if (field->has_fulllayout_float) {
-		return ly_full_float;
-	} else if (field->has_weyllayout_float) {
-		return ly_weyl_float;
-	}
-	return ly_none;
-
-#if 0
-	assert(field->hasFullspinorData || field->hasWeylfieldData);
-
-	if (field->hasFullspinorData) {
-		return field->isFulllayoutSloppy ? ly_full_float : ly_full_double;
-	} else if (field->hasWeylfieldData) {
-		return field->isWeyllayoutSloppy ? ly_weyl_float : ly_weyl_double;
-	} else {
-		assert(!"Field has no data available");
-		return -1;
-	}
-#endif
-}
-
-
-
-
 bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *field, bool isOdd, bool acceptWeyl, bool acceptDouble, bool acceptFloat, bool acceptMul) {
 	assert(field);
-	assert(field->isInitialized);
+	//assert(field->isInitialized);
 	//assert(field->hasWeylfieldData || field->hasFullspinorData);
-	assert(field->has_fulllayout_double || field->has_fulllayout_float || field->has_weyllayout_double || field->has_weyllayout_float);
+	assert(field->has_fulllayout_double || field->has_fulllayout_float || field->has_weyllayout_double || field->has_weyllayout_float || field->has_legacy);
 	assert(field->isOdd == isOdd);
 
 	// to wait for comm if necessary
@@ -1304,7 +1363,16 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 		result = acceptDouble ? ly_full_double : ly_full_float;
 		bgq_spinorfield_enableLayout(field, isOdd, result, false);
 
-		if (!(layout&ly_weyl) && (void*)field->sec_fullspinor_float==(void*)field->sec_fullspinor_double) {
+		if (layout == ly_legacy) {
+			bgq_worker_func worker = acceptDouble ? &bgq_copyFromLegacy_worker_double : &bgq_copyFromLegacy_worker_float;
+			bgq_master_sync();
+			static bgq_copyFromLegacy_workload work;
+			work.isOdd = isOdd;
+			work.source = field->legacy_field;
+			work.target = field;
+			bgq_master_call(worker, &work);
+		} else {
+		if (!(layout&ly_weyl) && ((void*)field->sec_fullspinor_float==(void*)field->sec_fullspinor_double)) {
 			// This is bad: we are going to overwrite the data we need to read
 			// Solution: alloc a new memory area
 			// Not that only half of the mem allocated for sec_fullspinor_float will stay in use
@@ -1315,12 +1383,13 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 				field->sec_fullspinor_float = malloc_aligned(PHYSICAL_VOLUME * sizeof(*field->sec_fullspinor_float), BGQ_ALIGNMENT_L2);
 		}
 
-		bgq_master_sync();
-		static bgq_spinorfield_rewrite_work work;
-		work.field = field;
-		work.sloppy = result&ly_sloppy;
-		work.layout = layout;
-		bgq_master_call(&bgq_spinorfield_rewrite_worker, &work);
+			bgq_master_sync();
+			static bgq_spinorfield_rewrite_work work;
+			work.field = field;
+			work.sloppy = result&ly_sloppy;
+			work.layout = layout;
+			bgq_master_call(&bgq_spinorfield_rewrite_worker, &work);
+		}
 	} else {
 		result = layout;
 	}
@@ -1340,12 +1409,6 @@ size_t bgq_pointer2offset_raw(bgq_weylfield_controlblock *field, void *ptr, bool
 	if (!field) {
 		if (check) {
 			assert(!"No field passed");
-		}
-		return -1;
-	}
-	if (!field->isInitialized) {
-		if (check) {
-			assert(!"Field not initialized");
 		}
 		return -1;
 	}
@@ -1392,18 +1455,113 @@ size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr) {
 }
 
 
+static size_t g_bgq_spinorfields_stdCount;
+static size_t g_bgq_spinorfields_chiCount;
+
+bool g_bgq_spinorfields_initialized = false;
+
 void bgq_spinorfields_init(size_t std_count, size_t chi_count) {
 	bgq_indices_init();
+	if (g_bgq_spinorfields_initialized)
+		return;
+	g_bgq_spinorfields_initialized = true;
 
-	size_t tot_count = std_count + chi_count;
+	g_bgq_spinorfields_stdCount = std_count;
+	g_bgq_spinorfields_chiCount = chi_count;
+	size_t tot_count = std_count + 2*chi_count;
 	g_bgq_spinorfields_count = tot_count;
 
-	g_bgq_spinorfields = malloc(tot_count * sizeof(bgq_weylfield_controlblock));
+	g_bgq_spinorfields = malloc(tot_count * sizeof(*g_bgq_spinorfields));
 	//memset(g_bgq_spinorfields, -1, tot_count * sizeof(bgq_weylsite));
 	//g_bgq_spinorfields_data = malloc_aligned(tot_count * field_datasize, 128);
 	//memset(g_bgq_spinorfields_data, -1, tot_count * field_datasize);
 
-	for (size_t i = 0; i < tot_count; i += 1) { // Defer initialization to when it is used the first time
-		g_bgq_spinorfields[i].isInitialized = false;
+	for (size_t i = 0; i < tot_count; i += 1) {
+		bgq_weylfield_controlblock *field = &g_bgq_spinorfields[i];
+		// Defer initialization to when it is used the first time
+		//g_bgq_spinorfields[i].isInitialized = false;
+
+		field->has_legacy = true;
+		field->has_fulllayout_double = false;
+		field->has_fulllayout_float = false;
+		field->has_weyllayout_double = false;
+		field->has_weyllayout_float = false;
+
+		field->sec_collapsed_double = NULL;
+		field->sec_collapsed_float = NULL;
+		field->sec_fullspinor_double = NULL;
+		field->sec_fullspinor_float = NULL;
+
+		if (i < std_count) {
+			assert(g_spinor_field);
+			assert(g_spinor_field[i]);
+			g_bgq_spinorfields[i].legacy_field = g_spinor_field[i];
+		} else if (i - std_count < chi_count) {
+			assert(g_chi_up_spinor_field);
+			assert(g_chi_up_spinor_field[i-std_count]);
+			g_bgq_spinorfields[i].legacy_field = g_chi_up_spinor_field[i-std_count];
+		} else if (i - std_count - chi_count < chi_count) {
+			assert(g_chi_dn_spinor_field);
+			assert(g_chi_dn_spinor_field[i-std_count-chi_count]);
+			g_bgq_spinorfields[i].legacy_field = g_chi_dn_spinor_field[i-std_count-chi_count];
+		} else {
+			UNREACHABLE
+		}
+
+		field->pendingDatamove = false;
+		field->sendptr_double = NULL;
+		field->sendptr_float = NULL;
+		for (size_t d = 0; d < PHYSICAL_LD; d+=1) {
+			field->consptr_double[d] = NULL;
+			field->consptr_float[d] = NULL;
+		}
 	}
 }
+
+
+bgq_weylfield_controlblock *bgq_translate_spinorfield(spinor *legacyField) {
+	ptrdiff_t index = -1;
+
+	if (g_chi_up_spinor_field) {
+		assert(g_chi_dn_spinor_field);
+		size_t chi_fieldsize = VOLUME/2 * sizeof(spinor);
+		assert(chi_fieldsize > 0);
+		if ( ((char*)g_chi_up_spinor_field[0] <= (char*)legacyField) && ((char*)legacyField < ((char*)g_chi_up_spinor_field[g_bgq_spinorfields_chiCount-1] + chi_fieldsize))) {
+			// This is a spinor from g_chi_up_spinor_field
+			ptrdiff_t offset = (char*)legacyField - (char*)g_chi_up_spinor_field[0];
+			assert(offset >= 0);
+			assert(offset % chi_fieldsize == 0);
+			index = g_bgq_spinorfields_stdCount + offset / chi_fieldsize;
+		} else if ( ((char*)g_chi_dn_spinor_field[0] <= (char*)legacyField) && ((char*)legacyField < ((char*)g_chi_dn_spinor_field[g_bgq_spinorfields_chiCount-1] + chi_fieldsize))) {
+			// This is a spinor from g_chi_dn_spinor_field
+			ptrdiff_t offset = (char*)legacyField - (char*)g_chi_dn_spinor_field[0];
+			assert(offset >= 0);
+			assert(offset % chi_fieldsize == 0);
+			index = g_bgq_spinorfields_stdCount + g_bgq_spinorfields_chiCount + offset / chi_fieldsize;
+		}
+	}
+
+	if (index == -1) {
+		int V = even_odd_flag ? VOLUMEPLUSRAND / 2 : VOLUMEPLUSRAND;
+		size_t fieldsize = V * sizeof(spinor);
+
+		// This computes the original index address of the passed field; be aware that its correctness depends on the implementation of init_spinorfield
+		size_t offset = (char*)legacyField - (char*)g_spinor_field[0];
+		assert(offset >= 0);
+		assert(offset % fieldsize == 0);
+		index = offset / fieldsize;
+	}
+
+	assert(index >= 0);
+	assert(index < g_bgq_spinorfields_count);
+	bgq_weylfield_controlblock *result = &g_bgq_spinorfields[index];
+	assert(result->legacy_field == legacyField);
+	return result;
+}
+
+
+void spinorfield_enable(spinor *legacyField, bool read) {
+	bgq_weylfield_controlblock *field = bgq_translate_spinorfield(legacyField);
+	bgq_spinorfield_prepareLegacy(field, field->isOdd, read);
+}
+

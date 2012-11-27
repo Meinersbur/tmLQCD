@@ -121,12 +121,12 @@ static inline void NAME2(OPERATOR_NAME,worker)(void *arg_untyped, size_t tid, si
 
 #if OPERATOR_ARGFIELDS>=1
 		bgq_su3_spinor_decl(spinor1);
-		bgq_spinorfield_readSpinor(&spinor1, argfield1, ic, readWeyllayout1, sloppy1, mul1);
+		bgq_spinorfield_readSpinor(&spinor1, argfield1, ic, readWeyllayout1, sloppy1, mul1, false);
 #endif
 
 #if OPERATOR_ARGFIELDS>=2
 		bgq_su3_spinor_decl(spinor2);
-		bgq_spinorfield_readSpinor(&spinor2, argfield2, ic, readWeyllayout2, sloppy2, mul2);
+		bgq_spinorfield_readSpinor(&spinor2, argfield2, ic, readWeyllayout2, sloppy2, mul2, false);
 #endif
 
 		bgq_su3_spinor_decl(targetspinor);

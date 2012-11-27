@@ -28,7 +28,7 @@
 #define REDUCTION_SITEREDUCEFUNC bgq_sitereduce
 #define REDUCTION_COMBINEFUNC bgq_reduction_combine  /* must be associative (commutative?) */
 
-static inline double bgq_initzero(double *sum) {
+static inline void bgq_initzero(double *sum) {
 	*sum = 0;
 }
 
@@ -155,12 +155,12 @@ static inline void NAME2(REDUCTION_NAME,worker)(void *arg_untyped, size_t tid, s
 
 #if REDUCTION_ARGFIELDS>=1
 		bgq_su3_spinor_decl(spinor1);
-		bgq_spinorfield_readSpinor(&spinor1, argfield1, ic, readWeyllayout1, sloppy1, mul1);
+		bgq_spinorfield_readSpinor(&spinor1, argfield1, ic, readWeyllayout1, sloppy1, mul1, false);
 #endif
 
 #if REDUCTION_ARGFIELDS>=2
 		bgq_su3_spinor_decl(spinor2);
-		bgq_spinorfield_readSpinor(&spinor2, argfield1, ic, readWeyllayout2, sloppy2, mul2);
+		bgq_spinorfield_readSpinor(&spinor2, argfield1, ic, readWeyllayout2, sloppy2, mul2, false);
 #endif
 
 		REDUCTION_SITEREDUCEFUNC(REDUCTION_REDPTRARGS IF1ARG(, bgq_su3_spinor_vars(spinor1)) IF2ARG(, bgq_su3_spinor_vars(spinor2)) REDUCTION_EXTRAARGLIST, ic);

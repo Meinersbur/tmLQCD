@@ -18,6 +18,7 @@
 #undef bgq_HoppingMatrix_unvectorize
 #undef bgq_HoppingMatrix_worker_datamove
 #undef bgq_HoppingMatrix_datamovet_worker
+#undef bgq_copyFromLegacy_worker
 #endif
 
 
@@ -774,3 +775,143 @@ void bgq_HoppingMatrix_datamovet_worker(void *arg_untyped, size_t tid, size_t th
 		WORKLOAD_CHECK
 	}
 }
+
+
+#if 0
+static inline void bgq_copyToLegacy_worker(void *arg_untyped, size_t tid, size_t threads, bool weyllayout, bool mul) {
+	bgq_copyToLegacy_workload *arg = arg_untyped;
+	bool isOdd = arg->isOdd;
+	bgq_weylfield_controlblock *field = arg->field;
+	spinor *legacy = arg->target;
+
+	assert(field->isOdd == isOdd);
+
+	const size_t workload = PHYSICAL_VOLUME;
+	const size_t threadload = (workload+threads-1)/threads;
+	const size_t begin = tid*threadload;
+	const size_t end = min_sizet(workload, begin+threadload);
+	for (ucoord ic = begin; ic<end; ic+=1) {
+		bgq_su3_spinor_decl(spinor);
+		bgq_spinorfield_readSpinor(&spinor, field, ic, weyllayout, PRECISION_ISSLOPPY, mul, false);
+
+		int eosub1 = bgq_collapsed2eosub(isOdd, ic, 0);
+		spinor *addr1 = &legacy[eosub1];
+		bgq_st2a_double(spinor_v0_c0, 0, addr1);
+		bgq_qvstfcduxa(spinor_v0_c1, addr1, 16);
+		bgq_qvstfcduxa(spinor_v0_c2, addr1, 16);
+		bgq_qvstfcduxa(spinor_v1_c0, addr1, 16);
+		bgq_qvstfcduxa(spinor_v1_c1, addr1, 16);
+		bgq_qvstfcduxa(spinor_v1_c2, addr1, 16);
+		bgq_qvstfcduxa(spinor_v2_c0, addr1, 16);
+		bgq_qvstfcduxa(spinor_v2_c1, addr1, 16);
+		bgq_qvstfcduxa(spinor_v2_c2, addr1, 16);
+		bgq_qvstfcduxa(spinor_v3_c0, addr1, 16);
+		bgq_qvstfcduxa(spinor_v3_c1, addr1, 16);
+		bgq_qvstfcduxa(spinor_v3_c2, addr1, 16);
+
+		int eosub2 = bgq_collapsed2eosub(isOdd, ic, 1);
+		spinor *addr2 = &legacy[eosub1];
+		bgq_vector4double_decl(right0);
+		bgq_vector4double_decl(right1);
+		bgq_vector4double_decl(right2);
+		bgq_vector4double_decl(right3);
+		bgq_vector4double_decl(right4);
+		bgq_vector4double_decl(right5);
+		bgq_rmerge(right0, spinor_v0_c0, spinor_v0_c1);
+		bgq_rmerge(right1, spinor_v0_c2, spinor_v1_c0);
+		bgq_rmerge(right2, spinor_v1_c1, spinor_v1_c2);
+		bgq_rmerge(right3, spinor_v2_c0, spinor_v2_c1);
+		bgq_rmerge(right4, spinor_v2_c1, spinor_v3_c0);
+		bgq_rmerge(right5, spinor_v3_c1, spinor_v3_c2);
+		bgq_sta_double(right0, 0, addr2);
+		bgq_qvstfduxa(right1, addr2, 16);
+		bgq_qvstfduxa(right2, addr2, 16);
+		bgq_qvstfduxa(right3, addr2, 16);
+		bgq_qvstfduxa(right4, addr2, 16);
+		bgq_qvstfduxa(right5, addr2, 16);
+	}
+}
+
+void bgq_copyToLegacy_worker_fulllayout(void *arg_untyped, size_t tid, size_t threads) {
+	bgq_copyToLegacy_worker(arg_untyped, tid, threads, false, false);
+}
+
+void bgq_copyToLegacy_worker_weyllayout(void *arg_untyped, size_t tid, size_t threads) {
+	bgq_copyToLegacy_worker(arg_untyped, tid, threads, true, false);
+}
+#endif
+
+
+
+void bgq_copyFromLegacy_worker(void *arg_untyped, size_t tid, size_t threads) {
+	bgq_copyFromLegacy_workload *arg = arg_untyped;
+	bool isOdd = arg->isOdd;
+	spinor *sourcefield = arg->source;
+	bgq_weylfield_controlblock *targetfield = arg->target;
+
+	if (PRECISION_ISSLOPPY) {
+		assert(targetfield->has_fulllayout_float);
+	} else {
+		assert(targetfield->has_fulllayout_double);
+	}
+
+	const size_t workload = VOLUME/2;
+	const size_t threadload = (workload+threads-1)/threads;
+	const size_t begin = tid*threadload;
+	const size_t end = min_sizet(workload, begin+threadload);
+	for (int eosub = begin; eosub<end; eosub+=1) {
+		spinor *srcarddr = &sourcefield[eosub];
+
+		ucoord ic = bgq_eosub2collapsed(isOdd, eosub);
+		ucoord k = bgq_eosub2k(isOdd, eosub);
+		bgq_spinor_vec *targetaddr = &targetfield->BGQ_SEC_FULLLAYOUT[ic];
+
+		bgq_su3_spinor_decl(spinor);
+		bgq_ld2a_double(spinor_v0_c0, 0, srcarddr);
+		bgq_qvlfcduxa(spinor_v0_c1, srcarddr, 16);
+		bgq_qvlfcduxa(spinor_v0_c2, srcarddr, 16);
+		bgq_qvlfcduxa(spinor_v1_c0, srcarddr, 16);
+		bgq_qvlfcduxa(spinor_v1_c1, srcarddr, 16);
+		bgq_qvlfcduxa(spinor_v1_c2, srcarddr, 16);
+		bgq_qvlfcduxa(spinor_v2_c0, srcarddr, 16);
+		bgq_qvlfcduxa(spinor_v2_c1, srcarddr, 16);
+		bgq_qvlfcduxa(spinor_v2_c2, srcarddr, 16);
+		bgq_qvlfcduxa(spinor_v3_c0, srcarddr, 16);
+		bgq_qvlfcduxa(spinor_v3_c1, srcarddr, 16);
+		bgq_qvlfcduxa(spinor_v3_c2, srcarddr, 16);
+
+#if 0
+		bgq_vector4double_decl(sp0);
+		bgq_vector4double_decl(sp1);
+		bgq_vector4double_decl(sp2);
+		bgq_vector4double_decl(sp3);
+		bgq_vector4double_decl(sp4);
+		bgq_vector4double_decl(sp5);
+		bgq_lda_double(sp0, 0, srcardd);
+		bgq_qvstfduxa(sp1, srcaddr, 32);
+		bgq_qvstfduxa(sp2, srcaddr, 32);
+		bgq_qvstfduxa(sp3, srcaddr, 32);
+		bgq_qvstfduxa(sp4, srcaddr, 32);
+		bgq_qvstfduxa(sp5, srcaddr, 32);
+#endif
+
+		targetaddr = (bgq_spinor_vec*)((char*)targetaddr + k*2*PRECISION_SIZEOF);
+		bgq_st2a(spinor_v0_c0,0,targetaddr);
+		bgq_qvstfcuxa(spinor_v0_c1,targetaddr,32); // i.e. skip 16 bytes, write 16 bytes
+		bgq_qvstfcuxa(spinor_v0_c2,targetaddr,32);
+		bgq_qvstfcuxa(spinor_v1_c0,targetaddr,32);
+		bgq_qvstfcuxa(spinor_v1_c1,targetaddr,32);
+		bgq_qvstfcuxa(spinor_v1_c2,targetaddr,32);
+		bgq_qvstfcuxa(spinor_v2_c0,targetaddr,32);
+		bgq_qvstfcuxa(spinor_v2_c1,targetaddr,32);
+		bgq_qvstfcuxa(spinor_v2_c2,targetaddr,32);
+		bgq_qvstfcuxa(spinor_v3_c0,targetaddr,32);
+		bgq_qvstfcuxa(spinor_v3_c1,targetaddr,32);
+		bgq_qvstfcuxa(spinor_v3_c2,targetaddr,32);
+	}
+}
+
+
+
+
+

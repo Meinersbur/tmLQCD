@@ -12,6 +12,8 @@
 #include "bgq_utils.h"
 #include "bgq_qpx.h"
 
+#include "../geometry_eo.h"
+
 #include <stdbool.h>
 #include <string.h>
 #include <stdint.h>
@@ -321,6 +323,7 @@ typedef bgq_spinorsite_double bgq_spinor_vec_double;
 typedef bgq_spinorsite_float bgq_spinor_vec_float;
 #define bgq_spinorsite NAME2(bgq_spinorsite,PRECISION)
 //typedef bgq_spinorsite_double (*bgq_spinorfield);
+#define bgq_spinor_vec NAME2(bgq_spinor_vec,PRECISION)
 
 typedef struct {
 	complex_double s[2][3][PHYSICAL_LK]; // 192 byte (3 L1 cache lines)
@@ -565,7 +568,7 @@ EXTERN_INLINE ucoord bgq_t2t(ucoord t, ucoord k) {
 }
 
 
-EXTERN_INLINE bool bgq_local2isOdd(size_t t, size_t x, size_t y, size_t z) {
+EXTERN_INLINE bool bgq_local2isOdd(ucoord t, ucoord x, ucoord y, ucoord z) {
 	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
@@ -600,12 +603,12 @@ EXTERN_INLINE size_t bgq_local2tv(size_t t, size_t x, size_t y, size_t z) {
 	assert(0 <= tv && tv < PHYSICAL_LTV);
 	return tv;
 }
-EXTERN_INLINE bool bgq_local2k(size_t t, size_t x, size_t y, size_t z) {
+EXTERN_INLINE bool bgq_local2k(ucoord t, ucoord x, ucoord y, ucoord z) {
 	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
-	size_t k = (t >= (LOCAL_LT/2));
+	ucoord k = (t >= (LOCAL_LT/2));
 	assert(t==bgq_physical2t(bgq_local2isOdd(t,x,y,z),bgq_local2tv(t,x,y,z),x,y,z,k));
 	return k;
 }
@@ -908,13 +911,13 @@ EXTERN_INLINE size_t bgq_collapsed2body(size_t ic) {
 	return ic - PHYSICAL_SURFACE;
 }
 
-EXTERN_INLINE size_t bgq_local2collapsed(size_t t, size_t x, size_t y, size_t z) {
+EXTERN_INLINE ucoord bgq_local2collapsed(ucoord t, ucoord x, ucoord y, ucoord z) {
 	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
 	bool isOdd = bgq_local2isOdd(t,x,y,z);
-	size_t ih = bgq_local2halfvolume(t,x,y,z);
+	ucoord ih = bgq_local2halfvolume(t,x,y,z);
 	return bgq_halfvolume2collapsed(isOdd, ih);
 }
 
@@ -973,6 +976,7 @@ EXTERN_INLINE size_t bgq_local2halfvolume_neighbor(size_t t, size_t x, size_t y,
 	return ih_src;
 }
 
+
 EXTERN_INLINE size_t bgq_localdst2ksrc(size_t t, size_t x, size_t y, size_t z, bgq_direction d) {
 	switch (d) {
 	case TUP:
@@ -1028,7 +1032,6 @@ EXTERN_INLINE bgq_weylfield_section bgq_direction2section(bgq_direction d, bool 
 		UNREACHABLE
 	}
 }
-
 
 
 EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
@@ -1117,11 +1120,6 @@ EXTERN_INLINE bgq_weylfield_section bgq_sectionOfOffset(size_t offset) {
 	assert(!"Out of range");
 	return sec_end;
 }
-
-
-
-
-
 
 
 EXTERN_INLINE bgq_direction bgq_direction_revert(bgq_direction d) {
@@ -1425,6 +1423,56 @@ EXTERN_INLINE bgq_direction bgq_direction_compose(bgq_dimension dim, bool isDown
 }
 
 
+EXTERN_INLINE int bgq_collapsed2eosub(bool isOdd, ucoord ic, ucoord k) {
+	//TODO: This index computation is quite slow, we may add a direct index translation array
+	assert(0 <= ic && ic < PHYSICAL_VOLUME);
+	assert(0 <= k && k < PHYSICAL_LK);
+
+	ucoord ih = bgq_collapsed2halfvolume(isOdd, ic);
+	ucoord t = bgq_halfvolume2t(isOdd, ih, k);
+	ucoord x = bgq_halfvolume2x(ih);
+	ucoord y = bgq_halfvolume2y(ih);
+	ucoord z = bgq_halfvolume2z(ih);
+
+	int lexic = Index(t, x, y, z);
+	assert(0 <= lexic && lexic < VOLUME);
+	int eosub = g_lexic2eosub[lexic];
+	assert(0 <= eosub && eosub < VOLUME/2);
+
+	return eosub;
+}
+
+
+EXTERN_INLINE ucoord bgq_eosub2collapsed(bool isOdd, int eosub) {
+	assert(0 <= eosub && eosub < VOLUME/2);
+
+	int ioff = isOdd ? (VOLUME+RAND)/2 : 0;
+	int eo = eosub + ioff;
+	int lexic = g_eo2lexic[eo];
+	assert(0 <= lexic && lexic < VOLUME);
+	int t = g_coord[lexic][0] - g_proc_coords[0]*T;
+	int x = g_coord[lexic][1] - g_proc_coords[1]*LX;
+	int y = g_coord[lexic][2] - g_proc_coords[2]*LY;
+	int z = g_coord[lexic][3] - g_proc_coords[3]*LZ;
+	assert(bgq_local2isOdd(t,x,y,z)==isOdd);
+	return bgq_local2collapsed(t, x, y, z);
+}
+
+
+EXTERN_INLINE ucoord bgq_eosub2k(bool isOdd, int eosub) {
+	assert(0 <= eosub && eosub < VOLUME/2);
+
+	int ioff = isOdd ? (VOLUME+RAND)/2 : 0;
+	int eo = eosub + ioff;
+	int lexic = g_eo2lexic[eo];
+	assert(0 <= lexic && lexic < VOLUME);
+	int t = g_coord[lexic][0] - g_proc_coords[0]*T;
+	int x = g_coord[lexic][1] - g_proc_coords[1]*LX;
+	int y = g_coord[lexic][2] - g_proc_coords[2]*LY;
+	int z = g_coord[lexic][3] - g_proc_coords[3]*LZ;
+	assert(bgq_local2isOdd(t,x,y,z)==isOdd);
+	return bgq_local2k(t, x, y, z);
+}
 
 
 #undef EXTERN_INLINE

@@ -394,10 +394,8 @@ static int benchmark_master(void *argptr) {
 
 	// Give us a fresh environment
 	for (ucoord k = 0; k <= 2*k_max; k+=1) {
-		if (g_bgq_spinorfields[k].isInitialized) {
-			if (g_bgq_spinorfields[k].sec_collapsed_double)
-				memset(g_bgq_spinorfields[k].sec_collapsed_double, 0, PHYSICAL_VOLUME * sizeof(*g_bgq_spinorfields[k].sec_collapsed_double));
-		}
+		if (g_bgq_spinorfields[k].sec_collapsed_double)
+			memset(g_bgq_spinorfields[k].sec_collapsed_double, 0, PHYSICAL_VOLUME * sizeof(*g_bgq_spinorfields[k].sec_collapsed_double));
 	}
 	if (nocom) {
 		for (ucoord d = 0; d < PHYSICAL_LD; d+=1) {
