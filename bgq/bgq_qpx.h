@@ -1372,8 +1372,6 @@ do {\
 	bgq_su3_vmov(NAME2(dst,v1),NAME2(src,v1))
 
 
-
-
 #define bgq_su3_reduce_weyl_tup(weyl, spinor) \
 	bgq_su3_vadd(NAME2(weyl,v0), NAME2(spinor,v0), NAME2(spinor,v2)); \
 	bgq_su3_vadd(NAME2(weyl,v1), NAME2(spinor,v1), NAME2(spinor,v3))

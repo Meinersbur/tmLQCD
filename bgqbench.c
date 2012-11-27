@@ -1116,7 +1116,7 @@ static void exec_bench(int j_max, int k_max) {
 	master_print("Float: ");
 	bgq_parallel(&check_hopmat, &checkargs_float);
 
-
+return;
 	master_print("Benchmark: hopmatkernel\n");
 	exec_table(&benchmark_hopmatkernel, 0, hm_withcheck, j_max, k_max);
 	print_repeat("\n", 2);

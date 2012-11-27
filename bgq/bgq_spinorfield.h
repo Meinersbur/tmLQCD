@@ -58,6 +58,69 @@ typedef enum {
 #define BGQ_SPINORFIELD_LAYOUT_COUNT 8
 
 
+
+//TODO: Move to bgq_spinorfield.h
+typedef struct {
+	bool isInitialized;
+	bool isOdd;
+	//bool hasWeylfieldData;
+	//bool isWeyllayoutSloppy;
+	//bool waitingForRecv; /* true==Need to wait for SPI recv and then copy data to consecutive area; false==All data available in sec_surface and sec_body */
+	//bool waitingForRecvNoSPI;
+	bgq_hmflags hmflags;
+	bool pendingDatamove;
+	//bool hasFullspinorData;
+	//bool isFulllayoutSloppy;
+
+	bool has_weyllayout_double;
+	bool has_weyllayout_float;
+	bool has_fulllayout_double;
+	bool has_fulllayout_float;
+
+	//uint8_t *sec_weyl;
+	//bgq_weyl_vec *sec_index; // obsolete
+	//bgq_weyl_vec *sec_send[PHYSICAL_LD]; // obsolete
+	//bgq_weyl_vec *sec_recv[PHYSICAL_LD]; // obsolete
+	bgq_weylsite_double *sec_collapsed_double;
+	bgq_weylsite_float *sec_collapsed_float;
+	//bgq_weylsite *sec_surface;
+	//bgq_weylsite *sec_body;
+	//uint8_t *sec_end;
+
+
+	bgq_spinorsite_double *sec_fullspinor_double;
+	//bgq_spinorsite *sec_fullspinor_surface;
+	//bgq_spinorsite *sec_fullspinor_body;
+	bgq_spinorsite_float *sec_fullspinor_float;
+
+
+	//TODO: We may even interleave these with the data itself, but may cause alignment issues
+	// Idea: sizeof(bgq_weyl_ptr_t)==10*8==80, so one bgq_weyl_ptr_t every 2(5;10) spinors solves the issue
+	// In case we write as fullspinor layout, the are not needed
+	bgq_weyl_ptr_t_double *sendptr_double;
+	bgq_weyl_vec_double **consptr_double[PHYSICAL_LD];
+
+	bgq_weyl_ptr_t_float *sendptr_float;
+	bgq_weyl_vec_float **consptr_float[PHYSICAL_LD];
+} bgq_weylfield_controlblock;
+
+#define BGQ_SEC_FULLLAYOUT NAME2(sec_fullspinor,PRECISION)
+#define BGQ_SEC_WEYLLAYOUT NAME2(sec_collapsed,PRECISION)
+#define BGQ_SENDPTR NAME2(sendptr,PRECISION)
+#define BGQ_CONSPTR NAME2(consptr,PRECISION)
+
+
+EXTERN_FIELD bgq_weylfield_controlblock *g_bgq_spinorfields EXTERN_INIT(NULL);
+
+void bgq_spinorfields_init(size_t std_count, size_t chi_count);
+
+
+size_t bgq_pointer2offset_raw(bgq_weylfield_controlblock *field, void *ptr, bool check);
+size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr);
+
+
+
+
 #define bgq_weyl_fromqpx(arg) bgq_weyl_fromqpx_raw(bgq_su3_weyl_vars(arg))
 EXTERN_INLINE bgq_weyl_vec_double bgq_weyl_fromqpx_raw(bgq_su3_weyl_params(weyl)) {
 	bgq_weyl_vec_double result;

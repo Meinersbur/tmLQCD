@@ -302,8 +302,6 @@ EXTERN_INLINE bool bgq_direction_isDistributed(bgq_direction d) {
 
 
 void bgq_indices_init(void);
-void bgq_spinorfields_init(size_t std_count, size_t chi_count);
-void bgq_gaugefield_init(void);
 
 
 
@@ -353,16 +351,6 @@ typedef struct {
 } bgq_weyl_ptr_t_float;
 #define bgq_weyl_ptr_t NAME2(bgq_weyl_ptr_t,PRECISION)
 
-
-typedef struct {
-	complex_double s[2];
-} bgq_weyl;
-
-typedef struct {
-	bool isSloppy;
-	bool hasWeylfieldData;
-	bool hasFullspinorData;
-} bgq_weylfield_status;
 
 typedef enum {
 	sec_surface,
@@ -522,56 +510,9 @@ typedef enum {
 
 
 
-//TODO: make incomplete type
-//TODO: Move to bgq_spinorfield.h
-typedef struct {
-	bool isInitialized;
-	bool isOdd;
-	//bool hasWeylfieldData;
-	//bool isWeyllayoutSloppy;
-	//bool waitingForRecv; /* true==Need to wait for SPI recv and then copy data to consecutive area; false==All data available in sec_surface and sec_body */
-	//bool waitingForRecvNoSPI;
-	bgq_hmflags hmflags;
-	bool pendingDatamove;
-	//bool hasFullspinorData;
-	//bool isFulllayoutSloppy;
-
-	bool has_weyllayout_double;
-	bool has_weyllayout_float;
-	bool has_fulllayout_double;
-	bool has_fulllayout_float;
-
-	//uint8_t *sec_weyl;
-	//bgq_weyl_vec *sec_index; // obsolete
-	//bgq_weyl_vec *sec_send[PHYSICAL_LD]; // obsolete
-	//bgq_weyl_vec *sec_recv[PHYSICAL_LD]; // obsolete
-	bgq_weylsite_double *sec_collapsed_double;
-	bgq_weylsite_float *sec_collapsed_float;
-	//bgq_weylsite *sec_surface;
-	//bgq_weylsite *sec_body;
-	//uint8_t *sec_end;
+struct bgq_weylfield_controlblock;
 
 
-	bgq_spinorsite_double *sec_fullspinor_double;
-	//bgq_spinorsite *sec_fullspinor_surface;
-	//bgq_spinorsite *sec_fullspinor_body;
-	bgq_spinorsite_float *sec_fullspinor_float;
-
-
-	//TODO: We may even interleave these with the data itself, but may cause alignment issues
-	// Idea: sizeof(bgq_weyl_ptr_t)==10*8==80, so one bgq_weyl_ptr_t every 2(5;10) spinors solves the issue
-	// In case we write as fullspinor layout, the are not needed
-	bgq_weyl_ptr_t_double *sendptr_double;
-	bgq_weyl_vec_double **consptr_double[PHYSICAL_LD];
-
-	bgq_weyl_ptr_t_float *sendptr_float;
-	bgq_weyl_vec_float **consptr_float[PHYSICAL_LD];
-} bgq_weylfield_controlblock;
-
-#define BGQ_SEC_FULLLAYOUT NAME2(sec_fullspinor,PRECISION)
-#define BGQ_SEC_WEYLLAYOUT NAME2(sec_collapsed,PRECISION)
-#define BGQ_SENDPTR NAME2(sendptr,PRECISION)
-#define BGQ_CONSPTR NAME2(consptr,PRECISION)
 
 // Index translations
 EXTERN_FIELD size_t *g_bgq_collapsed2halfvolume[PHYSICAL_LP];
@@ -587,16 +528,15 @@ EXTERN_FIELD bgq_weyl_offsets_t *g_bgq_collapsed2indexsend[PHYSICAL_LP];
 
 
 
-// The gaugefield as GAUGE_COPY
-EXTERN_FIELD bgq_weylfield_controlblock *g_bgq_spinorfields EXTERN_INIT(NULL);
+
 
 
 
 
 void bgq_indices_init(void);
-void bgq_spinorfields_init(size_t std_count, size_t chi_count);
+//void bgq_spinorfields_init(size_t std_count, size_t chi_count);
 //void bgq_spinorfield_reset(bgq_weylfield_controlblock *field, bool isOdd, bool activateWeyl, bool activateFull);
-void bgq_gaugefield_init(void);
+//void bgq_gaugefield_init(void);
 
 EXTERN_INLINE ucoord bgq_local2global_t(scoord t) {
 	assert(0 <= t && t < LOCAL_LT);
@@ -1366,9 +1306,6 @@ EXTERN_INLINE ucoord bgq_collapsed_dst2src(bool isOdd_dst, ucoord ic_dst, bgq_di
 }
 
 
-size_t bgq_pointer2offset_raw(bgq_weylfield_controlblock *field, void *ptr, bool check);
-size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr);
-
 
 EXTERN_INLINE size_t bgq_collapsed2consecutiveoffset(ucoord ic, bgq_direction d) {
 	assert(0 <= ic && ic < PHYSICAL_VOLUME);
@@ -1451,7 +1388,7 @@ EXTERN_INLINE ucoord bgq_index2collapsed(bool isOdd, ucoord index, ucoord k) {
 	if (BGQ_UNVECTORIZE && COMM_T) {
 		if (sec==sec_send_tup || sec==sec_send_tdown || sec==sec_recv_tup || sec==sec_recv_tdown) {
 			// difficult case: unvectorized buffer
-			if (k<0 || k>1) {
+			if (k>1) {
 				assert(!"There are multiple ic's at this location");
 			}
 			relindex = relindex * PHYSICAL_LK + k; assert(sec_write==sec_temp_tdown || sec_write==sec_temp_tup);
