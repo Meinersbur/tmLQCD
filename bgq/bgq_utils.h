@@ -394,6 +394,14 @@ EXTERN_INLINE size_t min_sizet(size_t lhs, size_t rhs) {
 	return lhs;
 }
 
+
+EXTERN_INLINE size_t max_sizet(size_t lhs, size_t rhs) {
+	if (lhs > rhs)
+		return lhs;
+	return rhs;
+}
+
+
 // from stackoverflow
 // log_2(_v)
 EXTERN_INLINE int ilog(unsigned int _v) {

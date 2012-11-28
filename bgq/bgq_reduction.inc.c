@@ -223,11 +223,12 @@ static bgq_worker_func NAME2(REDUCTION_NAME,worker_funcs)[BGQ_SPINORFIELD_LAYOUT
 
 static inline void REDUCTION_NAME(
 	REDUCTION_REDREFPARMS
+	, bool isOdd
 	IF1ARG(, bgq_weylfield_controlblock *argfield1)
 	IF2ARG(, bgq_weylfield_controlblock *argfield2)
 	REDUCTION_EXTRAPARMLIST) {
 
-	bool isOdd = argfield1->isOdd;
+	//bool isOdd = argfield1->isOdd;
 
 #if REDUCTION_ARGFIELDS==0
 	bgq_worker_func workerfunc = NAME2(REDUCTION_NAME,worker_funcs);

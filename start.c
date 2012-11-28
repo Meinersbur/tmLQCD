@@ -222,6 +222,7 @@ void unit_spinor_field(const int k)
 /* Function provides a spinor field of length V with
    Gaussian distribution */
 void random_spinor_field_lexic(spinor * const k) {
+	spinorfield_enable(k, false);
   int x, y, z, t, X, Y, Z, tt, id=0;
 #ifdef MPI
   int rlxd_state[105];
@@ -270,6 +271,7 @@ void random_spinor_field_lexic(spinor * const k) {
 }
 
 void random_spinor_field_eo(spinor * const k) {
+	spinorfield_enable(k, false);
   int x, y, z, t, id = 0;
 #ifdef MPI
   int rlxd_state[105];
@@ -311,7 +313,7 @@ void random_spinor_field_eo(spinor * const k) {
 }
 
 void random_spinor_field(spinor * const k, const int V, const int repro) {
-
+	spinorfield_enable(k, false);
   int ix;
   int rlxd_state[105];
   spinor *s;
@@ -695,6 +697,8 @@ void source_spinor_field(spinor * const P, spinor * const Q, int is, int ic) {
 
 void source_spinor_field_point_from_file(spinor * const P, spinor * const Q, int is, int ic, int source_indx)
 {
+	spinorfield_enable(P, false);
+	spinorfield_enable(Q, false);
   int tmp;
   int source_coord[4],source_pe_coord[4],source_loc_coord[4];
   int source_pe_indx,source_loc_indx;

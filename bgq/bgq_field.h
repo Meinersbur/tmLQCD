@@ -927,6 +927,12 @@ EXTERN_INLINE ucoord bgq_collapsed2t(bool isOdd, ucoord ic, ucoord k) {
 	ucoord ih = bgq_collapsed2halfvolume(isOdd, ic);
 	return bgq_halfvolume2t(isOdd, ih, k);
 }
+EXTERN_INLINE ucoord bgq_collapsed2t1(bool isOdd, ucoord ic) {
+	return bgq_collapsed2t(isOdd, ic, 0);
+}
+EXTERN_INLINE ucoord bgq_collapsed2t2(bool isOdd, ucoord ic) {
+	return bgq_collapsed2t(isOdd, ic, 1);
+}
 EXTERN_INLINE size_t bgq_collapsed2x(bool isOdd, size_t ic) {
 	assert(0 <= ic && ic < PHYSICAL_VOLUME);
 	size_t ih = bgq_collapsed2halfvolume(isOdd, ic);

@@ -53,7 +53,7 @@ typedef enum {
 	ly_weyl_double_mul=ly_mul|ly_weyl,
 	ly_full_float_mul=ly_mul|ly_sloppy,
 	ly_weyl_float_mul=ly_mul|ly_weyl|ly_sloppy,
-	ly_legacy,
+	ly_legacy=(1<<3),
 	ly_none=-1,
 } bgq_spinorfield_layout;
 #define BGQ_SPINORFIELD_LAYOUT_COUNT 9
@@ -191,8 +191,25 @@ EXTERN_INLINE bgq_spinor bgq_spinor_fromqpx_raw(bgq_su3_spinor_params(spinor), u
 	return result;
 }
 
+EXTERN_INLINE bgq_spinor bgq_spinor_fromlegacy(spinor *sp) {
+	bgq_spinor result;
+	result.v[0].c[0] = sp->s0.c0;
+	result.v[0].c[1] = sp->s0.c1;
+	result.v[0].c[2] = sp->s0.c2;
+	result.v[1].c[0] = sp->s1.c0;
+	result.v[1].c[1] = sp->s1.c1;
+	result.v[1].c[2] = sp->s1.c2;
+	result.v[2].c[0] = sp->s2.c0;
+	result.v[2].c[1] = sp->s2.c1;
+	result.v[2].c[2] = sp->s2.c2;
+	result.v[3].c[0] = sp->s3.c0;
+	result.v[3].c[1] = sp->s3.c1;
+	result.v[3].c[2] = sp->s3.c2;
+	return result;
+}
 
-EXTERN_INLINE bgq_spinor bgq_spinor_fromvec(bgq_spinor_vec_double spinorvec, ucoord k) {
+#define bgq_spinor_fromvec NAME2(bgq_spinor_fromvec,PRECISION)
+EXTERN_INLINE bgq_spinor bgq_spinor_fromvec_double(bgq_spinor_vec_double spinorvec, ucoord k) {
 	assert(0 <= k && k < PHYSICAL_LK);
 
 	bgq_spinor result;
@@ -203,7 +220,17 @@ EXTERN_INLINE bgq_spinor bgq_spinor_fromvec(bgq_spinor_vec_double spinorvec, uco
 	}
 	return result;
 }
+EXTERN_INLINE bgq_spinor bgq_spinor_fromvec_float(bgq_spinor_vec_float spinorvec, ucoord k) {
+	assert(0 <= k && k < PHYSICAL_LK);
 
+	bgq_spinor result;
+	for (ucoord v = 0; v < 4; v+=1) {
+		for (ucoord c = 0; c < 3; c+=1) {
+			result.v[v].c[c] = spinorvec.s[v][c][k];
+		}
+	}
+	return result;
+}
 
 
 #define bgq_weyl_extractfromqpxvec(weyl, k) bgq_weyl_extractfromqpxvec_raw(bgq_su3_weyl_vars(weyl),k)
@@ -218,8 +245,8 @@ void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, bool isOdd,
 //void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl, bool writeFloat); // obsolete
 //void bgq_spinorfield_setup_double(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl); // obsolete
 //void bgq_spinorfield_setup_float(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl); // obsolete
-void bgq_spinorfield_transfer(bool isOdd, bgq_weylfield_controlblock *targetfield, spinor* sourcefield);
-double bgq_spinorfield_compare(bool isOdd, bgq_weylfield_controlblock *bgqfield, spinor *reffield, bool silent);
+//void bgq_spinorfield_transfer(bool isOdd, bgq_weylfield_controlblock *targetfield, spinor* sourcefield);
+double bgq_spinorfield_compare(bool isOdd, bgq_weylfield_controlblock *bgqfield, bgq_weylfield_controlblock *reffield, bool silent);
 
 typedef struct {
 	bgq_weylfield_controlblock *spinorfield;
@@ -256,14 +283,20 @@ EXTERN_INLINE void bgq_spinor_expect(bgq_spinor spinor, scoord t, scoord x, scoo
 }
 
 
-EXTERN_INLINE void bgq_spinorveck_expect(bgq_spinor_vec_double spinor, ucoord k, scoord t,scoord x,scoord y,scoord z) {
+#define bgq_spinorveck_expect NAME2(bgq_spinorveck_expect,PRECISION)
+EXTERN_INLINE void bgq_spinorveck_expect_double(bgq_spinor_vec_double spinor, ucoord k, scoord t,scoord x,scoord y,scoord z) {
 	assert(0 <= k && k < PHYSICAL_LK);
-	bgq_spinor_expect(bgq_spinor_fromvec(spinor,k),t,x,y,z);
+	bgq_spinor_expect(bgq_spinor_fromvec_double(spinor,k),t,x,y,z);
+}
+
+EXTERN_INLINE void bgq_spinorveck_expect_float(bgq_spinor_vec_float spinor, ucoord k, scoord t,scoord x,scoord y,scoord z) {
+	assert(0 <= k && k < PHYSICAL_LK);
+	bgq_spinor_expect(bgq_spinor_fromvec_float(spinor,k),t,x,y,z);
 }
 
 EXTERN_INLINE void bgq_spinorvec_expect(bgq_spinor_vec_double spinor, scoord t1, scoord t2, scoord x,scoord y,scoord z) {
-	bgq_spinor_expect(bgq_spinor_fromvec(spinor,0),t1,x,y,z);
-	bgq_spinor_expect(bgq_spinor_fromvec(spinor,1),t2,x,y,z);
+	bgq_spinor_expect(bgq_spinor_fromvec_double(spinor,0),t1,x,y,z);
+	bgq_spinor_expect(bgq_spinor_fromvec_double(spinor,1),t2,x,y,z);
 }
 
 
@@ -278,6 +311,28 @@ EXTERN_INLINE void bgq_spinorqpx_expect_raw(bgq_su3_spinor_params(spinor),scoord
 	bgq_spinor_expect(bgq_spinor_fromqpx(spinor,1),t_right,x,y,z);
 #endif
 }
+
+
+#ifdef BGQ_COORDCHECK
+#define bgq_spinorlegacy_expect(spinor,t,x,y,z) bgq_spinorlegacy_expect_raw(spinor,t,x,y,z)
+#else
+#define bgq_spinorlegacy_expect(spinor,t,x,y,z)
+#endif
+EXTERN_INLINE void bgq_spinorlegacy_expect_raw(spinor *sp,scoord t,scoord x,scoord y,scoord z) {
+	bgq_spinor_expect(bgq_spinor_fromlegacy(sp),t,x,y,z);
+}
+
+#ifdef BGQ_COORDCHECK
+#define bgq_spinorqpxk_expect(spinor,k,t,x,y,z) bgq_spinorqpxk_expect_raw(bgq_su3_spinor_vars(spinor),k,t,x,y,z)
+#else
+#define bgq_spinorqpxk_expect(spinor,k,t,x,y,z)
+#endif
+EXTERN_INLINE void bgq_spinorqpxk_expect_raw(bgq_su3_spinor_params(spinor),ucoord k,scoord t,scoord x,scoord y,scoord z) {
+#ifdef BGQ_COORDCHECK
+	bgq_spinor_expect(bgq_spinor_fromqpx(spinor,k),t,x,y,z);
+#endif
+}
+
 
 
 void bgq_weyl_expect(bgq_weyl_nonvec weyl, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
@@ -582,9 +637,17 @@ void bgq_spinorfield_prepareWrite(bgq_weylfield_controlblock *field, bool isOdd,
 bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *field, bool isOdd, bool acceptWeyl, bool acceptDouble, bool acceptSloppy, bool acceptMul);
 
 //bgq_weylfield_controlblock *bgq_translate_spinorfield(spinor *legacyField);
-void bgq_spinorfield_prepareLegacy(bgq_weylfield_controlblock *field, bool isOdd, bool read);
+void bgq_spinorfield_prepareLegacy(bgq_weylfield_controlblock *field, bool read);
 
 void spinorfield_enable(const spinor *legacyField, bool read);
+
+
+#ifdef BGQ_COORDCHECK
+#define bgq_legacy_markcoords(isOdd, legacyField) bgq_legacy_markcoords_raw(isOdd, legacyField);
+#else
+#define bgq_legacy_markcoords(isOdd, legacyField)
+#endif
+void bgq_legacy_markcoords_raw(bool isOdd, spinor *legacyField);
 
 
 #undef EXTERN_INLINE

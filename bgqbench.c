@@ -302,34 +302,32 @@ static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 	// Flow:
 	// [k]isOdd -> [k+k_max]isEven -> [k]isOdd
 
-	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
+	//bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 #ifndef BGQ_COORDCHECK
-	double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], true);
-	assert(compare_transfer == 0);
+	//double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], true);
+	//assert(compare_transfer == 0);
 	// Must be exact copy
 #endif
 
-	bgq_HoppingMatrix(false, &g_bgq_spinorfields[k + k_max], &g_bgq_spinorfields[k], hmflags);
+	bgq_HoppingMatrix(false, &g_bgq_spinorfields[2*k_max], &g_bgq_spinorfields[k], hmflags);
 	HoppingMatrix_switch(false, g_spinor_field[k + k_max], g_spinor_field[k], hmflags);
 #ifndef BGQ_COORDCHECK
-	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], true);
+	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[2*k_max], &g_bgq_spinorfields[k + k_max], true);
 	assert(compare_even < 0.01);
 #endif
 
 #ifndef BGQ_COORDCHECK
-	bgq_spinorfield_transfer(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max]); 	// We don't want to accumulate errors
-	compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], true);
-	assert(compare_transfer == 0);
+	//bgq_spinorfield_transfer(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max]); 	// We don't want to accumulate errors
+	//compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], true);
+	//assert(compare_transfer == 0);
 	// Must be exact copy
 #endif
 
-	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k], &g_bgq_spinorfields[k + k_max], hmflags);
+	bgq_HoppingMatrix(true, &g_bgq_spinorfields[2*k_max], &g_bgq_spinorfields[k + k_max], hmflags);
 	HoppingMatrix_switch(true, g_spinor_field[k], g_spinor_field[k + k_max], hmflags);
 #ifndef BGQ_COORDCHECK
-	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], true);
+	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[2*k_max], &g_bgq_spinorfields[k], true);
 	assert(compare_odd < 0.01);
-#else
-	bgq_spinorfield_setup(&g_bgq_spinorfields[k], true, false, false, true, false, false); // Wait for data transmission
 #endif
 
 #ifndef BGQ_COORDCHECK
@@ -403,7 +401,7 @@ static int benchmark_master(void *argptr) {
 		}
 	}
 	random_spinor_field(g_spinor_field[0], VOLUME / 2, 0);
-	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[0], g_spinor_field[0]);
+	//bgq_spinorfield_transfer(true, &g_bgq_spinorfields[0], g_spinor_field[0]);
 
 
 	uint64_t sumotime = 0;
@@ -936,10 +934,10 @@ static int check_hopmat(void *arg_untyped) {
 
 	bgq_initbgqref();
 
-	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
-	double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], false);
+	//bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
+	//double compare_transfer = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], false);
 #ifndef BGQ_COORDCHECK
-	assert(compare_transfer == 0);
+	//assert(compare_transfer == 0);
 	// Must be exact copy
 #endif
 
@@ -961,7 +959,7 @@ static int check_hopmat(void *arg_untyped) {
 		}
 	}
 
-	bgq_HoppingMatrix(false, &g_bgq_spinorfields[k + k_max], &g_bgq_spinorfields[k], hmflags);
+	bgq_HoppingMatrix(false, &g_bgq_spinorfields[2*k_max], &g_bgq_spinorfields[k], hmflags);
 	HoppingMatrix_switch(false, g_spinor_field[k + k_max], g_spinor_field[k], hmflags);
 
 	for (ucoord z = 0; z < LOCAL_LZ ; z += 1) {
@@ -972,7 +970,7 @@ static int check_hopmat(void *arg_untyped) {
 						continue;
 
 					bgq_spinor ref = bgq_legacy_getspinor(g_spinor_field[k + k_max], t, x, y, z);
-					bgq_spinor bgq = bgq_spinorfield_getspinor(&g_bgq_spinorfields[k + k_max], t, x, y, z);
+					bgq_spinor bgq = bgq_spinorfield_getspinor(&g_bgq_spinorfields[2*k_max], t, x, y, z);
 
 					bgq_setdesc(BGQREF_RESULT, "BGQREF_RESULT");
 					//assert(ref.v[1].c[0]!=-2);
@@ -986,22 +984,22 @@ static int check_hopmat(void *arg_untyped) {
 
 	if (doSave)
 		bgq_savebgqref();
-	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k + k_max], g_spinor_field[k + k_max], false);
+	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[2*k_max], &g_bgq_spinorfields[k+k_max], false);
 #ifndef BGQ_COORDCHECK
 	assert(compare_even < 0.01);
 #endif
 
 
-	bgq_spinorfield_transfer(false, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max]);
-	compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max], false);
+	//bgq_spinorfield_transfer(false, &g_bgq_spinorfields[k+k_max], g_spinor_field[k+k_max]);
+	//compare_transfer = bgq_spinorfield_compare(false, &g_bgq_spinorfields[k+k_max], &g_bgq_spinorfields[k+k_max], false);
 #ifndef BGQ_COORDCHECK
-	assert(compare_transfer == 0);
+	//assert(compare_transfer == 0);
 #endif
 
-	bgq_HoppingMatrix(true, &g_bgq_spinorfields[k], &g_bgq_spinorfields[k+k_max], hmflags);
+	bgq_HoppingMatrix(true, &g_bgq_spinorfields[2*k_max], &g_bgq_spinorfields[k+k_max], hmflags);
 	HoppingMatrix_switch(true, g_spinor_field[k], g_spinor_field[k+k_max], hmflags);
 
-	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[k], g_spinor_field[k], false);
+	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[2*k_max], &g_bgq_spinorfields[k], false);
 #ifndef BGQ_COORDCHECK
 	assert(compare_odd < 0.01);
 #endif
@@ -1019,20 +1017,25 @@ static int check_linalg(void *arg_untyped) {
 	double compare;
 
 	random_spinor_field(g_spinor_field[0], VOLUME / 2, 0);
-	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[0], g_spinor_field[0]);
+	//bgq_spinorfield_transfer(true, &g_bgq_spinorfields[0], g_spinor_field[0]);
+	bgq_legacy_markcoords(true, g_spinor_field[0]);
 
 	random_spinor_field(g_spinor_field[1], VOLUME / 2, 0);
-	bgq_spinorfield_transfer(true, &g_bgq_spinorfields[1], g_spinor_field[1]);
+	//bgq_spinorfield_transfer(true, &g_bgq_spinorfields[1], g_spinor_field[1]);
+	bgq_legacy_markcoords(true, g_spinor_field[1]);
 
 
-	bgq_spinorfield_diff_double(&g_bgq_spinorfields[2], &g_bgq_spinorfields[0], &g_bgq_spinorfields[1]);
 	diff(g_spinor_field[2], g_spinor_field[0], g_spinor_field[1], VOLUME/2);
-	compare = bgq_spinorfield_compare(true, &g_bgq_spinorfields[2], g_spinor_field[2], false);
+	bgq_spinorfield_diff_double(&g_bgq_spinorfields[3], true, &g_bgq_spinorfields[0], &g_bgq_spinorfields[1]);
+#ifndef BGQ_COORDCHECK
+	compare = bgq_spinorfield_compare(true, &g_bgq_spinorfields[3], &g_bgq_spinorfields[2], false);
 	assert(compare < 0.01);
+#endif
 
 
-	double norm_bgq = bgq_spinorfield_sqrnorm_global(&g_bgq_spinorfields[1]);
 	double norm_ref = square_norm(g_spinor_field[1], VOLUME/2, true);
+	double norm_bgq = bgq_spinorfield_sqrnorm_global(true, &g_bgq_spinorfields[1]);
+	double norm_ref2 = square_norm(g_spinor_field[1], VOLUME/2, true);
 	compare = fabs(norm_bgq - norm_ref);
 	assert(compare < 0.01);
 
@@ -1050,7 +1053,7 @@ static void exec_bench(int j_max, int k_max) {
 	bgq_comm_spi_init();
 	bgq_initbgqref();
 
-	bgq_spinorfields_init(2 * k_max + 1, 0);
+	bgq_spinorfields_init(max_sizet(2 * k_max + 1, 4), 0);
 
 	bgq_gaugefield_init();
 	bgq_gaugefield_transferfrom(g_gauge_field);
@@ -1092,7 +1095,7 @@ static void exec_bench(int j_max, int k_max) {
 	for (int k = 0; k < k_max; k += 1) {
 		/*initialize the pseudo-fermion fields*/
 		random_spinor_field(g_spinor_field[k], VOLUME / 2, 0);
-		bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
+		//bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 	}
 
 
@@ -1257,7 +1260,7 @@ int main(int argc, char *argv[]) {
 	init_geometry_indices(VOLUMEPLUSRAND + g_dbw2rand);
 
 	if (even_odd_flag) {
-		j = init_spinor_field(VOLUMEPLUSRAND / 2, 2 * k_max + 1);
+		j = init_spinor_field(VOLUMEPLUSRAND / 2, max_sizet(2 * k_max + 1, 4));
 	}
 	else {
 		j = init_spinor_field(VOLUMEPLUSRAND, 2 * k_max);
