@@ -224,7 +224,7 @@ double bgq_spinorfield_sqrnorm_local(bool isOdd, bgq_weylfield_controlblock *fie
 	bgq_vector4double_decl(ks);
 	bgq_vector4double_decl(kc);
 	bgq_spinorfield_sqrnorm_raw(bgq_vars(&ks), bgq_vars(&kc), isOdd, field);
-	double localresult = bgq_elem0(kc) + bgq_elem1(kc) + bgq_elem2(kc) + bgq_elem3(kc); // This is probably useless
+	double localresult = bgq_elem0(kc) + bgq_elem1(kc) + bgq_elem2(kc) + bgq_elem3(kc); // This is probably useless, because too small compared to ks
 	localresult += bgq_elem0(ks);
 	localresult += bgq_elem1(ks);
 	localresult += bgq_elem2(ks);

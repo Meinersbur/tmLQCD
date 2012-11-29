@@ -441,10 +441,10 @@ void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, bool isOdd,
 
 	// Allocate necessary fields
 	if (layout==ly_legacy) {
-		// Allocation has been by init_spinor_field()
+		// Allocation has been done by init_spinor_field()
 		assert(field->legacy_field);
 	} else if (layout & ly_weyl) {
-		if (!field->has_weyllayout_double) {
+		if (!field->sec_collapsed_double) {
 			field->sec_collapsed_double = malloc_aligned(PHYSICAL_VOLUME * sizeof(*field->sec_collapsed_double), BGQ_ALIGNMENT_L2);
 #ifndef NDEBUG
 			VALGRIND_CREATE_MEMPOOL(field->sec_collapsed_double, 0, false);
@@ -459,7 +459,7 @@ void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, bool isOdd,
 			actionInitWeylPtrs = true;
 		}
 
-		if (!field->has_weyllayout_float) {
+		if (!field->sec_collapsed_float) {
 			field->sec_collapsed_float = (bgq_weylsite_float*)field->sec_collapsed_double;
 			field->sendptr_float = malloc_aligned(PHYSICAL_VOLUME * sizeof(*field->sendptr_float), BGQ_ALIGNMENT_L2);
 			for (size_t d = 0; d < PHYSICAL_LD; d+=1) {
