@@ -155,12 +155,12 @@ static inline void NAME2(REDUCTION_NAME,worker)(void *arg_untyped, size_t tid, s
 
 #if REDUCTION_ARGFIELDS>=1
 		bgq_su3_spinor_decl(spinor1);
-		bgq_spinorfield_readSpinor(&spinor1, argfield1, ic, readWeyllayout1, sloppy1, mul1, false);
+		bgq_spinorfield_readSpinor(&spinor1, argfield1, isOdd, ic, readWeyllayout1, sloppy1, mul1, false);
 #endif
 
 #if REDUCTION_ARGFIELDS>=2
 		bgq_su3_spinor_decl(spinor2);
-		bgq_spinorfield_readSpinor(&spinor2, argfield1, ic, readWeyllayout2, sloppy2, mul2, false);
+		bgq_spinorfield_readSpinor(&spinor2, argfield1, isOdd, ic, readWeyllayout2, sloppy2, mul2, false);
 #endif
 
 		REDUCTION_SITEREDUCEFUNC(REDUCTION_REDPTRARGS IF1ARG(, bgq_su3_spinor_vars(spinor1)) IF2ARG(, bgq_su3_spinor_vars(spinor2)) REDUCTION_EXTRAARGLIST, ic);
@@ -233,22 +233,22 @@ static inline void REDUCTION_NAME(
 #if REDUCTION_ARGFIELDS==0
 	bgq_worker_func workerfunc = NAME2(REDUCTION_NAME,worker_funcs);
 #elif REDUCTION_ARGFIELDS==1
-	bgq_spinorfield_layout layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, true, true, true, true);
+	bgq_spinorfield_layout layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, true, true, true, true, true);
 	if (!NAME2(REDUCTION_NAME,worker_funcs)[layout1])
-		layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, false, true, false, false); // Force a rewrite
+		layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, false, true, false, false, false); // Force a rewrite
 	bgq_worker_func workerfunc = NAME2(REDUCTION_NAME,worker_funcs)[layout1];
 #elif REDUCTION_ARGFIELDS==2
-	bgq_spinorfield_layout layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, true, true, true, true);
-	bgq_spinorfield_layout layout2 = bgq_spinorfield_prepareRead(argfield2, isOdd, true, true, true, true);
+	bgq_spinorfield_layout layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, true, true, true, true, true);
+	bgq_spinorfield_layout layout2 = bgq_spinorfield_prepareRead(argfield2, isOdd, true, true, true, true, true);
 	if (!NAME2(REDUCTION_NAME,worker_funcs)[layout1][layout2]) {
 		if (NAME2(REDUCTION_NAME,worker_funcs)[ly_full_double][layout2])
-			layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, false, true, false, false);
+			layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, false, true, false, false, false);
 		else if (NAME2(REDUCTION_NAME,worker_funcs)[layout1][ly_full_double])
-			layout2 = bgq_spinorfield_prepareRead(argfield2, isOdd, false, true, false, false);
+			layout2 = bgq_spinorfield_prepareRead(argfield2, isOdd, false, true, false, false, false);
 		else {
 			// Force rewrite of both
-			layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, false, true, false, false);
-			layout2 = bgq_spinorfield_prepareRead(argfield2, isOdd, false, true, false, false);
+			layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, false, true, false, false, false);
+			layout2 = bgq_spinorfield_prepareRead(argfield2, isOdd, false, true, false, false, false);
 		}
 	}
 	bgq_worker_func workerfunc = NAME2(REDUCTION_NAME,worker_funcs)[layout1][layout2];
@@ -268,6 +268,7 @@ static inline void REDUCTION_NAME(
 
 	size_t threads = omp_get_num_threads();
 
+	bgq_master_sync(); // Ensure all threads wrote their result into reduction_args.threadresult
 	REDUCTION_VARINIT(REDUCTION_REDARGS);
 	for (size_t tid = 0; tid < threads; tid+=1) {
 		NAME2(REDUCTION_NAME,threadresult_t) threadresult = reduction_args.threadresult[tid];

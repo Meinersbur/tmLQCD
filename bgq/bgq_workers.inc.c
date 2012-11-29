@@ -870,8 +870,6 @@ void bgq_copyFromLegacy_worker(void *arg_untyped, size_t tid, size_t threads) {
 		ucoord y = bgq_collapsed2y(isOdd, ic);
 		ucoord z = bgq_collapsed2z(isOdd, ic);
 #endif
-		bgq_spinor_vec *targetaddr = &targetfield->BGQ_SEC_FULLLAYOUT[ic];
-
 		bgq_su3_spinor_decl(spinor);
 		bgq_ld2a_double(spinor_v0_c0, 0, srcarddr);
 		bgq_qvlfcduxa(spinor_v0_c1, srcarddr, 16);
@@ -887,19 +885,23 @@ void bgq_copyFromLegacy_worker(void *arg_untyped, size_t tid, size_t threads) {
 		bgq_qvlfcduxa(spinor_v3_c2, srcarddr, 16);
 				bgq_spinorqpxk_expect(spinor,0,t,x,y,z);
 
-		targetaddr = (bgq_spinor_vec*)((char*)targetaddr + k*2*PRECISION_SIZEOF);
+		if (k!=0) {
+			int a = 0;
+		}
+		bgq_spinor_vec *targetaddr = &targetfield->BGQ_SEC_FULLLAYOUT[ic];
+		targetaddr = (bgq_spinor_vec*)((char*)targetaddr + k*PRECISION_COMPLEX_SIZEOF);
 		bgq_st2a(spinor_v0_c0,0,targetaddr);
-		bgq_qvstfcuxa(spinor_v0_c1,targetaddr,32); // i.e. skip 16 bytes, write 16 bytes
-		bgq_qvstfcuxa(spinor_v0_c2,targetaddr,32);
-		bgq_qvstfcuxa(spinor_v1_c0,targetaddr,32);
-		bgq_qvstfcuxa(spinor_v1_c1,targetaddr,32);
-		bgq_qvstfcuxa(spinor_v1_c2,targetaddr,32);
-		bgq_qvstfcuxa(spinor_v2_c0,targetaddr,32);
-		bgq_qvstfcuxa(spinor_v2_c1,targetaddr,32);
-		bgq_qvstfcuxa(spinor_v2_c2,targetaddr,32);
-		bgq_qvstfcuxa(spinor_v3_c0,targetaddr,32);
-		bgq_qvstfcuxa(spinor_v3_c1,targetaddr,32);
-		bgq_qvstfcuxa(spinor_v3_c2,targetaddr,32);
+		bgq_qvstfcuxa(spinor_v0_c1,targetaddr,2*PRECISION_COMPLEX_SIZEOF); // i.e. skip 16 bytes, write 16 bytes
+		bgq_qvstfcuxa(spinor_v0_c2,targetaddr,2*PRECISION_COMPLEX_SIZEOF);
+		bgq_qvstfcuxa(spinor_v1_c0,targetaddr,2*PRECISION_COMPLEX_SIZEOF);
+		bgq_qvstfcuxa(spinor_v1_c1,targetaddr,2*PRECISION_COMPLEX_SIZEOF);
+		bgq_qvstfcuxa(spinor_v1_c2,targetaddr,2*PRECISION_COMPLEX_SIZEOF);
+		bgq_qvstfcuxa(spinor_v2_c0,targetaddr,2*PRECISION_COMPLEX_SIZEOF);
+		bgq_qvstfcuxa(spinor_v2_c1,targetaddr,2*PRECISION_COMPLEX_SIZEOF);
+		bgq_qvstfcuxa(spinor_v2_c2,targetaddr,2*PRECISION_COMPLEX_SIZEOF);
+		bgq_qvstfcuxa(spinor_v3_c0,targetaddr,2*PRECISION_COMPLEX_SIZEOF);
+		bgq_qvstfcuxa(spinor_v3_c1,targetaddr,2*PRECISION_COMPLEX_SIZEOF);
+		bgq_qvstfcuxa(spinor_v3_c2,targetaddr,2*PRECISION_COMPLEX_SIZEOF);
 			bgq_spinorveck_expect(targetfield->BGQ_SEC_FULLLAYOUT[ic], k, t, x, y, z);
 	}
 }

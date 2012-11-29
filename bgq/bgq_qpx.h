@@ -376,11 +376,11 @@ typedef struct {
 	} while (0)
 
 #define bgq_qvstfcduxa(data,addr,offset) \
-	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
+	(addr) = (void*)((char*)(addr) + (offset)); \
 	bgq_st2a_double(data,0,addr)
 
 #define bgq_qvstfcsuxa(data,addr,offset) \
-	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
+	(addr) = (void*)((char*)(addr) + (offset)); \
 	bgq_st2a_float(data,0,addr)
 
 

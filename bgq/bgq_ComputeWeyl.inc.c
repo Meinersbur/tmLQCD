@@ -71,18 +71,6 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_setbgqvalue_src(t1, x, y, z, TDOWN, BGQREF_TUP_KAMUL, bgq_cmplxval1(weyl_tdown_v0_c0));
 				bgq_setbgqvalue_src(t2, x, y, z, TDOWN, BGQREF_TUP_KAMUL, bgq_cmplxval2(weyl_tdown_v0_c0));
 
-#ifndef NDEBUG
-				ucoord ic_dst = bgq_collapsed_src2dst(isOdd_src, ic_src, TDOWN);
-
-				size_t offset_ptr = bgq_fieldpointer2offset(targetptrs->d[TUP]);
-				bgq_weylfield_section sec = bgq_sectionOfOffset(offset_ptr);
-				ucoord index_ptr = bgq_offset2index(offset_ptr);
-				ucoord ic_ptr = bgq_index2collapsed(isOdd_dst, index_ptr, -1);
-				bgq_direction d_ptr = bgq_offset2ddst(offset_ptr);
-
-				assert(ic_ptr == ic_dst);
-				assert(d_ptr == TUP);
-#endif
 		bgq_su3_weyl_zeroload(targetptrs->d[TUP]); //TODO: evaluate usefulness
 		bgq_su3_weyl_store(targetptrs->d[TUP], weyl_tdown);
 		bgq_weylvec_written(targetptrs->d[TUP], t1, t2, x, y, z, TDOWN, true);
@@ -94,11 +82,15 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 
 	// T- /////////////////////////////////////////////////////////////////////////
 	{
+				bgq_setdesc(BGQREF_TDOWN_SOURCE, "BGQREF_TDOWN_SOURCE");
+				bgq_setbgqvalue_src(t1, x, y, z, TUP, BGQREF_TDOWN_SOURCE, bgq_cmplxval1(spinor_v0_c0));
+				bgq_setbgqvalue_src(t2, x, y, z, TUP, BGQREF_TDOWN_SOURCE, bgq_cmplxval2(spinor_v0_c0));
+
 		bgq_su3_weyl_decl(weyl_tup);
 		bgq_su3_reduce_weyl_tdown(weyl_tup, spinor);
 				bgq_setdesc(BGQREF_TDOWN, "BGQREF_TDOWN");
-				bgq_setbgqvalue_src(t1, x, y, z, TUP, BGQREF_TDOWN, bgq_cmplxval1(weyl_tup_v0_c0));
-				bgq_setbgqvalue_src(t2, x, y, z, TUP, BGQREF_TDOWN, bgq_cmplxval2(weyl_tup_v0_c0));
+				bgq_setbgqvalue_src(t1, x, y, z, TUP, BGQREF_TDOWN, bgq_cmplxval1(weyl_tup_v0_c2));
+				bgq_setbgqvalue_src(t2, x, y, z, TUP, BGQREF_TDOWN, bgq_cmplxval2(weyl_tup_v0_c2));
 
 		bgq_su3_mdecl(gauge_tdown);
 		bgq_qvlfduxa(gauge_tdown_c00, gaugesite, 32);
@@ -126,18 +118,6 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_setbgqvalue_src(t1, x, y, z, TUP, BGQREF_TDOWN_KAMUL, bgq_cmplxval1(weyl_tup_v0_c0));
 				bgq_setbgqvalue_src(t2, x, y, z, TUP, BGQREF_TDOWN_KAMUL, bgq_cmplxval2(weyl_tup_v0_c0));
 
-#ifndef NDEBUG
-				ucoord ic_dst = bgq_collapsed_src2dst(isOdd_src, ic_src, TUP);
-
-				size_t offset_ptr = bgq_fieldpointer2offset(targetptrs->d[TDOWN]);
-				bgq_weylfield_section sec = bgq_sectionOfOffset(offset_ptr);
-				ucoord index_ptr = bgq_offset2index(offset_ptr);
-				ucoord ic_ptr = bgq_index2collapsed(isOdd_dst, index_ptr, -1);
-				bgq_direction d_ptr = bgq_offset2ddst(offset_ptr);
-
-				assert(ic_ptr == ic_dst);
-				assert(d_ptr == TDOWN);
-#endif
 		bgq_su3_weyl_zeroload(targetptrs->d[TDOWN]); //TODO: remove?
 		bgq_su3_weyl_store(targetptrs->d[TDOWN], weyl_tup);
 		bgq_weylvec_written(targetptrs->d[TDOWN], t1, t2, x, y, z, TUP, true);
@@ -219,7 +199,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		if (kamul) {
 			bgq_su3_weyl_cmul(weyl_xup, qka1, weyl_xup);
 		}
-				bgq_setdesc(BGQREF_XDOWN_KAMUL,"BGQREF_TDOWN_KAMUL");
+				bgq_setdesc(BGQREF_XDOWN_KAMUL,"BGQREF_XDOWN_KAMUL");
 				bgq_setbgqvalue_src(t1, x, y, z, XUP, BGQREF_XDOWN_KAMUL, bgq_cmplxval1(weyl_xup_v0_c0));
 				bgq_setbgqvalue_src(t2, x, y, z, XUP, BGQREF_XDOWN_KAMUL, bgq_cmplxval2(weyl_xup_v0_c0));
 

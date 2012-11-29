@@ -1429,24 +1429,6 @@ EXTERN_INLINE bgq_direction bgq_direction_compose(bgq_dimension dim, bool isDown
 }
 
 
-EXTERN_INLINE int bgq_collapsed2eosub(bool isOdd, ucoord ic, ucoord k) {
-	//TODO: This index computation is quite slow, we may add a direct index translation array
-	assert(0 <= ic && ic < PHYSICAL_VOLUME);
-	assert(0 <= k && k < PHYSICAL_LK);
-
-	ucoord ih = bgq_collapsed2halfvolume(isOdd, ic);
-	ucoord t = bgq_halfvolume2t(isOdd, ih, k);
-	ucoord x = bgq_halfvolume2x(ih);
-	ucoord y = bgq_halfvolume2y(ih);
-	ucoord z = bgq_halfvolume2z(ih);
-
-	int lexic = Index(t, x, y, z);
-	assert(0 <= lexic && lexic < VOLUME);
-	int eosub = g_lexic2eosub[lexic];
-	assert(0 <= eosub && eosub < VOLUME/2);
-
-	return eosub;
-}
 
 
 EXTERN_INLINE ucoord bgq_eosub2collapsed(bool isOdd, int eosub) {
@@ -1461,7 +1443,7 @@ EXTERN_INLINE ucoord bgq_eosub2collapsed(bool isOdd, int eosub) {
 	int y = g_coord[lexic][2] - g_proc_coords[2]*LY;
 	int z = g_coord[lexic][3] - g_proc_coords[3]*LZ;
 	assert(bgq_local2isOdd(t,x,y,z)==isOdd);
-	return bgq_local2collapsed(t, x, y, z);
+	return bgq_local2collapsed(t,x,y,z);
 }
 
 
@@ -1480,6 +1462,37 @@ EXTERN_INLINE ucoord bgq_eosub2k(bool isOdd, int eosub) {
 	return bgq_local2k(t, x, y, z);
 }
 
+
+EXTERN_INLINE int bgq_collapsed2eosub(bool isOdd, ucoord ic, ucoord k) {
+	//TODO: This index computation is quite slow, we may add a direct index translation array
+	assert(0 <= ic && ic < PHYSICAL_VOLUME);
+	assert(0 <= k && k < PHYSICAL_LK);
+
+	ucoord ih = bgq_collapsed2halfvolume(isOdd, ic);
+	ucoord t = bgq_halfvolume2t(isOdd, ih, k);
+	ucoord x = bgq_halfvolume2x(ih);
+	ucoord y = bgq_halfvolume2y(ih);
+	ucoord z = bgq_halfvolume2z(ih);
+
+	int lexic = g_ipt[t][x][y][z]; /* lexic coordinate */
+	assert(lexic == Index(t,x,y,z));
+	int eo = g_lexic2eo[lexic]; /* even/odd coordinate (even and odd sites in two different fields of size VOLUME/2, first even field followed by odd) */
+	assert(0 <= eo && eo < (VOLUME+RAND));
+	int eosub = g_lexic2eosub[lexic]; /*  even/odd coordinate relative to field base */
+	assert(0 <= eosub && eosub < VOLUME/2);
+	assert(eosub == eo - (isOdd ? (VOLUME+RAND)/2 : 0));
+
+#if 0
+	int lexic = Index(t, x, y, z);
+	assert(0 <= lexic && lexic < VOLUME);
+	int eosub = g_lexic2eosub[lexic];
+	assert(0 <= eosub && eosub < VOLUME/2);
+#endif
+
+	assert(bgq_eosub2collapsed(isOdd, eosub) == ic);
+	assert(bgq_eosub2k(isOdd, eosub) == k);
+	return eosub;
+}
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD
