@@ -43,9 +43,9 @@
 /* R inoutput, S input, U input, c1 input, c2 input */
 void assign_mul_bra_add_mul_ket_add(spinor * const R, spinor * const S,spinor * const U,
 				    const _Complex double c1, const _Complex double c2, const int N) {
-	spinorfield_enable(R, true);
-	spinorfield_enable(S, true);
-	spinorfield_enable(U, true);
+	spinorfield_enable(R, true, true);
+	spinorfield_enable(S, true, false);
+	spinorfield_enable(U, true, false);
 #ifdef OMP
 #pragma omp parallel
   {

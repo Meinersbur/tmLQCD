@@ -912,7 +912,7 @@ static void benchmark_hopmatkernel(bgq_hmflags flags, int k, int k_max) {
 	bool floppyprecision = flags & hm_floatprecision;
 
 	bgq_spinorfield_layout layout = bgq_spinorfield_prepareRead(&g_bgq_spinorfields[k], true, true, !floppyprecision, floppyprecision, false, false);
-	bgq_spinorfield_prepareWrite(&g_bgq_spinorfields[k+k_max], false, floppyprecision ? ly_weyl_float : ly_weyl_double);
+	bgq_spinorfield_prepareWrite(&g_bgq_spinorfields[k+k_max], false, floppyprecision ? ly_weyl_float : ly_weyl_double, false);
 
 	bgq_master_sync();
 	static bgq_HoppingMatrix_workload work;

@@ -96,8 +96,8 @@ wertwert
 #  endif
 
 void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k) {
-	spinorfield_enable(l, false);
-	spinorfield_enable(k, true);
+	spinorfield_enable(l, false, true);
+	spinorfield_enable(k, true, false);
 #ifdef _GAUGE_COPY
   if(g_update_gauge_copy) {
     update_backward_gauge(g_gauge_field);
@@ -142,8 +142,8 @@ fdgh
 
 #    endif
 void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k) {
-	spinorfield_enable(l, false);
-	spinorfield_enable(k, true);
+	spinorfield_enable(l, false, true);
+	spinorfield_enable(k, true, false);
 #    ifdef XLC
 #      pragma disjoint(*l, *k)
 #    endif

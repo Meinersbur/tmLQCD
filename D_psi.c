@@ -442,8 +442,6 @@ static inline void m3addandstore(spinor * restrict const r, spinor * restrict co
 
 /* this is the hopping part only */
 static inline void local_H(spinor * const rr, spinor * const s, su3 * restrict u, int * _idx) {
-	spinorfield_enable(rr, false);
-	spinorfield_enable(s, true);
   int * idx = _idx;
 
   /****** direction +0 ******/
@@ -1142,8 +1140,8 @@ void D_psi(spinor * const P, spinor * const Q){
 static _Complex double rho1,rho2;
 
 void D_psi(spinor * const P, spinor * const Q){
-	spinorfield_enable(P, false);
-	spinorfield_enable(Q, true);
+	spinorfield_enable(P, false, true);
+	spinorfield_enable(Q, true, false);
   int ix,iy;
   su3 * restrict up,* restrict um;
   spinor * restrict rr,* restrict s,* restrict sp,* restrict sm;
@@ -1252,8 +1250,8 @@ void D_psi_prec(spinor * const P, spinor * const Q){
 /* double copy                                                */
 
 void Block_D_psi(block * blk, spinor * const rr, spinor * const s) {
-	spinorfield_enable(rr, false);
-	spinorfield_enable(s, true);
+	spinorfield_enable(rr, false, true);
+	spinorfield_enable(s, true, false);
   int i;
   spinor *r = rr;
   spinor *t = s;
@@ -1299,8 +1297,8 @@ void Block_D_psi(block * blk, spinor * const rr, spinor * const s) {
 
 /* Apply Hopping Matrix to a even(odd) spinor */
 void Block_H_psi(block * blk, spinor * const rr, spinor * const s, const int eo) {
-	spinorfield_enable(rr, false);
-	spinorfield_enable(s, true);
+	spinorfield_enable(rr, false, true);
+	spinorfield_enable(s, true, false);
   int i;
   spinor *r = rr;
   su3 * u = blk->u;

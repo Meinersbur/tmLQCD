@@ -33,8 +33,8 @@
 
 /*  <S,R>=S^* times R */
 _Complex double scalar_prod(const spinor * const S, const spinor * const R, const int N, const int parallel) {
-	spinorfield_enable(S, true);
-	spinorfield_enable(R, true);
+	spinorfield_enable(S, true, false);
+	spinorfield_enable(R, true, false);
   _Complex double ALIGN res = 0.0;
 #ifdef MPI
   _Complex double ALIGN mres;

@@ -33,9 +33,9 @@
 /* Makes (*R)=c1*(*S)+c2*(*U) , c1 and c2 are complex constants */
 void mul_add_mul(spinor * const R,spinor * const S,spinor * const U,const _Complex double c1,const _Complex double c2, const int N)
 {
-	spinorfield_enable(R, true);
-	spinorfield_enable(S, true);
-	spinorfield_enable(U, true);
+	spinorfield_enable(R, true, true);
+	spinorfield_enable(S, true, false);
+	spinorfield_enable(U, true, false);
 #ifdef OMP
 #pragma omp parallel
   {

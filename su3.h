@@ -667,6 +667,6 @@ _sse_store_up(r);
 
 
 
-void spinorfield_enable(const spinor *legacyField, bool read); // The const is bogus and does not help the compiler to optimize anything; however, it suppresses a warning
+void spinorfield_enable(const spinor *legacyField, bool read, bool write);
 
 #endif

@@ -241,7 +241,7 @@ EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_extractfromqpxvec_raw(bgq_su3_weyl_params
 
 
 
-void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, bool isOdd, bgq_spinorfield_layout layout, bool disableOthers);
+//void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, bool isOdd, bgq_spinorfield_layout layout, bool disableOthers);
 //void bgq_spinorfield_setup(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl, bool writeFloat); // obsolete
 //void bgq_spinorfield_setup_double(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl); // obsolete
 //void bgq_spinorfield_setup_float(bgq_weylfield_controlblock *field, bool isOdd, bool readFullspinor, bool writeFullspinor, bool readWeyl, bool writeWeyl); // obsolete
@@ -627,13 +627,13 @@ EXTERN_INLINE void bgq_spinorfield_readSpinor_raw(bgq_su3_spinor_params(*target)
 }
 
 
-void bgq_spinorfield_prepareWrite(bgq_weylfield_controlblock *field, bool isOdd, bgq_spinorfield_layout layout);
+void bgq_spinorfield_prepareWrite(bgq_weylfield_controlblock *field, bool isOdd, bgq_spinorfield_layout layout, bool preserveData);
 bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *field, bool isOdd, bool acceptWeyl, bool acceptDouble, bool acceptFloat, bool acceptMul, bool acceptLegacy);
 
 //bgq_weylfield_controlblock *bgq_translate_spinorfield(spinor *legacyField);
-void bgq_spinorfield_prepareLegacy(bgq_weylfield_controlblock *field, bool read);
+//void bgq_spinorfield_prepareLegacy(bgq_weylfield_controlblock *field, bool read);
 
-void spinorfield_enable(const spinor *legacyField, bool read);
+void spinorfield_enable(const spinor *legacyField, bool read, bool write);
 
 
 #ifdef BGQ_COORDCHECK

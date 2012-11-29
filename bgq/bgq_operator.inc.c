@@ -249,7 +249,7 @@ static void NAME2(OPERATOR_NAME,selector)(bool sloppy, bgq_weylfield_controlbloc
 #endif
 	assert(workerfunc);
 
-	bgq_spinorfield_prepareWrite(targetfield, isOdd, sloppy ? ly_full_float : ly_full_double);
+	bgq_spinorfield_prepareWrite(targetfield, isOdd, sloppy ? ly_full_float : ly_full_double, false IF1ARG(|| targetfield==argfield1) IF2ARG(|| targetfield==argfield2));
 
 	bgq_master_sync();
 	static NAME2(OPERATOR_NAME,args_t) operator_args;

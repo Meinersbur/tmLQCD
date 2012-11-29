@@ -107,9 +107,9 @@ void add(spinor * const Q,const spinor * const R,const spinor * const S, const i
 
 /* Q output, R input, S input */
 void add(spinor * const Q,const spinor * const R,const spinor * const S, const int N){
-	spinorfield_enable(Q, false);
-	spinorfield_enable(R, true);
-	spinorfield_enable(S, true);
+	spinorfield_enable(Q, false, true);
+	spinorfield_enable(R, true, false);
+	spinorfield_enable(S, true, false);
 #ifdef OMP
 #pragma omp parallel
   {
