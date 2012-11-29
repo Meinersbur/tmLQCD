@@ -34,6 +34,8 @@
 
 /* k input , l output*/
 void assign_mul_add_r(spinor * const R, const double c, const spinor * const S, const int N) {
+	spinorfield_enable(R, true);
+	spinorfield_enable(S, true);
 #ifdef OMP
 #pragma omp parallel
   {
@@ -82,6 +84,8 @@ void assign_mul_add_r(spinor * const R, const double c, const spinor * const S, 
 #elif (defined BGQ && defined XLC)
 
 void assign_mul_add_r(spinor * const R, const double c, const spinor * const S, const int N) {
+	spinorfield_enable(R, true);
+	spinorfield_enable(S, true);
 #ifdef OMP
 #pragma omp parallel
   {
@@ -147,6 +151,8 @@ void assign_mul_add_r(spinor * const R, const double c, const spinor * const S, 
 #  include"bgl.h"
 
 void assign_mul_add_r(spinor * const R, const double c, const spinor * const S, const int N) {
+	spinorfield_enable(R, true);
+	spinorfield_enable(S, true);
   int ix = 1;
   const double *s ALIGN;
   const double *sp ALIGN;
@@ -339,6 +345,8 @@ void assign_mul_add_r(spinor * const R, const double c, const spinor * const S, 
 
 void assign_mul_add_r(spinor * const R, const double c, const spinor * const S, const int N)
 {
+	spinorfield_enable(R, true);
+	spinorfield_enable(S, true);
 #ifdef OMP
 #pragma omp parallel
   {

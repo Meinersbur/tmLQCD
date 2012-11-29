@@ -307,6 +307,8 @@ _Complex double calcDDaggerDovEvalue(const int *praw,double kappa,double rho,int
 
 
 void  spinor_fft(spinor * spinor_in,spinor *spinor_out,int tt,int ll,unsigned int  forward){
+	spinorfield_enable(spinor_out, false, true);
+	spinorfield_enable(spinor_in, true, false);
 #ifdef HAVE_FFTW
   fftw_plan plan=spinor_fftw_plan(spinor_in,spinor_out,tt,ll,forward,FFTW_WISDOM_ONLY);
   fftw_execute(plan);
@@ -571,7 +573,7 @@ void spinorPrecWS_Free(spinorPrecWS *ws){
 
 
 void eigenvector_Dtm(spinor *spin,double mu,int epsilon,int k,int color,int rawp[4]){
-
+	spinorfield_enable(spin, false, true);
 
 #ifdef HAVE_FFTW
   fftw_plan p1bw;
@@ -582,7 +584,7 @@ void eigenvector_Dtm(spinor *spin,double mu,int epsilon,int k,int color,int rawp
   spinor *phi;
 
   spinorPrecWS *ws=(spinorPrecWS*)g_precWS;
-
+  spinorfield_enable(ws->spinor_up[0], true, false);
 
   for(i=0;i<VOLUME;i++){ 
     _spinor_null(spin[i]); 
@@ -711,6 +713,7 @@ fftw_plan spinor_fftw_plan(spinor *spinor_in,spinor *spinor_out,int T,int ll,uns
 #endif
 
 void planeWave(spinor *spinor,int k,int rawp[4],int tt,int ll,unsigned int momspace){
+	spinorfield_enable(spinor, false, true);
   int i;
   int u_index;
 
@@ -777,6 +780,8 @@ void planeWave(spinor *spinor,int k,int rawp[4],int tt,int ll,unsigned int momsp
 
 
 void spinorPrecondition(spinor *spinor_out,const spinor *spinor_in,spinorPrecWS* ws,int tt,int ll,const _Complex double alpha,unsigned int dagger,unsigned int autofft){
+	spinorfield_enable(spinor_out, false, true);
+	spinorfield_enable(spinor_in, true, false);
 
   /*   static int epsilon[12]={1,1,1,1,1,1,-1,-1,-1,-1,-1,-1}; */
   /*   static int k[12]      ={0,0,0,1,1,1,0,0,0,1,1,1}; */

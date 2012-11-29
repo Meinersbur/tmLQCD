@@ -38,6 +38,8 @@
 #include "mul.h"
 
 void mul(spinor * const R, const _Complex double c, spinor * const S, const int N){
+	spinorfield_enable(R, false, true);
+	spinorfield_enable(S, true, false);
 #ifdef OMP
 #pragma omp parallel
   {

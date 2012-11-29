@@ -11,13 +11,13 @@
 #include "bgq_spinorfield.h"
 
 
-complex_double bgq_spinorfield_innerprod_local(bgq_weylfield_controlblock *field1, bgq_weylfield_controlblock *field2);
-complex_double bgq_spinorfield_innerprod_global(bgq_weylfield_controlblock *field1, bgq_weylfield_controlblock *field2);
+complex_double bgq_spinorfield_innerprod_local(bool isOdd, bgq_weylfield_controlblock *field1, bgq_weylfield_controlblock *field2);
+complex_double bgq_spinorfield_innerprod_global(bool isOdd, bgq_weylfield_controlblock *field1, bgq_weylfield_controlblock *field2);
 
-double bgq_spinorfield_innerprod_r_local(bgq_weylfield_controlblock *field1, bgq_weylfield_controlblock *field2);
-double bgq_spinorfield_innerprod_r_global(bgq_weylfield_controlblock *field1, bgq_weylfield_controlblock *field2);
+double bgq_spinorfield_innerprod_r_local(bool isOdd, bgq_weylfield_controlblock *field1, bgq_weylfield_controlblock *field2);
+double bgq_spinorfield_innerprod_r_global(bool isOdd, bgq_weylfield_controlblock *field1, bgq_weylfield_controlblock *field2);
 
-double bgq_spinorfield_sqrnorm_local(bgq_weylfield_controlblock *field);
-double bgq_spinorfield_sqrnorm_global(bgq_weylfield_controlblock *field);
+double bgq_spinorfield_sqrnorm_local(bool isOdd, bgq_weylfield_controlblock *field);
+double bgq_spinorfield_sqrnorm_global(bool isOdd, bgq_weylfield_controlblock *field);
 
 #endif /* BGQ_STDREDUCTIONS_H_ */

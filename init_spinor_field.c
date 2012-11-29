@@ -59,7 +59,7 @@ int init_spinor_field(const int V, const int nr) {
 #if ( defined SSE || defined SSE2 || defined SSE3)
   g_spinor_field[0] = (spinor*)(((unsigned long int)(sp)+ALIGN_BASE)&~ALIGN_BASE);
 #else
-  g_spinor_field[0] = sp;
+  g_spinor_field[0] = (spinor*)(((unsigned long int)(sp)+31)&~31);
 #endif
   
   for(i = 1; i < nr; i++){

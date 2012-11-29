@@ -12,6 +12,8 @@
 #include "bgq_utils.h"
 #include "bgq_qpx.h"
 
+#include "../geometry_eo.h"
+
 #include <stdbool.h>
 #include <string.h>
 #include <stdint.h>
@@ -302,8 +304,6 @@ EXTERN_INLINE bool bgq_direction_isDistributed(bgq_direction d) {
 
 
 void bgq_indices_init(void);
-void bgq_spinorfields_init(size_t std_count, size_t chi_count);
-void bgq_gaugefield_init(void);
 
 
 
@@ -323,6 +323,7 @@ typedef bgq_spinorsite_double bgq_spinor_vec_double;
 typedef bgq_spinorsite_float bgq_spinor_vec_float;
 #define bgq_spinorsite NAME2(bgq_spinorsite,PRECISION)
 //typedef bgq_spinorsite_double (*bgq_spinorfield);
+#define bgq_spinor_vec NAME2(bgq_spinor_vec,PRECISION)
 
 typedef struct {
 	complex_double s[2][3][PHYSICAL_LK]; // 192 byte (3 L1 cache lines)
@@ -353,16 +354,6 @@ typedef struct {
 } bgq_weyl_ptr_t_float;
 #define bgq_weyl_ptr_t NAME2(bgq_weyl_ptr_t,PRECISION)
 
-
-typedef struct {
-	complex_double s[2];
-} bgq_weyl;
-
-typedef struct {
-	bool isSloppy;
-	bool hasWeylfieldData;
-	bool hasFullspinorData;
-} bgq_weylfield_status;
 
 typedef enum {
 	sec_surface,
@@ -522,56 +513,9 @@ typedef enum {
 
 
 
-//TODO: make incomplete type
-//TODO: Move to bgq_spinorfield.h
-typedef struct {
-	bool isInitialized;
-	bool isOdd;
-	//bool hasWeylfieldData;
-	//bool isWeyllayoutSloppy;
-	//bool waitingForRecv; /* true==Need to wait for SPI recv and then copy data to consecutive area; false==All data available in sec_surface and sec_body */
-	//bool waitingForRecvNoSPI;
-	bgq_hmflags hmflags;
-	bool pendingDatamove;
-	//bool hasFullspinorData;
-	//bool isFulllayoutSloppy;
-
-	bool has_weyllayout_double;
-	bool has_weyllayout_float;
-	bool has_fulllayout_double;
-	bool has_fulllayout_float;
-
-	//uint8_t *sec_weyl;
-	//bgq_weyl_vec *sec_index; // obsolete
-	//bgq_weyl_vec *sec_send[PHYSICAL_LD]; // obsolete
-	//bgq_weyl_vec *sec_recv[PHYSICAL_LD]; // obsolete
-	bgq_weylsite_double *sec_collapsed_double;
-	bgq_weylsite_float *sec_collapsed_float;
-	//bgq_weylsite *sec_surface;
-	//bgq_weylsite *sec_body;
-	//uint8_t *sec_end;
+struct bgq_weylfield_controlblock;
 
 
-	bgq_spinorsite_double *sec_fullspinor_double;
-	//bgq_spinorsite *sec_fullspinor_surface;
-	//bgq_spinorsite *sec_fullspinor_body;
-	bgq_spinorsite_float *sec_fullspinor_float;
-
-
-	//TODO: We may even interleave these with the data itself, but may cause alignment issues
-	// Idea: sizeof(bgq_weyl_ptr_t)==10*8==80, so one bgq_weyl_ptr_t every 2(5;10) spinors solves the issue
-	// In case we write as fullspinor layout, the are not needed
-	bgq_weyl_ptr_t_double *sendptr_double;
-	bgq_weyl_vec_double **consptr_double[PHYSICAL_LD];
-
-	bgq_weyl_ptr_t_float *sendptr_float;
-	bgq_weyl_vec_float **consptr_float[PHYSICAL_LD];
-} bgq_weylfield_controlblock;
-
-#define BGQ_SEC_FULLLAYOUT NAME2(sec_fullspinor,PRECISION)
-#define BGQ_SEC_WEYLLAYOUT NAME2(sec_collapsed,PRECISION)
-#define BGQ_SENDPTR NAME2(sendptr,PRECISION)
-#define BGQ_CONSPTR NAME2(consptr,PRECISION)
 
 // Index translations
 EXTERN_FIELD size_t *g_bgq_collapsed2halfvolume[PHYSICAL_LP];
@@ -587,16 +531,15 @@ EXTERN_FIELD bgq_weyl_offsets_t *g_bgq_collapsed2indexsend[PHYSICAL_LP];
 
 
 
-// The gaugefield as GAUGE_COPY
-EXTERN_FIELD bgq_weylfield_controlblock *g_bgq_spinorfields EXTERN_INIT(NULL);
+
 
 
 
 
 void bgq_indices_init(void);
-void bgq_spinorfields_init(size_t std_count, size_t chi_count);
+//void bgq_spinorfields_init(size_t std_count, size_t chi_count);
 //void bgq_spinorfield_reset(bgq_weylfield_controlblock *field, bool isOdd, bool activateWeyl, bool activateFull);
-void bgq_gaugefield_init(void);
+//void bgq_gaugefield_init(void);
 
 EXTERN_INLINE ucoord bgq_local2global_t(scoord t) {
 	assert(0 <= t && t < LOCAL_LT);
@@ -625,7 +568,7 @@ EXTERN_INLINE ucoord bgq_t2t(ucoord t, ucoord k) {
 }
 
 
-EXTERN_INLINE bool bgq_local2isOdd(size_t t, size_t x, size_t y, size_t z) {
+EXTERN_INLINE bool bgq_local2isOdd(ucoord t, ucoord x, ucoord y, ucoord z) {
 	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
@@ -660,12 +603,12 @@ EXTERN_INLINE size_t bgq_local2tv(size_t t, size_t x, size_t y, size_t z) {
 	assert(0 <= tv && tv < PHYSICAL_LTV);
 	return tv;
 }
-EXTERN_INLINE bool bgq_local2k(size_t t, size_t x, size_t y, size_t z) {
+EXTERN_INLINE bool bgq_local2k(ucoord t, ucoord x, ucoord y, ucoord z) {
 	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
-	size_t k = (t >= (LOCAL_LT/2));
+	ucoord k = (t >= (LOCAL_LT/2));
 	assert(t==bgq_physical2t(bgq_local2isOdd(t,x,y,z),bgq_local2tv(t,x,y,z),x,y,z,k));
 	return k;
 }
@@ -968,13 +911,13 @@ EXTERN_INLINE size_t bgq_collapsed2body(size_t ic) {
 	return ic - PHYSICAL_SURFACE;
 }
 
-EXTERN_INLINE size_t bgq_local2collapsed(size_t t, size_t x, size_t y, size_t z) {
+EXTERN_INLINE ucoord bgq_local2collapsed(ucoord t, ucoord x, ucoord y, ucoord z) {
 	assert(0 <= t && t < LOCAL_LT);
 	assert(0 <= x && x < LOCAL_LX);
 	assert(0 <= y && y < LOCAL_LY);
 	assert(0 <= z && z < LOCAL_LZ);
 	bool isOdd = bgq_local2isOdd(t,x,y,z);
-	size_t ih = bgq_local2halfvolume(t,x,y,z);
+	ucoord ih = bgq_local2halfvolume(t,x,y,z);
 	return bgq_halfvolume2collapsed(isOdd, ih);
 }
 
@@ -983,6 +926,12 @@ EXTERN_INLINE ucoord bgq_collapsed2t(bool isOdd, ucoord ic, ucoord k) {
 	assert(0 <= k && k < PHYSICAL_LK);
 	ucoord ih = bgq_collapsed2halfvolume(isOdd, ic);
 	return bgq_halfvolume2t(isOdd, ih, k);
+}
+EXTERN_INLINE ucoord bgq_collapsed2t1(bool isOdd, ucoord ic) {
+	return bgq_collapsed2t(isOdd, ic, 0);
+}
+EXTERN_INLINE ucoord bgq_collapsed2t2(bool isOdd, ucoord ic) {
+	return bgq_collapsed2t(isOdd, ic, 1);
 }
 EXTERN_INLINE size_t bgq_collapsed2x(bool isOdd, size_t ic) {
 	assert(0 <= ic && ic < PHYSICAL_VOLUME);
@@ -1032,6 +981,7 @@ EXTERN_INLINE size_t bgq_local2halfvolume_neighbor(size_t t, size_t x, size_t y,
 	size_t ih_src = bgq_local2halfvolume(t,x,y,z);
 	return ih_src;
 }
+
 
 EXTERN_INLINE size_t bgq_localdst2ksrc(size_t t, size_t x, size_t y, size_t z, bgq_direction d) {
 	switch (d) {
@@ -1088,7 +1038,6 @@ EXTERN_INLINE bgq_weylfield_section bgq_direction2section(bgq_direction d, bool 
 		UNREACHABLE
 	}
 }
-
 
 
 EXTERN_INLINE size_t bgq_weyl_section_offset(bgq_weylfield_section section) {
@@ -1177,11 +1126,6 @@ EXTERN_INLINE bgq_weylfield_section bgq_sectionOfOffset(size_t offset) {
 	assert(!"Out of range");
 	return sec_end;
 }
-
-
-
-
-
 
 
 EXTERN_INLINE bgq_direction bgq_direction_revert(bgq_direction d) {
@@ -1366,9 +1310,6 @@ EXTERN_INLINE ucoord bgq_collapsed_dst2src(bool isOdd_dst, ucoord ic_dst, bgq_di
 }
 
 
-size_t bgq_pointer2offset_raw(bgq_weylfield_controlblock *field, void *ptr, bool check);
-size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr);
-
 
 EXTERN_INLINE size_t bgq_collapsed2consecutiveoffset(ucoord ic, bgq_direction d) {
 	assert(0 <= ic && ic < PHYSICAL_VOLUME);
@@ -1451,7 +1392,7 @@ EXTERN_INLINE ucoord bgq_index2collapsed(bool isOdd, ucoord index, ucoord k) {
 	if (BGQ_UNVECTORIZE && COMM_T) {
 		if (sec==sec_send_tup || sec==sec_send_tdown || sec==sec_recv_tup || sec==sec_recv_tdown) {
 			// difficult case: unvectorized buffer
-			if (k<0 || k>1) {
+			if (k>1) {
 				assert(!"There are multiple ic's at this location");
 			}
 			relindex = relindex * PHYSICAL_LK + k; assert(sec_write==sec_temp_tdown || sec_write==sec_temp_tup);
@@ -1489,6 +1430,69 @@ EXTERN_INLINE bgq_direction bgq_direction_compose(bgq_dimension dim, bool isDown
 
 
 
+
+EXTERN_INLINE ucoord bgq_eosub2collapsed(bool isOdd, int eosub) {
+	assert(0 <= eosub && eosub < VOLUME/2);
+
+	int ioff = isOdd ? (VOLUME+RAND)/2 : 0;
+	int eo = eosub + ioff;
+	int lexic = g_eo2lexic[eo];
+	assert(0 <= lexic && lexic < VOLUME);
+	int t = g_coord[lexic][0] - g_proc_coords[0]*T;
+	int x = g_coord[lexic][1] - g_proc_coords[1]*LX;
+	int y = g_coord[lexic][2] - g_proc_coords[2]*LY;
+	int z = g_coord[lexic][3] - g_proc_coords[3]*LZ;
+	assert(bgq_local2isOdd(t,x,y,z)==isOdd);
+	return bgq_local2collapsed(t,x,y,z);
+}
+
+
+EXTERN_INLINE ucoord bgq_eosub2k(bool isOdd, int eosub) {
+	assert(0 <= eosub && eosub < VOLUME/2);
+
+	int ioff = isOdd ? (VOLUME+RAND)/2 : 0;
+	int eo = eosub + ioff;
+	int lexic = g_eo2lexic[eo];
+	assert(0 <= lexic && lexic < VOLUME);
+	int t = g_coord[lexic][0] - g_proc_coords[0]*T;
+	int x = g_coord[lexic][1] - g_proc_coords[1]*LX;
+	int y = g_coord[lexic][2] - g_proc_coords[2]*LY;
+	int z = g_coord[lexic][3] - g_proc_coords[3]*LZ;
+	assert(bgq_local2isOdd(t,x,y,z)==isOdd);
+	return bgq_local2k(t, x, y, z);
+}
+
+
+EXTERN_INLINE int bgq_collapsed2eosub(bool isOdd, ucoord ic, ucoord k) {
+	//TODO: This index computation is quite slow, we may add a direct index translation array
+	assert(0 <= ic && ic < PHYSICAL_VOLUME);
+	assert(0 <= k && k < PHYSICAL_LK);
+
+	ucoord ih = bgq_collapsed2halfvolume(isOdd, ic);
+	ucoord t = bgq_halfvolume2t(isOdd, ih, k);
+	ucoord x = bgq_halfvolume2x(ih);
+	ucoord y = bgq_halfvolume2y(ih);
+	ucoord z = bgq_halfvolume2z(ih);
+
+	int lexic = g_ipt[t][x][y][z]; /* lexic coordinate */
+	assert(lexic == Index(t,x,y,z));
+	int eo = g_lexic2eo[lexic]; /* even/odd coordinate (even and odd sites in two different fields of size VOLUME/2, first even field followed by odd) */
+	assert(0 <= eo && eo < (VOLUME+RAND));
+	int eosub = g_lexic2eosub[lexic]; /*  even/odd coordinate relative to field base */
+	assert(0 <= eosub && eosub < VOLUME/2);
+	assert(eosub == eo - (isOdd ? (VOLUME+RAND)/2 : 0));
+
+#if 0
+	int lexic = Index(t, x, y, z);
+	assert(0 <= lexic && lexic < VOLUME);
+	int eosub = g_lexic2eosub[lexic];
+	assert(0 <= eosub && eosub < VOLUME/2);
+#endif
+
+	assert(bgq_eosub2collapsed(isOdd, eosub) == ic);
+	assert(bgq_eosub2k(isOdd, eosub) == k);
+	return eosub;
+}
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

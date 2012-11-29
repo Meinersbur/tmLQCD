@@ -229,10 +229,10 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	bool noprefetchstream = opts & hm_noprefetchstream;
 	bool floatprecision = opts & hm_floatprecision;
 
-	bgq_spinorfield_layout layout = bgq_spinorfield_prepareRead(spinorfield, !isOdd, true, !floatprecision, floatprecision, false);
-	bgq_spinorfield_prepareWrite(targetfield, isOdd, floatprecision ? ly_weyl_float : ly_weyl_double);
+	bgq_spinorfield_layout layout = bgq_spinorfield_prepareRead(spinorfield, !isOdd, true, !floatprecision, floatprecision, false, false);
+	bgq_spinorfield_prepareWrite(targetfield, isOdd, floatprecision ? ly_weyl_float : ly_weyl_double, targetfield==spinorfield);
 
-#ifndef NDEBUG
+#if 0
 	if (floatprecision)
 		memset(targetfield->sec_collapsed_float, 0xFF, PHYSICAL_VOLUME * sizeof(*targetfield->sec_collapsed_float));
 	else
@@ -294,7 +294,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 
 	if (nooverlap) {
 		// Do not wait until data is required, but do it here
-		bgq_spinorfield_prepareRead(targetfield, isOdd, true, true, true, true);
+		bgq_spinorfield_prepareRead(targetfield, isOdd, true, true, true, true, false);
 		//bgq_spinorfield_setup(targetfield, isOdd, false, false, true, false, false);
 	}
 

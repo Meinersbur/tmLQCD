@@ -37,8 +37,10 @@
 #include "su3.h"
 #include "assign_mul_bra_add_mul_r.h"
 
-/*  R output, S input, c0 input, c input */
+/*  R inoutput, S input, c0 input, c input */
 void assign_mul_bra_add_mul_r(spinor * const R,const double c0, const double c,spinor * const S, const int N){
+	spinorfield_enable(R, true, true);
+	spinorfield_enable(S, true, true);
 #ifdef OMP
 #pragma omp parallel
   {

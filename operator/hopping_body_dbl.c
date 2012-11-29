@@ -145,7 +145,8 @@
     _vector_sub_assign(temp.s3,rho_v1); // 6
 
 
-    bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN, psi_v0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_SOURCE, sm->s0.c0);
+    bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN, psi_v0.c2);
     bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_GAUGE, um->c00);
     bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_WEYL, chi_v0.c0);
     bgq_setrefvalue(t,x,y,z, BGQREF_TDOWN_KAMUL, rho_v0.c0);

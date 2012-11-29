@@ -91,6 +91,9 @@ typedef struct {
 #define bgq_vars(name) \
 	NAME2(name,q0),NAME2(name,q1),NAME2(name,q2),NAME2(name,q3)
 
+#define bgq_types \
+	double,double,double,double
+
 #define bgq_params(name) \
 	double NAME2(name,q0),double NAME2(name,q1),double NAME2(name,q2),double NAME2(name,q3)
 
@@ -359,9 +362,27 @@ typedef struct {
 	} while (0)
 
 
+
+#define bgq_qvlfcsuxa(dst,addr,offset) \
+	do { \
+		(addr) = (void*)((char*)(addr) + (offset)); \
+		bgq_ld2a_float(dst,0,addr); \
+	} while (0)
+
+#define bgq_qvlfcduxa(dst,addr,offset) \
+	do { \
+		(addr) = (void*)((char*)(addr) + (offset)); \
+		bgq_ld2a_double(dst,0,addr); \
+	} while (0)
+
+#define bgq_qvstfcduxa(data,addr,offset) \
+	(addr) = (void*)((char*)(addr) + (offset)); \
+	bgq_st2a_double(data,0,addr)
+
 #define bgq_qvstfcsuxa(data,addr,offset) \
-	(addr) = (void*)((uintptr_t)(addr) + (offset)); \
+	(addr) = (void*)((char*)(addr) + (offset)); \
 	bgq_st2a_float(data,0,addr)
+
 
 
 
@@ -388,6 +409,9 @@ typedef struct {
 
 #define bgq_params(name) \
 	vector4double (name)
+
+#define bgq_types \
+		vector4double
 
 #define bgq_vector4double_decl(name) \
 	vector4double name
@@ -506,8 +530,19 @@ typedef struct {
 	asm ("qvstfsuxa %[v4d],%[ptr],%[off]  \n" : [ptr] "+b" (addr) : [v4d] "v" (data), [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
 
 
+#define bgq_qvlfcsuxa(dst,addr,offset) \
+	asm ("qvstfcsuxa %[v4d],%[ptr],%[off]  \n" : [v4d] "=v" (dst), [ptr] "+b" (addr) : [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
+
+#define bgq_qvlfcduxa(dst,addr,offset) \
+	asm ("qvstfcduxa %[v4d],%[ptr],%[off]  \n" : [v4d] "=v" (dst), [ptr] "+b" (addr) : [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
+
+
 #define bgq_qvstfcduxa(data,addr,offset) \
-	asm ("qvstfcduxa %[v4d],%[ptr],%[off]  \n", [ptr] "+b" (addr) : [v4d] "v" (data), [off] "r" (offset) )
+	asm ("qvstfcduxa %[v4d],%[ptr],%[off]  \n" : [ptr] "+b" (addr) : [v4d] "v" (data), [off] "r" (offset) )
+
+#define bgq_qvstfcsuxa(data,addr,offset) \
+	asm ("qvstfcsuxa %[v4d],%[ptr],%[off]  \n" : [ptr] "+b" (addr) : [v4d] "v" (data), [off] "r" (offset) )
+
 
 #define bgq_dcbt(addr,offset)  \
 	asm ("dcbt %[offset],%[ptr]  \n" : : [offset] "b" (offset), [ptr] "r" (addr)) /* no memory clobber, hope that the compiler doesn't move this around too much */
@@ -543,6 +578,10 @@ typedef struct {
 #endif
 
 
+#define bgq_lda NAME2(bgq_lda,PRECISION)
+#define bgq_sta NAME2(bgq_sta,PRECISION)
+#define bgq_ld2a NAME2(bgq_ld2a,PRECISION)
+#define bgq_st2a NAME2(bgq_st2a,PRECISION)
 
 #define bgq_qvlfxa NAME2(bgq_qvlfxa,PRECISION)
 #define bgq_qvlfxa_double bgq_qvlfdxa
@@ -551,6 +590,14 @@ typedef struct {
 #define bgq_qvlfuxa NAME2(bgq_qvlfuxa,PRECISION)
 #define bgq_qvlfuxa_double bgq_qvlfduxa
 #define bgq_qvlfuxa_float bgq_qvlfsuxa
+
+#define bgq_qvlfcuxa NAME2(bgq_qvlfcuxa,PRECISION)
+#define bgq_qvlfcuxa_double bgq_qvlfcduxa
+#define bgq_qvlfcuxa_float bgq_qvlfcsuxa
+
+#define bgq_qvstfcuxa NAME2(bgq_qvstfcuxa,PRECISION)
+#define bgq_qvstfcuxa_double bgq_qvstfcduxa
+#define bgq_qvstfcuxa_float bgq_qvstfcsuxa
 
 // vec_xmul(a, b)
 // re =    a.re * b.re
@@ -1366,8 +1413,6 @@ do {\
 	bgq_su3_vmov(NAME2(dst,v1),NAME2(src,v1))
 
 
-
-
 #define bgq_su3_reduce_weyl_tup(weyl, spinor) \
 	bgq_su3_vadd(NAME2(weyl,v0), NAME2(spinor,v0), NAME2(spinor,v2)); \
 	bgq_su3_vadd(NAME2(weyl,v1), NAME2(spinor,v1), NAME2(spinor,v3))
@@ -2043,7 +2088,7 @@ static inline void mbar() {
 
 
 #define REORDER_BARRIER \
-	asm volatile ("");
+	__asm volatile ("");
 
 
 

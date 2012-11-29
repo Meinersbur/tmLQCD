@@ -36,6 +36,8 @@
 
 double assign_mul_add_r_and_square(spinor * const R, const double c, spinor * const S, 
 				   const int N, const int parallel) {
+	spinorfield_enable(R, true, true);
+	spinorfield_enable(S, true, false);
   double ALIGN res = 0.0;
 #ifdef MPI
   double ALIGN mres;
@@ -135,6 +137,8 @@ double assign_mul_add_r_and_square(spinor * const R, const double c, spinor * co
 
 double assign_mul_add_r_and_square(spinor * const R, const double c, const spinor * const S, 
 				   const int N, const int parallel) {
+	spinorfield_enable(R, true, true);
+	spinorfield_enable(S, true, false);
   double ALIGN res = 0.0;
 #ifdef MPI
   double ALIGN mres;

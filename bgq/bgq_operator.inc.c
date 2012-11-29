@@ -16,7 +16,7 @@
 
 #ifndef OPERATOR_NAME
 // Make this .inc.c file compilable as stand-alone
-#define OPERATOR_NAME bgq_operate
+#define OPERATOR_NAME bgq_operator
 #define OPERATOR_ARGFIELDS 1
 #define OPERATOR_EXTRAPARMS double factor
 #define OPERATOR_EXTRAARGS factor
@@ -121,12 +121,12 @@ static inline void NAME2(OPERATOR_NAME,worker)(void *arg_untyped, size_t tid, si
 
 #if OPERATOR_ARGFIELDS>=1
 		bgq_su3_spinor_decl(spinor1);
-		bgq_spinorfield_readSpinor(&spinor1, argfield1, ic, readWeyllayout1, sloppy1, mul1);
+		bgq_spinorfield_readSpinor(&spinor1, argfield1, isOdd, ic, readWeyllayout1, sloppy1, mul1, false);
 #endif
 
 #if OPERATOR_ARGFIELDS>=2
 		bgq_su3_spinor_decl(spinor2);
-		bgq_spinorfield_readSpinor(&spinor2, argfield2, ic, readWeyllayout2, sloppy2, mul2);
+		bgq_spinorfield_readSpinor(&spinor2, argfield2, isOdd, ic, readWeyllayout2, sloppy2, mul2, false);
 #endif
 
 		bgq_su3_spinor_decl(targetspinor);
@@ -220,36 +220,36 @@ static bgq_worker_func NAME2(OPERATOR_NAME,worker_funcs)[2][BGQ_SPINORFIELD_LAYO
 #endif
 
 
-static void NAME2(OPERATOR_NAME,selector)(bool sloppy, bgq_weylfield_controlblock *targetfield IFNOARG(, bool isOdd) IF1ARG(, bgq_weylfield_controlblock *argfield1) IF2ARG(, bgq_weylfield_controlblock *argfield2) OPERATOR_EXTRAPARMLIST) {
-	IF1ARG(bool isOdd = argfield1->isOdd;)
-
+static void NAME2(OPERATOR_NAME,selector)(bool sloppy, bgq_weylfield_controlblock *targetfield, bool isOdd IF1ARG(, bgq_weylfield_controlblock *argfield1) IF2ARG(, bgq_weylfield_controlblock *argfield2) OPERATOR_EXTRAPARMLIST) {
+	//bool isOdd = argfield1->isOdd;
 
 #if OPERATOR_ARGFIELDS==0
 	bgq_worker_func workerfunc = NAME2(OPERATOR_NAME,worker_funcs)[sloppy];
 #elif OPERATOR_ARGFIELDS==1
-	bgq_spinorfield_layout layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, true, true, true, true);
-	if (!NAME2(OPERATOR_NAME,worker_funcs)[sloppy][layout1])
-		layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, false, !sloppy, sloppy, false); // Force a rewrite
+	bgq_spinorfield_layout layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, true, true, true, true, true);
+	if (!NAME2(OPERATOR_NAME,worker_funcs)[sloppy][layout1]) {
+		layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, false, !sloppy, sloppy, false, false); // Force a rewrite
+	}
 	bgq_worker_func workerfunc = NAME2(OPERATOR_NAME,worker_funcs)[sloppy][layout1];
 #elif OPERATOR_ARGFIELDS==2
-	bgq_spinorfield_layout layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, true, true, true, true);
-	bgq_spinorfield_layout layout2 = bgq_spinorfield_prepareRead(argfield2, isOdd, true, true, true, true);
+	bgq_spinorfield_layout layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, true, true, true, true, true);
+	bgq_spinorfield_layout layout2 = bgq_spinorfield_prepareRead(argfield2, isOdd, true, true, true, true, true);
 	if (!NAME2(OPERATOR_NAME,worker_funcs)[sloppy][layout1][layout2]) {
-		if (NAME2(OPERATOR_NAME,worker_funcs)[sloppy][sloppy ? ly_full_float : ly_full_double][layout2])
-			layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, false, !sloppy, sloppy, false);
-		else if (NAME2(OPERATOR_NAME,worker_funcs)[layout1][sloppy ? ly_full_float : ly_full_double])
-			layout2 = bgq_spinorfield_prepareRead(argfield2, isOdd, false, !sloppy, sloppy, false);
-		else {
+		if (NAME2(OPERATOR_NAME,worker_funcs)[sloppy][(sloppy ? ly_full_float : ly_full_double)][layout2]) {
+			layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, false, !sloppy, sloppy, false, false);
+		} else if (NAME2(OPERATOR_NAME,worker_funcs)[sloppy][layout1][(sloppy ? ly_full_float : ly_full_double)]) {
+			layout2 = bgq_spinorfield_prepareRead(argfield2, isOdd, false, !sloppy, sloppy, false, false);
+		} else {
 			// Force rewrite of both
-			layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, false, !sloppy, sloppy, false);
-			layout2 = bgq_spinorfield_prepareRead(argfield2, isOdd, false, !sloppy, sloppy, false);
+			layout1 = bgq_spinorfield_prepareRead(argfield1, isOdd, false, !sloppy, sloppy, false, false);
+			layout2 = bgq_spinorfield_prepareRead(argfield2, isOdd, false, !sloppy, sloppy, false, false);
 		}
 	}
 	bgq_worker_func workerfunc = NAME2(OPERATOR_NAME,worker_funcs)[sloppy][layout1][layout2];
 #endif
 	assert(workerfunc);
 
-	bgq_spinorfield_prepareWrite(targetfield, isOdd, sloppy ? ly_full_float : ly_full_double);
+	bgq_spinorfield_prepareWrite(targetfield, isOdd, sloppy ? ly_full_float : ly_full_double, false IF1ARG(|| targetfield==argfield1) IF2ARG(|| targetfield==argfield2));
 
 	bgq_master_sync();
 	static NAME2(OPERATOR_NAME,args_t) operator_args;
@@ -265,13 +265,13 @@ static void NAME2(OPERATOR_NAME,selector)(bool sloppy, bgq_weylfield_controlbloc
 }
 
 
-void NAME2(OPERATOR_NAME,double)(bgq_weylfield_controlblock *targetfield IFNOARG(, bool isOdd) IF1ARG(, bgq_weylfield_controlblock *argfield1) IF2ARG(, bgq_weylfield_controlblock *argfield2) OPERATOR_EXTRAPARMLIST) {
-	NAME2(OPERATOR_NAME,selector)(false, targetfield IFNOARG(, isOdd) IF1ARG(, argfield1) IF2ARG(, argfield2) OPERATOR_EXTRAARGLIST);
+void NAME2(OPERATOR_NAME,double)(bgq_weylfield_controlblock *targetfield, bool isOdd IF1ARG(, bgq_weylfield_controlblock *argfield1) IF2ARG(, bgq_weylfield_controlblock *argfield2) OPERATOR_EXTRAPARMLIST) {
+	NAME2(OPERATOR_NAME,selector)(false, targetfield, isOdd IF1ARG(, argfield1) IF2ARG(, argfield2) OPERATOR_EXTRAARGLIST);
 }
 
 
-void NAME2(OPERATOR_NAME,float)(bgq_weylfield_controlblock *targetfield IFNOARG(, bool isOdd) IF1ARG(, bgq_weylfield_controlblock *argfield1) IF2ARG(, bgq_weylfield_controlblock *argfield2) OPERATOR_EXTRAPARMLIST) {
-	NAME2(OPERATOR_NAME,selector)(true, targetfield IFNOARG(, isOdd) IF1ARG(, argfield1) IF2ARG(, argfield2) OPERATOR_EXTRAARGLIST);
+void NAME2(OPERATOR_NAME,float)(bgq_weylfield_controlblock *targetfield, bool isOdd IF1ARG(, bgq_weylfield_controlblock *argfield1) IF2ARG(, bgq_weylfield_controlblock *argfield2) OPERATOR_EXTRAPARMLIST) {
+	NAME2(OPERATOR_NAME,selector)(true, targetfield, isOdd IF1ARG(, argfield1) IF2ARG(, argfield2) OPERATOR_EXTRAARGLIST);
 }
 
 #undef OPERATOR_EXTRAARGLIST

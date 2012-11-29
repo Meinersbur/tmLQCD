@@ -38,6 +38,9 @@
 /* S,U input, R inoutput, c1,c2 input */
 void assign_add_mul_add_mul_r(spinor * const R, spinor * const S, spinor * const U,
 			      const double c1, const double c2, const int N){
+	spinorfield_enable(R, true, true);
+	spinorfield_enable(S, true, false);
+	spinorfield_enable(U, true, false);
   int ix;
   spinor *r,*s,*u;
 
