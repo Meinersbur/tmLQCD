@@ -582,10 +582,10 @@ static char *omp_threads_desc[] = { "1","2", "4", "8", "16", "32", "33", "48", "
 static bgq_hmflags flags[] = {
         (DEFOPTS | hm_withcheck) & ~hm_nokamul,
         (DEFOPTS | hm_withcheck | hm_floatprecision) & ~hm_nokamul,
+		(DEFOPTS | hm_nocom                               | hm_nodatamove) & ~hm_nokamul,
 		(DEFOPTS | hm_nocom                               | hm_nodatamove | hm_floatprecision) & ~hm_nokamul,
-		(DEFOPTS |            hm_nobody | hm_nodistribute | hm_nodatamove) & ~hm_nokamul,
-		(DEFOPTS | hm_nocom                               | hm_nodatamove | hm_floatprecision | hm_nokamul),
-		(DEFOPTS |            hm_nobody | hm_nodistribute | hm_nodatamove | hm_nokamul),
+		(DEFOPTS | hm_nocom                               | hm_nodatamove),
+		(DEFOPTS | hm_nocom                               | hm_nodatamove | hm_floatprecision),
         DEFOPTS,
 		DEFOPTS | hm_nospi,
 		DEFOPTS | hm_nooverlap,
@@ -609,7 +609,7 @@ static char* flags_desc[] = {
 		"volonly dbl",
 		"volonly sgl",
 		"nokamul",
-		"MPI",
+		"nokamul MPI",
 		"+nooverlap",
 		"+nocomm",
 		"bodyonly",
@@ -1151,7 +1151,7 @@ static void exec_bench(int j_max, int k_max) {
 	};
 	bgq_parallel(&check_linalg, &checkargs_double);
 	master_print("Double: ");
-	bgq_parallel(&check_hopmat, &checkargs_double);
+	//bgq_parallel(&check_hopmat, &checkargs_double);
 
 
 	checkargs_t checkargs_float = {
@@ -1160,7 +1160,7 @@ static void exec_bench(int j_max, int k_max) {
 	        .doSave = true
 	};
 	master_print("Float: ");
-	bgq_parallel(&check_hopmat, &checkargs_float);
+	//bgq_parallel(&check_hopmat, &checkargs_float);
 
 
 	//master_print("Benchmark: hopmatkernel\n");

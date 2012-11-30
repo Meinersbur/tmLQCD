@@ -66,10 +66,12 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 	g_bgq_dispatch_terminate = false;
 	g_bgq_dispatch_sync = false;
 	//g_bgq_dispatch_seq = 0;
+#if BGQ_QPX
 	if (!g_bgq_dispatch_barrier_initialized) {
 		Kernel_L2AtomicsAllocate(&g_bgq_dispatch_barrier, sizeof(g_bgq_dispatch_barrier));
 		g_bgq_dispatch_barrier_initialized = true;
 	}
+#endif
 	g_bgq_dispatch_threads = omp_get_max_threads();
 	omp_num_threads = 1/*omp_get_num_threads()*/; // For legacy linalg (it depends on whether nested parallelism is enabled)
 
