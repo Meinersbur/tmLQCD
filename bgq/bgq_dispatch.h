@@ -26,13 +26,14 @@
 typedef void (*bgq_worker_func)(void *arg, size_t tid, size_t threads);
 typedef int (*bgq_master_func)(void *arg);
 
+EXTERN_FIELD int g_bgq_dispatch_threads;
 int bgq_parallel(bgq_master_func master_func, void *master_arg);
 
 void bgq_worker();
 void bgq_master_call(bgq_worker_func worker_func, void *arg);
 void bgq_master_sync();
 
-EXTERN_FIELD int g_bgq_dispatch_threads;
+void bgq_master_memzero(void *ptr, size_t size);
 
 
 #undef EXTERN_INLINE

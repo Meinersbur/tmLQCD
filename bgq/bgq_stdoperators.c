@@ -33,6 +33,8 @@ static inline void bgq_site_set(bgq_su3_spinor_params(*target), bgq_su3_spinor_p
 }
 
 
+
+
 #define OPERATOR_NAME bgq_spinorfield_diff
 #define OPERATOR_ARGFIELDS 2
 #define OPERATOR_VECSITEFUNC bgq_site_diff
@@ -45,4 +47,5 @@ static inline void bgq_site_set(bgq_su3_spinor_params(*target), bgq_su3_spinor_p
 #define OPERATOR_EXTRAPARMS bgq_su3_spinor_params(spinor)
 #define OPERATOR_EXTRAARGS bgq_su3_spinor_vars(spinor)
 #include "bgq_operator.inc.c"
+
 

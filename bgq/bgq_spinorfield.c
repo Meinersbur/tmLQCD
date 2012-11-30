@@ -1910,3 +1910,35 @@ void bgq_legacy_markcoords_raw(bool isOdd, spinor *legacyField) {
 }
 
 
+void bgq_spinorfield_zero(bgq_weylfield_controlblock *field, bool isOdd) {
+	assert(field);
+
+	bgq_spinorfield_enableLayout(field, isOdd, ly_legacy, false, false);
+	bgq_master_memzero(field->legacy_field, VOLUME/2 * sizeof(*field->legacy_field));
+	field->has_legacy = true;
+
+	//bgq_spinorfield_enableLayout(field, isOdd, ly_full_double, false, false);
+	if (field->sec_fullspinor_double) {
+		bgq_master_memzero(field->sec_fullspinor_double, LOCAL_VOLUME/PHYSICAL_LP * sizeof(*field->sec_fullspinor_double));
+		field->has_fulllayout_double = true;
+	}
+
+	if (field->sec_fullspinor_float) {
+		if ((void*)field->sec_fullspinor_float!=(void*)field->sec_fullspinor_double)
+			bgq_master_memzero(field->sec_fullspinor_float, LOCAL_VOLUME/PHYSICAL_LP * sizeof(*field->sec_fullspinor_float));
+		field->has_fulllayout_float = true;
+	}
+
+	if (field->sec_collapsed_double) {
+		bgq_master_memzero(field->sec_collapsed_double, PHYSICAL_VOLUME * sizeof(*field->sec_collapsed_double));
+		field->has_weyllayout_double = true;
+	}
+
+	if (field->sec_collapsed_float) {
+		if ((void*)field->sec_collapsed_float!=(void*)field->sec_collapsed_double)
+			bgq_master_memzero(field->sec_collapsed_float, PHYSICAL_VOLUME * sizeof(*field->sec_collapsed_float));
+		field->has_weyllayout_float = true;
+	}
+}
+
+

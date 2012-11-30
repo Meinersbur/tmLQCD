@@ -412,7 +412,7 @@ void random_spinor_field(spinor * const k, const int V, const int repro) {
 
 /* Function provides a zero spinor field of length N with */
 void z2_random_spinor_field(spinor * const k, const int N) {
-
+	spinorfield_enable(k, false, true);
   int ix;
   spinor *s;
   double r[24];
@@ -450,12 +450,14 @@ void z2_random_spinor_field(spinor * const k, const int N) {
 /* Function provides a zero spinor field of length N with */
 void zero_spinor_field(spinor * const k, const int N)
 {
+	spinorfield_enable(k, false, true);
   memset(k, 0, sizeof(spinor) * N);
 }
 
 /* Function provides a constant spinor field of length N with */
 void constant_spinor_field(spinor * const k, const int p, const int N)
 {
+	spinorfield_enable(k, false, true);
   int ix;
   spinor *s;
   double * tmp;

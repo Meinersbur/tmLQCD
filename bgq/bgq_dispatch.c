@@ -202,7 +202,6 @@ void bgq_master_call(bgq_worker_func func, void *arg) {
 	bgq_worker();
 }
 
-
 void bgq_master_sync() {
 	assert(omp_get_thread_num()==0);
 
@@ -216,6 +215,52 @@ void bgq_master_sync() {
 	} else {
 		// Threads already at sync barrier
 		return;
+	}
+}
+
+
+typedef struct {
+	void *ptr;
+	size_t size;
+} bgq_memzero_work;
+
+void bgq_memzero_worker(void *args_untyped, size_t tid, size_t threads) {
+	bgq_memzero_work *args = args_untyped;
+	char *ptr = args->ptr;
+	size_t size = args->size;
+
+	const size_t workload = size;
+	const size_t threadload = (workload+threads-1)/threads;
+	const size_t begin = tid*threadload;
+	const size_t end = min_sizet(workload, begin+threadload);
+
+	char *beginLine = (ptr + begin);
+	if (begin!=0) {
+		beginLine = (void*)((uintptr_t)beginLine & ~(BGQ_ALIGNMENT_L1-1));
+	}
+
+	char *endLine  = (ptr + end);
+	if (end!=workload) {
+		endLine = (void*)((uintptr_t)endLine & ~(BGQ_ALIGNMENT_L1-1));
+		//endLine -= BGQ_ALIGNMENT_L1;
+	}
+
+	if (beginLine < endLine) {
+		size_t threadsize = (endLine-beginLine);
+		memset(beginLine, 0x00, threadload);
+	}
+}
+
+
+void bgq_master_memzero(void *ptr, size_t size) {
+	if (size < BGQ_ALIGNMENT_L1) {
+		memset(ptr, 0x00, size);
+	} else {
+		bgq_master_sync();
+		static bgq_memzero_work work;
+		work.ptr = ptr;
+		work.size = size;
+		bgq_master_call(&bgq_memzero_worker, &work);
 	}
 }
 

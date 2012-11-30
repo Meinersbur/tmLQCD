@@ -656,6 +656,8 @@ void spinorfield_enable(const spinor *legacyField, bool read, bool write);
 #endif
 void bgq_legacy_markcoords_raw(bool isOdd, spinor *legacyField);
 
+void bgq_spinorfield_zero(bgq_weylfield_controlblock *field, bool isOdd);
+
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

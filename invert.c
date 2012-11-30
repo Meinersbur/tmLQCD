@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
 #endif
 
 
-  // BEGIN MK
+ // BEGIN MK
   	assert(even_odd_flag);
   	bgq_indices_init();
   	bgq_comm_mpi_init();
@@ -347,7 +347,7 @@ int main(int argc, char *argv[])
   	bgq_initbgqref();
   	bgq_spinorfields_init(NO_OF_SPINORFIELDS, g_running_phmc ? 20 : 0);
   	bgq_gaugefield_init();
-  // END MK
+ // END MK
 
 
   for (j = 0; j < Nmeas; j++) {

@@ -902,7 +902,7 @@ static void exec_table(benchfunc_t benchmark, bgq_hmflags additional_opts, bgq_h
 			benchstat result = runbench(benchmark, hmflags, k_max, j_max, threads);
 			stats[i3] = result;
 
-			if (threads == 64 && i3 == 2) {
+			if (threads == 64 && i3 == 3) {
 				excerpt = result;
 			}
 
@@ -1090,6 +1090,44 @@ static int check_linalg(void *arg_untyped) {
 }
 
 
+static char *data;
+
+typedef struct {
+	size_t size;
+	double time;
+} bgq_memzero_work;
+
+static int check_memzero(void *arg_untyped) {
+	bgq_memzero_work *arg = arg_untyped;
+
+	for (size_t size = 1; size<2*GIBI; size<<=1) {
+		double duration;
+		for (int doSync=0; doSync <= 1; doSync+=1) {
+			for (size_t i = 0; i<10; i+=1) {
+				for (size_t j = 0; j < size; j+=1) {
+					data[j] = 1;
+				}
+
+				double start_time = MPI_Wtime();
+				bgq_master_memzero(data, size);
+				if (doSync)
+					bgq_master_sync();
+				double end_time = MPI_Wtime();
+				bgq_master_sync();
+
+				for (size_t j = 0; j < size; j+=1) {
+					assert(data[j]==0);
+				}
+
+				duration = (end_time-start_time);
+			}
+			master_print("memzero hreads=%d size=%zu doSync=%d duration=%g secs\n", g_bgq_dispatch_threads, size, doSync, duration);
+		}
+	}
+	return 0;
+}
+
+
 static void exec_bench(int j_max, int k_max) {
 	if (g_proc_id==0)
 		bgq_qpx_unittest();
@@ -1118,6 +1156,8 @@ static void exec_bench(int j_max, int k_max) {
 		}
 	}
 
+
+
 	uint64_t ws = 0;
 	uint64_t indices = 0;
 	uint64_t forcomm = 0;
@@ -1145,6 +1185,21 @@ static void exec_bench(int j_max, int k_max) {
 		//bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 	}
 
+
+	for (size_t size = 1; size<2*GIBI; size<<=1) {
+		double duration;
+		for (size_t i = 0; i<10; i+=1) {
+			double start_time = MPI_Wtime();
+			memset(data, 0, size);
+			double end_time = MPI_Wtime();
+			duration = (end_time-start_time);
+		}
+		master_print("memset size=%zu duration=%g secs\n", size, duration);
+	}
+	for (size_t threads = 1; threads<=64; threads*=2) {
+		omp_set_num_threads(threads);
+		bgq_parallel(&check_memzero, NULL);
+	}
 
 	checkargs_t checkargs_double = {
 	        .k_max = k_max,

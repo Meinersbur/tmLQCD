@@ -82,6 +82,8 @@ void rnormal(double * r, const int n)
 void gaussian_volume_source(spinor * const P, spinor * const Q,
 			    const int sample, const int nstore, const int f) 
 {
+	spinorfield_enable(P, false, true);
+	spinorfield_enable(Q, false, true);
   int x, y, z, t, i, reset = 0, seed; 
   int rlxd_state[105];
   spinor * p;
@@ -126,6 +128,10 @@ void extended_pion_source(spinor * const P, spinor * const Q,
 			  spinor * const R, spinor * const S,
 			  const int t0,
 			  const double px, const double py, const double pz) {
+	spinorfield_enable(P, false, true);
+	spinorfield_enable(Q, false, true);
+	spinorfield_enable(R, false, true);
+	spinorfield_enable(S, false, true);
   int lt, lx, ly, lz, i, x, y, z, id=0, t;
   int coords[4];
   spinor * p, * q, r;
@@ -174,7 +180,8 @@ void extended_pion_source(spinor * const P, spinor * const Q,
 void source_generation_pion_only(spinor * const P, spinor * const Q,
 				 const int t,
 				 const int sample, const int nstore) {
-
+	spinorfield_enable(P, false, true);
+	spinorfield_enable(Q, false, true);
   int reset = 0, i, x, y, z, is, ic, lt, lx, ly, lz, id=0;
   int coords[4], seed, r;
   double rnumber, si=0., co=0.;
@@ -261,7 +268,8 @@ void source_generation_pion_only(spinor * const P, spinor * const Q,
 void source_generation_pion_zdir(spinor * const P, spinor * const Q,
                                  const int z,
                                  const int sample, const int nstore) {
-
+	spinorfield_enable(P, false, true);
+	spinorfield_enable(Q, false, true);
   int reset = 0, i, x, y, t, is, ic, lt, lx, ly, lz, id=0;
   int coords[4], seed, r;
   double rnumber, si=0., co=0.;
@@ -354,7 +362,8 @@ void source_generation_nucleon(spinor * const P, spinor * const Q,
 			       const int t, const int nt, const int nx, 
 			       const int sample, const int nstore, 
 			       const int meson) {
-
+	spinorfield_enable(P, false, true);
+	spinorfield_enable(Q, false, true);
   double rnumber, si=0., co=0., sqr2;
   int rlxd_state[105];
   int reset = 0, seed, r, tt, lt, xx, lx, yy, ly, zz, lz;
