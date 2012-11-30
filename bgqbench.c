@@ -334,7 +334,7 @@ static double runcheck(bgq_hmflags hmflags, size_t k_max) {
 #endif
 
 #ifndef BGQ_COORDCHECK
-	return max(compare_even, compare_odd);
+	return max_double(compare_even, compare_odd);
 #else
 	return 0;
 #endif
@@ -1153,7 +1153,7 @@ static void exec_bench(int j_max, int k_max) {
 	};
 	bgq_parallel(&check_linalg, &checkargs_double);
 	master_print("Double: ");
-	//bgq_parallel(&check_hopmat, &checkargs_double);
+	bgq_parallel(&check_hopmat, &checkargs_double);
 
 
 	checkargs_t checkargs_float = {
@@ -1162,7 +1162,7 @@ static void exec_bench(int j_max, int k_max) {
 	        .doSave = true
 	};
 	master_print("Float: ");
-	//bgq_parallel(&check_hopmat, &checkargs_float);
+	bgq_parallel(&check_hopmat, &checkargs_float);
 
 
 	//master_print("Benchmark: hopmatkernel\n");

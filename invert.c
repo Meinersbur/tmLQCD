@@ -92,6 +92,14 @@
 #include "tm_operators.h"
 #include "Dov_psi.h"
 #include "solver/spectral_proj.h"
+
+#include "bgq/bgq_utils.h"
+#include "bgq/bgq_spinorfield.h"
+#include "bgq/bgq_comm.h"
+#include "bgq/bgq_gaugefield.h"
+#include <assert.h>
+
+
 void usage()
 {
   fprintf(stdout, "Inversion for EO preconditioned Wilson twisted mass QCD\n");
@@ -201,10 +209,11 @@ int main(int argc, char *argv[])
   }
   else {
     if( g_proc_id == 0 )
-      printf("# No value provided for OmpNumThreads, running in single-threaded mode!\n");
+		printf("# No value provided for OmpNumThreads, using default (OMP_NUM_THREADS=%d)\n", omp_get_max_threads());
 
-    omp_num_threads = 1;
-    omp_set_num_threads(omp_num_threads);
+	//omp_num_threads = 1;
+	//omp_set_num_threads(omp_num_threads);
+	omp_num_threads = omp_get_max_threads();
   }
 
   init_omp_accumulators(omp_num_threads);
@@ -328,6 +337,18 @@ int main(int argc, char *argv[])
     init_xchange_halffield();
 #  endif
 #endif
+
+
+  // BEGIN MK
+  	assert(even_odd_flag);
+  	bgq_indices_init();
+  	bgq_comm_mpi_init();
+  	bgq_comm_spi_init();
+  	bgq_initbgqref();
+  	bgq_spinorfields_init(NO_OF_SPINORFIELDS, g_running_phmc ? 20 : 0);
+  	bgq_gaugefield_init();
+  // END MK
+
 
   for (j = 0; j < Nmeas; j++) {
     sprintf(conf_filename, "%s.%.4d", gauge_input_filename, nstore);

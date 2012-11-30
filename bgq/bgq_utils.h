@@ -340,19 +340,6 @@ EXTERN_INLINE int divdown(const int dividend, const int divisor) {
 	CONCAT(beacon, __LINE__) = true; \
 	}
 
-#if 0
-EXTERN_FIELD double bgq_g_wtick EXTERN_INIT(0);
-
-EXTERN_INLINE void bgq_init_wtime() {
-	bgq_g_wtick = MPI_Wtick();
-}
-
-// return wall clock time in seconds
-EXTERN_INLINE double bgq_wtime() {
-	assert(bgq_g_wtick != 0);
-	return MPI_Wtime();
-}
-#endif
 
 #define master_print(...)              \
 	if (g_proc_id == 0)                 \
@@ -376,17 +363,19 @@ EXTERN_INLINE double bgq_wtime() {
 void *malloc_aligned(size_t size, size_t alignment);
 
 
-EXTERN_INLINE double max(double const lhs, double const rhs) {
+EXTERN_INLINE double max_double(double lhs, double rhs) {
 	if (lhs > rhs)
 		return lhs;
 	return rhs;
 }
 
-EXTERN_INLINE double min(double const lhs, double const rhs) {
+
+EXTERN_INLINE double min_double(double lhs, double rhs) {
 	if (lhs > rhs)
 		return rhs;
 	return lhs;
 }
+
 
 EXTERN_INLINE size_t min_sizet(size_t lhs, size_t rhs) {
 	if (lhs > rhs)

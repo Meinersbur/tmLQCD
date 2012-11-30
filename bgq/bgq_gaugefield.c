@@ -79,7 +79,7 @@ static void bgq_gaugefield_worker_transferfrom(void *arg_untyped, size_t tid, si
 	const size_t workload = PHYSICAL_VOLUME * PHYSICAL_LP;
 	const size_t threadload = (workload + threads - 1) / threads;
 	const size_t begin = tid * threadload;
-	const size_t end = min(workload, begin + threadload);
+	const size_t end = min_sizet(workload, begin + threadload);
 	for (size_t it = begin; it < end; it += 1) {
 		WORKLOAD_DECL(it, workload);
 		bool isOdd = WORKLOAD_CHUNK(2);
@@ -154,8 +154,8 @@ static void bgq_gaugefield_worker_transferfrom(void *arg_untyped, size_t tid, si
 	}
 }
 void bgq_gaugefield_transferfrom(su3 **sourcefield) {
-	bgq_gaugefield_worker_transferfrom(sourcefield, 0, 1);
-	//bgq_master_call(&bgq_gaugefield_worker_transferfrom, sourcefield);
+	//bgq_gaugefield_worker_transferfrom(sourcefield, 0, 1);
+	bgq_master_call(&bgq_gaugefield_worker_transferfrom, sourcefield);
 }
 
 
