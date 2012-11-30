@@ -17,26 +17,26 @@ echo DEPART : `date`
 
 INPUT_FILE_TINY=benchmark.input_tiny.${LOADL_STEP_ID} 
 cat > ${INPUT_FILE_TINY} <<+EOF
-T=32
-LX=16
-LY=8
-LZ=4
+T=64
+LX=32
+LY=16
+LZ=8
 +EOF
 
 INPUT_FILE_SMALL=benchmark.input_small.${LOADL_STEP_ID} 
 cat > ${INPUT_FILE_SMALL} <<+EOF
-T=48
-LX=24
-LY=12
+T=32
+LX=64
+LY=32
 LZ=8
 +EOF
 
 INPUT_FILE_MEDIUM=benchmark.input_medium.${LOADL_STEP_ID} 
 cat > ${INPUT_FILE_MEDIUM} <<+EOF
-T=48
-LX=40
-LY=20
-LZ=12
+T=64
+LX=32
+LY=32
+LZ=16
 +EOF
 
 INPUT_FILE_BIG=benchmark.input_big.${LOADL_STEP_ID}
@@ -70,8 +70,8 @@ ln -f -s ${LOADL_STEP_OUT} lqtmlqcd.out
 #env
 echo ==TINY==================================================================================
 runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
-#echo ==SMALL=================================================================================
-#runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_SMALL} 
+echo ==SMALL=================================================================================
+runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_SMALL} 
 echo ==MEDIUM================================================================================
 runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_MEDIUM} 
 echo ==BIG===================================================================================

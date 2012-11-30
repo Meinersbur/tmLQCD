@@ -1121,7 +1121,7 @@ static int check_memzero(void *arg_untyped) {
 
 				duration = (end_time-start_time);
 			}
-			master_print("memzero hreads=%d size=%zu doSync=%d duration=%g secs\n", g_bgq_dispatch_threads, size, doSync, duration);
+			master_print("memzero threads=%d size=%zu doSync=%d duration=%g secs\n", g_bgq_dispatch_threads, size, doSync, duration);
 		}
 	}
 	return 0;
@@ -1186,6 +1186,7 @@ static void exec_bench(int j_max, int k_max) {
 	}
 
 
+	data = malloc(2*GIBI);
 	for (size_t size = 1; size<2*GIBI; size<<=1) {
 		double duration;
 		for (size_t i = 0; i<10; i+=1) {

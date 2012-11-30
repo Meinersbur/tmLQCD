@@ -11,6 +11,7 @@
 #include "bgq_utils.h"
 
 #include <string.h>
+#include <stdbool.h>
 
 #ifndef BGQ_DISPATCH_C_
 #define EXTERN_INLINE EXTERN_INLINE_DECLARATION
@@ -26,6 +27,7 @@
 typedef void (*bgq_worker_func)(void *arg, size_t tid, size_t threads);
 typedef int (*bgq_master_func)(void *arg);
 
+EXTERN_FIELD bool g_bgq_dispatch_inparallel EXTERN_INIT(false);
 EXTERN_FIELD int g_bgq_dispatch_threads;
 int bgq_parallel(bgq_master_func master_func, void *master_arg);
 

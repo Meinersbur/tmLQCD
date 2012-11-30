@@ -74,6 +74,7 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 #endif
 	g_bgq_dispatch_threads = omp_get_max_threads();
 	omp_num_threads = 1/*omp_get_num_threads()*/; // For legacy linalg (it depends on whether nested parallelism is enabled)
+	g_bgq_dispatch_inparallel = true;
 
 	int master_result = 0;
 	// We use OpenMP only to start the threads
@@ -110,6 +111,7 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 
 		//printf("%*sEXIT: tid=%u\n", (int)tid*25, "",(int)tid);
 	}
+	g_bgq_dispatch_inparallel = false;
 	g_bgq_dispatch_threads = 0;
 	omp_num_threads = omp_get_max_threads();
 	return master_result;
@@ -253,7 +255,7 @@ void bgq_memzero_worker(void *args_untyped, size_t tid, size_t threads) {
 
 
 void bgq_master_memzero(void *ptr, size_t size) {
-	if (size < BGQ_ALIGNMENT_L1) {
+	if (size <= (1<<14)/*By empirical testing*/) {
 		memset(ptr, 0x00, size);
 	} else {
 		bgq_master_sync();
