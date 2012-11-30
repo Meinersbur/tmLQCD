@@ -39,6 +39,7 @@ typedef struct {
 } mypapi_counters;
 
 typedef enum {
+	pi_correct,
 	pi_flopsref,
 	pi_floppersite,
 	pi_msecs,
@@ -63,6 +64,11 @@ typedef enum {
 
 	pi_detstreams,
 	pi_l1pstreamunusedlines,
+
+	pi_ramfetchrate,
+	pi_ramstorerate,
+	pi_ramstorepartial,
+	pi_l2prefetch,
 
 	__pi_COUNT,
 	pi_corecpi,

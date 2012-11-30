@@ -582,6 +582,10 @@ static char *omp_threads_desc[] = { "1","2", "4", "8", "16", "32", "33", "48", "
 static bgq_hmflags flags[] = {
         (DEFOPTS | hm_withcheck) & ~hm_nokamul,
         (DEFOPTS | hm_withcheck | hm_floatprecision) & ~hm_nokamul,
+		(DEFOPTS | hm_nocom                               | hm_nodatamove | hm_floatprecision) & ~hm_nokamul,
+		(DEFOPTS |            hm_nobody | hm_nodistribute | hm_nodatamove) & ~hm_nokamul,
+		(DEFOPTS | hm_nocom                               | hm_nodatamove | hm_floatprecision | hm_nokamul),
+		(DEFOPTS |            hm_nobody | hm_nodistribute | hm_nodatamove | hm_nokamul),
         DEFOPTS,
 		DEFOPTS | hm_nospi,
 		DEFOPTS | hm_nooverlap,
@@ -590,8 +594,6 @@ static bgq_hmflags flags[] = {
 		DEFOPTS | hm_nocom | hm_nobody |                   hm_nodatamove,
 		DEFOPTS | hm_nocom | hm_nobody | hm_nodistribute                ,
 		DEFOPTS | hm_nocom                               | hm_nodatamove,
-		DEFOPTS | hm_nocom                               | hm_nodatamove | hm_floatprecision,
-		DEFOPTS |            hm_nobody | hm_nodistribute | hm_nodatamove,
 		DEFOPTS | hm_nospi | hm_nobody | hm_nodistribute | hm_nodatamove,
 		DEFOPTS | hm_nocom | hm_nobody | hm_nodistribute | hm_nodatamove,
 		DEFOPTS | hm_noprefetchstream | hm_prefetchimplicitdisable,
@@ -602,6 +604,10 @@ static bgq_hmflags flags[] = {
 static char* flags_desc[] = {
 		"kamul dbl",
 		"kamul sgl",
+		"ka volonly dbl",
+		"ka volonly sgl",
+		"volonly dbl",
+		"volonly sgl",
 		"nokamul",
 		"MPI",
 		"+nooverlap",
@@ -609,8 +615,6 @@ static char* flags_desc[] = {
 		"bodyonly",
 		"distonly",
 		"dmovonly",
-		"volonly dbl",
-		"volonly sgl",
 		"SPI only",
 		"MPI only",
 		"idle",
@@ -702,7 +706,34 @@ static void print_stats(benchstat *stats) {
 			double nL1PStreamLines = stats[i3].counters.native[PEVT_L1P_STRM_LINE_ESTB];
 			double nL1PStreamHits = stats[i3].counters.native[PEVT_L1P_STRM_HIT_LIST];
 
+			double nDdrFetchLine = stats[i3].counters.native[PEVT_L2_FETCH_LINE];
+			double nDdrStoreLine = stats[i3].counters.native[PEVT_L2_STORE_LINE];
+			double nDdrPrefetch = stats[i3].counters.native[PEVT_L2_PREFETCH];
+			double nDdrStorePartial = stats[i3].counters.native[PEVT_L2_STORE_PARTIAL_LINE];
+
 			switch (j) {
+			case pi_correct:
+				desc = "Max error to reference";
+				if (opts & hm_withcheck) {
+					snprintf(str, sizeof(str), "%g", stat->error);
+				}
+				break;
+			case pi_ramfetchrate:
+				desc = "DDR read";
+				snprintf(str, sizeof(str), "%.2f GB/s", 128 * nDdrFetchLine / (avgtime * GIBI));
+				break;
+			case pi_ramstorerate:
+				desc = "DDR write";
+				snprintf(str, sizeof(str), "%.2f GB/s", 128 * nDdrStoreLine / (avgtime * GIBI));
+				break;
+			case pi_ramstorepartial:
+				desc = "DDR partial writes";
+				snprintf(str, sizeof(str), "%.2f %%",  100 * nDdrStorePartial / (nDdrStorePartial+nDdrStoreLine));
+				break;
+			case pi_l2prefetch:
+				desc = "L2 prefetches";
+				snprintf(str, sizeof(str), "%.2f %%",  100 * nDdrPrefetch / nDdrFetchLine);
+				break;
 			case pi_msecs:
 				desc = "Iteration time";
 				snprintf(str, sizeof(str), "%.3f mSecs",stat->avgtime/MILLI);
@@ -1132,9 +1163,9 @@ static void exec_bench(int j_max, int k_max) {
 	bgq_parallel(&check_hopmat, &checkargs_float);
 
 
-	master_print("Benchmark: hopmatkernel\n");
-	exec_table(&benchmark_hopmatkernel, 0, hm_withcheck, j_max, k_max);
-	print_repeat("\n", 2);
+	//master_print("Benchmark: hopmatkernel\n");
+	//exec_table(&benchmark_hopmatkernel, 0, hm_withcheck, j_max, k_max);
+	//print_repeat("\n", 2);
 
 	master_print("Benchmark: HoppingMatrix\n");
 	exec_table(&benchmark_hopmat, 0, 0, j_max, k_max);

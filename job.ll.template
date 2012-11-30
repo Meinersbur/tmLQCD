@@ -27,21 +27,21 @@ INPUT_FILE_SMALL=benchmark.input_small.${LOADL_STEP_ID}
 cat > ${INPUT_FILE_SMALL} <<+EOF
 T=48
 LX=24
-LY=24
-LZ=12
+LY=12
+LZ=8
 +EOF
 
 INPUT_FILE_MEDIUM=benchmark.input_medium.${LOADL_STEP_ID} 
 cat > ${INPUT_FILE_MEDIUM} <<+EOF
-T=64
-LX=32
-LY=32
-LZ=32
+T=48
+LX=40
+LY=24
+LZ=12
 +EOF
 
 INPUT_FILE_BIG=benchmark.input_big.${LOADL_STEP_ID}
 cat > ${INPUT_FILE_BIG} <<+EOF
-T=128
+T=64
 LX=64
 LY=64
 LZ=64
@@ -65,16 +65,18 @@ export XLSMPOPTS="procs=${PROCS}"
 #export BG_THREADLAYOUT=1 # breadth-first
 #export BG_THREADLAYOUT=2 # depth-first
 
+ln -f -s ${LOADL_STEP_OUT} lqtmlqcd.out 
 
 #env
-echo ================================================================================
+echo ==TINY==================================================================================
 runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
-echo ================================================================================
+echo ==SMALL=================================================================================
 runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_SMALL} 
-echo ================================================================================
+echo ==MEDIUM================================================================================
 runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_MEDIUM} 
-echo ================================================================================
+echo ==BIG===================================================================================
 runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_BIG} 
-echo ================================================================================
+echo ========================================================================================
 #runjob --np 1 --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
+
 

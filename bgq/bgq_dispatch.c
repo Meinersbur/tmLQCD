@@ -45,21 +45,13 @@ static bool g_bgq_dispatch_barrier_initialized = false;
 static L2_Barrier_t g_bgq_dispatch_barrier = L2_BARRIER_INITIALIZER;
 #endif
 
-static void bgq_thread_barrier() {
-#if 1
+static inline void bgq_thread_barrier() {
+#if BGQ_QPX
 	uint64_t savpri = Set_ThreadPriority_Low(); // Lower thread priority, so if busy waiting is used, do not impact other threads on core
 	L2_Barrier(&g_bgq_dispatch_barrier, g_bgq_dispatch_threads);
 	Restore_ThreadPriority(savpri);
 #else
-	//TODO: use BGQ barrier
-#ifdef BGQ
-	uint64_t ppc32 = mfspr(SPRN_PPR32);
-	ThreadPriority_Low(); // Lower thread priority, so if busy waiting is used, do not impact other threads on core
-#endif
 #pragma omp barrier
-#ifdef BGQ
-	mtspr(SPRN_PPR32, ppc32); // Restore original priority
-#endif
 #endif
 }
 
