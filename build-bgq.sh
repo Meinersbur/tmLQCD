@@ -9,6 +9,7 @@ echo Configure tmLQCD.....
 CPPFLAGS=""
 CPPFLAGS="${CPPFLAGS} -I/bgsys/drivers/ppcfloor/arch/include"
 CPPFLAGS="${CPPFLAGS} -I/bgsys/drivers/ppcfloor/comm/xl/include"
+CPPFLAGS="${CPPFLAGS} -I/bgsys/drivers/ppcfloor"
 CPPFLAGS="${CPPFLAGS} -I${HOME}/usr/include"
 CPPFLAGS="${CPPFLAGS} -DNDEBUG=1"
 CPPFLAGS="${CPPFLAGS} -DNVALGRIND=1"

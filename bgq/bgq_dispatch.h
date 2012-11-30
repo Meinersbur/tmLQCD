@@ -8,7 +8,19 @@
 #ifndef BGQ_DISPATCH_H_
 #define BGQ_DISPATCH_H_
 
+#include "bgq_utils.h"
+
 #include <string.h>
+
+#ifndef BGQ_DISPATCH_C_
+#define EXTERN_INLINE EXTERN_INLINE_DECLARATION
+#define EXTERN_FIELD extern
+#define EXTERN_INIT(val)
+#else
+#define EXTERN_INLINE EXTERN_INLINE_DEFINITION
+#define EXTERN_FIELD
+#define EXTERN_INIT(val) = (val)
+#endif
 
 
 typedef void (*bgq_worker_func)(void *arg, size_t tid, size_t threads);
@@ -19,5 +31,12 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg);
 void bgq_worker();
 void bgq_master_call(bgq_worker_func worker_func, void *arg);
 void bgq_master_sync();
+
+EXTERN_FIELD int g_bgq_dispatch_threads;
+
+
+#undef EXTERN_INLINE
+#undef EXTERN_FIELD
+#undef EXTERN_INIT
 
 #endif /* BGQ_DISPATCH_H_ */

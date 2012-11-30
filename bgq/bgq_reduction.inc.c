@@ -266,7 +266,7 @@ static inline void REDUCTION_NAME(
 	reduction_args = call_args;
 	bgq_master_call(workerfunc, &reduction_args);
 
-	size_t threads = omp_get_num_threads();
+	size_t threads = g_bgq_dispatch_threads;
 
 	bgq_master_sync(); // Ensure all threads wrote their result into reduction_args.threadresult
 	REDUCTION_VARINIT(REDUCTION_REDARGS);

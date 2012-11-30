@@ -10,12 +10,12 @@
 
 #include "bgq_qpx.h"
 
-#ifdef BGQ
+#if BGQ_QPX
 #include <l2/barrier.h>
-#include <wu/wait.h>
+//#include <wu/wait.h>
 #include <upci/upc_atomic.h>
-#include <hwi/include/bqc/A2inlines.h>
-#include <time.h> // nanosleep() system call
+//#include <hwi/include/bqc/A2_inlines.h>
+//#include <time.h> // nanosleep() system call
 #endif
 
 #include "../global.h"
@@ -40,7 +40,17 @@ static volatile bool g_bgq_dispatch_sync; // obsolete
 static bool g_bgq_dispatch_pendingsync; // Accessed by master only
 
 
+#if BGQ_QPX
+static bool g_bgq_dispatch_barrier_initialized = false;
+static L2_Barrier_t g_bgq_dispatch_barrier = L2_BARRIER_INITIALIZER;
+#endif
+
 static void bgq_thread_barrier() {
+#if 1
+	uint64_t savpri = Set_ThreadPriority_Low(); // Lower thread priority, so if busy waiting is used, do not impact other threads on core
+	L2_Barrier(&g_bgq_dispatch_barrier, g_bgq_dispatch_threads);
+	Restore_ThreadPriority(savpri);
+#else
 	//TODO: use BGQ barrier
 #ifdef BGQ
 	uint64_t ppc32 = mfspr(SPRN_PPR32);
@@ -49,6 +59,7 @@ static void bgq_thread_barrier() {
 #pragma omp barrier
 #ifdef BGQ
 	mtspr(SPRN_PPR32, ppc32); // Restore original priority
+#endif
 #endif
 }
 
@@ -63,13 +74,19 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 	g_bgq_dispatch_terminate = false;
 	g_bgq_dispatch_sync = false;
 	//g_bgq_dispatch_seq = 0;
+	if (!g_bgq_dispatch_barrier_initialized) {
+		Kernel_L2AtomicsAllocate(&g_bgq_dispatch_barrier, sizeof(g_bgq_dispatch_barrier));
+		g_bgq_dispatch_barrier_initialized = true;
+	}
+	g_bgq_dispatch_threads = omp_get_max_threads();
+	omp_num_threads = 1/*omp_get_num_threads()*/; // For legacy linalg (it depends on whether nested parallelism is enabled)
+
 	int master_result = 0;
 	// We use OpenMP only to start the threads
 	// Overhead of using OpenMP is too large
 #pragma omp parallel
 	{
-		size_t tid = omp_get_thread_num();
-		omp_num_threads = omp_get_num_threads(); // For legacy linalg
+		size_t tid = omp_get_thread_num(); // Or
 
 		// Start workers
 		if (tid != 0) {
@@ -87,8 +104,11 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 			g_bgq_dispatch_arg = NULL;
 			g_bgq_dispatch_terminate = true;
 			g_bgq_dispatch_sync = false;
+#if BGQ_QPX
 			mbar();
+#else
 #pragma omp flush
+#endif
 
 			// Wakeup workers to terminate
 			bgq_worker();
@@ -96,6 +116,8 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 
 		//printf("%*sEXIT: tid=%u\n", (int)tid*25, "",(int)tid);
 	}
+	g_bgq_dispatch_threads = 0;
+	omp_num_threads = omp_get_max_threads();
 	return master_result;
 }
 
@@ -105,8 +127,9 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 
 void bgq_worker() {
 	//assert(omp_in_parallel() && "Call this inside #pragma omp parallel");
-	size_t threads = omp_get_num_threads();
-	size_t tid = omp_get_thread_num();
+	assert(g_bgq_dispatch_threads == omp_get_num_threads());
+	size_t threads = g_bgq_dispatch_threads;
+	size_t tid = omp_get_thread_num(); // Or Kernel_ProcessorID()
 
 
 	//assert((tid != 0) && "This function is for non-master threads only");
@@ -126,6 +149,11 @@ void bgq_worker() {
 
 		// Master thread may write shared variables before this barrier
 		bgq_thread_barrier();
+#if BGQ_QPX
+		mbar();
+#else
+#pragma omp flush
+#endif
 		// Worker threads read common variables after this barrier
 		if (tid==0) {
 			assert(!g_bgq_dispatch_pendingsync);
@@ -171,8 +199,11 @@ void bgq_master_call(bgq_worker_func func, void *arg) {
 	g_bgq_dispatch_arg = arg;
 	g_bgq_dispatch_terminate = false;
 	g_bgq_dispatch_sync = false;
+#if BGQ_QPX
 	mbar();
+#else
 #pragma omp flush
+#endif
 
 	bgq_worker();
 }
@@ -192,20 +223,6 @@ void bgq_master_sync() {
 		// Threads already at sync barrier
 		return;
 	}
-
-#if 0
-	g_bgq_dispatch_seq += 1;
-	//printf("MASTER SYNC seq=%d--------------------------------------------------------\n", (int)g_bgq_dispatch_seq);
-	g_bgq_dispatch_func = NULL;
-	g_bgq_dispatch_arg = NULL;
-	g_bgq_dispatch_sync = true;
-	g_bgq_dispatch_terminate = false;
-	mbar();
-#pragma omp flush
-	bgq_worker();
-
-	g_bgq_dispatch_sync = false;
-#endif
 }
 
 

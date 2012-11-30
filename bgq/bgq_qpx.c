@@ -171,6 +171,25 @@ void bgq_qpx_unittest(void) {
 	QPX_EXPECT(matrix_c21,29,30,31,32);
 	QPX_EXPECT(matrix_c22,33,34,35,36);
 
+	{
+		bgq_vector4double_decl(v_qvlfcduxa);
+		bgq_zero(v_qvlfcduxa);
+		uint8_t *addr = (void*)&data[0];
+		bgq_qvlfcduxa(v_qvlfcduxa, addr, 32);
+		QPX_EXPECT(v_qvlfcduxa,5,6,5,6);
+		VAL_EXPECT(addr, (void*)&data[2]);
+	}
+
+	{
+		uint8_t *addr = (void*)&store[0];
+		bgq_qvstfcduxa(rmerge,addr,32);
+		VAL_EXPECT(store[4], 3);
+		VAL_EXPECT(store[5], 4);
+		VAL_EXPECT(store[6], 7);
+		VAL_EXPECT(store[7], 8);
+		VAL_EXPECT(addr, (void*)&store[4]);
+	}
+
 
 
 // float precision ////////////////////////////////////////////////////////////
@@ -283,6 +302,27 @@ void bgq_qpx_unittest(void) {
 			fprintf(stderr, "QPX fail i=%d: (%g) found, (%d) expected at %s:%d\n", i, store_float[i], i+1, __FILE__, __LINE__);
 		}
 	}
+
+
+	{
+		bgq_vector4double_decl(v_qvlfcsuxa);
+		uint8_t *addr = (void*)&data_float[0];
+		bgq_qvlfcsuxa(v_qvlfcsuxa, addr, 16);
+		QPX_EXPECT(v_qvlfcsuxa,5,6,5,6);
+		VAL_EXPECT(addr, (void*)&data_float[2]);
+	}
+
+	{
+		uint8_t *addr = (void*)&store_float[0];
+		bgq_qvstfcsuxa(rmerge,addr,16);
+		VAL_EXPECT(store_float[4], 3);
+		VAL_EXPECT(store_float[5], 4);
+		VAL_EXPECT(store_float[6], 7);
+		VAL_EXPECT(store_float[7], 8);
+		VAL_EXPECT(addr, (void*)&store_float[4]);
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
 
 
 	if (!failed) {

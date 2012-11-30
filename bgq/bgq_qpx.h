@@ -531,10 +531,10 @@ typedef struct {
 
 
 #define bgq_qvlfcsuxa(dst,addr,offset) \
-	asm ("qvstfcsuxa %[v4d],%[ptr],%[off]  \n" : [v4d] "=v" (dst), [ptr] "+b" (addr) : [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
+	asm ("qvlfcsuxa %[v4d],%[ptr],%[off]  \n" : [v4d] "=v" (dst), [ptr] "+b" (addr) : [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
 
 #define bgq_qvlfcduxa(dst,addr,offset) \
-	asm ("qvstfcduxa %[v4d],%[ptr],%[off]  \n" : [v4d] "=v" (dst), [ptr] "+b" (addr) : [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
+	asm ("qvlfcduxa %[v4d],%[ptr],%[off]  \n" : [v4d] "=v" (dst), [ptr] "+b" (addr) : [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
 
 
 #define bgq_qvstfcduxa(data,addr,offset) \
