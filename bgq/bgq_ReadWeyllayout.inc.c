@@ -22,7 +22,7 @@ void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weyl
 
 {
 
-	bgq_su3_weylnext_prefetch(weylsite); //TODO: evaluate bgq_su3_weylnextnext_prefetch
+	bgq_su3_weylnextnext_prefetch(weylsite); //TODO: evaluate bgq_su3_weylnextnext_prefetch
 
 	// T+ /////////////////////////////////////////////////////////////////////////
 	{
@@ -40,7 +40,7 @@ void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weyl
 		bgq_su3_expand_weyl_tup(spinor, weylnext_tup);
 	}
 
-	bgq_su3_weylnext_prefetch(weylsite);
+	bgq_su3_weylnextnext_prefetch(weylsite);
 
 	// T- /////////////////////////////////////////////////////////////////////////
 	{
@@ -61,7 +61,7 @@ void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weyl
 				bgq_setbgqvalue(t2, x, y, z, BGQREF_TDOWN_ACCUM, bgq_cmplxval2(spinor_v0_c0));
 	}
 
-	bgq_su3_weylnext_prefetch(weylsite);
+	bgq_su3_weylnextnext_prefetch(weylsite);
 
 	// X+ /////////////////////////////////////////////////////////////////////////
 	{
@@ -82,7 +82,7 @@ void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weyl
 				bgq_setbgqvalue(t2, x, y, z, BGQREF_XUP_ACCUM, bgq_cmplxval2(spinor_v0_c0));
 	}
 
-	bgq_su3_weylnext_prefetch(weylsite);
+	bgq_su3_weylnextnext_prefetch(weylsite);
 
 	// X- /////////////////////////////////////////////////////////////////////////
 	{
@@ -103,7 +103,7 @@ void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weyl
 				bgq_setbgqvalue(t2, x, y, z, BGQREF_XDOWN_ACCUM, bgq_cmplxval2(spinor_v0_c0));
 	}
 
-	bgq_su3_weylnext_prefetch(weylsite);
+	bgq_su3_weylnextnext_prefetch(weylsite);
 
 	// Y+ /////////////////////////////////////////////////////////////////////////
 	{
@@ -118,7 +118,7 @@ void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weyl
 		bgq_su3_accum_weyl_yup(spinor, weylnext_yup);
 	}
 
-	bgq_su3_weylnext_prefetch(weylsite);
+	bgq_su3_weylnextnext_prefetch(weylsite);
 
 	// Y- /////////////////////////////////////////////////////////////////////////
 	{
@@ -133,7 +133,7 @@ void bgq_readWeyllayout(bgq_su3_spinor_params(/*out*/spinor), bgq_weylsite *weyl
 		bgq_su3_accum_weyl_ydown(spinor, weylnext_ydown);
 	}
 
-	bgq_su3_weylnext_prefetch(weylsite);
+	//bgq_su3_weylnextnext_prefetch(weylsite);
 
 	// Z+ /////////////////////////////////////////////////////////////////////////
 	{
