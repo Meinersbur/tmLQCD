@@ -50,6 +50,7 @@
 typedef struct {
 	bool isOdd;
 	bgq_weylfield_controlblock *field;
+	bgq_hmflags opts;
 } bgq_unvectorize_workload;
 
 typedef struct {
@@ -57,7 +58,6 @@ typedef struct {
 	bgq_weylfield_controlblock *field;
 	spinor *target;
 } bgq_copyToLegacy_workload;
-
 
 typedef struct {
 	bool isOdd;
@@ -68,8 +68,6 @@ typedef struct {
 typedef struct {
 	bgq_weylfield_controlblock *field;
 	bool isOdd;
-	//bool sloppy;
-	//bgq_spinorfield_layout layout;
 } bgq_spinorfield_rewrite_work;
 
 void bgq_HoppingMatrix_unvectorize_double(void *arg_untyped, size_t tid, size_t threads);

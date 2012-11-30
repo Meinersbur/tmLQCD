@@ -32,6 +32,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 	REORDER_BARRIER // These keep the compiler from spilling because of excessive instruction reordering
 	bgq_prefetch(&targetptrs->d[TUP]);
 	bgq_su3_matrixnext_prefetch(gaugesite);
+	//bgq_su3_weyl_prestore_double(targetptrs->d[TUP]);
 
 	// T+ /////////////////////////////////////////////////////////////////////////
 	{
@@ -72,13 +73,15 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_setbgqvalue_src(t2, x, y, z, TDOWN, BGQREF_TUP_KAMUL, bgq_cmplxval2(weyl_tdown_v0_c0));
 
 		//bgq_su3_weyl_zeroload(targetptrs->d[TUP]);
+		//bgq_su3_weyl_prestore_double(targetptrs->d[TUP]);
 		bgq_su3_weyl_store(targetptrs->d[TUP], weyl_tdown);
-		bgq_weylvec_written(targetptrs->d[TUP], t1, t2, x, y, z, TDOWN, true);
+				bgq_weylvec_written(targetptrs->d[TUP], t1, t2, x, y, z, TDOWN, true);
 	}
 
 	REORDER_BARRIER
 	bgq_prefetch(&targetptrs->d[TDOWN]); // Note: just one of these should be necessary because the complete bgq_weyl_ptr_t fits into one 64-byte cache line -- but performance is better with them; maybe they are thrown out of cache prematurely
 	bgq_su3_matrixnext_prefetch(gaugesite);
+	//bgq_su3_weyl_prestore_double(targetptrs->d[TDOWN]);
 
 	// T- /////////////////////////////////////////////////////////////////////////
 	{
@@ -119,13 +122,15 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_setbgqvalue_src(t2, x, y, z, TUP, BGQREF_TDOWN_KAMUL, bgq_cmplxval2(weyl_tup_v0_c0));
 
 		//bgq_su3_weyl_zeroload(targetptrs->d[TDOWN]); //TODO: remove?
+		//bgq_su3_weyl_prestore_double(targetptrs->d[TDOWN]);
 		bgq_su3_weyl_store(targetptrs->d[TDOWN], weyl_tup);
-		bgq_weylvec_written(targetptrs->d[TDOWN], t1, t2, x, y, z, TUP, true);
+				bgq_weylvec_written(targetptrs->d[TDOWN], t1, t2, x, y, z, TUP, true);
 	}
 
 	REORDER_BARRIER
 	bgq_prefetch(&targetptrs->d[XUP]);
 	bgq_su3_matrixnext_prefetch(gaugesite);
+	//bgq_su3_weyl_prestore_double(targetptrs->d[XUP]);
 
 	// X+ /////////////////////////////////////////////////////////////////////////
 	{
@@ -161,13 +166,15 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 					bgq_setbgqvalue_src(t2, x, y, z, XDOWN, BGQREF_XUP_KAMUL, bgq_cmplxval2(weyl_xdown_v0_c0));
 
 			//bgq_su3_weyl_zeroload(targetptrs->d[XUP]);
+			//bgq_su3_weyl_prestore_double(targetptrs->d[XUP]);
 			bgq_su3_weyl_store(targetptrs->d[XUP], weyl_xdown);
-			bgq_weylvec_written(targetptrs->d[XUP], t1, t2, x,y,z,XDOWN, true);
+					bgq_weylvec_written(targetptrs->d[XUP], t1, t2, x,y,z,XDOWN, true);
 		}
 
 	REORDER_BARRIER
 	bgq_prefetch(&targetptrs->d[XDOWN]);
 	bgq_su3_matrixnext_prefetch(gaugesite);
+	//bgq_su3_weyl_prestore_double(targetptrs->d[XDOWN]);
 
 	// X- /////////////////////////////////////////////////////////////////////////
 	{
@@ -204,6 +211,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_setbgqvalue_src(t2, x, y, z, XUP, BGQREF_XDOWN_KAMUL, bgq_cmplxval2(weyl_xup_v0_c0));
 
 		//bgq_su3_weyl_zeroload(targetptrs->d[XDOWN]);
+		//bgq_su3_weyl_prestore_double(targetptrs->d[ZDOWN]);
 		bgq_su3_weyl_store(targetptrs->d[XDOWN], weyl_xup);
 				bgq_weylvec_written(targetptrs->d[XDOWN], t1, t2, x,y,z,XUP, true);
 	}
@@ -211,6 +219,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 	REORDER_BARRIER
 	bgq_prefetch(&targetptrs->d[YUP]);
 	bgq_su3_matrixnext_prefetch(gaugesite);
+	//bgq_su3_weyl_prestore_double(targetptrs->d[YUP]);
 
 	// Y+ /////////////////////////////////////////////////////////////////////////
 	{
@@ -235,6 +244,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		}
 
 		//bgq_su3_weyl_zeroload(targetptrs->d[YUP]);
+		//bgq_su3_weyl_prestore_double(targetptrs->d[YUP]);
 		bgq_su3_weyl_store(targetptrs->d[YUP], weyl_ydown);
 				bgq_weylvec_written(targetptrs->d[YUP], t1, t2, x,y,z,YDOWN, true);
 	}
@@ -242,6 +252,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 	REORDER_BARRIER
 	bgq_prefetch(&targetptrs->d[YDOWN]);
 	bgq_su3_matrixnext_prefetch(gaugesite);
+	//bgq_su3_weyl_prestore_double(targetptrs->d[YDOWN]);
 
 	// Y- /////////////////////////////////////////////////////////////////////////
 	{
@@ -266,13 +277,15 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		}
 
 		//bgq_su3_weyl_zeroload(targetptrs->d[YDOWN]);
+		//bgq_su3_weyl_prestore_double(targetptrs->d[YDOWN]);
 		bgq_su3_weyl_store(targetptrs->d[YDOWN], weyl_yup);
-		bgq_weylvec_written(targetptrs->d[YDOWN], t1, t2, x,y,z,YUP, true);
+				bgq_weylvec_written(targetptrs->d[YDOWN], t1, t2, x,y,z,YUP, true);
 	}
 
 	REORDER_BARRIER
 	bgq_prefetch(&targetptrs->d[ZUP]);
 	bgq_su3_matrixnext_prefetch(gaugesite);
+	//bgq_su3_weyl_prestore_double(targetptrs->d[ZUP]);
 
 	// Z+ /////////////////////////////////////////////////////////////////////////
 	{
@@ -297,12 +310,14 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 			}
 
 			//bgq_su3_weyl_zeroload(targetptrs->d[ZUP]);
+			//bgq_su3_weyl_prestore_double(targetptrs->d[ZUP]);
 			bgq_su3_weyl_store(targetptrs->d[ZUP], weyl_zdown);
-			bgq_weylvec_written(targetptrs->d[ZUP], t1, t2, x,y,z, ZDOWN, true);
+					bgq_weylvec_written(targetptrs->d[ZUP], t1, t2, x,y,z, ZDOWN, true);
 		}
 
 	REORDER_BARRIER
 	bgq_prefetch(&targetptrs->d[ZDOWN]);
+	//bgq_su3_weyl_prestore_double(targetptrs->d[ZDOWN]);
 	BGQ_COMPUTEWEYL_INSERTPREFETCH
 
 	// Z- /////////////////////////////////////////////////////////////////////////
@@ -328,8 +343,9 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		}
 
 		//bgq_su3_weyl_zeroload(targetptrs->d[ZDOWN]);
+		//bgq_su3_weyl_prestore_double(targetptrs->d[ZDOWN]);
 		bgq_su3_weyl_store(targetptrs->d[ZDOWN], weyl_zup);
-		bgq_weylvec_written(targetptrs->d[ZDOWN], t1, t2, x,y,z,ZUP, true);
+				bgq_weylvec_written(targetptrs->d[ZDOWN], t1, t2, x,y,z,ZUP, true);
 	}
 
 	REORDER_BARRIER

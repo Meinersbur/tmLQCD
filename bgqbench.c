@@ -409,7 +409,7 @@ static int benchmark_master(void *argptr) {
 		random_spinor_field(g_spinor_field[k], VOLUME/2, 0);
 	}
 	//bgq_spinorfield_transfer(true, &g_bgq_spinorfields[0], g_spinor_field[0]);
-
+	const int warmups = 2;
 
 	uint64_t sumotime = 0;
 	for (int i = 0; i < 20; i += 1) {
@@ -431,15 +431,15 @@ static int benchmark_master(void *argptr) {
 	uint64_t localsumflop = 0;
 	mypapi_counters counters;
 	counters.init = false;
-	int iterations = 1; // Warmup phase
+	int iterations = warmups; // Warmup phase
 	iterations += j_max;
-	if (iterations < 1 + MYPAPI_SETS)
-		iterations = 1 + MYPAPI_SETS;
+	if (iterations < warmups + MYPAPI_SETS)
+		iterations = warmups + MYPAPI_SETS;
 
 	for (int i = 0; i < iterations; i += 1) {
 		//master_print("Starting iteration %d of %d\n", j+1, iterations);
-		bool isWarmup = (i == 0);
-		int j = i - 1;
+		bool isWarmup = (i <= warmups-1);
+		int j = i - warmups;
 		bool isPapi = !isWarmup && (i >= iterations - MYPAPI_SETS);
 		int papiSet = i - (iterations - MYPAPI_SETS);
 		bool isJMax = (0 <= j) && (j < j_max);

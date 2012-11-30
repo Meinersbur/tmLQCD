@@ -1560,6 +1560,11 @@ do {\
 #endif
 
 
+#define bgq_ptrnext_prefetch(addr) \
+	bgq_prefetch((void**)(addr) + 1)
+
+
+
 #define bgq_su3_spinor_prefetch NAME2(bgq_su3_spinor_prefetch,PRECISION)
 #if BGQ_QPX
 #define bgq_su3_spinor_prefetch_double(addr)     \
@@ -1676,7 +1681,61 @@ do {\
 #endif
 
 
-#define bgq_su3_weylnextnext_prefetch NAME2(bgq_su3_weylnext_prefetch,PRECISION)
+
+#define bgq_su3_spinornext_prefetch NAME2(bgq_su3_spinornext_prefetch,PRECISION)
+#if BGQ_QPX
+#define bgq_su3_spinornext_prefetch_double(addr)     \
+	do {                             \
+		void *ptr = (addr);          \
+		asm (                        \
+			"dcbt   %[c0],%[ptr]  \n" \
+			"dcbt  %[c64],%[ptr]  \n" \
+			"dcbt %[c128],%[ptr]  \n" \
+			"dcbt %[c192],%[ptr]  \n" \
+			"dcbt %[c256],%[ptr]  \n" \
+			"dcbt %[c320],%[ptr]  \n" \
+			: : [ptr] "r" (ptr),       \
+			    [c0] "b" (384+0),     \
+			   [c64] "b" (384+64),    \
+			  [c128] "b" (384+128),   \
+			  [c192] "b" (384+192),   \
+			  [c256] "b" (384+256),   \
+			  [c320] "b" (384+320)   \
+		);                            \
+	} while (0)
+#else
+#define bgq_su3_spinornext_prefetch_double(addr)      \
+	bgq_prefetch((char*)(addr) + 384 +   0);    \
+	bgq_prefetch((char*)(addr) + 384 +  64);    \
+	bgq_prefetch((char*)(addr) + 384 + 128);    \
+	bgq_prefetch((char*)(addr) + 384 + 192);    \
+	bgq_prefetch((char*)(addr) + 384 + 256);    \
+	bgq_prefetch((char*)(addr) + 384 + 320)
+#endif
+
+#if BGQ_QPX
+#define bgq_su3_spinornext_prefetch_float(addr)     \
+	do {                             \
+		void *ptr = (addr);          \
+		asm (                        \
+			"dcbt   %[c0],%[ptr]  \n" \
+			"dcbt  %[c64],%[ptr]  \n" \
+			"dcbt %[c128],%[ptr]  \n" \
+			: : [ptr] "r" (ptr),       \
+				[c0] "b" (192+0),     \
+			   [c64] "b" (192+64),    \
+			  [c128] "b" (192+128)   \
+		);                            \
+	} while (0)
+#else
+#define bgq_su3_spinornext_prefetch_float(addr)      \
+	bgq_prefetch((char*)(addr) + 192 +   0);    \
+	bgq_prefetch((char*)(addr) + 192 +  64);    \
+	bgq_prefetch((char*)(addr) + 192 + 128)
+#endif
+
+
+#define bgq_su3_weylnextnext_prefetch NAME2(bgq_su3_weylnextnext_prefetch,PRECISION)
 #if BGQ_QPX
 #define bgq_su3_weylnextnext_prefetch_double(addr)     \
 	do {                             \
@@ -1696,6 +1755,27 @@ do {\
 	bgq_prefetch((char*)(addr) + 2*192 +   0);    \
 	bgq_prefetch((char*)(addr) + 2*192 +  64);    \
 	bgq_prefetch((char*)(addr) + 2*192 + 128)
+#endif
+
+#if BGQ_QPX
+#define bgq_su3_weylnextnext_prefetch_float(addr)     \
+	do {                             \
+		void *ptr = (addr);          \
+		asm (                        \
+			"dcbt   %[c0],%[ptr]  \n" \
+			"dcbt  %[c64],%[ptr]  \n" \
+			"dcbt %[c128],%[ptr]  \n" \
+			: : [ptr] "r" (ptr),       \
+			    [c0] "b" (2*96+0),     \
+			   [c64] "b" (2*96+64),    \
+			  [c128] "b" (2*96+128)    \
+		);                            \
+	} while (0)
+#else
+#define bgq_su3_weylnextnext_prefetch_float(addr)      \
+	bgq_prefetch((char*)(addr) + 2*96 +   0);    \
+	bgq_prefetch((char*)(addr) + 2*96 +  64);    \
+	bgq_prefetch((char*)(addr) + 2*96 + 128)
 #endif
 
 #if BGQ_QPX
@@ -1880,34 +1960,19 @@ do { \
 		  [c128] "b" (128) \
 		); \
 	} while (0)
-	// 192 byte
+	// 192 bytes
 #else
 #define bgq_su3_weyl_zeroload_double(addr) \
 	bgq_l1_zero((char*)(addr) + 0);          \
-	bgq_prefetchforwrite((char*)(addr) +  128)
+	bgq_l1_zero((char*)(addr) + 64);     \
+	bgq_l1_zero((char*)(addr) + 128);
 	// 192
 #endif
 
-#if BGQ_QPX
-#define bgq_su3_weyl_zeroload_float(addr)
-#if 0
-	do { \
-		void *ptr = (addr); \
-		asm ( \
-		"dcbz       0,%[ptr]  \n" \
-		"dcbtst %[c64],%[ptr]  \n" \
-		: : [ptr] "r" (ptr), \
-		   [c64] "b" (64) \
-		); \
-	} while (0)
-	// 96 byte
-#endif
-#else
 #define bgq_su3_weyl_zeroload_float(addr)    \
-	bgq_prefetchforwrite((char*)(addr) +  0); \
-	bgq_prefetchforwrite((char*)(addr) +  64)
+	bgq_l1_zero((char*)(addr) + 0)
 	// 96
-#endif
+
 
 
 #define bgq_su3_spinor_flush NAME2(bgq_su3_spinor_flush,PRECISION)

@@ -35,7 +35,7 @@ INPUT_FILE_MEDIUM=benchmark.input_medium.${LOADL_STEP_ID}
 cat > ${INPUT_FILE_MEDIUM} <<+EOF
 T=48
 LX=40
-LY=24
+LY=20
 LZ=12
 +EOF
 
@@ -70,8 +70,8 @@ ln -f -s ${LOADL_STEP_OUT} lqtmlqcd.out
 #env
 echo ==TINY==================================================================================
 runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
-echo ==SMALL=================================================================================
-runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_SMALL} 
+#echo ==SMALL=================================================================================
+#runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_SMALL} 
 echo ==MEDIUM================================================================================
 runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_MEDIUM} 
 echo ==BIG===================================================================================

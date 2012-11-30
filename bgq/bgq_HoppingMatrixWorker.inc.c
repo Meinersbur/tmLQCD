@@ -122,7 +122,7 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 			#include "bgq_ReadWeyllayout.inc.c"
 
 			#define BGQ_COMPUTEWEYL_INC_ 1
-			#define BGQ_COMPUTEWEYL_INSERTPREFETCH bgq_su3_weylnextnext_prefetch(weylsite); bgq_su3_weyl_prefetch(weylsite);
+			#define BGQ_COMPUTEWEYL_INSERTPREFETCH bgq_su3_weyl_prefetch(weylsite);
 			#include "bgq_ComputeWeyl.inc.c"
 		}
 

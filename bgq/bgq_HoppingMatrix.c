@@ -272,6 +272,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 		static bgq_unvectorize_workload work_unvectorize;
 		work_unvectorize.isOdd = isOdd;
 		work_unvectorize.field = targetfield;
+		work_unvectorize.opts = opts;
 		if (floatprecision)
 			bgq_master_call(&bgq_HoppingMatrix_unvectorize_float, &work_unvectorize);
 		else
