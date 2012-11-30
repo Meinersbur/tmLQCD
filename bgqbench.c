@@ -543,6 +543,7 @@ static int benchmark_master(void *argptr) {
 	return EXIT_SUCCESS;
 }
 
+
 static benchstat runbench(benchfunc_t benchfunc, bgq_hmflags opts, int k_max, int j_max, int ompthreads) {
 	omp_set_num_threads(ompthreads);
 	master_args args = {
@@ -559,6 +560,7 @@ static benchstat runbench(benchfunc_t benchfunc, bgq_hmflags opts, int k_max, in
 
 	return args.result;
 }
+
 
 static void print_repeat(const char * const str, const int count) {
 	if (g_proc_id == 0) {

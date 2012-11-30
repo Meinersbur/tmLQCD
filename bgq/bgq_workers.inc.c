@@ -12,6 +12,7 @@
 #include "bgq_comm.h"
 #include "bgq_qpx.h"
 #include "bgq_utils.h"
+#include "bgq_dispatch.h"
 
 #ifndef BGQ_WORKERS_INC_
 #define PRECISION double
@@ -19,6 +20,7 @@
 #undef bgq_HoppingMatrix_worker_datamove
 #undef bgq_HoppingMatrix_datamovet_worker
 #undef bgq_copyFromLegacy_worker
+#undef bgq_spinorfield_rewrite_worker
 #endif
 
 
@@ -907,6 +909,35 @@ void bgq_copyFromLegacy_worker(void *arg_untyped, size_t tid, size_t threads) {
 }
 
 
+static inline void bgq_spinorfield_rewrite_worker(void *arg_untyped, size_t tid, size_t threads, bool weyllayout, bool sloppy, bool mul, bool isLegacy) {
+	bgq_spinorfield_rewrite_work *arg = arg_untyped;
+	bgq_weylfield_controlblock *field  = arg->field;
+	bool isOdd = arg->isOdd;
+
+	assert(field->BGQ_SEC_FULLLAYOUT);
+	assert(field->BGQ_HAS_FULLLAYOUT);
+	const size_t workload = PHYSICAL_VOLUME;
+	const size_t threadload = (workload+threads-1)/threads;
+	const size_t begin = tid*threadload;
+	const size_t end = min_sizet(workload, begin+threadload);
+	for (ucoord ic = begin; ic < end; ic+=1) {
+#ifndef NDEBUG
+		ucoord ih = bgq_collapsed2halfvolume(field->isOdd, ic);
+		ucoord t1 = bgq_halfvolume2t1(field->isOdd, ih);
+		ucoord t2 = bgq_halfvolume2t2(field->isOdd, ih);
+		ucoord tv = bgq_halfvolume2tv(ih);
+		ucoord x = bgq_halfvolume2x(ih);
+		ucoord y = bgq_halfvolume2y(ih);
+		ucoord z = bgq_halfvolume2z(ih);
+#endif
+
+		bgq_su3_spinor_decl(spinor);
+		bgq_spinorfield_readSpinor(&spinor, field, isOdd, ic, weyllayout, sloppy, mul, isLegacy);
+
+		bgq_spinor_vec *fulladdr = &field->BGQ_SEC_FULLLAYOUT[ic];
+		bgq_su3_spinor_store(fulladdr, spinor);
+	}
+}
 
 
-
+BGQ_SPINORFIELD_GENWORKER(bgq_spinorfield_rewrite_worker)

@@ -9,6 +9,7 @@
 #define BGQ_WORKERS_H_
 
 #include "bgq_spinorfield.h"
+#include "bgq_dispatch.h"
 
 #include <string.h>
 #include <stdbool.h>
@@ -27,9 +28,12 @@
 	static void NAME2(name,readWeylSloppy)(void *arg_untyped, size_t tid, size_t threads) { \
 		name(arg_untyped, tid, threads, true, true, false, false); \
 	} \
+	static void NAME2(name,readLegacy)(void *arg_untyped, size_t tid, size_t threads) { \
+		name(arg_untyped, tid, threads, false, false, false, true); \
+	} \
 	\
 	bgq_worker_func NAME3(g,name,list)[BGQ_SPINORFIELD_LAYOUT_COUNT] = { \
-		&NAME2(name,readFull), &NAME2(name,readWeyl), &NAME2(name,readFullSloppy), &NAME2(name,readWeylSloppy) \
+		&NAME2(name,readFull), &NAME2(name,readWeyl), &NAME2(name,readFullSloppy), &NAME2(name,readWeylSloppy), NULL,NULL,NULL,NULL, NAME2(name,readLegacy) \
 	};
 
 
@@ -61,6 +65,13 @@ typedef struct {
 	bgq_weylfield_controlblock *target;
 } bgq_copyFromLegacy_workload;
 
+typedef struct {
+	bgq_weylfield_controlblock *field;
+	bool isOdd;
+	//bool sloppy;
+	//bgq_spinorfield_layout layout;
+} bgq_spinorfield_rewrite_work;
+
 void bgq_HoppingMatrix_unvectorize_double(void *arg_untyped, size_t tid, size_t threads);
 void bgq_HoppingMatrix_unvectorize_float(void *arg_untyped, size_t tid, size_t threads);
 #define bgq_HoppingMatrix_unvectorize NAME2(bgq_HoppingMatrix_unvectorize,PRECISION)
@@ -88,5 +99,9 @@ void bgq_copyToLegacy_worker_weyllayout_float(void *arg_untyped, size_t tid, siz
 void bgq_copyFromLegacy_worker_double(void *arg_untyped, size_t tid, size_t threads);
 void bgq_copyFromLegacy_worker_float(void *arg_untyped, size_t tid, size_t threads);
 #define bgq_copyFromLegacy_worker NAME2(bgq_copyFromLegacy_worker,PRECISION)
+
+extern bgq_worker_func g_bgq_spinorfield_rewrite_worker_double_list[BGQ_SPINORFIELD_LAYOUT_COUNT];
+extern bgq_worker_func g_bgq_spinorfield_rewrite_worker_float_list[BGQ_SPINORFIELD_LAYOUT_COUNT];
+#define bgq_spinorfield_rewrite_worker NAME2(bgq_spinorfield_rewrite_worker,PRECISION)
 
 #endif /* BGQ_WORKERS_H_ */

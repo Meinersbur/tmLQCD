@@ -110,6 +110,8 @@ typedef struct {
 
 #define BGQ_SEC_FULLLAYOUT NAME2(sec_fullspinor,PRECISION)
 #define BGQ_SEC_WEYLLAYOUT NAME2(sec_collapsed,PRECISION)
+#define BGQ_HAS_FULLLAYOUT NAME2(has_fulllayout,PRECISION)
+#define BGQ_HAS_WEYLLAYOUT NAME2(has_collapsed,PRECISION)
 #define BGQ_SENDPTR NAME2(sendptr,PRECISION)
 #define BGQ_CONSPTR NAME2(consptr,PRECISION)
 

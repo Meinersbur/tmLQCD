@@ -1463,13 +1463,8 @@ void bgq_spinorfield_prepareWrite(bgq_weylfield_controlblock *field, bool isOdd,
 
 
 
-typedef struct {
-	bgq_weylfield_controlblock *field;
-	bool isOdd;
-	bool sloppy;
-	bgq_spinorfield_layout layout;
-} bgq_spinorfield_rewrite_work;
 
+#if 0
 static void bgq_spinorfield_rewrite_worker(void *arg_untyped, size_t tid, size_t threads) {
 	bgq_spinorfield_rewrite_work *arg = arg_untyped;
 	bgq_weylfield_controlblock *field  = arg->field;
@@ -1513,6 +1508,7 @@ static void bgq_spinorfield_rewrite_worker(void *arg_untyped, size_t tid, size_t
 		}
 	}
 }
+#endif
 
 
 bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *field, bool isOdd, bool acceptWeyl, bool acceptDouble, bool acceptFloat, bool acceptMul, bool acceptLegacy) {
@@ -1572,9 +1568,54 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 	bgq_spinorfield_layout result = -1;
 	if (actionRewrite) {
 		assert(knowIsOdd);
+		if (acceptDouble) {
+			result = ly_full_double;
+			bgq_worker_func worker = g_bgq_spinorfield_rewrite_worker_double_list[layout];
+			assert(worker);
+
+			if ((layout==ly_weyl_float) && ((void*)field->sec_fullspinor_double==(void*)field->sec_fullspinor_float)) {
+				// Without intervention, we're going to overwrite the data while we are reading it
+				// Solution: assign a new memory area
+				// Note that field->sec_fullspinor_float has allocated twice as much memory, so we are wasting some space here
+				field->sec_fullspinor_double = malloc_aligned(LOCAL_VOLUME/PHYSICAL_LP * sizeof(*field->sec_fullspinor_double), BGQ_ALIGNMENT_L2);
+#ifndef NVALGRIND
+				VALGRIND_CREATE_MEMPOOL(field->sec_fullspinor_double, 0, false);
+				VALGRIND_MEMPOOL_ALLOC(field->sec_fullspinor_double, field->sec_fullspinor_double, PHYSICAL_VOLUME * sizeof(*field->sec_fullspinor_double));
+#endif
+			}
+			bgq_spinorfield_enableLayout(field, isOdd, result, false, false);
+
+			bgq_master_sync();
+			static bgq_spinorfield_rewrite_work work;
+			work.isOdd = isOdd;
+			work.field = field;
+			bgq_master_call(worker, &work);
+		} else if (acceptFloat) {
+			result = ly_full_float;
+			bgq_worker_func worker = g_bgq_spinorfield_rewrite_worker_float_list[layout];
+			assert(worker);
+
+			if ((layout==ly_weyl_double) && ((void*)field->sec_fullspinor_double==(void*)field->sec_fullspinor_float)) {
+				// Without intervention, we're going to overwrite the data while we are reading it
+				// Solution: assign a new memory area
+				field->sec_fullspinor_float = malloc_aligned(LOCAL_VOLUME/PHYSICAL_LP * sizeof(*field->sec_fullspinor_float), BGQ_ALIGNMENT_L2);
+#ifndef NVALGRIND
+				VALGRIND_CREATE_MEMPOOL(field->sec_fullspinor_float, 0, false);
+				VALGRIND_MEMPOOL_ALLOC(field->sec_fullspinor_float, field->sec_fullspinor_float, PHYSICAL_VOLUME * sizeof(*field->sec_fullspinor_float));
+#endif
+			}
+			bgq_spinorfield_enableLayout(field, isOdd, result, false, false);
+
+			bgq_master_sync();
+			static bgq_spinorfield_rewrite_work work;
+			work.isOdd = isOdd;
+			work.field = field;
+			bgq_master_call(worker, &work);
+#if 0
 		if (acceptDouble || acceptFloat) {
 			//TODO: This is not meant to be fast; If you need something fast, special-case it (i.e. accept more inputs)
 			result = acceptDouble ? ly_full_double : ly_full_float;
+
 			//if (acceptDouble)
 			//	master_print("Translation to ly_full_double\n");
 			//else
@@ -1619,6 +1660,7 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 				work.layout = layout;
 				bgq_master_call(&bgq_spinorfield_rewrite_worker, &work);
 			}
+#endif
 		} else if (acceptLegacy) {
 			// We have to copy existing data
 			assert(layout != ly_legacy);
