@@ -18,12 +18,11 @@
 // Make this .inc.c file compilable as stand-alone
 #define OPERATOR_NAME bgq_operator
 #define OPERATOR_ARGFIELDS 1
-#define OPERATOR_EXTRAPARMS double factor
-#define OPERATOR_EXTRAARGS factor
-
+#define OPERATOR_EXTRAPARMS bgq_params(qz),bgq_params(qw)
+#define OPERATOR_EXTRAARGS bgq_vars(qz),bgq_vars(qw)
 #define OPERATOR_VECSITEFUNC vecsitefunc_raw
 
-static inline void vecsitefunc_raw(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor1), double factor, ucoord ic) {
+static inline void vecsitefunc_raw(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor1), bgq_params(qz),bgq_params(qw), ucoord ic) {
 }
 #endif
 
@@ -79,7 +78,7 @@ static inline void vecsitefunc_raw(bgq_su3_spinor_params(*target), bgq_su3_spino
 #if !ISEMPTY(OPERATOR_EXTRAPARMS)
 typedef struct {
 	PREPROCESSOR_FOREACH( ,;,;, ,IDENTITY,OPERATOR_EXTRAPARMS)
-} bgq_operator_extraparm_t;
+} NAME2(OPERATOR_NAME,extraparm_t);
 #endif
 
 typedef struct {
@@ -87,9 +86,7 @@ typedef struct {
 	bgq_weylfield_controlblock *targetfield;
 	IF1ARG(bgq_weylfield_controlblock *argfield1;)
 	IF2ARG(bgq_weylfield_controlblock *argfield2;)
-	IFEXTRA(bgq_operator_extraparm_t extra;)
-
-
+	IFEXTRA(NAME2(OPERATOR_NAME,extraparm_t) extra;)
 } NAME2(OPERATOR_NAME,args_t);
 
 

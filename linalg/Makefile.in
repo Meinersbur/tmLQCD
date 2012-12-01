@@ -8,6 +8,7 @@ subdir = linalg
 builddir = @builddir@
 
 CFLAGS = @CFLAGS@
+CPPFLAGS = @CPPFLAGS@
 DEPFLAGS = @DEPFLAGS@
 LDFLAGS = @LDFLAGS@
 DEFS = @DEFS@

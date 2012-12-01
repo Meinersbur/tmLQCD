@@ -23,6 +23,8 @@
  *
  *******************************************************************************/
 
+#if !BGQ_REPLACE
+
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
@@ -360,4 +362,6 @@ double square_norm_su3vect(su3_vector * const P, const int N, const int parallel
 #endif
   return kc;
 }
+#endif
+
 #endif

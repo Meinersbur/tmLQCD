@@ -23,6 +23,8 @@
  *
  *******************************************************************************/
 
+#if !BGQ_REPLACE
+
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
@@ -239,3 +241,5 @@ double scalar_prod_r_su3vect(su3_vector * const S,su3_vector * const R, const in
 }
 
 #endif // WITHLAPH
+
+#endif

@@ -447,12 +447,15 @@ void z2_random_spinor_field(spinor * const k, const int N) {
 }
 
 
+#if !BGQ_REPLACE
 /* Function provides a zero spinor field of length N with */
 void zero_spinor_field(spinor * const k, const int N)
 {
 	spinorfield_enable(k, false, true);
   memset(k, 0, sizeof(spinor) * N);
 }
+#endif
+
 
 /* Function provides a constant spinor field of length N with */
 void constant_spinor_field(spinor * const k, const int p, const int N)

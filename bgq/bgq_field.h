@@ -1494,6 +1494,14 @@ EXTERN_INLINE int bgq_collapsed2eosub(bool isOdd, ucoord ic, ucoord k) {
 	return eosub;
 }
 
+
+typedef enum {
+	tri_false=0,
+	tri_true=1,
+	tri_unknown=-1
+} tristate;
+
+
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD
 #undef EXTERN_INIT

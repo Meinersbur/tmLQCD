@@ -8,21 +8,6 @@
 #include "bgq_qpx.h"
 #include "bgq_field.h"
 
-#if 0
-typedef struct {
-	bgq_vector4double_decl(sum);
-} bgq_vectorsum_t;
-
-
-
-
-
-static inline bgq_vectorsum_t bgq_reduce_initzero() {
-	bgq_vectorsum_t result;
-	bgq_zero(result.sum);
-	return result;
-}
-#endif
 
 static inline void bgq_reduce_initkahan(bgq_params(*ks), bgq_params(*kc)) {
 	bgq_zero(*ks);
@@ -249,9 +234,9 @@ _Complex double scalar_prod(spinor *S, spinor *R, int N, int parallel) {
 	bgq_weylfield_controlblock *field2 = bgq_translate_spinorfield(R);
 
 	if (parallel)
-		return bgq_spinorfield_innerprod_global(field1, field2);
+		return bgq_spinorfield_innerprod_global(bgq_spinorfield_isOdd(field1), field1, field2);
 	else
-		return bgq_spinorfield_innerprod_local(field1, field2);
+		return bgq_spinorfield_innerprod_local(bgq_spinorfield_isOdd(field1), field1, field2);
 }
 
 
@@ -261,9 +246,9 @@ double scalar_prod_r(spinor *S, const spinor * const R, int N, int parallel) {
 	bgq_weylfield_controlblock *field2 = bgq_translate_spinorfield(R);
 
 	if (parallel)
-		return bgq_spinorfield_innerprod_r_global(field1, field2);
+		return bgq_spinorfield_innerprod_r_global(bgq_spinorfield_isOdd(field1), field1, field2);
 	else
-		return bgq_spinorfield_innerprod_r_local(field1, field2);
+		return bgq_spinorfield_innerprod_r_local(bgq_spinorfield_isOdd(field1), field1, field2);
 }
 
 
@@ -272,9 +257,9 @@ double square_norm(spinor *P, int N, int parallel) {
 	bgq_weylfield_controlblock *field = bgq_translate_spinorfield(P);
 
 	if (parallel)
-		return bgq_spinorfield_sqrnorm_global(field);
+		return bgq_spinorfield_sqrnorm_global(bgq_spinorfield_isOdd(field), field);
 	else
-		return bgq_spinorfield_sqrnorm_local(field);
+		return bgq_spinorfield_sqrnorm_local(bgq_spinorfield_isOdd(field), field);
 }
 
 #endif
