@@ -574,6 +574,7 @@ void mul_one_pm_imu_inv(spinor * const l, const double _sign, const int N){
 
 }
 
+#if !BGQ_REPLACE
 void assign_mul_one_pm_imu_inv(spinor * const l, spinor * const k, const double _sign, const int N){
 	spinorfield_enable(l, false, true);
 	spinorfield_enable(k, true, false);
@@ -612,6 +613,8 @@ void assign_mul_one_pm_imu_inv(spinor * const l, spinor * const k, const double 
   } /* OpenMP closing brace */
 #endif
 }
+#endif
+
 
 void mul_one_pm_imu(spinor * const l, const double _sign){
 	spinorfield_enable(l, true, true);

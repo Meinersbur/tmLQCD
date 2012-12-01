@@ -17,6 +17,8 @@
  * along with tmLQCD.  If not, see <http://www.gnu.org/licenses/>.
  ***********************************************************************/
 
+#if !BGQ_REPLACE
+
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
@@ -141,4 +143,6 @@ _Complex double scalar_prod_su3vect(su3_vector * const S, su3_vector * const R, 
 #endif
   return(c);
 }
+#endif
+
 #endif

@@ -63,7 +63,8 @@ typedef enum {
 //TODO: Move to bgq_spinorfield.h
 typedef struct {
 	//bool isInitialized;
-	bool isOdd;
+	tristate isOdd;
+	bool ptr_isOdd;
 	//bool hasWeylfieldData;
 	//bool isWeyllayoutSloppy;
 	//bool waitingForRecv; /* true==Need to wait for SPI recv and then copy data to consecutive area; false==All data available in sec_surface and sec_body */
@@ -640,10 +641,10 @@ EXTERN_INLINE void bgq_spinorfield_readSpinor_raw(bgq_su3_spinor_params(*target)
 }
 
 
-void bgq_spinorfield_prepareWrite(bgq_weylfield_controlblock *field, bool isOdd, bgq_spinorfield_layout layout, bool preserveData);
-bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *field, bool isOdd, bool acceptWeyl, bool acceptDouble, bool acceptFloat, bool acceptMul, bool acceptLegacy);
+void bgq_spinorfield_prepareWrite(bgq_weylfield_controlblock *field, tristate isOdd, bgq_spinorfield_layout layout, bool preserveData);
+bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *field, tristate isOdd, bool acceptWeyl, bool acceptDouble, bool acceptFloat, bool acceptMul, bool acceptLegacy);
 
-//bgq_weylfield_controlblock *bgq_translate_spinorfield(spinor *legacyField);
+bgq_weylfield_controlblock *bgq_translate_spinorfield(const spinor *legacyField);
 //void bgq_spinorfield_prepareLegacy(bgq_weylfield_controlblock *field, bool read);
 
 void spinorfield_enable(const spinor *legacyField, bool read, bool write);
@@ -656,7 +657,20 @@ void spinorfield_enable(const spinor *legacyField, bool read, bool write);
 #endif
 void bgq_legacy_markcoords_raw(bool isOdd, spinor *legacyField);
 
-void bgq_spinorfield_zero(bgq_weylfield_controlblock *field, bool isOdd);
+void bgq_spinorfield_zero(bgq_weylfield_controlblock *field, tristate isOdd);
+
+
+EXTERN_INLINE bool bgq_spinorfield_isOdd(bgq_weylfield_controlblock *field) {
+	assert(field);
+	if (field->has_fulllayout_double || field->has_fulllayout_float || field->has_weyllayout_double || field->has_weyllayout_float) {
+		// field->isOdd is well-defined
+	} else if (field->has_legacy) {
+		assert(false);
+	} else {
+		assert(false);
+	}
+	return field->isOdd;
+}
 
 
 #undef EXTERN_INLINE
