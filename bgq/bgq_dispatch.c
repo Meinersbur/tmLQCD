@@ -24,12 +24,13 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 //static L2_Barrier_t barrier;
 
-
+#ifndef NDEBUG
 static char space[64*25+1]= {' '};
-
+#endif
 
 static volatile bgq_worker_func g_bgq_dispatch_func;
 static void * volatile g_bgq_dispatch_arg;
@@ -183,40 +184,73 @@ void bgq_worker() {
 }
 
 
+typedef struct {
+	bgq_worker_func func;
+	void *funcargs;
+} bgq_master_adhoc_parms;
+
+static int bgq_master_adhoc(void *arg_untyped) {
+	bgq_master_adhoc_parms *args = arg_untyped;
+	bgq_worker_func func = args->func;
+	void *funcargs = args->funcargs;
+
+	bgq_master_call(func, funcargs);
+	return 0;
+}
+
 void bgq_master_call(bgq_worker_func func, void *arg) {
 	assert(omp_get_thread_num()==0);
 	assert(func);
 
-	bgq_master_sync();
+	if (g_bgq_dispatch_inparallel) {
+		bgq_master_sync();
 
-	//g_bgq_dispatch_seq += 1;
-	//printf("MASTER CALL seq=%d--------------------------------------------------------\n", (int)g_bgq_dispatch_seq);
-	g_bgq_dispatch_func = func;
-	g_bgq_dispatch_arg = arg;
-	g_bgq_dispatch_terminate = false;
-	g_bgq_dispatch_sync = false;
+		//g_bgq_dispatch_seq += 1;
+		//printf("MASTER CALL seq=%d--------------------------------------------------------\n", (int)g_bgq_dispatch_seq);
+		g_bgq_dispatch_func = func;
+		g_bgq_dispatch_arg = arg;
+		g_bgq_dispatch_terminate = false;
+		g_bgq_dispatch_sync = false;
 #if BGQ_QPX
 	mbar();
 #else
 #pragma omp flush
 #endif
 
-	bgq_worker();
+		bgq_worker();
+	} else {
+		// Not in a parallel section. Two possibilities:
+		// 1. Execute sequentially
+		// 2. Start and end a parallel section just for calling this func
+
+		if (omp_in_parallel()) {
+			// We are in another OpenMP construct, therefore call sequentially
+			(*func)(arg, 0, 1);
+		} else {
+			bgq_master_adhoc_parms work = { func, arg };
+			bgq_parallel(&bgq_master_adhoc, &work);
+		}
+	}
 }
+
 
 void bgq_master_sync() {
 	assert(omp_get_thread_num()==0);
 
-	if (g_bgq_dispatch_pendingsync) {
-		bgq_thread_barrier();
-		//fflush(stdout);
-		//printf("MASTER SYNC seq=%d--------------------------------------------------------\n", (int)g_bgq_dispatch_seq);
-		//fflush(stdout);
-		g_bgq_dispatch_pendingsync = false;
-		return;
+	if (g_bgq_dispatch_inparallel) {
+		if (g_bgq_dispatch_pendingsync) {
+			bgq_thread_barrier();
+			//fflush(stdout);
+			//printf("MASTER SYNC seq=%d--------------------------------------------------------\n", (int)g_bgq_dispatch_seq);
+			//fflush(stdout);
+			g_bgq_dispatch_pendingsync = false;
+			return;
+		} else {
+			// Threads already at sync barrier
+			return;
+		}
 	} else {
-		// Threads already at sync barrier
-		return;
+		// No sync necessary
 	}
 }
 
@@ -237,22 +271,29 @@ void bgq_memzero_worker(void *args_untyped, size_t tid, size_t threads) {
 	const size_t end = min_sizet(workload, begin+threadload);
 
 	char *beginLine = (ptr + begin);
-	if (begin!=0) {
-		beginLine = (void*)((uintptr_t)beginLine & ~(BGQ_ALIGNMENT_L1-1));
-	}
+	beginLine = (void*)((uintptr_t)beginLine & ~(BGQ_ALIGNMENT_L1-1));
 
 	char *endLine  = (ptr + end);
-	if (end!=workload) {
-		endLine = (void*)((uintptr_t)endLine & ~(BGQ_ALIGNMENT_L1-1));
-		//endLine -= BGQ_ALIGNMENT_L1;
-	}
+	endLine = (void*)((uintptr_t)endLine & ~(BGQ_ALIGNMENT_L1-1));
 
-	if (beginLine < endLine) {
-		size_t threadsize = (endLine-beginLine);
-		memset(beginLine, 0x00, threadload);
-	}
+	// Special cases
+	//if (tid == 0)
+	//	beginLine = ptr; /* rule redundant */
+	if (tid == g_bgq_dispatch_threads-1)
+		endLine = (ptr + size);
+
+	if (beginLine < ptr)
+		beginLine = ptr;
+	if (beginLine >= endLine)
+		return;
+
+	assert(beginLine >= ptr);
+	assert(endLine <= ptr + size);
+	assert(endLine >= beginLine);
+
+	size_t threadsize = (endLine-beginLine);
+	memset(beginLine, 0x00, threadsize);
 }
-
 
 void bgq_master_memzero(void *ptr, size_t size) {
 	if (size <= (1<<14)/*By empirical testing*/) {
@@ -266,4 +307,59 @@ void bgq_master_memzero(void *ptr, size_t size) {
 	}
 }
 
+
+typedef struct {
+	void *ptrDst;
+	void *ptrSrc;
+	size_t size;
+} bgq_memcopy_work;
+
+void bgq_memcpy_worker(void *args_untyped, size_t tid, size_t threads) {
+	bgq_memcopy_work *args = args_untyped;
+	char *ptrDst = args->ptrDst;
+	char *ptrSrc = args->ptrSrc;
+	size_t size = args->size;
+
+	const size_t workload = size;
+	const size_t threadload = (workload+threads-1)/threads;
+	const size_t begin = tid*threadload;
+	const size_t end = min_sizet(workload, begin+threadload);
+
+	if (begin<end) {
+		size_t count = end-begin;
+		memcpy(ptrDst+begin, ptrSrc+begin, count);
+	}
+}
+
+void bgq_master_memcpy(void *ptrDst, void *ptrSrc, size_t size) {
+	if (size <= (1<<14)) {
+		memcpy(ptrDst, ptrSrc, size);
+	} else {
+		bgq_master_sync();
+		static bgq_memcopy_work work;
+		work.ptrDst = ptrDst;
+		work.ptrSrc = ptrSrc;
+		work.size = size;
+		bgq_master_call(&bgq_memcpy_worker, &work);
+	}
+}
+
+
+typedef struct {
+	bgq_mainlike_func func;
+	int argc;
+	char **argv;
+} bgq_dispatch_mainlike_args;
+
+int bgq_dispatch_callMainlike(void *args_untyped) {
+	bgq_dispatch_mainlike_args *args = args_untyped;
+	bgq_mainlike_func func = args->func;
+
+	return (*func)(args->argc, args->argv);
+}
+
+int bgq_parallel_mainlike(bgq_mainlike_func func, int argc, char *argv[]) {
+	bgq_dispatch_mainlike_args args = { func, argc, argv };
+	return bgq_parallel(&bgq_dispatch_callMainlike, &args);
+}
 

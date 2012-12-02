@@ -355,6 +355,7 @@ EXTERN_INLINE int divdown(const int dividend, const int divisor) {
 #define master_error(errcode, ...) \
 	do {                            \
 		master_print(__VA_ARGS__);  \
+		assert(false);              \
 		exit(errcode);              \
 	} while (0)
 

@@ -232,18 +232,6 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	bgq_spinorfield_layout layout = bgq_spinorfield_prepareRead(spinorfield, !isOdd, true, !floatprecision, floatprecision, false, false);
 	bgq_spinorfield_prepareWrite(targetfield, isOdd, floatprecision ? ly_weyl_float : ly_weyl_double, targetfield==spinorfield);
 
-#if 0
-	if (floatprecision)
-		memset(targetfield->sec_collapsed_float, 0xFF, PHYSICAL_VOLUME * sizeof(*targetfield->sec_collapsed_float));
-	else
-		memset(targetfield->sec_collapsed_double, 0xFF, PHYSICAL_VOLUME * sizeof(*targetfield->sec_collapsed_double));
-#endif
-
-	//bgq_spinorfield_setup(targetfield, isOdd, false, false, false, true, floatprecision);
-	//bgq_spinorfield_setup(spinorfield, !isOdd, !(layout & ly_weyl), false, (layout & ly_weyl), false, false);
-	//assert(targetfield->isOdd == isOdd);
-
-
 
 	// 0. Expect data from other neighbor node
 	if (!nocomm) {
@@ -339,5 +327,18 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 }
 
 
+#if BGQ_REPLACE
+void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k) {
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
+	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
 
+	bgq_HoppingMatrix(ieo, targetfield, sourcefield, 0);
+}
 
+void Hopping_Matrix_nocom(const int ieo, spinor * const l, spinor * const k) {
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
+	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
+
+	bgq_HoppingMatrix(ieo, targetfield, sourcefield, hm_nocom);
+}
+#endif

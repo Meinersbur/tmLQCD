@@ -217,7 +217,7 @@ static bgq_worker_func NAME2(OPERATOR_NAME,worker_funcs)[2][BGQ_SPINORFIELD_LAYO
 #endif
 
 
-static void NAME2(OPERATOR_NAME,selector)(bool sloppy, bgq_weylfield_controlblock *targetfield, bool isOdd IF1ARG(, bgq_weylfield_controlblock *argfield1) IF2ARG(, bgq_weylfield_controlblock *argfield2) OPERATOR_EXTRAPARMLIST) {
+static void NAME2(OPERATOR_NAME,selector)(bool sloppy, bgq_weylfield_controlblock *targetfield, tristate isOdd IF1ARG(, bgq_weylfield_controlblock *argfield1) IF2ARG(, bgq_weylfield_controlblock *argfield2) OPERATOR_EXTRAPARMLIST) {
 	//bool isOdd = argfield1->isOdd;
 
 #if OPERATOR_ARGFIELDS==0
@@ -262,12 +262,12 @@ static void NAME2(OPERATOR_NAME,selector)(bool sloppy, bgq_weylfield_controlbloc
 }
 
 
-void NAME2(OPERATOR_NAME,double)(bgq_weylfield_controlblock *targetfield, bool isOdd IF1ARG(, bgq_weylfield_controlblock *argfield1) IF2ARG(, bgq_weylfield_controlblock *argfield2) OPERATOR_EXTRAPARMLIST) {
+void NAME2(OPERATOR_NAME,double)(bgq_weylfield_controlblock *targetfield, tristate isOdd IF1ARG(, bgq_weylfield_controlblock *argfield1) IF2ARG(, bgq_weylfield_controlblock *argfield2) OPERATOR_EXTRAPARMLIST) {
 	NAME2(OPERATOR_NAME,selector)(false, targetfield, isOdd IF1ARG(, argfield1) IF2ARG(, argfield2) OPERATOR_EXTRAARGLIST);
 }
 
 
-void NAME2(OPERATOR_NAME,float)(bgq_weylfield_controlblock *targetfield, bool isOdd IF1ARG(, bgq_weylfield_controlblock *argfield1) IF2ARG(, bgq_weylfield_controlblock *argfield2) OPERATOR_EXTRAPARMLIST) {
+void NAME2(OPERATOR_NAME,float)(bgq_weylfield_controlblock *targetfield, tristate isOdd IF1ARG(, bgq_weylfield_controlblock *argfield1) IF2ARG(, bgq_weylfield_controlblock *argfield2) OPERATOR_EXTRAPARMLIST) {
 	NAME2(OPERATOR_NAME,selector)(true, targetfield, isOdd IF1ARG(, argfield1) IF2ARG(, argfield2) OPERATOR_EXTRAARGLIST);
 }
 

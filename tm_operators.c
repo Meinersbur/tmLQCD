@@ -515,7 +515,7 @@ void tm_sub_H_eo_gamma5(spinor* const l, spinor * const p, spinor * const k,
  **********************************************/
 
 void mul_one_pm_imu_inv(spinor * const l, const double _sign, const int N){
-	spinorfield_enable(l, true, true);
+	spinorfield_enable(l, 1, 1);
 #ifdef OMP
 #pragma omp parallel
   {
@@ -576,8 +576,8 @@ void mul_one_pm_imu_inv(spinor * const l, const double _sign, const int N){
 
 #if !BGQ_REPLACE
 void assign_mul_one_pm_imu_inv(spinor * const l, spinor * const k, const double _sign, const int N){
-	spinorfield_enable(l, false, true);
-	spinorfield_enable(k, true, false);
+	spinorfield_enable(l, 0, 1);
+	spinorfield_enable(k, 1, 0);
 #ifdef OMP
 #pragma omp parallel
   {
@@ -617,7 +617,7 @@ void assign_mul_one_pm_imu_inv(spinor * const l, spinor * const k, const double 
 
 
 void mul_one_pm_imu(spinor * const l, const double _sign){
-	spinorfield_enable(l, true, true);
+	spinorfield_enable(l, 1, 1);
 #ifdef OMP
 #pragma omp parallel
   {
@@ -660,8 +660,8 @@ void mul_one_pm_imu(spinor * const l, const double _sign){
 }
 
 void assign_mul_one_pm_imu(spinor * const l, spinor * const k, const double _sign, const int N){
-	spinorfield_enable(l, false, true);
-	spinorfield_enable(k, true, false);
+	spinorfield_enable(l, 0, 1);
+	spinorfield_enable(k, 1, 0);
 #ifdef OMP
 #pragma omp parallel
   {
@@ -716,9 +716,9 @@ void assign_mul_one_pm_imu(spinor * const l, spinor * const k, const double _sig
 
 void mul_one_sub_mul_gamma5(spinor * const l, spinor * const k, 
 				   spinor * const j){
-	spinorfield_enable(l, false, true);
-	spinorfield_enable(k, true, false);
-	spinorfield_enable(j, true, false);
+	spinorfield_enable(l, 0, 1);
+	spinorfield_enable(k, 1, 0);
+	spinorfield_enable(j, 1, 0);
 #ifdef OMP
 #pragma omp parallel
   {
@@ -751,9 +751,9 @@ void mul_one_sub_mul_gamma5(spinor * const l, spinor * const k,
 
 void mul_one_pm_imu_sub_mul_gamma5(spinor * const l, spinor * const k, 
 				   spinor * const j, const double _sign){
-	spinorfield_enable(l, false, true);
-	spinorfield_enable(k, true, false);
-	spinorfield_enable(j, true, false);
+	spinorfield_enable(l, 0, 1);
+	spinorfield_enable(k, 1, 0);
+	spinorfield_enable(j, 1, 0);
 #ifdef OMP
 #pragma omp parallel
   {
@@ -801,9 +801,9 @@ void mul_one_pm_imu_sub_mul_gamma5(spinor * const l, spinor * const k,
 
 void mul_one_pm_imu_sub_mul(spinor * const l, spinor * const k, 
 			    spinor * const j, const double _sign, const int N){
-	spinorfield_enable(l, false, true);
-	spinorfield_enable(k, true, false);
-	spinorfield_enable(j, true, false);
+	spinorfield_enable(l, 0, 1);
+	spinorfield_enable(k, 1, 0);
+	spinorfield_enable(j, 1, 0);
 #ifdef OMP
 #pragma omp parallel
   {

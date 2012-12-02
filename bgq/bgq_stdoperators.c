@@ -60,6 +60,58 @@ static inline void bgq_site_imul(bgq_su3_spinor_params(*target), bgq_su3_spinor_
 #include "bgq_operator.inc.c"
 
 
+#define OPERATOR_NAME bgq_spinorfield_copy_raw
+#define OPERATOR_ARGFIELDS 1
+#define OPERATOR_VECSITEFUNC bgq_site_set
+#include "bgq_operator.inc.c"
+
+void bgq_spinorfield_copy(bgq_weylfield_controlblock *target, bgq_spinorfield_layout targetLayout, bgq_weylfield_controlblock *source) {
+	assert(target);
+	assert(source);
+	assert(source != target);
+
+	switch (targetLayout) {
+	case ly_full_double:
+		if (source->has_fulllayout_double) {
+			bgq_spinorfield_prepareRead(source, tri_unknown, false, true, false, false, false);
+			bgq_spinorfield_prepareWrite(target, source->isOdd, ly_full_double, false);
+			bgq_master_memcpy(target->sec_fullspinor_double, source->sec_fullspinor_double, PHYSICAL_VOLUME * sizeof(*source->sec_fullspinor_double));
+		} else {
+			bgq_spinorfield_copy_raw_double(target, source->isOdd, source);
+		}
+		break;
+	case ly_full_float:
+		if (source->has_fulllayout_float) {
+			bgq_spinorfield_prepareRead(source, tri_unknown, false, false, true, false, false);
+			bgq_spinorfield_prepareWrite(target, source->isOdd, ly_full_float, false);
+			bgq_master_memcpy(target->sec_fullspinor_float, source->sec_fullspinor_float, PHYSICAL_VOLUME * sizeof(*source->sec_fullspinor_float));
+		} else {
+			bgq_spinorfield_copy_raw_float(target, source->isOdd, source);
+		}
+		break;
+	case ly_legacy:
+		bgq_spinorfield_prepareRead(source, false, false, false, false, false, true);
+		bgq_spinorfield_prepareWrite(target, source->isOdd, ly_legacy, false);
+		bgq_master_memcpy(target->legacy_field, source->legacy_field, VOLUME/2 * sizeof(*source->legacy_field));
+		break;
+	default:
+		master_error(1, "Cannot copy to layout");
+	}
+
+	assert(bgq_spinorfield_prepareRead(target, source->isOdd, true, true, true, true, true) == targetLayout);
+}
+
+#if BGQ_REPLACE
+void assign(spinor * const R, spinor * const S, const int N) {
+	assert(N == VOLUME/2);
+	bgq_weylfield_controlblock *target = bgq_translate_spinorfield(R);
+	bgq_weylfield_controlblock *source = bgq_translate_spinorfield(S);
+
+	bgq_spinorfield_copy(target, ly_full_double, source);
+}
+#endif
+
+
 #define OPERATOR_NAME bgq_spinorfield_imul_raw
 #define OPERATOR_ARGFIELDS 1
 #define OPERATOR_VECSITEFUNC bgq_site_imul
@@ -67,7 +119,7 @@ static inline void bgq_site_imul(bgq_su3_spinor_params(*target), bgq_su3_spinor_
 #define OPERATOR_EXTRAARGS bgq_vars(qz),bgq_vars(qw)
 #include "bgq_operator.inc.c"
 
-void bgq_spinorfield_imul_double(bgq_weylfield_controlblock *targetfield, bool isOdd, bgq_weylfield_controlblock *sourcefield, complex_double z, complex_double w) {
+void bgq_spinorfield_imul_double(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield, complex_double z, complex_double w) {
 	bgq_vector4double_decl(qz);
 	bgq_cconst(qz, creal(z), cimag(z));
 	bgq_vector4double_decl(qw);
@@ -75,7 +127,7 @@ void bgq_spinorfield_imul_double(bgq_weylfield_controlblock *targetfield, bool i
 	bgq_spinorfield_imul_raw_double(targetfield, isOdd, sourcefield, bgq_vars(qz), bgq_vars(qw));
 }
 
-void bgq_spinorfield_imul_float(bgq_weylfield_controlblock *targetfield, bool isOdd, bgq_weylfield_controlblock *sourcefield, complex_double z, complex_double w) {
+void bgq_spinorfield_imul_float(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield, complex_double z, complex_double w) {
 	bgq_vector4double_decl(qz);
 	bgq_cconst(qz, creal(z), cimag(z));
 	bgq_vector4double_decl(qw);
@@ -84,11 +136,13 @@ void bgq_spinorfield_imul_float(bgq_weylfield_controlblock *targetfield, bool is
 }
 
 
+
+
+
 #if BGQ_REPLACE
 void assign_mul_one_pm_imu_inv(spinor * const l, spinor * const k, const double _sign, const int N) {
 	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
 	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
-	bool isOdd = bgq_spinorfield_isOdd(sourcefield);
 
 	 _Complex double z,w;
 	  int ix;
@@ -103,6 +157,6 @@ void assign_mul_one_pm_imu_inv(spinor * const l, spinor * const k, const double 
 	  z = nrm + (sign * nrm * g_mu) * I;
 	  w = conj(z);
 
-	  bgq_spinorfield_imul_double(targetfield, isOdd, sourcefield, z, w);
+	  bgq_spinorfield_imul_double(targetfield, tri_unknown, sourcefield, z, w);
 }
 #endif

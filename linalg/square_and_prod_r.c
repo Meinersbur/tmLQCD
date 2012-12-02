@@ -40,8 +40,8 @@
 
 void square_and_prod_r(double * const x1, double * const x2, spinor * const S, spinor * const R, const int N)
 {
-	spinorfield_enable(S, true, false);
-	spinorfield_enable(R, true, false);
+	spinorfield_enable(S, 1, 0);
+	spinorfield_enable(R, 1, 0);
   int ix;
   double ALIGN ks,kc,ds,tr,ts,tt;
   double ALIGN xks,xkc,xds,xtr,xts,xtt;

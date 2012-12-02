@@ -23,9 +23,6 @@ void bgq_gaugefield_init() {
 	bgq_indices_init();
 	for (size_t isOdd = false; isOdd <= true; isOdd += 1) {
 		g_bgq_gaugefield_fromCollapsed[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromCollapsed[isOdd]), BGQ_ALIGNMENT_L2);
-		//g_bgq_gaugefield_fromHalfvolume[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromHalfvolume[isOdd]), BGQ_ALIGNMENT_L2);
-		//g_bgq_gaugefield_fromSurface[isOdd] = malloc_aligned(PHYSICAL_SURFACE * sizeof(*g_bgq_gaugefield_fromSurface[isOdd]), BGQ_ALIGNMENT_L2);
-		//g_bgq_gaugefield_fromBody[isOdd] = malloc_aligned(PHYSICAL_BODY * sizeof(*g_bgq_gaugefield_fromBody[isOdd]), BGQ_ALIGNMENT_L2);
 	}
 }
 
@@ -154,13 +151,8 @@ static void bgq_gaugefield_worker_transferfrom(void *arg_untyped, size_t tid, si
 	}
 }
 void bgq_gaugefield_transferfrom(su3 **sourcefield) {
-	if (g_bgq_dispatch_inparallel) {
-		bgq_master_call(&bgq_gaugefield_worker_transferfrom, sourcefield);
-	} else {
-		bgq_gaugefield_worker_transferfrom(sourcefield, 0, 1);
-	}
+	bgq_master_call(&bgq_gaugefield_worker_transferfrom, sourcefield);
 }
-
 
 
 void bgq_gauge_expect(bgq_su3matrix gauge, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {

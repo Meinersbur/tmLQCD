@@ -222,7 +222,7 @@ void unit_spinor_field(const int k)
 /* Function provides a spinor field of length V with
    Gaussian distribution */
 void random_spinor_field_lexic(spinor * const k) {
-	spinorfield_enable(k, false, true);
+	spinorfield_enable(k, 0, 1);
   int x, y, z, t, X, Y, Z, tt, id=0;
 #ifdef MPI
   int rlxd_state[105];
@@ -271,7 +271,7 @@ void random_spinor_field_lexic(spinor * const k) {
 }
 
 void random_spinor_field_eo(spinor * const k) {
-	spinorfield_enable(k, false, true);
+	spinorfield_enable(k, 0, 1);
   int x, y, z, t, id = 0;
 #ifdef MPI
   int rlxd_state[105];
@@ -313,7 +313,7 @@ void random_spinor_field_eo(spinor * const k) {
 }
 
 void random_spinor_field(spinor * const k, const int V, const int repro) {
-	spinorfield_enable(k, false, true);
+	spinorfield_enable(k, 0, 1);
   int ix;
   int rlxd_state[105];
   spinor *s;
@@ -412,7 +412,7 @@ void random_spinor_field(spinor * const k, const int V, const int repro) {
 
 /* Function provides a zero spinor field of length N with */
 void z2_random_spinor_field(spinor * const k, const int N) {
-	spinorfield_enable(k, false, true);
+	spinorfield_enable(k, 0, 1);
   int ix;
   spinor *s;
   double r[24];
@@ -451,7 +451,7 @@ void z2_random_spinor_field(spinor * const k, const int N) {
 /* Function provides a zero spinor field of length N with */
 void zero_spinor_field(spinor * const k, const int N)
 {
-	spinorfield_enable(k, false, true);
+	spinorfield_enable(k, 0, 1);
   memset(k, 0, sizeof(spinor) * N);
 }
 #endif
@@ -460,7 +460,7 @@ void zero_spinor_field(spinor * const k, const int N)
 /* Function provides a constant spinor field of length N with */
 void constant_spinor_field(spinor * const k, const int p, const int N)
 {
-	spinorfield_enable(k, false, true);
+	spinorfield_enable(k, 0, 1);
   int ix;
   spinor *s;
   double * tmp;
@@ -702,8 +702,8 @@ void source_spinor_field(spinor * const P, spinor * const Q, int is, int ic) {
 
 void source_spinor_field_point_from_file(spinor * const P, spinor * const Q, int is, int ic, int source_indx)
 {
-	spinorfield_enable(P, false, true);
-	spinorfield_enable(Q, false, true);
+	spinorfield_enable(P, 0, 1);
+	spinorfield_enable(Q, 0, 1);
   int tmp;
   int source_coord[4],source_pe_coord[4],source_loc_coord[4];
   int source_pe_indx,source_loc_indx;

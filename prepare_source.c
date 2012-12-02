@@ -127,6 +127,7 @@ void prepare_source(const int nstore, const int isample, const int ix, const int
         if(g_proc_id == 0 && g_debug_level > 0) {
           printf("# Preparing 1 flavour volume source\n");
         }
+
         gaussian_volume_source(g_spinor_field[0], g_spinor_field[1], isample, nstore, 0);
       }
       else {
@@ -257,5 +258,10 @@ void prepare_source(const int nstore, const int isample, const int ix, const int
   isample_ = isample;
   ix_ = ix;
   op_id_ = op_id;
+
+  spinorfield_setOddness(optr->sr0, 0);
+  spinorfield_setOddness(optr->sr1, 1);
+  spinorfield_setOddness(optr->prop0, 0);
+  spinorfield_setOddness(optr->prop1, 1);
   return;
 }

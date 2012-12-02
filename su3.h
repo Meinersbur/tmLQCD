@@ -33,7 +33,6 @@
  *******************************************************************************/
 
 #include <complex.h>
-#include <stdbool.h>
 #if (defined XLC && defined BGL)
 # include "bgl.h"
 #endif
@@ -667,6 +666,7 @@ _sse_store_up(r);
 
 
 
-void spinorfield_enable(const spinor *legacyField, bool read, bool write);
+void spinorfield_enable(const spinor *legacyField, int read, int write);
+void spinorfield_setOddness(const spinor *legacyField, int isOdd);
 
 #endif

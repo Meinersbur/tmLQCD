@@ -25,6 +25,8 @@
  *
  *******************************************************************************/
 
+#if !BGQ_REPLACE
+
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
@@ -41,8 +43,8 @@
 /* S and R must not overlap */
 void assign(spinor * const R, spinor * const S, const int N)
 {
-	spinorfield_enable(R, false, true);
-	spinorfield_enable(S, true, false);
+	spinorfield_enable(R, 0, 1);
+	spinorfield_enable(S, 1, 0);
   memcpy(R, S, N*sizeof(spinor));
   return;
 }
@@ -63,4 +65,6 @@ void assign_su3vect(su3_vector * const R, su3_vector * const S, const int N)
     r->c2 = s->c2;
   }
 }
+#endif
+
 #endif

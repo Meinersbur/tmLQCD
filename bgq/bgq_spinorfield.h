@@ -647,7 +647,7 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 bgq_weylfield_controlblock *bgq_translate_spinorfield(const spinor *legacyField);
 //void bgq_spinorfield_prepareLegacy(bgq_weylfield_controlblock *field, bool read);
 
-void spinorfield_enable(const spinor *legacyField, bool read, bool write);
+void spinorfield_enable(const spinor *legacyField, int read, int write);
 
 
 #ifdef BGQ_COORDCHECK
@@ -671,6 +671,9 @@ EXTERN_INLINE bool bgq_spinorfield_isOdd(bgq_weylfield_controlblock *field) {
 	}
 	return field->isOdd;
 }
+
+void bgq_spinorfield_annotateOddness(bgq_weylfield_controlblock *field, bool isOdd);
+void spinorfield_setOddness(const spinor *field, int isOdd);
 
 
 #undef EXTERN_INLINE

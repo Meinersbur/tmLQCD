@@ -1322,7 +1322,7 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 	assert((isOdd==tri_unknown) || (field->isOdd==tri_unknown) || (isOdd==field->isOdd));
 
 	if (isOdd == tri_unknown) {
-		isOdd = field->isOdd;
+		isOdd = field->isOdd; // May still be unknown
 	}
 
 #if 0
@@ -1376,7 +1376,9 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 
 	bgq_spinorfield_layout result = -1;
 	if (actionRewrite) {
-		assert(isOdd!=tri_unknown);
+		if (isOdd==tri_unknown) {
+			master_error(1, "For rewriting, we need to know the oddness of the field from somewhere");
+		}
 		if (acceptDouble) {
 			result = ly_full_double;
 			bgq_worker_func worker = g_bgq_spinorfield_rewrite_worker_double_list[layout];
@@ -1626,7 +1628,7 @@ bgq_weylfield_controlblock *bgq_translate_spinorfield(const spinor *legacyField)
 }
 
 
-void spinorfield_enable(const spinor *legacyField, bool read, bool write) {
+void spinorfield_enable(const spinor *legacyField, int read, int write) {
 	bgq_weylfield_controlblock *field = bgq_translate_spinorfield((spinor*)legacyField);
 	assert(read || write);
 
@@ -1671,7 +1673,7 @@ void bgq_legacy_markcoords_raw(bool isOdd, spinor *legacyField) {
 void bgq_spinorfield_zero(bgq_weylfield_controlblock *field, tristate isOdd) {
 	assert(field);
 
-	bgq_spinorfield_enableLayout(field, isOdd, ly_legacy, false, false);
+	bgq_spinorfield_enableLayout(field, isOdd, ly_legacy, false, false); // Just to set oddness
 	bgq_master_memzero(field->legacy_field, VOLUME/2 * sizeof(*field->legacy_field));
 	field->has_legacy = true;
 
@@ -1707,3 +1709,25 @@ void zero_spinor_field(spinor * const k, const int N) {
 	bgq_spinorfield_zero(field, tri_unknown);
 }
 #endif
+
+
+void bgq_spinorfield_annotateOddness(bgq_weylfield_controlblock *field, bool isOdd) {
+	assert(field);
+
+	if (field->isOdd == tri_unknown) {
+		field->isOdd = isOdd;
+	} else {
+		if (field->isOdd != isOdd) {
+			master_error(1, "Mismatch in oddness");
+		}
+	}
+}
+
+
+void spinorfield_setOddness(const spinor *field, int isOdd) {
+	bgq_weylfield_controlblock *sfield = bgq_translate_spinorfield(field);
+	bgq_spinorfield_annotateOddness(sfield, isOdd);
+}
+
+
+

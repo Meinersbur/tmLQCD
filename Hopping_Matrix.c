@@ -46,6 +46,8 @@
  *
  ****************************************************************/
 
+#if !BGQ_REPLACE
+
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
@@ -173,3 +175,4 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k) {
 
 #endif /* thats _USE_HALFSPINOR */
 
+#endif

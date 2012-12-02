@@ -97,6 +97,7 @@
 #include "bgq/bgq_spinorfield.h"
 #include "bgq/bgq_comm.h"
 #include "bgq/bgq_gaugefield.h"
+#include "bgq/bgq_dispatch.h"
 #include <assert.h>
 
 
@@ -117,7 +118,7 @@ void usage()
 extern int nstore;
 int check_geometry();
 
-int main(int argc, char *argv[])
+static int main_invert(int argc, char *argv[])
 {
   FILE *parameterfile = NULL;
   int c, j, i, ix = 0, isample = 0, op_id = 0;
@@ -572,4 +573,9 @@ int main(int argc, char *argv[])
 #ifdef _KOJAK_INST
 #pragma pomp inst end(main)
 #endif
+}
+
+
+int main(int argc, char *argv[]) {
+	return bgq_parallel_mainlike(&main_invert, argc, argv);
 }
