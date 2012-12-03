@@ -246,9 +246,9 @@ double scalar_prod_r(spinor *S, const spinor * const R, int N, int parallel) {
 	bgq_weylfield_controlblock *field2 = bgq_translate_spinorfield(R);
 
 	if (parallel)
-		return bgq_spinorfield_innerprod_r_global(bgq_spinorfield_isOdd(field1), field1, field2);
+		return bgq_spinorfield_innerprod_r_global(tri_unknown, field1, field2);
 	else
-		return bgq_spinorfield_innerprod_r_local(bgq_spinorfield_isOdd(field1), field1, field2);
+		return bgq_spinorfield_innerprod_r_local(tri_unknown, field1, field2);
 }
 
 

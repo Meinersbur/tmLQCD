@@ -346,7 +346,11 @@ static int main_invert(int argc, char *argv[])
   	bgq_comm_mpi_init();
   	bgq_comm_spi_init();
   	bgq_initbgqref();
-  	bgq_spinorfields_init(NO_OF_SPINORFIELDS, g_running_phmc ? 20 : 0);
+  	bgq_spinorfields_init(NO_OF_SPINORFIELDS);
+  	if (g_running_phmc) {
+  		bgq_spinorfields_allocate(20, g_chi_up_spinor_field[0]);
+  		bgq_spinorfields_allocate(20, g_chi_dn_spinor_field[0]);
+  	}
   	bgq_gaugefield_init();
  // END MK
 

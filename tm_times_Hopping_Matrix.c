@@ -80,7 +80,7 @@
 #  endif
 
 void tm_times_Hopping_Matrix(const int ieo, spinor * const l, spinor * const k, complex double const cfactor) {
-  
+	spinorfield_linalg_wr_invert(l, k);
 #  ifdef _GAUGE_COPY
   if(g_update_gauge_copy) {
     update_backward_gauge(g_gauge_field);
@@ -126,6 +126,7 @@ void tm_times_Hopping_Matrix(const int ieo, spinor * const l, spinor * const k, 
 
 #  endif
 void tm_times_Hopping_Matrix(const int ieo, spinor * const l, spinor * const k, double complex const cfactor) {
+	spinorfield_linalg_wr_invert(l, k);
 #  ifdef XLC
 #    pragma disjoint(*l, *k)
 #  endif

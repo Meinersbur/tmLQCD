@@ -28,6 +28,8 @@
 #include"su3.h"
 #include"solver_field.h"
 
+#include "bgq/bgq_spinorfield.h"
+
 int init_solver_field(spinor *** const solver_field, const int V, const int nr) {
   int i=0;
 
@@ -57,11 +59,13 @@ int init_solver_field(spinor *** const solver_field, const int V, const int nr) 
 #if ( defined SSE || defined SSE2 || defined SSE3)
   (*solver_field)[0] = (spinor*)(((unsigned long int)((*solver_field)[nr])+ALIGN_BASE)&~ALIGN_BASE);
 #else
-  (*solver_field)[0] = (*solver_field)[nr];
+  (*solver_field)[0] = (spinor*)(((unsigned long int)((*solver_field)[nr])+31)&~31);
 #endif
   for(i = 1; i < nr; i++){
     (*solver_field)[i] = (*solver_field)[i-1]+V;
   }
+
+  bgq_spinorfields_allocate(nr, (*solver_field)[0]);
   return(0);
 }
 
@@ -69,6 +73,9 @@ void finalize_solver(spinor ** solver_field, const int nr){
   free(solver_field[nr]);
   free(solver_field);
   solver_field = NULL;
+
+  bgq_weylfield_controlblock *bgqField = bgq_translate_spinorfield(solver_field[0]);
+  bgq_spinorfields_free(bgqField->collectionBase);
 }
 
 

@@ -672,6 +672,7 @@ void spinorfield_propagateOddness(const spinor *targetLegacyField, const spinor 
 void spinorfield_propagateInvertedOddness(const spinor *targetLegacyField, const spinor *sourceLegacyField);
 
 void spinorfield_linalg_r(const spinor *field_in);
+void spinorfield_linalg_u(const spinor *legacyField_inout);
 void spinorfield_linalg_rr(const spinor *field_in1, const spinor *field_in2);
 void spinorfield_linalg_wr(const spinor *field_out, const spinor *field_in);
 void spinorfield_linalg_ur(const spinor *field_inout, const spinor *field_in);
@@ -679,5 +680,8 @@ void spinorfield_linalg_ww(const spinor *field_out1, const spinor *field_out2);
 void spinorfield_linalg_wrr(const spinor *field_out, const spinor *field_in1, const spinor *field_in2);
 void spinorfield_linalg_urr(const spinor *field_inout, const spinor *field_in1, const spinor *field_in2);
 void spinorfield_linalg_urrr(const spinor *field_inout, const spinor *field_in1, const spinor *field_in2, const spinor *field_in3);
+
+void spinorfield_linalg_wr_invert(const spinor *legacyField_out, const spinor *legacyField_in);
+void spinorfield_linalg_wrr_invert(const spinor *legacyField_out, const spinor *legacyField_in1, const spinor *legacyField_in2);
 
 #endif

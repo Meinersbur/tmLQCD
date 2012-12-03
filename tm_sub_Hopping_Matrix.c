@@ -81,7 +81,7 @@
 
 void tm_sub_Hopping_Matrix(const int ieo, spinor * const l, spinor * const p, spinor * const k, 
 			   complex double const cfactor) {
-  
+	spinorfield_linalg_wrr_invert(l, p, k);
 #  ifdef _GAUGE_COPY
   if(g_update_gauge_copy) {
     update_backward_gauge(g_gauge_field);

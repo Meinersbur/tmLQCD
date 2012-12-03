@@ -8,6 +8,7 @@ subdir = solver
 builddir = @builddir@
 
 CFLAGS = @CFLAGS@ @SOLVEROUT@
+CPPFLAGS = @CPPFLAGS@
 DEPFLAGS = @DEPFLAGS@
 LDFLAGS = @LDFLAGS@
 DEFS = @DEFS@

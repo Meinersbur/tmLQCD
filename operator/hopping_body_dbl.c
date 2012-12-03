@@ -85,13 +85,6 @@
 	const int x = g_coord[ix][1];
 	const int y = g_coord[ix][2];
 	const int z = g_coord[ix][3];
-	if ( (t==4) && (x==1) && (y==1) && (z==0) ) {
-		int a = 0;
-	}
-
-    if (t==0 && x==0 && y==0 && z==0) {
-    	int a = 0;
-    }
 
     /*********************** direction +t ************************/
 #    if (!defined _GAUGE_COPY)

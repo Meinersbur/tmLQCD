@@ -59,6 +59,7 @@ typedef enum {
 #define BGQ_SPINORFIELD_LAYOUT_COUNT 9
 
 
+//struct bgq_weylfield_collection;
 
 //TODO: Move to bgq_spinorfield.h
 typedef struct {
@@ -107,7 +108,10 @@ typedef struct {
 
 	bgq_weyl_ptr_t_float *sendptr_float;
 	bgq_weyl_vec_float **consptr_float[PHYSICAL_LD];
+
+	struct bgq_weylfield_collection *collectionBase;
 } bgq_weylfield_controlblock;
+
 
 #define BGQ_SEC_FULLLAYOUT NAME2(sec_fullspinor,PRECISION)
 #define BGQ_SEC_WEYLLAYOUT NAME2(sec_collapsed,PRECISION)
@@ -119,8 +123,18 @@ typedef struct {
 
 EXTERN_FIELD bgq_weylfield_controlblock *g_bgq_spinorfields EXTERN_INIT(NULL);
 
-void bgq_spinorfields_init(size_t std_count, size_t chi_count);
+typedef struct bgq_weylfield_collection {
+	const spinor *legacy_base;
+	size_t count;
+	struct bgq_weylfield_collection *prev;
+	struct bgq_weylfield_collection *next;
+	bgq_weylfield_controlblock controlblocks[];
+} bgq_weylfield_collection;
 
+
+void bgq_spinorfields_init(size_t std_count);
+bgq_weylfield_collection *bgq_spinorfields_allocate(size_t count, spinor *legacyFields);
+void bgq_spinorfields_free(bgq_weylfield_collection *collection);
 
 size_t bgq_pointer2offset_raw(bgq_weylfield_controlblock *field, void *ptr, bool check);
 size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr);
@@ -517,7 +531,7 @@ typedef enum {
 } bgqref;
 
 
-#ifdef NDEBUG
+#ifndef BGQ_REFCOMPARE
 #define bgq_initbgqref()
 #define bgq_setdesc(idx,desc)
 #define bgq_setrefvalue( t,  x,  y,  z,  idx,  val)
@@ -642,6 +656,7 @@ EXTERN_INLINE void bgq_spinorfield_readSpinor_raw(bgq_su3_spinor_params(*target)
 
 
 void bgq_spinorfield_prepareWrite(bgq_weylfield_controlblock *field, tristate isOdd, bgq_spinorfield_layout layout, bool preserveData);
+void bgq_spinorfield_prepareReadWrite(bgq_weylfield_controlblock *field, tristate isOdd, bgq_spinorfield_layout layout);
 bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *field, tristate isOdd, bool acceptWeyl, bool acceptDouble, bool acceptFloat, bool acceptMul, bool acceptLegacy);
 
 bgq_weylfield_controlblock *bgq_translate_spinorfield(const spinor *legacyField);
