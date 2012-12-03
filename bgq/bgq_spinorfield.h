@@ -648,6 +648,7 @@ bgq_weylfield_controlblock *bgq_translate_spinorfield(const spinor *legacyField)
 //void bgq_spinorfield_prepareLegacy(bgq_weylfield_controlblock *field, bool read);
 
 void spinorfield_enable(const spinor *legacyField, int read, int write);
+void spinorfield_propagateOddness(const spinor *targetLegacyField, const spinor *sourceLegacyField);
 
 
 #ifdef BGQ_COORDCHECK

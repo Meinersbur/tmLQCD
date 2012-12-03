@@ -426,6 +426,15 @@ void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, tristate is
 	// Possible actions
 	bool actionInitWeylPtrs = false;
 
+	if (preserveData) {
+		 if (field->isOdd==tri_unknown) {
+		 } else if (isOdd==tri_unknown) {
+			isOdd = field->isOdd;
+		} else {
+			assert(isOdd==field->isOdd);
+		}
+	}
+
 	if (layout!=ly_legacy) {
 		if (field->sendptr_double && (field->ptr_isOdd != isOdd) && (isOdd!=tri_unknown)) {
 			master_print("PERFORMANCE WARNING: Performance loss by reuse of spinorfield with different oddness\n");
@@ -1084,7 +1093,7 @@ static bgq_spinorfield_layout bgq_spinorfield_bestLayout(bgq_weylfield_controlbl
 	if (field->has_fulllayout_double) {
 		return ly_full_double;
 	} else if (field->has_weyllayout_double) {
-		return ly_full_double;
+		return ly_weyl_double;
 	} else if (field->has_fulllayout_float) {
 		return ly_full_float;
 	} else if (field->has_weyllayout_float) {
@@ -1093,19 +1102,6 @@ static bgq_spinorfield_layout bgq_spinorfield_bestLayout(bgq_weylfield_controlbl
 		return ly_legacy;
 	}
 	return ly_none;
-
-#if 0
-	assert(field->hasFullspinorData || field->hasWeylfieldData);
-
-	if (field->hasFullspinorData) {
-		return field->isFulllayoutSloppy ? ly_full_float : ly_full_double;
-	} else if (field->hasWeylfieldData) {
-		return field->isWeyllayoutSloppy ? ly_weyl_float : ly_weyl_double;
-	} else {
-		assert(!"Field has no data available");
-		return -1;
-	}
-#endif
 }
 
 
@@ -1177,59 +1173,6 @@ static inline void bgq_copyToLegacy_worker(void *arg_untyped, size_t tid, size_t
 }
 
 BGQ_SPINORFIELD_GENWORKER(bgq_copyToLegacy_worker)
-
-
-
-#if 0
-static void bgq_spinorfield_prepareLegacy(bgq_weylfield_controlblock *field, bool read, bool write) {
-	assert(field);
-	assert(read || write);
-
-	if (write && !read) {
-		// Simple case: Erase previous data and enable legacy layout
-		bgq_spinorfield_prepareWrite(field, isOdd, ly_legacy);
-		return;
-	}
-
-	if (read) {
-		if (field->has_legacy) {
-			// Already in correct format
-			assert(!field->pendingDatamove);
-
-			if (write) {
-
-			}
-
-		} else {
-			// We have to copy existing data
-			assert(bgq_spinorfield_bestLayout(field) != ly_none);
-			assert(bgq_spinorfield_bestLayout(field) != ly_legacy);
-			bool isOdd = field->isOdd;
-
-			if (field->pendingDatamove) {
-				bgq_comm_wait();
-			}
-
-			bgq_spinorfield_layout layout = bgq_spinorfield_bestLayout(field);
-			bgq_spinorfield_enableLayout(field, isOdd, ly_legacy, write);
-			bgq_worker_func worker = g_bgq_copyToLegacy_worker_list[layout];
-			assert(worker);
-
-			bgq_master_sync();
-			static bgq_copyToLegacy_workload work;
-			work.isOdd = isOdd;
-			work.field = field;
-			work.target = field->legacy_field;
-			bgq_master_call(worker, &work);
-
-#ifndef NDEBUG
-			 double diff = bgq_spinorfield_legacy_compare(isOdd,field, layout, field->legacy_field, false);
-			 assert(diff==0);
-#endif
-		}
-	}
-}
-#endif
 
 
 void bgq_spinorfield_prepareWrite(bgq_weylfield_controlblock *field, tristate isOdd, bgq_spinorfield_layout layout, bool preserveData) {
@@ -1423,6 +1366,7 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 			work.field = field;
 			bgq_master_call(worker, &work);
 		} else if (acceptLegacy) {
+			result = ly_legacy;
 			// We have to copy existing data
 			assert(layout != ly_legacy);
 			//master_print("Translation to ly_legacy\n");
@@ -1431,7 +1375,7 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 				bgq_comm_wait();
 			}
 
-			bgq_spinorfield_layout layout = bgq_spinorfield_bestLayout(field);
+			//bgq_spinorfield_layout layout = bgq_spinorfield_bestLayout(field);
 			bgq_spinorfield_enableLayout(field, isOdd, ly_legacy, false, false);
 			bgq_worker_func worker = g_bgq_copyToLegacy_worker_list[layout];
 			assert(worker);
@@ -1454,7 +1398,7 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 		result = layout;
 	}
 
-	assert(result!=-1);
+	assert(result!=ly_none);
 	assert(acceptWeyl || !(result&ly_weyl));
 	assert(acceptDouble || (result&ly_sloppy) || (acceptLegacy && result==ly_legacy));
 	assert(acceptFloat || !(result&ly_sloppy) || (acceptLegacy && result==ly_legacy));
@@ -1629,7 +1573,7 @@ bgq_weylfield_controlblock *bgq_translate_spinorfield(const spinor *legacyField)
 
 
 void spinorfield_enable(const spinor *legacyField, int read, int write) {
-	bgq_weylfield_controlblock *field = bgq_translate_spinorfield((spinor*)legacyField);
+	bgq_weylfield_controlblock *field = bgq_translate_spinorfield(legacyField);
 	assert(read || write);
 
 	if (read) {
@@ -1638,6 +1582,22 @@ void spinorfield_enable(const spinor *legacyField, int read, int write) {
 
 	if (write) {
 		bgq_spinorfield_prepareWrite(field, tri_unknown, ly_legacy, read);
+	}
+}
+
+
+void spinorfield_propagateOddness(const spinor *targetLegacyField, const spinor *sourceLegacyField) {
+	if (targetLegacyField==sourceLegacyField)
+		return;
+
+	bgq_weylfield_controlblock *targetField = bgq_translate_spinorfield(targetLegacyField);
+	bgq_weylfield_controlblock *sourceField = bgq_translate_spinorfield(sourceLegacyField);
+
+	if (targetField->isOdd==tri_unknown) {
+		targetField->isOdd = sourceField->isOdd;
+	} else if (sourceField->isOdd==tri_unknown) {
+	} else {
+		assert(sourceField->isOdd==targetField->isOdd);
 	}
 }
 

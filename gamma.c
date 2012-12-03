@@ -42,6 +42,7 @@
 void gamma0( const int Q,  const int P, const int V){
 	spinorfield_enable(g_spinor_field[Q], 0, 1);
 	spinorfield_enable(g_spinor_field[P], 1, 0);
+	spinorfield_propagateOddness(g_spinor_field[Q], g_spinor_field[P]);
   int ix;
   
   for (ix = 0; ix < V; ix++){
@@ -51,6 +52,7 @@ void gamma0( const int Q,  const int P, const int V){
 void gamma1( const int Q,  const int P, const int V){
 	spinorfield_enable(g_spinor_field[Q], 0, 1);
 	spinorfield_enable(g_spinor_field[P], 1, 0);
+	spinorfield_propagateOddness(g_spinor_field[Q], g_spinor_field[P]);
   int ix;
   
   for (ix=0;ix<V;ix++){
@@ -60,6 +62,7 @@ void gamma1( const int Q,  const int P, const int V){
 void gamma2( const int Q,  const int P, const int V){
 	spinorfield_enable(g_spinor_field[Q], 0, 1);
 	spinorfield_enable(g_spinor_field[P], 1, 0);
+	spinorfield_propagateOddness(g_spinor_field[Q], g_spinor_field[P]);
   int ix;
   
   for (ix=0;ix<V;ix++){
@@ -69,6 +72,7 @@ void gamma2( const int Q,  const int P, const int V){
 void gamma3( const int Q,  const int P, const int V){
 	spinorfield_enable(g_spinor_field[Q], 0, 1);
 	spinorfield_enable(g_spinor_field[P], 1, 0);
+	spinorfield_propagateOddness(g_spinor_field[Q], g_spinor_field[P]);
   int ix;
   
   for (ix=0;ix<V;ix++){
@@ -78,6 +82,7 @@ void gamma3( const int Q,  const int P, const int V){
 void gamma5(spinor * const l, spinor * const k, const int V){
 	spinorfield_enable(l, 0, 1);
 	spinorfield_enable(k, 1, 0);
+	spinorfield_propagateOddness(l, k);
   int ix;
   spinor *r,*s;
   for (ix = 0; ix < V; ix++){
@@ -92,6 +97,7 @@ void gamma5(spinor * const l, spinor * const k, const int V){
 void gamma5new(spinor * const Q, spinor * const P, const int V){ 
 	spinorfield_enable(Q, 0, 1);
 	spinorfield_enable(P, 1, 0);
+	spinorfield_propagateOddness(Q, P);
   int ix; 
   
   for (ix=0;ix<V;ix++){ 
@@ -101,6 +107,7 @@ void gamma5new(spinor * const Q, spinor * const P, const int V){
 void gamma50( const int Q,  const int P, const int V){
 	spinorfield_enable(g_spinor_field[Q], 0, 1);
 	spinorfield_enable(g_spinor_field[P], 1, 0);
+	spinorfield_propagateOddness(g_spinor_field[Q], g_spinor_field[P]);
   int ix;
   
   for (ix=0;ix<V;ix++){
@@ -110,6 +117,7 @@ void gamma50( const int Q,  const int P, const int V){
 void gamma51( const int Q,  const int P, const int V){
 	spinorfield_enable(g_spinor_field[Q], 0, 1);
 	spinorfield_enable(g_spinor_field[P], 1, 0);
+	spinorfield_propagateOddness(g_spinor_field[Q], g_spinor_field[P]);
   int ix;
   
   for (ix=0;ix<V;ix++){
@@ -119,6 +127,7 @@ void gamma51( const int Q,  const int P, const int V){
 void gamma52( const int Q,  const int P, const int V){
 	spinorfield_enable(g_spinor_field[Q], 0, 1);
 	spinorfield_enable(g_spinor_field[P], 1, 0);
+	spinorfield_propagateOddness(g_spinor_field[Q], g_spinor_field[P]);
   int ix;
   
   for (ix=0;ix<V;ix++){
@@ -128,6 +137,7 @@ void gamma52( const int Q,  const int P, const int V){
 void gamma53( const int Q,  const int P, const int V){
 	spinorfield_enable(g_spinor_field[Q], 0, 1);
 	spinorfield_enable(g_spinor_field[P], 1, 0);
+	spinorfield_propagateOddness(g_spinor_field[Q], g_spinor_field[P]);
   int ix;
   
   for (ix=0;ix<V;ix++){
@@ -138,6 +148,7 @@ void gamma53( const int Q,  const int P, const int V){
 void P_plus(spinor * const Q, spinor * const P, const int V){
 	spinorfield_enable(Q, 0, 1);
 	spinorfield_enable(P, 1, 0);
+	spinorfield_propagateOddness(Q, P);
   int ix;
   
   for (ix = 0; ix < V; ix++){
@@ -148,6 +159,7 @@ void P_plus(spinor * const Q, spinor * const P, const int V){
 void P_minus(spinor * const Q, spinor * const P, const int V){
 	spinorfield_enable(Q, 0, 1);
 	spinorfield_enable(P, 1, 0);
+	spinorfield_propagateOddness(Q, P);
   int ix;
   
   for (ix = 0; ix < V; ix++){
@@ -158,6 +170,7 @@ void P_minus(spinor * const Q, spinor * const P, const int V){
 void Proj(spinor * const Q, spinor * const P, const int V, const int flag){
 	spinorfield_enable(Q, 0, 1);
 	spinorfield_enable(P, 1, 0);
+	spinorfield_propagateOddness(Q, P);
   int ix;
   
   if(flag == 0){ 

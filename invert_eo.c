@@ -77,7 +77,9 @@ int invert_eo(spinor * const Even_new, spinor * const Odd_new,
         const int no_extra_masses, double * const extra_masses,
         const int id )  {
 	spinorfield_setOddness(Even, 0);
+	spinorfield_setOddness(Even_new, 0);
 	spinorfield_setOddness(Odd, 1);
+	spinorfield_setOddness(Odd_new, 1);
 
   int iter = 0;
   /* here comes the inversion using even/odd preconditioning */

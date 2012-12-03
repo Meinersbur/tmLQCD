@@ -668,5 +668,6 @@ _sse_store_up(r);
 
 void spinorfield_enable(const spinor *legacyField, int read, int write);
 void spinorfield_setOddness(const spinor *legacyField, int isOdd);
+void spinorfield_propagateOddness(const spinor *targetLegacyField, const spinor *sourceLegacyField);
 
 #endif

@@ -116,7 +116,7 @@ typedef struct {
 } NAME2(REDUCTION_NAME,threadresult_t);
 
 typedef struct {
-	bool isOdd;
+	tristate isOdd;
 
 	IF1ARG(bgq_weylfield_controlblock *argfield1;)
 	IF2ARG(bgq_weylfield_controlblock *argfield2;)
@@ -129,7 +129,7 @@ typedef struct {
 
 static inline void NAME2(REDUCTION_NAME,worker)(void *arg_untyped, size_t tid, size_t threads IF1ARG(, bool readWeyllayout1, bool sloppy1, bool mul1) IF2ARG(, bool readWeyllayout2, bool sloppy2, bool mul2)) {
 	NAME2(REDUCTION_NAME,args_t) *arg = arg_untyped;
-	bool isOdd = arg->isOdd;
+	tristate isOdd = arg->isOdd;
 
 	IF1ARG(bgq_weylfield_controlblock *argfield1 = arg->argfield1;)
 	IF2ARG(bgq_weylfield_controlblock *argfield2 = arg->argfield2;)
@@ -144,6 +144,7 @@ static inline void NAME2(REDUCTION_NAME,worker)(void *arg_untyped, size_t tid, s
 	REDUCTION_VARINIT(REDUCTION_REDPTRARGS);
 	for (ucoord ic = beginj; ic < endj; ic+=1) {
 #ifndef NDEBUG
+		assert(isOdd != tri_unknown);
 		ucoord ih = bgq_collapsed2halfvolume(isOdd, ic);
 		ucoord tv = bgq_halfvolume2tv(ih);
 		ucoord t1 = bgq_halfvolume2t1(isOdd, ih);
@@ -223,12 +224,24 @@ static bgq_worker_func NAME2(REDUCTION_NAME,worker_funcs)[BGQ_SPINORFIELD_LAYOUT
 
 static inline void REDUCTION_NAME(
 	REDUCTION_REDREFPARMS
-	, bool isOdd
+	, tristate isOdd
 	IF1ARG(, bgq_weylfield_controlblock *argfield1)
 	IF2ARG(, bgq_weylfield_controlblock *argfield2)
 	REDUCTION_EXTRAPARMLIST) {
 
-	//bool isOdd = argfield1->isOdd;
+	IF1ARG(
+		if (isOdd==tri_unknown)
+			isOdd = argfield1->isOdd;
+		 else
+			assert(argfield1->isOdd==tri_unknown || argfield1->isOdd==isOdd);
+	)
+
+	IF2ARG(
+		if (isOdd==tri_unknown)
+			isOdd = argfield2->isOdd;
+		 else
+			assert(argfield2->isOdd==tri_unknown || argfield2->isOdd==isOdd);
+	)
 
 #if REDUCTION_ARGFIELDS==0
 	bgq_worker_func workerfunc = NAME2(REDUCTION_NAME,worker_funcs);

@@ -205,7 +205,7 @@ double bgq_spinorfield_innerprod_r_global(bool isOdd, bgq_weylfield_controlblock
 #define REDUCTION_COMBINEFUNC bgq_combine_kahan
 #include "bgq_reduction.inc.c"
 
-double bgq_spinorfield_sqrnorm_local(bool isOdd, bgq_weylfield_controlblock *field) {
+double bgq_spinorfield_sqrnorm_local(tristate isOdd, bgq_weylfield_controlblock *field) {
 	bgq_vector4double_decl(ks);
 	bgq_vector4double_decl(kc);
 	bgq_spinorfield_sqrnorm_raw(bgq_vars(&ks), bgq_vars(&kc), isOdd, field);
@@ -217,7 +217,7 @@ double bgq_spinorfield_sqrnorm_local(bool isOdd, bgq_weylfield_controlblock *fie
 	return localresult;
 }
 
-double bgq_spinorfield_sqrnorm_global(bool isOdd, bgq_weylfield_controlblock *field) {
+double bgq_spinorfield_sqrnorm_global(tristate isOdd, bgq_weylfield_controlblock *field) {
 	double localresult = bgq_spinorfield_sqrnorm_local(isOdd, field);
 	double globalresult;
 	MPI_Allreduce(&localresult, &globalresult, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -234,9 +234,9 @@ _Complex double scalar_prod(spinor *S, spinor *R, int N, int parallel) {
 	bgq_weylfield_controlblock *field2 = bgq_translate_spinorfield(R);
 
 	if (parallel)
-		return bgq_spinorfield_innerprod_global(bgq_spinorfield_isOdd(field1), field1, field2);
+		return bgq_spinorfield_innerprod_global(tri_unknown, field1, field2);
 	else
-		return bgq_spinorfield_innerprod_local(bgq_spinorfield_isOdd(field1), field1, field2);
+		return bgq_spinorfield_innerprod_local(tri_unknown, field1, field2);
 }
 
 
@@ -257,9 +257,9 @@ double square_norm(spinor *P, int N, int parallel) {
 	bgq_weylfield_controlblock *field = bgq_translate_spinorfield(P);
 
 	if (parallel)
-		return bgq_spinorfield_sqrnorm_global(bgq_spinorfield_isOdd(field), field);
+		return bgq_spinorfield_sqrnorm_global(tri_unknown, field);
 	else
-		return bgq_spinorfield_sqrnorm_local(bgq_spinorfield_isOdd(field), field);
+		return bgq_spinorfield_sqrnorm_local(tri_unknown, field);
 }
 
 #endif
