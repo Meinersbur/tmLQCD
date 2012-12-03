@@ -42,8 +42,7 @@
 
 double scalar_prod_i(spinor * const S,spinor * const R, const int N, const int parallel)
 {
-	spinorfield_enable(R, 1, 0);
-	spinorfield_enable(S, 1, 0);
+	spinorfield_linalg_rr(R, S);
   static double ks,kc,ds,tr,ts,tt;
   spinor *s,*r;
   ks=0.0;

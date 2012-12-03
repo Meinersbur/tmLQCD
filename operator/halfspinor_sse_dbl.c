@@ -28,8 +28,9 @@
 
 /* input on k; output on l */
 void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
-	spinorfield_enable(l, false);
-	spinorfield_enable(k, true);
+	spinorfield_enable(k, 1, 0);
+	spinorfield_enable(l, 0, 1);
+	spinorfield_propagateInvertedOddness(l, k);
 #ifdef _GAUGE_COPY
   if(g_update_gauge_copy) {
     update_backward_gauge(g_gauge_field);

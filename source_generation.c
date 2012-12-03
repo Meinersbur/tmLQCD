@@ -84,6 +84,8 @@ void gaussian_volume_source(spinor * const P, spinor * const Q,
 {
 	spinorfield_enable(P, 0, 1);
 	spinorfield_enable(Q, 0, 1);
+	spinorfield_setOddness(P, 0);
+	spinorfield_setOddness(Q, 1);
   int x, y, z, t, i, reset = 0, seed; 
   int rlxd_state[105];
   spinor * p;
@@ -132,6 +134,10 @@ void extended_pion_source(spinor * const P, spinor * const Q,
 	spinorfield_enable(Q, 0, 1);
 	spinorfield_enable(R, 0, 1);
 	spinorfield_enable(S, 0, 1);
+	spinorfield_setOddness(P, 0);
+	spinorfield_setOddness(Q, 1);
+	spinorfield_setOddness(R, 0);
+	spinorfield_setOddness(Q, 1);
   int lt, lx, ly, lz, i, x, y, z, id=0, t;
   int coords[4];
   spinor * p, * q, r;
@@ -182,6 +188,8 @@ void source_generation_pion_only(spinor * const P, spinor * const Q,
 				 const int sample, const int nstore) {
 	spinorfield_enable(P, 0, 1);
 	spinorfield_enable(Q, 0, 1);
+	spinorfield_setOddness(P, 0);
+	spinorfield_setOddness(Q, 1);
   int reset = 0, i, x, y, z, is, ic, lt, lx, ly, lz, id=0;
   int coords[4], seed, r;
   double rnumber, si=0., co=0.;
@@ -270,6 +278,8 @@ void source_generation_pion_zdir(spinor * const P, spinor * const Q,
                                  const int sample, const int nstore) {
 	spinorfield_enable(P, 0, 1);
 	spinorfield_enable(Q, 0, 1);
+	spinorfield_setOddness(P, 0);
+	spinorfield_setOddness(Q, 1);
   int reset = 0, i, x, y, t, is, ic, lt, lx, ly, lz, id=0;
   int coords[4], seed, r;
   double rnumber, si=0., co=0.;
@@ -364,6 +374,8 @@ void source_generation_nucleon(spinor * const P, spinor * const Q,
 			       const int meson) {
 	spinorfield_enable(P, 0, 1);
 	spinorfield_enable(Q, 0, 1);
+	spinorfield_setOddness(P, 0);
+	spinorfield_setOddness(Q, 1);
   double rnumber, si=0., co=0., sqr2;
   int rlxd_state[105];
   int reset = 0, seed, r, tt, lt, xx, lx, yy, ly, zz, lz;

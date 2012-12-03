@@ -30,8 +30,7 @@
 /* R=R-c*S */
 void assign_diff_mul(spinor * const R, spinor * const S, const _Complex double c, const int N)
 {
-	spinorfield_enable(R, 1, 1);
-	spinorfield_enable(S, 1, 0);
+	spinorfield_linalg_ur(R, S);
 #ifdef OMP
 #pragma omp parallel
   {

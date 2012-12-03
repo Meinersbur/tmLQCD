@@ -50,8 +50,7 @@
 /* S and P inputs, R output */
 void compact(bispinor * const R, spinor * const S, spinor * const P)
 { 
-	spinorfield_enable(S, 1, 0);
-	spinorfield_enable(P, 1, 0);
+	spinorfield_linalg_rr(S, P);
 #ifdef OMP
 #pragma omp parallel
   {
@@ -134,8 +133,7 @@ void compact(bispinor * const R, spinor * const S, spinor * const P)
 
 /* R input , S and P outputs */
 void decompact(spinor * const S, spinor * const P, bispinor * const R){
-	spinorfield_enable(S, 0, 1);
-	spinorfield_enable(P, 0, 1);
+	spinorfield_linalg_ww(S, P);
 #ifdef OMP
 #pragma omp parallel
   {

@@ -37,9 +37,7 @@
 #if (defined BGQ && defined XLC)
 
 void add(spinor * const Q,const spinor * const R,const spinor * const S, const int N) {
-	spinorfield_enable(Q, false);
-	spinorfield_enable(R, true);
-	spinorfield_enable(S, true);
+	spinorfield_linalg_wrr(Q, R, S);
 #ifdef OMP
 #pragma omp parallel
   {
@@ -107,9 +105,7 @@ void add(spinor * const Q,const spinor * const R,const spinor * const S, const i
 
 /* Q output, R input, S input */
 void add(spinor * const Q,const spinor * const R,const spinor * const S, const int N){
-	spinorfield_enable(Q, 0, 1);
-	spinorfield_enable(R, 1, 0);
-	spinorfield_enable(S, 1, 0);
+	spinorfield_linalg_wrr(Q, R, S);
 #ifdef OMP
 #pragma omp parallel
   {

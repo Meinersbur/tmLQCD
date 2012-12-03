@@ -28,8 +28,9 @@
 
 
 void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k){
-	spinorfield_enable(l, false);
-	spinorfield_enable(k, true);
+	spinorfield_enable(l, 1, 0);
+	spinorfield_enable(k, 0, 1);
+	spinorfield_propagateInvertedOddness(l, k);
   int ix;
   su3 * restrict ALIGN U;
   spinor * restrict ALIGN s;

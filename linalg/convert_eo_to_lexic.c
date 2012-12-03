@@ -34,9 +34,7 @@
 #include "convert_eo_to_lexic.h"
 
 void convert_eo_to_lexic(spinor * const P, spinor * const s, spinor * const r) {
-	spinorfield_enable(P, 0, 1);
-	spinorfield_enable(s, 1, 0);
-	spinorfield_enable(r, 1, 0);
+	spinorfield_linalg_rr(s, r);
 #ifdef OMP
 #pragma omp parallel
   {
@@ -80,9 +78,9 @@ void convert_eo_to_lexic(spinor * const P, spinor * const s, spinor * const r) {
  *      r: new spinor odd 
  */
 void convert_lexic_to_eo(spinor * const s, spinor * const r, spinor * const P) {
-	spinorfield_enable(s, 0, 1);
-	spinorfield_enable(r, 0, 1);
-	spinorfield_enable(P, 1, 0);
+	spinorfield_linalg_ww(s, r);
+	spinorfield_setOddness(s, 0);
+	spinorfield_setOddness(r, 1);
 #ifdef OMP
 #pragma omp parallel
   {

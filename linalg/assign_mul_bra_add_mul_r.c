@@ -39,8 +39,7 @@
 
 /*  R inoutput, S input, c0 input, c input */
 void assign_mul_bra_add_mul_r(spinor * const R,const double c0, const double c,spinor * const S, const int N){
-	spinorfield_enable(R, 1, 1);
-	spinorfield_enable(S, 1, 0);
+	spinorfield_linalg_ur(R, S);
 #ifdef OMP
 #pragma omp parallel
   {

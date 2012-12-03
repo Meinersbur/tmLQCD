@@ -1602,6 +1602,22 @@ void spinorfield_propagateOddness(const spinor *targetLegacyField, const spinor 
 }
 
 
+void spinorfield_propagateInvertedOddness(const spinor *targetLegacyField, const spinor *sourceLegacyField) {
+	if (targetLegacyField==sourceLegacyField)
+		return;
+
+	bgq_weylfield_controlblock *targetField = bgq_translate_spinorfield(targetLegacyField);
+	bgq_weylfield_controlblock *sourceField = bgq_translate_spinorfield(sourceLegacyField);
+
+	if (sourceField->isOdd==tri_unknown) {
+	} else if (targetField->isOdd==tri_unknown) {
+		targetField->isOdd = !sourceField->isOdd;
+	} else {
+		assert(sourceField->isOdd==!targetField->isOdd);
+	}
+}
+
+
 void bgq_legacy_markcoords_raw(bool isOdd, spinor *legacyField) {
 	spinorfield_enable(legacyField, false, true);
 
@@ -1689,5 +1705,65 @@ void spinorfield_setOddness(const spinor *field, int isOdd) {
 	bgq_spinorfield_annotateOddness(sfield, isOdd);
 }
 
+/* write read read */
+void spinorfield_linalg_wrr(const spinor *field_out, const spinor *field_in1, const spinor *field_in2) {
+	spinorfield_enable(field_in1, 1, 0);
+	spinorfield_enable(field_in2, 1, 0);
+	spinorfield_enable(field_out, 0, 1);
+	spinorfield_propagateOddness(field_out, field_in1);
+	spinorfield_propagateOddness(field_out, field_in2);
+}
 
+/* reUse read read*/
+void spinorfield_linalg_urr(const spinor *field_inout, const spinor *field_in1, const spinor *field_in2) {
+	spinorfield_enable(field_in1, 1, 0);
+	spinorfield_enable(field_in2, 1, 0);
+	spinorfield_enable(field_inout, 1, 1);
+	spinorfield_propagateOddness(field_inout, field_in1);
+	spinorfield_propagateOddness(field_inout, field_in2);
+}
+
+/* reUse read */
+void spinorfield_linalg_ur(const spinor *field_inout, const spinor *field_in) {
+	spinorfield_enable(field_in, 1, 0);
+	spinorfield_enable(field_inout, 1, 1);
+	spinorfield_propagateOddness(field_inout, field_in);
+}
+
+
+/* reUse read read*/
+void spinorfield_linalg_urrr(const spinor *field_inout, const spinor *field_in1, const spinor *field_in2, const spinor *field_in3) {
+	spinorfield_enable(field_in1, 1, 0);
+	spinorfield_enable(field_in2, 1, 0);
+	spinorfield_enable(field_in3, 1, 0);
+	spinorfield_enable(field_inout, 1, 1);
+	spinorfield_propagateOddness(field_inout, field_in1);
+	spinorfield_propagateOddness(field_inout, field_in2);
+	spinorfield_propagateOddness(field_inout, field_in3);
+}
+
+/* write read */
+void spinorfield_linalg_wr(const spinor *field_out, const spinor *field_in) {
+	spinorfield_enable(field_in, 1, 0);
+	spinorfield_enable(field_out, 0, 1);
+	spinorfield_propagateOddness(field_out, field_in);
+}
+
+/* write read */
+void spinorfield_linalg_rr(const spinor *field_in1, const spinor *field_in2) {
+	spinorfield_enable(field_in1, 1, 0);
+	spinorfield_enable(field_in2, 1, 0);
+}
+
+
+/* write write */
+void spinorfield_linalg_ww(const spinor *field_out1, const spinor *field_out2) {
+	spinorfield_enable(field_out1, 0, 1);
+	spinorfield_enable(field_out2, 0, 1);
+}
+
+/* read */
+void spinorfield_linalg_r(const spinor *field_in) {
+	spinorfield_enable(field_in, 1, 0);
+}
 

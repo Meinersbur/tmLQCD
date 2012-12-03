@@ -45,8 +45,7 @@
 #if (defined BGQ && defined XLC)
 
 double scalar_prod_r(const spinor * const S, const spinor * const R, const int N, const int parallel) {
-	spinorfield_enable(S, true, false);
-	spinorfield_enable(U, true, false);
+	spinorfield_linalg_rr(R, S);
   double ALIGN res = 0.0;
 #ifdef MPI
   double ALIGN mres;
@@ -138,8 +137,7 @@ double scalar_prod_r(const spinor * const S, const spinor * const R, const int N
 
 double scalar_prod_r(const spinor * const S, const spinor * const R, const int N, const int parallel)
 {
-	spinorfield_enable(S, true, false);
-	spinorfield_enable(R, true, false);
+	spinorfield_linalg_rr(R, S);
   double ALIGN res = 0.0;
 #ifdef MPI
   double ALIGN mres;

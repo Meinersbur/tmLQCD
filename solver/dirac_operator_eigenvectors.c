@@ -307,8 +307,9 @@ _Complex double calcDDaggerDovEvalue(const int *praw,double kappa,double rho,int
 
 
 void  spinor_fft(spinor * spinor_in,spinor *spinor_out,int tt,int ll,unsigned int  forward){
-	spinorfield_enable(spinor_out, 0, 1);
 	spinorfield_enable(spinor_in, 1, 0);
+	spinorfield_enable(spinor_out, 0, 1);
+	spinorfield_propagateOddness(spinor_out, spinor_in);
 #ifdef HAVE_FFTW
   fftw_plan plan=spinor_fftw_plan(spinor_in,spinor_out,tt,ll,forward,FFTW_WISDOM_ONLY);
   fftw_execute(plan);
@@ -780,8 +781,9 @@ void planeWave(spinor *spinor,int k,int rawp[4],int tt,int ll,unsigned int momsp
 
 
 void spinorPrecondition(spinor *spinor_out,const spinor *spinor_in,spinorPrecWS* ws,int tt,int ll,const _Complex double alpha,unsigned int dagger,unsigned int autofft){
-	spinorfield_enable(spinor_out, 0, 1);
 	spinorfield_enable(spinor_in, 1, 0);
+	spinorfield_enable(spinor_out, 0, 1);
+	spinorfield_propagateOddness(spinor_out, spinor_in);
 
   /*   static int epsilon[12]={1,1,1,1,1,1,-1,-1,-1,-1,-1,-1}; */
   /*   static int k[12]      ={0,0,0,1,1,1,0,0,0,1,1,1}; */

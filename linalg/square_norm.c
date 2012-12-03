@@ -57,8 +57,7 @@
 
 #  include"bgl.h"
 double square_norm(spinor * const P, const int N, const int parallel) {
-	spinorfield_enable(P, true, false);
-
+	spinorfield_linalg_r(P);
   int ix=0;
   double res, res2;
   double *s ALIGN;
@@ -179,8 +178,7 @@ double square_norm(spinor * const P, const int N, const int parallel) {
 #elif (defined BGQ && defined XLC)
 
 double square_norm(spinor * const P, const int N, const int parallel) {
-	spinorfield_enable(P, true, false);
-
+	spinorfield_linalg_r(P);
   double ALIGN res = 0.0;
 #ifdef MPI
   double ALIGN mres;
@@ -258,8 +256,7 @@ double square_norm(spinor * const P, const int N, const int parallel) {
 
 double square_norm(const spinor * const P, const int N, const int parallel)
 {
-	spinorfield_enable(P, true, false);
-
+	spinorfield_linalg_r(P);
   double ALIGN res = 0.0;
 #ifdef MPI
   double ALIGN mres;

@@ -28,8 +28,7 @@
 #include "diff_and_square_norm.h"
 
 double diff_and_square_norm(spinor * const Q, spinor * const R, const int N) {
-	spinorfield_enable(Q, 1, 1);
-	spinorfield_enable(R, 1, 0);
+	spinorfield_linalg_ur(Q, R);
   int ix;
   static double ks,kc,ds,tr,ts,tt;
   spinor *q,*r;
