@@ -198,13 +198,13 @@ void Q_Qdagger_ND(spinor * const l_strange, spinor * const l_charm,
 
   /* FIRST THE  Qhat(2x2)^dagger  PART*/
   /* Here the  M_oe Mee^-1 M_eo  implementation  */
-  Hopping_Matrix(EO, g_spinor_field[DUM_MATRIX], k_charm);
-  Hopping_Matrix(EO, g_spinor_field[DUM_MATRIX+1], k_strange);
+  Hopping_Matrix(EO, g_spinor_field[DUM_MATRIX]/*even*/, k_charm/*odd*/);
+  Hopping_Matrix(EO, g_spinor_field[DUM_MATRIX+1]/*even*/, k_strange/*odd*/);
 
-  mul_one_minus_imubar(g_spinor_field[DUM_MATRIX+2], g_spinor_field[DUM_MATRIX]);
+  mul_one_minus_imubar(g_spinor_field[DUM_MATRIX+2]/*even*/, g_spinor_field[DUM_MATRIX]/*even*/);
   mul_one_plus_imubar(g_spinor_field[DUM_MATRIX+3], g_spinor_field[DUM_MATRIX+1]);
 
-  assign_add_mul_r(g_spinor_field[DUM_MATRIX+2], g_spinor_field[DUM_MATRIX+1], g_epsbar, VOLUME/2);
+  assign_add_mul_r(g_spinor_field[DUM_MATRIX+2]/*odd*/, g_spinor_field[DUM_MATRIX+1]/*even*/, g_epsbar, VOLUME/2);
   assign_add_mul_r(g_spinor_field[DUM_MATRIX+3], g_spinor_field[DUM_MATRIX], g_epsbar, VOLUME/2);
 
   mul_r(g_spinor_field[DUM_MATRIX+2], nrm, g_spinor_field[DUM_MATRIX+2], VOLUME/2);
@@ -367,6 +367,8 @@ void Q_tau1_min_cconst_ND(spinor * const l_strange, spinor * const l_charm,
 
   /************ loop over all lattice sites ************/
 
+  spinorfield_linalg_wr(l_strange, k_strange);
+  spinorfield_linalg_wr(l_charm, k_charm);
 #ifdef OMP
 #pragma omp parallel for private(r) private(s) private(phi1) private(ix)
 #endif
@@ -658,6 +660,7 @@ void mul_one_pm_itau2(spinor * const p, spinor * const q,
 
 
 void mul_one_minus_imubar(spinor * const l, spinor * const k) {
+	spinorfield_linalg_wr(l, k);
 #ifdef OMP
 #pragma omp parallel
   {
@@ -691,6 +694,7 @@ void mul_one_minus_imubar(spinor * const l, spinor * const k) {
 
 
 void mul_one_plus_imubar(spinor * const l, spinor * const k){
+	spinorfield_linalg_wr(l, k);
 #ifdef OMP
 #pragma omp parallel
   {
@@ -779,6 +783,7 @@ void Qtau1_P_ND(spinor * const l_strange, spinor * const l_charm,
 
 void Qtm_pm_min_cconst_nrm(spinor * const l, spinor * const k,
 			   const _Complex double z){
+	spinorfield_linalg_wr(l, k);
   su3_vector ALIGN phi1;
   spinor *r,*s;
   int ix;
@@ -909,6 +914,7 @@ void red_noise_nd(spinor * const lse, spinor * const lso,
     else {
       r = lco, s = g_spinor_field[DUM_MATRIX+3];
     }
+	spinorfield_linalg_wr(r,s);
     for(ix = 0; ix < (VOLUME/2); ix++){
       /* Multiply the spinorfield with (i epsbar \gamma_5)/c */
       /* and add it to */

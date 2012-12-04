@@ -2,8 +2,8 @@
 # example input file for invert
 # requires a 4^4 gauge configuration conf.0000
 
-T=48
-L=24
+T=8
+L=4
 
 DebugLevel = 5
 InitialStoreCounter = 0

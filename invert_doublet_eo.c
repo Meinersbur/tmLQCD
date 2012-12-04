@@ -139,8 +139,8 @@ int invert_doublet_eo(spinor * const Even_new_s, spinor * const Odd_new_s,
   if(g_proc_id == 0) {printf("# Using even/odd preconditioning!\n"); fflush(stdout);}
   M_ee_inv_ND(Even_new_s, Even_new_c, 
 	      Even_s, Even_c);
-  Hopping_Matrix(OE, g_spinor_field[DUM_DERI], Even_new_s);
-  Hopping_Matrix(OE, g_spinor_field[DUM_DERI+1], Even_new_c);
+  Hopping_Matrix(OE, g_spinor_field[DUM_DERI]/*odd*/, Even_new_s);
+  Hopping_Matrix(OE, g_spinor_field[DUM_DERI+1]/*odd*/, Even_new_c);
 
   /* The sign is plus, since in Hopping_Matrix */
   /* the minus is missing                      */

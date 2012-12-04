@@ -1502,6 +1502,29 @@ typedef enum {
 } tristate;
 
 
+EXTERN_INLINE tristate tristate_combine(tristate tri1, tristate tri2) {
+	if (tri1==tri_unknown) {
+		return tri2; // May as well be tri_unknown
+	} else if (tri2==tri_unknown) {
+		return tri1;
+	} else {
+		assert(tri1==tri2);
+		return tri1;
+	}
+}
+
+
+EXTERN_INLINE tristate tristate_combine3(tristate tri1, tristate tri2, tristate tri3) {
+	return tristate_combine(tristate_combine(tri1, tri2), tri3);
+}
+
+
+EXTERN_INLINE tristate tristate_invert(tristate tri) {
+	if (tri==tri_unknown)
+		return tri_unknown;
+	return !tri;
+}
+
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD
 #undef EXTERN_INIT

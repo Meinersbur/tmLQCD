@@ -17,6 +17,8 @@
  * along with tmLQCD.  If not, see <http://www.gnu.org/licenses/>.
  ***********************************************************************/
 
+#if !BGQ_REPLACE
+
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
@@ -406,4 +408,6 @@ void assign_mul_add_r_su3vect(su3_vector * const R, const double c, su3_vector *
   } /* OpenMP closing brace */
 #endif
 }
+#endif
+
 #endif

@@ -1316,23 +1316,7 @@ void bgq_spinorfield_prepareWrite(bgq_weylfield_controlblock *field, tristate is
 }
 
 
-static tristate tristate_combine(tristate tri1, tristate tri2) {
-	if (tri1==tri_unknown) {
-		return tri2; // May as well be tri_unknown
-	} else if (tri2==tri_unknown) {
-		return tri1;
-	} else {
-		assert(tri1==tri2);
-		return tri1;
-	}
-}
 
-
-static tristate tristate_invert(tristate tri) {
-	if (tri==tri_unknown)
-		return tri_unknown;
-	return !tri;
-}
 
 
 void bgq_spinorfield_prepareReadWrite(bgq_weylfield_controlblock *field, tristate isOdd, bgq_spinorfield_layout layout) {
@@ -1536,7 +1520,8 @@ bgq_weylfield_collection *bgq_spinorfields_allocate(size_t count, spinor *legacy
 	size_t nInitialized = 0;
 	if (g_bgq_spinorfield_collection_unused) {
 		result = g_bgq_spinorfield_collection_unused;
-		g_bgq_spinorfield_collection_unused = g_bgq_spinorfield_collection_unused->prev;
+		g_bgq_spinorfield_collection_unused->prev = NULL;
+		g_bgq_spinorfield_collection_unused = g_bgq_spinorfield_collection_unused->next;
 
 		nInitialized = result->count;
 		if (result->count < count) {
@@ -1617,13 +1602,29 @@ bgq_weylfield_collection *bgq_spinorfields_allocate(size_t count, spinor *legacy
 void bgq_spinorfields_free(bgq_weylfield_collection *collection) {
 	assert(collection);
 
-	if (collection!=g_bgq_spinorfield_collection_first) {
-		collection->prev->next = collection->next;
+	bgq_weylfield_collection *prev = collection->prev;
+	bgq_weylfield_collection *next = collection->next;
+
+	if (prev) {
+		prev->next = next;
 	}
 
-	if (collection!=g_bgq_spinorfield_collection_last) {
-		collection->next->prev = collection->prev;
+	if (next) {
+		next->prev = next;
 	}
+
+	if (collection==g_bgq_spinorfield_collection_first) {
+		assert(!prev);
+		g_bgq_spinorfield_collection_first = next;
+	}
+
+	if (collection==g_bgq_spinorfield_collection_last) {
+		assert(!next);
+		g_bgq_spinorfield_collection_last = prev;
+	}
+
+	collection->prev = NULL;
+	collection->next = NULL;
 
 	if (g_bgq_spinorfield_collection_unused) {
 		g_bgq_spinorfield_collection_unused->prev = collection;
@@ -1631,7 +1632,6 @@ void bgq_spinorfields_free(bgq_weylfield_collection *collection) {
 		g_bgq_spinorfield_collection_unused = collection;
 	} else {
 		g_bgq_spinorfield_collection_unused = collection;
-		collection->next = NULL;
 	}
 	collection->prev = NULL;
 
@@ -1679,6 +1679,7 @@ bgq_weylfield_controlblock *bgq_translate_spinorfield(const spinor *legacy_field
 
 		bgq_weylfield_controlblock *result = &collection->controlblocks[index];
 		assert(result->legacy_field == (spinor*)legacyField);
+		assert(result!=NULL);
 		return result;
 	}
 	return NULL;

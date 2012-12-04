@@ -70,12 +70,12 @@ int init_solver_field(spinor *** const solver_field, const int V, const int nr) 
 }
 
 void finalize_solver(spinor ** solver_field, const int nr){
+	bgq_weylfield_controlblock *bgqField = bgq_translate_spinorfield(solver_field[0]);
+	bgq_spinorfields_free(bgqField->collectionBase);
+
   free(solver_field[nr]);
   free(solver_field);
   solver_field = NULL;
-
-  bgq_weylfield_controlblock *bgqField = bgq_translate_spinorfield(solver_field[0]);
-  bgq_spinorfields_free(bgqField->collectionBase);
 }
 
 
