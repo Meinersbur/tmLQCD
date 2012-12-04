@@ -13,7 +13,8 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 
 {
 	bgq_HoppingMatrix_workload *work = arg;
-	bool isOdd = work->isOdd_src;
+	bool isOdd_src = work->isOdd_src;
+	bool isOdd_dst = work->isOdd_dst;
 	bgq_weylfield_controlblock * restrict spinorfield = work->spinorfield;
 	bgq_weylfield_controlblock * restrict targetfield = work->targetfield;
 	ucoord ic_begin = work->ic_begin;
@@ -44,21 +45,21 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 		bgq_prefetch_forward(&targetfield->BGQ_SENDPTR[begin]);
 	}
 
-	bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd][begin];
+	bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd_src][begin];
 	gaugesite = (bgq_gaugesite*)(((uint8_t*)gaugesite)-32);
 	bgq_weylsite *weylsite = &spinorfield->BGQ_SEC_WEYLLAYOUT[begin];
 	weylsite = (bgq_weylsite*)(((uint8_t*)weylsite) - BGQ_VECTORSIZE);
 
 	for (ucoord ic = begin; ic<end; ic+=1) {
 #ifndef NDEBUG
-		ucoord ih = bgq_collapsed2halfvolume(isOdd, ic);
-		ucoord t1 = bgq_halfvolume2t1(isOdd, ih);
-		ucoord t2 = bgq_halfvolume2t2(isOdd, ih);
+		ucoord ih = bgq_collapsed2halfvolume(isOdd_src, ic);
+		ucoord t1 = bgq_halfvolume2t1(isOdd_src, ih);
+		ucoord t2 = bgq_halfvolume2t2(isOdd_src, ih);
 		ucoord x = bgq_halfvolume2x(ih);
 		ucoord y = bgq_halfvolume2y(ih);
 		ucoord z = bgq_halfvolume2z(ih);
 #endif
-		bgq_weyl_ptr_t * restrict targetptrs = &targetfield->BGQ_SENDPTR[ic];
+		bgq_weyl_ptr_t * restrict targetptrs = &targetfield->BGQ_SENDPTR[isOdd_dst][ic];
 
 		//TODO: Check inlining
 		bgq_su3_spinor_decl(spinor);

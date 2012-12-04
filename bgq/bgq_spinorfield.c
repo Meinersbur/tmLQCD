@@ -422,10 +422,6 @@ static bgq_weylfield_section bgq_direction2writesec(bgq_direction d) {
 void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, tristate isOdd, bgq_spinorfield_layout layout, bool disableOthers, bool preserveData) {
 	assert(field);
 	assert(!field->pendingDatamove);
-	//assert(preserveData || disableOthers); // If we do no preserve data, the other layouts become invalid
-
-	// Possible actions
-	bool actionInitWeylPtrs = false;
 
 	if (preserveData) {
 		 if (field->isOdd==tri_unknown) {
@@ -436,46 +432,84 @@ void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, tristate is
 		}
 	}
 
-	if (layout!=ly_legacy) {
-		if (field->sendptr_double && (field->ptr_isOdd != isOdd) && (isOdd!=tri_unknown)) {
-			master_print("PERFORMANCE WARNING: Performance loss by reuse of spinorfield with different oddness\n");
-			actionInitWeylPtrs = true;
-		}
-	}
+	bool isSloppy = layout&ly_sloppy;
 
 	// Allocate necessary fields
 	if (layout==ly_legacy) {
 		// Allocation has been done by init_spinor_field()
 		assert(field->legacy_field);
 	} else if (layout & ly_weyl) {
+		assert(isOdd!=tri_unknown);
+
+		// == Fields itself ==
 		if (!field->sec_collapsed_double) {
 			field->sec_collapsed_double = malloc_aligned(PHYSICAL_VOLUME * sizeof(*field->sec_collapsed_double), BGQ_ALIGNMENT_L2);
 #ifndef NVALGRIND
 			VALGRIND_CREATE_MEMPOOL(field->sec_collapsed_double, 0, false);
 			VALGRIND_MEMPOOL_ALLOC(field->sec_collapsed_double, field->sec_collapsed_double, PHYSICAL_VOLUME * sizeof(*field->sec_collapsed_double));
 #endif
-
-			if (!field->sendptr_double && (isOdd!=tri_unknown)) {
-				field->sendptr_double = malloc_aligned(PHYSICAL_VOLUME * sizeof(*field->sendptr_double), BGQ_ALIGNMENT_L2);
-				for (size_t d = 0; d < PHYSICAL_LD; d+=1) {
-					bgq_dimension dim = bgq_direction2dimension(d);
-					field->consptr_double[d] = malloc_aligned(bgq_physical_halo_sites(dim) * sizeof(*field->consptr_double[d]), BGQ_ALIGNMENT_L2);
-					field->consptr_float[d] = malloc_aligned(bgq_physical_halo_sites(dim) * sizeof(*field->consptr_float[d]), BGQ_ALIGNMENT_L2);
-				}
-				actionInitWeylPtrs = true;
-			}
 		}
 
 		if (!field->sec_collapsed_float) {
 			field->sec_collapsed_float = (bgq_weylsite_float*)field->sec_collapsed_double;
+		}
 
-			if (!field->sendptr_float && (isOdd!=tri_unknown)) {
-				field->sendptr_float = malloc_aligned(PHYSICAL_VOLUME * sizeof(*field->sendptr_float), BGQ_ALIGNMENT_L2);
-				for (size_t d = 0; d < PHYSICAL_LD; d+=1) {
-					bgq_dimension dim = bgq_direction2dimension(d);
-					field->consptr_float[d] = malloc_aligned(bgq_physical_halo_sites(dim) * sizeof(*field->consptr_float[d]), BGQ_ALIGNMENT_L2);
+
+		// == Pointer into fields ==
+		if ((isSloppy && !field->sendptr_float[isOdd]) || (!isSloppy && !field->sendptr_double[isOdd])) {
+			if (isSloppy) {
+				field->sendptr_float[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*field->sendptr_float[isOdd]), BGQ_ALIGNMENT_L2);
+			} else {
+				field->sendptr_double[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*field->sendptr_double[isOdd]), BGQ_ALIGNMENT_L2);
+			}
+			for (size_t d = 0; d < PHYSICAL_LD; d+=1) {
+				bgq_dimension dim = bgq_direction2dimension(d);
+
+				if (isSloppy) {
+					field->consptr_float[isOdd][d] = malloc_aligned(bgq_physical_halo_sites(dim) * sizeof(*field->consptr_float[isOdd][d]), BGQ_ALIGNMENT_L2);
+				} else {
+					field->consptr_double[isOdd][d] = malloc_aligned(bgq_physical_halo_sites(dim) * sizeof(*field->consptr_double[isOdd][d]), BGQ_ALIGNMENT_L2);
 				}
-				actionInitWeylPtrs = true;
+			}
+
+
+			// For main kernel (surface & body)
+			for (ucoord ic_src = 0; ic_src < PHYSICAL_VOLUME; ic_src += 1) {
+				for (size_t d_dst = 0; d_dst < PHYSICAL_LD; d_dst += 1) {
+					ucoord index = g_bgq_collapsed2indexsend[isOdd/*_dst*/][ic_src].d[d_dst];
+
+					if (isSloppy) {
+						bgq_weyl_vec_float *ptr = bgq_index2pointer_float(field, index);
+						field->sendptr_float[isOdd][ic_src].d[d_dst] = ptr;
+					} else {
+						bgq_weyl_vec_double *ptr = bgq_index2pointer_double(field, index);
+						field->sendptr_double[isOdd][ic_src].d[d_dst] = ptr;
+					}
+				}
+			}
+
+
+			// For 5th phase (datamove)
+			for (ucoord d_dst = 0; d_dst < PHYSICAL_LD; d_dst+=1) {
+				bgq_direction d_src = bgq_direction_revert(d_dst);
+				bgq_dimension dim = bgq_direction2dimension(d_dst);
+				ucoord sites = bgq_physical_halo_sites(dim);
+				for (ucoord j = 0; j < sites; j+=1) {
+					bgq_weylfield_section sec = bgq_direction2writesec(d_src);
+					size_t baseoffset = bgq_weyl_section_offset(sec);
+					ucoord baseindex = bgq_offset2index(baseoffset);
+					ucoord index = baseindex + j;
+					ucoord ic_dst = g_bgq_index2collapsed[isOdd][index]; // Found out what the previous phase wrote here
+					size_t offset_cons = bgq_collapsed2consecutiveoffset(ic_dst, d_dst);
+
+					if (isSloppy) {
+						bgq_weyl_vec_float *ptr = bgq_offset2pointer_float(field, offset_cons);
+						field->consptr_float[isOdd][d_dst][j] = ptr;
+					} else {
+						bgq_weyl_vec_double *ptr = bgq_offset2pointer_double(field, offset_cons);
+						field->consptr_double[isOdd][d_dst][j] = ptr;
+					}
+				}
 			}
 		}
 	} else {
@@ -489,56 +523,6 @@ void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, tristate is
 		if (!field->sec_fullspinor_float) {
 			field->sec_fullspinor_float = (bgq_spinorsite_float*)field->sec_fullspinor_double;
 		}
-	}
-
-
-	if (actionInitWeylPtrs) {
-		assert(isOdd!=tri_unknown);
-		bgq_master_sync(); // Other threads might still be working on this field
-
-		// For main kernel (surface & body)
-		for (ucoord ic_src = 0; ic_src < PHYSICAL_VOLUME; ic_src += 1) {
-			for (size_t d_dst = 0; d_dst < PHYSICAL_LD; d_dst += 1) {
-				ucoord index = g_bgq_collapsed2indexsend[isOdd/*_dst*/][ic_src].d[d_dst];
-
-				{
-					bgq_weyl_vec_double *ptr = bgq_index2pointer_double(field, index);
-					field->sendptr_double[ic_src].d[d_dst] = ptr;
-				}
-
-				{
-					bgq_weyl_vec_float *ptr = bgq_index2pointer_float(field, index);
-					field->sendptr_float[ic_src].d[d_dst] = ptr;
-				}
-			}
-		}
-
-
-		// For 5th phase (datamove)
-		for (ucoord d_dst = 0; d_dst < PHYSICAL_LD; d_dst+=1) {
-			bgq_direction d_src = bgq_direction_revert(d_dst);
-			bgq_dimension dim = bgq_direction2dimension(d_dst);
-			ucoord sites = bgq_physical_halo_sites(dim);
-			for (ucoord j = 0; j < sites; j+=1) {
-				bgq_weylfield_section sec = bgq_direction2writesec(d_src);
-				size_t baseoffset = bgq_weyl_section_offset(sec);
-				ucoord baseindex = bgq_offset2index(baseoffset);
-				ucoord index = baseindex + j;
-				ucoord ic_dst = g_bgq_index2collapsed[isOdd][index]; // Found out what the previous phase wrote here
-				size_t offset_cons = bgq_collapsed2consecutiveoffset(ic_dst, d_dst);
-
-				{
-					bgq_weyl_vec_double *ptr = bgq_offset2pointer_double(field, offset_cons);
-					field->consptr_double[d_dst][j] = ptr;
-				}
-
-				{
-					bgq_weyl_vec_float *ptr = bgq_offset2pointer_float(field, offset_cons);
-					field->consptr_float[d_dst][j] = ptr;
-				}
-			}
-		}
-		field->ptr_isOdd = isOdd;
 	}
 
 
@@ -1559,13 +1543,14 @@ bgq_weylfield_collection *bgq_spinorfields_allocate(size_t count, spinor *legacy
 			field->sec_collapsed_float = NULL;
 			field->sec_fullspinor_double = NULL;
 			field->sec_fullspinor_float = NULL;
-			//field->ptr_isOdd = ;
 
-			field->sendptr_double = NULL;
-			field->sendptr_float = NULL;
-			for (size_t d = 0; d < PHYSICAL_LD; d+=1) {
-				field->consptr_double[d] = NULL;
-				field->consptr_float[d] = NULL;
+			for (size_t isOdd = 0; isOdd < PHYSICAL_LP; isOdd+=1) {
+				field->sendptr_double[isOdd] = NULL;
+				field->sendptr_float[isOdd] = NULL;
+				for (size_t d = 0; d < PHYSICAL_LD; d+=1) {
+					field->consptr_double[isOdd][d] = NULL;
+					field->consptr_float[isOdd][d] = NULL;
+				}
 			}
 		}
 

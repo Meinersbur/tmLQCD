@@ -1050,7 +1050,7 @@ static int check_hopmat(void *arg_untyped) {
 #endif
 
 
-	master_print("Comparison to reference version: even=%e odd=%e max difference\n", compare_even, compare_odd);
+	master_print("Comparison to reference version: even=%g odd=%g max difference\n", compare_even, compare_odd);
 	return EXIT_SUCCESS;
 }
 

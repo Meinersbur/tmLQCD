@@ -163,7 +163,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvxyz(bgq_weylfield_contr
 
 		bgq_weyl_vec *weyladdr_src = &g_bgq_sec_recv[d][j];
 		bgq_ptrnext_prefetch(&spinorfield->BGQ_CONSPTR[d][j]);
-		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[d][j];
+		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[isOdd][d][j];
 
 		bgq_su3_weyl_decl(weyl);
 		bgq_su3_weylnext_prefetch(weyladdr_src);
@@ -217,7 +217,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtup_unvectorized(bgq_we
 			//TODO: Is reading just the 16 used bytes faster?
 			bgq_weyl_vec *weyladdr_left = &g_bgq_sec_temp_tdown[j];
 			bgq_ptrnext_prefetch(&spinorfield->BGQ_CONSPTR[TUP][j]);
-			bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TUP][j];
+			bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[isOdd][TUP][j];
 
 			bgq_su3_weyl_decl(weyl_left);
 			bgq_su3_weylnext_prefetch(weyladdr_left);
@@ -265,7 +265,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtup_unvectorized(bgq_we
 			//TODO: Is reading just the 16 used bytes faster?
 			bgq_weyl_vec *weyladdr_left = &g_bgq_sec_temp_tdown[j];
 			bgq_ptrnext_prefetch(&spinorfield->BGQ_CONSPTR[TUP][j]);
-			bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TUP][j];
+			bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[isOdd][TUP][j];
 
 			bgq_su3_weyl_decl(weyl_left);
 			bgq_su3_weyl_load(weyl_left, weyladdr_left);
@@ -333,7 +333,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtdown_unvectorized(bgq_
 			//TODO: Is reading just the 16 used bytes faster?
 			bgq_weyl_vec *weyladdr_right = &g_bgq_sec_temp_tup[j];
 			bgq_ptrnext_prefetch(&spinorfield->BGQ_CONSPTR[TDOWN][j]);
-			bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TDOWN][j];
+			bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[isOdd][TDOWN][j];
 
 			bgq_su3_weyl_decl(weyl_right);
 			bgq_su3_weylnext_prefetch(weyladdr_right);
@@ -373,7 +373,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtdown_unvectorized(bgq_
 			//TODO: Is reading just the 16 used bytes faster?
 			bgq_weyl_vec *weyladdr_right = &g_bgq_sec_temp_tup[j];
 			bgq_ptrnext_prefetch(&spinorfield->BGQ_CONSPTR[TDOWN][j]);
-			bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TDOWN][j];
+			bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[isOdd][TDOWN][j];
 
 			bgq_su3_weyl_decl(weyl_right);
 			bgq_su3_weylnext_prefetch(weyladdr_right);
@@ -423,7 +423,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtup(bgq_weylfield_contr
 		bgq_weyl_vec *weyladdr_left = &g_bgq_sec_send[TDOWN][j];
 		bgq_weyl_vec *weyladdr_right = &g_bgq_sec_recv[TUP][j];
 		bgq_ptrnext_prefetch(&spinorfield->BGQ_CONSPTR[TUP][j]);
-		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TUP][j];
+		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[isOdd][TUP][j];
 
 		bgq_su3_weyl_decl(weyl_left);
 		bgq_su3_weylnext_prefetch(weyladdr_left);
@@ -486,7 +486,7 @@ static inline void bgq_HoppingMatrix_worker_datamove_recvtdown(bgq_weylfield_con
 		bgq_weyl_vec *weyladdr_left = &g_bgq_sec_recv[TDOWN][j];
 		bgq_weyl_vec *weyladdr_right = &g_bgq_sec_send[TUP][j];
 		bgq_ptrnext_prefetch(&spinorfield->BGQ_CONSPTR[TDOWN][j]);
-		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TDOWN][j];
+		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[isOdd][TDOWN][j];
 
 		bgq_su3_weyl_decl(weyl_left);
 		bgq_su3_weylnext_prefetch(weyladdr_left);
@@ -609,7 +609,7 @@ static inline void bgq_HoppingMatrix_worker_datamovet_recvtup(bgq_weylfield_cont
 
 		bgq_weyl_vec *weyladdr = &g_bgq_sec_temp_tdown[j];
 		bgq_ptrnext_prefetch(&spinorfield->BGQ_CONSPTR[TUP][j]);
-		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TUP][j];
+		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[isOdd][TUP][j];
 		assert(weyladdr_dst);
 
 		bgq_su3_weyl_decl(weyl_before);
@@ -648,7 +648,7 @@ static inline void bgq_HoppingMatrix_worker_datamovet_recvtdown(bgq_weylfield_co
 
 		bgq_weyl_vec *weyladdr = &g_bgq_sec_temp_tup[j];
 		bgq_ptrnext_prefetch(&spinorfield->BGQ_CONSPTR[TDOWN][j]);
-		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[TDOWN][j];
+		bgq_weyl_vec *weyladdr_dst = spinorfield->BGQ_CONSPTR[isOdd][TDOWN][j];
 		assert(weyladdr_dst);
 
 		bgq_su3_weyl_decl(weyl_before);

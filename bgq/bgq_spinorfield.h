@@ -64,7 +64,7 @@ typedef enum {
 typedef struct {
 	//bool isInitialized;
 	tristate isOdd;
-	bool ptr_isOdd;
+	//bool ptr_isOdd;
 	//bool hasWeylfieldData;
 	//bool isWeyllayoutSloppy;
 	//bool waitingForRecv; /* true==Need to wait for SPI recv and then copy data to consecutive area; false==All data available in sec_surface and sec_body */
@@ -102,11 +102,11 @@ typedef struct {
 	//TODO: We may even interleave these with the data itself, but may cause alignment issues
 	// Idea: sizeof(bgq_weyl_ptr_t)==10*8==80, so one bgq_weyl_ptr_t every 2(5;10) spinors solves the issue
 	// In case we write as fullspinor layout, the are not needed
-	bgq_weyl_ptr_t_double *sendptr_double;
-	bgq_weyl_vec_double **consptr_double[PHYSICAL_LD];
+	bgq_weyl_ptr_t_double *sendptr_double[PHYSICAL_LP];
+	bgq_weyl_vec_double **consptr_double[PHYSICAL_LP][PHYSICAL_LD];
 
-	bgq_weyl_ptr_t_float *sendptr_float;
-	bgq_weyl_vec_float **consptr_float[PHYSICAL_LD];
+	bgq_weyl_ptr_t_float *sendptr_float[PHYSICAL_LP];
+	bgq_weyl_vec_float **consptr_float[PHYSICAL_LP][PHYSICAL_LD];
 
 	struct bgq_weylfield_collection *collectionBase;
 } bgq_weylfield_controlblock;
@@ -648,6 +648,15 @@ EXTERN_INLINE void bgq_spinorfield_readSpinor_raw(bgq_su3_spinor_params(*target)
 						bgq_spinorqpx_expect(spinor, t1, t2, x, y, z);
 			}
 		}
+
+#if 0
+		if (mul) {
+			bgq_cmul(spinor_v0, qz, spinor_v0);
+			bgq_cmul(spinor_v1, qz, spinor_v1);
+			bgq_cmul(spinor_v2, qw, spinor_v2);
+			bgq_cmul(spinor_v3, qw, spinor_v3);
+		}
+#endif
 	}
 
 	bgq_su3_spinor_mov(*target, spinor);
