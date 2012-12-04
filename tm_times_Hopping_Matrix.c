@@ -27,6 +27,8 @@
  *
  ****************************************************************/
 
+#if !BGQ_REPLACE
+
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
@@ -160,4 +162,4 @@ void tm_times_Hopping_Matrix(const int ieo, spinor * const l, spinor * const k, 
 }
 #endif
 
-
+#endif

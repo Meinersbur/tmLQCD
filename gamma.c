@@ -71,6 +71,7 @@ void gamma3( const int Q,  const int P, const int V){
     _gamma3(g_spinor_field[Q][ix],g_spinor_field[P][ix]);
   }
 }
+#if !BGQ_REPLACE
 void gamma5(spinor * const l, spinor * const k, const int V){
 	spinorfield_linalg_wr(l, k);
   int ix;
@@ -84,6 +85,7 @@ void gamma5(spinor * const l, spinor * const k, const int V){
     _vector_minus_assign((*r).s3,(*s).s3);
   }
 }
+#endif
 void gamma5new(spinor * const Q, spinor * const P, const int V){ 
 	spinorfield_linalg_wr(Q, P);
   int ix; 

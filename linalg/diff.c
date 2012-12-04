@@ -22,6 +22,8 @@
  *     Makes the difference (*Q) = (*R) - (*S)
  *******************************************************************************/
 
+#if !BGQ_REPLACE
+
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
@@ -341,3 +343,6 @@ void diff_su3vect(su3_vector * const Q,su3_vector * const R,su3_vector * const S
 #endif
 }
 #endif
+
+#endif
+

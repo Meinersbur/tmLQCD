@@ -14,6 +14,7 @@
 #include "bgq_dispatch.h"
 #include "bgq_comm.h"
 #include "bgq_workers.h"
+#include "bgq_stdoperators.h"
 
 #include "../update_backward_gauge.h"
 
@@ -307,5 +308,22 @@ void Hopping_Matrix_nocom(const int ieo, spinor * const l, spinor * const k) {
 #endif
 
 	bgq_HoppingMatrix(ieo, targetfield, sourcefield, hm_nocom);
+}
+#endif
+
+
+#if BGQ_REPLACE
+void tm_times_Hopping_Matrix(const int ieo, spinor * const l, spinor * const k, double complex const cfactor) {
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
+	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
+
+#ifdef _GAUGE_COPY
+	if(g_update_gauge_copy) {
+		update_backward_gauge(g_gauge_field);
+	}
+#endif
+
+	bgq_HoppingMatrix(ieo, targetfield, sourcefield, 0);
+	bgq_spinorfield_cmul_double(targetfield, ieo, targetfield, cfactor);
 }
 #endif

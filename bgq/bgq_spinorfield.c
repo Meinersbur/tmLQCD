@@ -1906,10 +1906,10 @@ void spinorfield_linalg_wrr_invert(const spinor *legacyField_out, const spinor *
 	bgq_weylfield_controlblock *field_in1 = bgq_translate_spinorfield(legacyField_in1);
 	bgq_weylfield_controlblock *field_in2 = bgq_translate_spinorfield(legacyField_in2);
 
-	tristate isOdd = tristate_combine(field_in1->isOdd, tristate_invert(field_in2->isOdd));
-	bgq_spinorfield_prepareRead(field_in1, isOdd, false, false, false, false, true);
-	bgq_spinorfield_prepareRead(field_in2, tristate_invert(isOdd), false, false, false, false, true);
-	bgq_spinorfield_prepareWrite(field_out, !isOdd, ly_legacy, false);
+	tristate isOdd = tristate_combine(tristate_invert(field_in1->isOdd), field_in2->isOdd);
+	bgq_spinorfield_prepareRead(field_in1, tristate_invert(isOdd), false, false, false, false, true);
+	bgq_spinorfield_prepareRead(field_in2, isOdd, false, false, false, false, true);
+	bgq_spinorfield_prepareWrite(field_out, tristate_invert(isOdd), ly_legacy, false);
 }
 
 

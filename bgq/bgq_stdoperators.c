@@ -33,6 +33,26 @@ static inline void bgq_site_set(bgq_su3_spinor_params(*target), bgq_su3_spinor_p
 }
 
 
+static inline void bgq_site_cmul(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor), bgq_params(qc), ucoord ic) {
+	bgq_su3_spinor_decl(result);
+
+	bgq_mul(result_v0_c0, qc, spinor_v0_c0);
+	bgq_mul(result_v0_c1, qc, spinor_v0_c1);
+	bgq_mul(result_v0_c2, qc, spinor_v0_c2);
+	bgq_mul(result_v1_c0, qc, spinor_v1_c0);
+	bgq_mul(result_v1_c1, qc, spinor_v1_c1);
+	bgq_mul(result_v1_c2, qc, spinor_v1_c2);
+	bgq_mul(result_v2_c0, qc, spinor_v2_c0);
+	bgq_mul(result_v2_c1, qc, spinor_v2_c1);
+	bgq_mul(result_v2_c2, qc, spinor_v2_c2);
+	bgq_mul(result_v3_c0, qc, spinor_v3_c0);
+	bgq_mul(result_v3_c1, qc, spinor_v3_c1);
+	bgq_mul(result_v3_c2, qc, spinor_v3_c2);
+
+	bgq_su3_spinor_mov(*target, result);
+}
+
+
 static inline void bgq_site_imul(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor), bgq_params(qz), bgq_params(qw), ucoord ic) {
 	bgq_su3_spinor_decl(result);
 
@@ -65,12 +85,42 @@ static inline void bgq_site_cmul_plain_add(bgq_su3_spinor_params(*target), bgq_s
 }
 
 
+static inline void bgq_site_gamma5(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor), ucoord ic) {
+	bgq_su3_spinor_decl(result);
+
+	bgq_mov(result_v0_c0, spinor_v0_c0);
+	bgq_mov(result_v0_c1, spinor_v0_c1);
+	bgq_mov(result_v0_c2, spinor_v0_c2);
+	bgq_mov(result_v1_c0, spinor_v1_c0);
+	bgq_mov(result_v1_c1, spinor_v1_c1);
+	bgq_mov(result_v1_c2, spinor_v1_c2);
+	bgq_neg(result_v2_c0, spinor_v2_c0);
+	bgq_neg(result_v2_c1, spinor_v2_c1);
+	bgq_neg(result_v2_c2, spinor_v2_c2);
+	bgq_neg(result_v3_c0, spinor_v3_c0);
+	bgq_neg(result_v3_c1, spinor_v3_c1);
+	bgq_neg(result_v3_c2, spinor_v3_c2);
+
+	bgq_su3_spinor_mov(*target, result);
+}
+
+
 
 #define OPERATOR_NAME bgq_spinorfield_diff
 #define OPERATOR_ARGFIELDS 2
 #define OPERATOR_VECSITEFUNC bgq_site_diff
 #include "bgq_operator.inc.c"
 
+#if BGQ_REPLACE
+void diff(spinor * const Q, const spinor * const R, const spinor * const S, const int N) {
+	assert(N == VOLUME/2);
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(Q);
+	bgq_weylfield_controlblock *sourcefield1 = bgq_translate_spinorfield(R);
+	bgq_weylfield_controlblock *sourcefield2 = bgq_translate_spinorfield(S);
+
+	bgq_spinorfield_diff_double(targetfield, tri_unknown, sourcefield1, sourcefield2);
+}
+#endif
 
 #define OPERATOR_NAME bgq_spinorfield_set
 #define OPERATOR_ARGFIELDS 0
@@ -204,3 +254,41 @@ void assign_mul_add_r(spinor * const R, const double c, const spinor * const S, 
 	bgq_spinorfield_cmul_plain_add(targetfield, tri_unknown, targetfield, sourcefield, c);
 }
 #endif
+
+
+#define OPERATOR_NAME bgq_spinorfield_gamma5
+#define OPERATOR_ARGFIELDS 1
+#define OPERATOR_VECSITEFUNC bgq_site_gamma5
+#include "bgq_operator.inc.c"
+
+#if BGQ_REPLACE
+void gamma5(spinor * const l, spinor * const k, const int V) {
+	assert(V == VOLUME/2);
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
+	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
+
+	bgq_spinorfield_gamma5_double(targetfield, tri_unknown, sourcefield);
+}
+#endif
+
+
+
+
+#define OPERATOR_NAME bgq_spinorfield_cmul_raw
+#define OPERATOR_ARGFIELDS 1
+#define OPERATOR_VECSITEFUNC bgq_site_cmul
+#define OPERATOR_EXTRAPARMS bgq_params(qc)
+#define OPERATOR_EXTRAARGS bgq_vars(qc)
+#include "bgq_operator.inc.c"
+
+void bgq_spinorfield_cmul_double(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield, double c) {
+	bgq_vector4double_decl(qc);
+	bgq_cconst(qc, c, c);
+	bgq_spinorfield_cmul_raw_double(targetfield, isOdd, sourcefield, bgq_vars(qc));
+}
+
+void bgq_spinorfield_cmul_float(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield, double c) {
+	bgq_vector4double_decl(qc);
+	bgq_cconst(qc, c, c);
+	bgq_spinorfield_cmul_raw_float(targetfield, isOdd, sourcefield, bgq_vars(qc));
+}
