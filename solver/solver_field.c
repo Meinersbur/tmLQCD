@@ -65,7 +65,7 @@ int init_solver_field(spinor *** const solver_field, const int V, const int nr) 
     (*solver_field)[i] = (*solver_field)[i-1]+V;
   }
 
-  bgq_spinorfields_allocate(nr, (*solver_field)[0]);
+  bgq_spinorfields_allocate(nr, (*solver_field)[0], V);
   return(0);
 }
 

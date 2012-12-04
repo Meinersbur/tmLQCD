@@ -53,6 +53,8 @@
 #include "solver_field.h"
 #include "cg_her.h"
 
+
+
 /* P output = solution , Q input = source */
 int cg_her_nd(spinor * const P_up,spinor * P_dn, spinor * const Q_up, spinor * const Q_dn, 
 	      const int max_iter, double eps_sq, const int rel_prec, 

@@ -204,24 +204,24 @@ void Q_Qdagger_ND(spinor * const l_strange, spinor * const l_charm,
   mul_one_minus_imubar(g_spinor_field[DUM_MATRIX+2]/*even*/, g_spinor_field[DUM_MATRIX]/*even*/);
   mul_one_plus_imubar(g_spinor_field[DUM_MATRIX+3], g_spinor_field[DUM_MATRIX+1]);
 
-  assign_add_mul_r(g_spinor_field[DUM_MATRIX+2]/*odd*/, g_spinor_field[DUM_MATRIX+1]/*even*/, g_epsbar, VOLUME/2);
-  assign_add_mul_r(g_spinor_field[DUM_MATRIX+3], g_spinor_field[DUM_MATRIX], g_epsbar, VOLUME/2);
+  assign_add_mul_r(g_spinor_field[DUM_MATRIX+2]/*even*/, g_spinor_field[DUM_MATRIX+1]/*even*/, g_epsbar, VOLUME/2);
+  assign_add_mul_r(g_spinor_field[DUM_MATRIX+3]/*even*/, g_spinor_field[DUM_MATRIX]/*even*/, g_epsbar, VOLUME/2);
 
-  mul_r(g_spinor_field[DUM_MATRIX+2], nrm, g_spinor_field[DUM_MATRIX+2], VOLUME/2);
-  mul_r(g_spinor_field[DUM_MATRIX+3], nrm, g_spinor_field[DUM_MATRIX+3], VOLUME/2);
+  mul_r(g_spinor_field[DUM_MATRIX+2]/*even*/, nrm, g_spinor_field[DUM_MATRIX+2], VOLUME/2);
+  mul_r(g_spinor_field[DUM_MATRIX+3]/*even*/, nrm, g_spinor_field[DUM_MATRIX+3], VOLUME/2);
   
-  Hopping_Matrix(OE, g_spinor_field[DUM_MATRIX], g_spinor_field[DUM_MATRIX+2]);
-  Hopping_Matrix(OE, g_spinor_field[DUM_MATRIX+1], g_spinor_field[DUM_MATRIX+3]);
+  Hopping_Matrix(OE, g_spinor_field[DUM_MATRIX]/*odd*/, g_spinor_field[DUM_MATRIX+2]);
+  Hopping_Matrix(OE, g_spinor_field[DUM_MATRIX+1]/*odd*/, g_spinor_field[DUM_MATRIX+3]);
 
   /* Here the M_oo  implementation  */
-  mul_one_plus_imubar(g_spinor_field[DUM_MATRIX+2], k_charm);
-  mul_one_minus_imubar(g_spinor_field[DUM_MATRIX+3], k_strange);
+  mul_one_plus_imubar(g_spinor_field[DUM_MATRIX+2]/*odd*/, k_charm);
+  mul_one_minus_imubar(g_spinor_field[DUM_MATRIX+3]/*odd*/, k_strange);
 
   assign_add_mul_r(g_spinor_field[DUM_MATRIX+2], k_strange, -g_epsbar, VOLUME/2);
   assign_add_mul_r(g_spinor_field[DUM_MATRIX+3], k_charm, -g_epsbar, VOLUME/2);
    
-  diff(g_spinor_field[DUM_MATRIX+4], g_spinor_field[DUM_MATRIX+2], g_spinor_field[DUM_MATRIX], VOLUME/2);
-  diff(g_spinor_field[DUM_MATRIX+5], g_spinor_field[DUM_MATRIX+3], g_spinor_field[DUM_MATRIX+1], VOLUME/2);
+  diff(g_spinor_field[DUM_MATRIX+4]/*odd*/, g_spinor_field[DUM_MATRIX+2], g_spinor_field[DUM_MATRIX], VOLUME/2);
+  diff(g_spinor_field[DUM_MATRIX+5]/*odd*/, g_spinor_field[DUM_MATRIX+3], g_spinor_field[DUM_MATRIX+1], VOLUME/2);
 
   /* and finally the  gamma_5  multiplication  */
   gamma5(g_spinor_field[DUM_MATRIX+2], g_spinor_field[DUM_MATRIX+4], VOLUME/2);
@@ -242,8 +242,8 @@ void Q_Qdagger_ND(spinor * const l_strange, spinor * const l_charm,
   /* AND THEN THE  Qhat(2x2)  PART */
 
   /* Here the  M_oe Mee^-1 M_eo  implementation  */
-  Hopping_Matrix(EO, g_spinor_field[DUM_MATRIX], g_spinor_field[DUM_MATRIX+7]);
-  Hopping_Matrix(EO, g_spinor_field[DUM_MATRIX+1], g_spinor_field[DUM_MATRIX+6]);
+  Hopping_Matrix(EO, g_spinor_field[DUM_MATRIX]/*even*/, g_spinor_field[DUM_MATRIX+7]);
+  Hopping_Matrix(EO, g_spinor_field[DUM_MATRIX+1]/*even*/, g_spinor_field[DUM_MATRIX+6]);
 
   mul_one_minus_imubar(g_spinor_field[DUM_MATRIX+2], g_spinor_field[DUM_MATRIX]);
   mul_one_plus_imubar(g_spinor_field[DUM_MATRIX+3], g_spinor_field[DUM_MATRIX+1]);

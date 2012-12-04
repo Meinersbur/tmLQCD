@@ -124,6 +124,7 @@ EXTERN_FIELD bgq_weylfield_controlblock *g_bgq_spinorfields EXTERN_INIT(NULL);
 
 typedef struct bgq_weylfield_collection {
 	const spinor *legacy_base;
+	size_t fieldsize;
 	size_t count;
 	struct bgq_weylfield_collection *prev;
 	struct bgq_weylfield_collection *next;
@@ -132,7 +133,7 @@ typedef struct bgq_weylfield_collection {
 
 
 void bgq_spinorfields_init(size_t std_count);
-bgq_weylfield_collection *bgq_spinorfields_allocate(size_t count, spinor *legacyFields);
+bgq_weylfield_collection *bgq_spinorfields_allocate(size_t count, spinor *legacyFields, size_t fieldLength);
 void bgq_spinorfields_free(bgq_weylfield_collection *collection);
 
 size_t bgq_pointer2offset_raw(bgq_weylfield_controlblock *field, void *ptr, bool check);

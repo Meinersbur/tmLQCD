@@ -1497,15 +1497,17 @@ static bgq_weylfield_collection *g_bgq_spinorfield_collection_last = NULL;
 static bgq_weylfield_collection *g_bgq_spinorfield_collection_unused = NULL;
 
 
-bgq_weylfield_collection *bgq_spinorfields_allocate(size_t count, spinor *legacyFields) {
+bgq_weylfield_collection *bgq_spinorfields_allocate(size_t count, spinor *legacyFields, size_t fieldLength) {
 	assert(g_bgq_spinorfields_initialized);
 
 	bgq_weylfield_collection *result;
 	size_t nInitialized = 0;
 	if (g_bgq_spinorfield_collection_unused) {
 		result = g_bgq_spinorfield_collection_unused;
-		g_bgq_spinorfield_collection_unused->prev = NULL;
-		g_bgq_spinorfield_collection_unused = g_bgq_spinorfield_collection_unused->next;
+		g_bgq_spinorfield_collection_unused = result->next;
+		if (g_bgq_spinorfield_collection_unused) {
+			g_bgq_spinorfield_collection_unused->prev = NULL;
+		}
 
 		nInitialized = result->count;
 		if (result->count < count) {
@@ -1522,7 +1524,8 @@ bgq_weylfield_collection *bgq_spinorfields_allocate(size_t count, spinor *legacy
 	result->prev = NULL;
 	result->next = NULL;
 
-	size_t fieldsize = VOLUMEPLUSRAND/2 * sizeof(spinor);
+	size_t fieldsize = /*VOLUMEPLUSRAND/2*/ fieldLength * sizeof(spinor);
+	result->fieldsize = fieldsize;
 
 #ifndef NVALGRIND
 	VALGRIND_CREATE_MEMPOOL(legacyFields, 0, false);
@@ -1579,6 +1582,7 @@ bgq_weylfield_collection *bgq_spinorfields_allocate(size_t count, spinor *legacy
 		g_bgq_spinorfield_collection_first = result;
 		g_bgq_spinorfield_collection_last = result;
 	}
+	assert(!g_bgq_spinorfield_collection_first || !g_bgq_spinorfield_collection_first->prev);
 
 	return result;
 }
@@ -1591,11 +1595,10 @@ void bgq_spinorfields_free(bgq_weylfield_collection *collection) {
 	bgq_weylfield_collection *next = collection->next;
 
 	if (prev) {
-		prev->next = next;
+		prev->next = (prev==next) ? NULL : next;
 	}
-
 	if (next) {
-		next->prev = next;
+		next->prev = (prev==next) ? NULL : prev;
 	}
 
 	if (collection==g_bgq_spinorfield_collection_first) {
@@ -1618,7 +1621,7 @@ void bgq_spinorfields_free(bgq_weylfield_collection *collection) {
 	} else {
 		g_bgq_spinorfield_collection_unused = collection;
 	}
-	collection->prev = NULL;
+
 
 #ifndef NVALGRIND
 	VALGRIND_DESTROY_MEMPOOL(collection->legacy_base);
@@ -1632,7 +1635,7 @@ void bgq_spinorfields_init(size_t std_count) {
 		return;
 	g_bgq_spinorfields_initialized = true;
 
-	bgq_weylfield_collection *collection = bgq_spinorfields_allocate(std_count, g_spinor_field[0]);
+	bgq_weylfield_collection *collection = bgq_spinorfields_allocate(std_count, g_spinor_field[0], VOLUMEPLUSRAND/2);
 	g_bgq_spinorfields = &collection->controlblocks[0];
 }
 
@@ -1643,10 +1646,11 @@ void bgq_spinorfields_init(size_t std_count) {
 
 bgq_weylfield_controlblock *bgq_translate_spinorfield(const spinor *legacy_field) {
 	uint8_t *legacyField = (uint8_t*)legacy_field;
-	size_t fieldsize = VOLUMEPLUSRAND/2 * sizeof(spinor);
+
 	bgq_weylfield_collection *collection = g_bgq_spinorfield_collection_first;
 	while (collection) {
 		size_t count = collection->count;
+		size_t fieldsize = collection->fieldsize;// VOLUMEPLUSRAND/2 * sizeof(spinor);
 		uint8_t *legacyBase = (uint8_t*)collection->legacy_base;
 
 		if (legacyField < legacyBase) {
