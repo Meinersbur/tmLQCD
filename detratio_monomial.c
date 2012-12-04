@@ -214,7 +214,8 @@ void detratio_heatbath(const int id, hamiltonian_field_t * const hf) {
   mnl->iter1 = 0;
   if(mnl->even_odd_flag) {
     random_spinor_field(g_spinor_field[4], VOLUME/2, mnl->rngrepro);
-    mnl->energy0  = square_norm(g_spinor_field[4], VOLUME/2, 1);
+    spinorfield_setOddness(g_spinor_field[4], 1);
+    mnl->energy0  = square_norm(g_spinor_field[4], VOLUME/2, 0);
 
     Qtm_plus_psi(g_spinor_field[3], g_spinor_field[4]);
     g_mu = mnl->mu2;

@@ -42,6 +42,7 @@
 #include "read_input.h"
 #include "monomial.h"
 
+#include "bgq/bgq_spinorfield.h"
 
 
 monomial monomial_list[max_no_monomials];
@@ -142,9 +143,10 @@ int init_monomials(const int V, const int even_odd_flag) {
 #if ( defined SSE || defined SSE2 || defined SSE3)
       __pf = (spinor*)(((unsigned long int)(_pf)+ALIGN_BASE)&~ALIGN_BASE);
 #else
-      __pf = _pf;
+      __pf = (spinor*)(((unsigned long int)(_pf)+31)&~31);
 #endif
     }
+    bgq_spinorfields_allocate(no, __pf, V);
   }
 
   no = 0;

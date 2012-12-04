@@ -132,7 +132,7 @@ typedef struct bgq_weylfield_collection {
 } bgq_weylfield_collection;
 
 
-void bgq_spinorfields_init(size_t std_count);
+void bgq_spinorfields_init(void);
 bgq_weylfield_collection *bgq_spinorfields_allocate(size_t count, spinor *legacyFields, size_t fieldLength);
 void bgq_spinorfields_free(bgq_weylfield_collection *collection);
 
@@ -547,12 +547,12 @@ typedef enum {
 #define bgq_savebgqref() bgq_savebgqref_impl()
 #endif
 
-void bgq_initbgqref_impl();
+void bgq_initbgqref_impl(void);
 void bgq_setdesc_impl(int idx, char *desc);
 void bgq_setrefvalue_impl(int t, int x, int y, int z, bgqref idx, complexdouble val);
 void bgq_setbgqvalue_impl(int t, int x, int y, int z, bgqref idx, complexdouble val);
 void bgq_setbgqvalue_src_impl(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bgqref idx, complexdouble val);
-void bgq_savebgqref_impl();
+void bgq_savebgqref_impl(void);
 
 //size_t bgq_fieldpointer2offset(void *ptr);
 bgq_weyl_vec_double *bgq_section_baseptr_double(bgq_weylfield_controlblock *field, bgq_weylfield_section section);
@@ -702,6 +702,7 @@ void bgq_spinorfield_annotateOddness(bgq_weylfield_controlblock *field, bool isO
 void spinorfield_setOddness(const spinor *field, int isOdd);
 void bgq_spinorfield_dump(bgq_weylfield_controlblock *field, char *desc);
 void spinorfield_dump(const spinor *field, char *desc);
+
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

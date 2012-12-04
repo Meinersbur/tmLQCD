@@ -80,6 +80,14 @@
 #include "sighandler.h"
 #include "measurements.h"
 
+#include "bgq/bgq_utils.h"
+#include "bgq/bgq_spinorfield.h"
+#include "bgq/bgq_comm.h"
+#include "bgq/bgq_gaugefield.h"
+#include "bgq/bgq_dispatch.h"
+#include <assert.h>
+
+
 void usage(){
   fprintf(stdout, "HMC for Wilson twisted mass QCD\n");
   fprintf(stdout, "Version %s \n\n", PACKAGE_VERSION);
@@ -97,7 +105,7 @@ extern int nstore;
 
 int const rlxdsize = 105;
 
-int main(int argc,char *argv[]) {
+int main_hmc(int argc,char *argv[]) {
 
   FILE *parameterfile=NULL, *countfile=NULL;
   char *filename = NULL;
@@ -326,10 +334,6 @@ int main(int argc,char *argv[]) {
    }
    init_measurements();
 
-  zero_spinor_field(g_spinor_field[DUM_DERI+4],VOLUME);
-  zero_spinor_field(g_spinor_field[DUM_DERI+5],VOLUME);
-  zero_spinor_field(g_spinor_field[DUM_DERI+6],VOLUME);
-
   /*construct the filenames for the observables and the parameters*/
   strcpy(datafilename,filename);  strcat(datafilename,".data");
   strcpy(parameterfilename,filename);  strcat(parameterfilename,".para");
@@ -405,6 +409,24 @@ int main(int argc,char *argv[]) {
   if(g_running_phmc) {
     init_phmc();
   }
+
+// BEGIN MK
+	assert(even_odd_flag);
+	bgq_indices_init();
+	bgq_comm_mpi_init();
+	bgq_comm_spi_init();
+	bgq_initbgqref();
+	bgq_spinorfields_init();
+	if (g_running_phmc) {
+		bgq_spinorfields_allocate(20, g_chi_up_spinor_field[0], VOLUMEPLUSRAND / 2);
+		bgq_spinorfields_allocate(20, g_chi_dn_spinor_field[0], VOLUMEPLUSRAND / 2);
+	}
+	bgq_gaugefield_init();
+// END MK
+
+	zero_spinor_field(g_spinor_field[DUM_DERI+4],VOLUME/2);
+	zero_spinor_field(g_spinor_field[DUM_DERI+5],VOLUME/2);
+	zero_spinor_field(g_spinor_field[DUM_DERI+6],VOLUME/2);
 
   plaquette_energy = measure_gauge_action( (const su3**) g_gauge_field);
   if(g_rgi_C1 > 0. || g_rgi_C1 < 0.) {
@@ -593,3 +615,7 @@ int main(int argc,char *argv[]) {
 #endif
 }
 
+
+int main(int argc, char *argv[]) {
+	return bgq_parallel_mainlike(&main_hmc, argc, argv);
+}

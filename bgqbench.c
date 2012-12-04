@@ -1138,7 +1138,7 @@ static void exec_bench(int j_max, int k_max) {
 	bgq_initbgqref();
 
 	g_linalgidx = 2 * k_max + 2;
-	bgq_spinorfields_init(2 * k_max + 2 + 4);
+	bgq_spinorfields_init();
 
 	bgq_gaugefield_init();
 	bgq_gaugefield_transferfrom(g_gauge_field);

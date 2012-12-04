@@ -168,6 +168,7 @@ void det_heatbath(const int id, hamiltonian_field_t * const hf) {
 
   if(mnl->even_odd_flag) {
     random_spinor_field(g_spinor_field[2], VOLUME/2, mnl->rngrepro);
+    spinorfield_setOddness(g_spinor_field[2], 1);
     mnl->energy0 = square_norm(g_spinor_field[2], VOLUME/2, 1);
 
     Qtm_plus_psi(mnl->pf, g_spinor_field[2]);

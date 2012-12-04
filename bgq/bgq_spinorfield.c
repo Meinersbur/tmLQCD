@@ -720,7 +720,7 @@ complexdouble *g_refvalue = NULL;
 bool *g_bgqhasvalue = NULL;
 bool *g_refhasvalue = NULL;
 
-void bgq_initbgqref_impl() {
+void bgq_initbgqref_impl(void) {
 	size_t datasize = sizeof(complexdouble) * VOLUME * lengthof(g_idxdesc);
 	if (g_refvalue == NULL) {
 		g_bgqvalue = malloc_aligned(datasize, BGQ_ALIGNMENT_L2);
@@ -807,7 +807,7 @@ void bgq_setbgqvalue_src_impl(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direct
 }
 
 
-void bgq_savebgqref_impl() {
+void bgq_savebgqref_impl(void) {
 	if (g_proc_id != 0)
 		return;
 
@@ -1346,7 +1346,7 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 	bgq_spinorfield_layout result = -1;
 	if (actionRewrite) {
 		if (isOdd==tri_unknown) {
-			master_error(1, "For rewriting, we need to know the oddness of the field from somewhere");
+			master_error(1, "For rewriting, we really need to know the oddness of the field from somewhere\n");
 		}
 		if (acceptDouble) {
 			result = ly_full_double;
@@ -1498,7 +1498,7 @@ static bgq_weylfield_collection *g_bgq_spinorfield_collection_unused = NULL;
 
 
 bgq_weylfield_collection *bgq_spinorfields_allocate(size_t count, spinor *legacyFields, size_t fieldLength) {
-	assert(g_bgq_spinorfields_initialized);
+	bgq_spinorfields_init();
 
 	bgq_weylfield_collection *result;
 	size_t nInitialized = 0;
@@ -1629,19 +1629,15 @@ void bgq_spinorfields_free(bgq_weylfield_collection *collection) {
 }
 
 
-void bgq_spinorfields_init(size_t std_count) {
+void bgq_spinorfields_init(void) {
 	bgq_indices_init();
 	if (g_bgq_spinorfields_initialized)
 		return;
 	g_bgq_spinorfields_initialized = true;
 
-	bgq_weylfield_collection *collection = bgq_spinorfields_allocate(std_count, g_spinor_field[0], VOLUMEPLUSRAND/2);
-	g_bgq_spinorfields = &collection->controlblocks[0];
+	//bgq_weylfield_collection *collection = bgq_spinorfields_allocate(std_count, g_spinor_field[0], VOLUMEPLUSRAND/2);
+	//g_bgq_spinorfields = &collection->controlblocks[0];
 }
-
-
-
-
 
 
 bgq_weylfield_controlblock *bgq_translate_spinorfield(const spinor *legacy_field) {

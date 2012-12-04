@@ -340,19 +340,19 @@ static int main_invert(int argc, char *argv[])
 #endif
 
 
- // BEGIN MK
+// BEGIN MK
   	assert(even_odd_flag);
   	bgq_indices_init();
   	bgq_comm_mpi_init();
   	bgq_comm_spi_init();
   	bgq_initbgqref();
-  	bgq_spinorfields_init(NO_OF_SPINORFIELDS);
+  	bgq_spinorfields_init();
   	if (g_running_phmc) {
   		bgq_spinorfields_allocate(20, g_chi_up_spinor_field[0], VOLUMEPLUSRAND / 2);
   		bgq_spinorfields_allocate(20, g_chi_dn_spinor_field[0], VOLUMEPLUSRAND / 2);
   	}
   	bgq_gaugefield_init();
- // END MK
+// END MK
 
 
   for (j = 0; j < Nmeas; j++) {

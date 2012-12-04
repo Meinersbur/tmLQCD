@@ -31,6 +31,9 @@
 #include "sse.h"
 #include "monomial.h"
 
+#include "bgq/bgq_spinorfield.h"
+
+
 spinor * sp = NULL;
 spinor * sp_csg = NULL;
 spinor * sp_tbuff = NULL;
@@ -66,6 +69,7 @@ int init_spinor_field(const int V, const int nr) {
     g_spinor_field[i] = g_spinor_field[i-1]+V;
   }
 
+  bgq_spinorfields_allocate(nr, g_spinor_field[0], V);
   return(0);
 }
 
