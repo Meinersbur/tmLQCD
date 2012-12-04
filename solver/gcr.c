@@ -81,6 +81,7 @@ int gcr(spinor * const P, spinor * const Q,
   
   for(restart = 0; restart < max_restarts; restart++) {
     dfl_sloppy_prec = 0;
+	if (g_proc_id == g_stdio_proc) printf("GCR before: %g\n", square_norm(P, N, 1));
     f(tmp, P);
     diff(rho, Q, tmp, N);
     err = square_norm(rho, N, 1);

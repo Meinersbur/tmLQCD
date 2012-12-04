@@ -15,6 +15,8 @@
 #include "bgq_comm.h"
 #include "bgq_workers.h"
 
+#include "../update_backward_gauge.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -161,56 +163,6 @@ void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work,  bool nokamul, bgq
 	if (layout & ly_weyl)
 		flopPerSite += /*weyl reduce*/      8/*dirs*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/;
 	flopaccumulator += sites * PHYSICAL_LK * flopPerSite;
-#if 0
-	if (readFulllayout) {
-		if (nokamul) {
-			if (inputfield->isFulllayoutSloppy)
-				bgq_master_call(&bgq_HoppingMatrix_nokamul_worker_readFulllayout_float, work);
-			 else
-				 bgq_master_call(&bgq_HoppingMatrix_nokamul_worker_readFulllayout_double, work);
-			flopaccumulator += sites * PHYSICAL_LK * (
-				/*weyl reduce*/     8/*dirs*/ * 2/*weyl per dir*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/ +
-				/*su3 mul*/			8/*dirs*/ * 2/*su3vec per weyl*/ * (6*9 + 2*3)/*flop per su3 mv-mul*/
-			);
-
-		} else {
-			if (inputfield->isFulllayoutSloppy)
-				bgq_master_call(&bgq_HoppingMatrix_kamul_worker_readFulllayout_float, work);
-			else
-				bgq_master_call(&bgq_HoppingMatrix_kamul_worker_readFulllayout_double, work);
-			flopaccumulator += sites * PHYSICAL_LK * (
-				/*weyl reduce*/     8/*dirs*/ * 2/*weyl per dir*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/ +
-				/*su3 mul*/			8/*dirs*/ * 2/*su3vec per weyl*/ * (6*9 + 2*3)/*flop per su3 mv-mul*/ +
-				/*kamul*/			8/*dirs*/ * (2 * 3)/*cmplx per weyl*/ * 6/*flops cmplx mul*/
-			);
-		}
-	} else {
-		// readWeyl
-		if (nokamul) {
-			if (inputfield->isWeyllayoutSloppy)
-				bgq_master_call(&bgq_HoppingMatrix_nokamul_worker_readWeyllayout_float, work);
-			else
-				bgq_master_call(&bgq_HoppingMatrix_nokamul_worker_readWeyllayout_double, work);
-			flopaccumulator += sites * PHYSICAL_LK * (
-				/*accum spinor*/	7/*dirs*/ * (4 * 3)/*cmplx per spinor*/ * 2/*flops accum*/ +
-				/*weyl reduce*/     8/*dirs*/ * 2/*weyl per dir*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/ +
-				/*su3 mul*/			8/*dirs*/ * 2/*su3vec per weyl*/ * (6*9 + 2*3)/*flop per su3 mv-mul*/
-			);
-		} else {
-			if (inputfield->isWeyllayoutSloppy)
-				bgq_master_call(&bgq_HoppingMatrix_kamul_worker_readWeyllayout_float, work);
-			else
-				bgq_master_call(&bgq_HoppingMatrix_kamul_worker_readWeyllayout_double, work);
-			flopaccumulator += sites * PHYSICAL_LK * (
-				/*accum spinor*/	7/*dirs*/ * (4 * 3)/*cmplx per spinor*/ * 2/*flops accum*/ +
-				/*weyl reduce*/     8/*dirs*/ * 2/*weyl per dir*/ * (2 * 3)/*cmplx per weyl*/ * 2/*flops*/ +
-				/*su3 mul*/			8/*dirs*/ * 2/*su3vec per weyl*/ * (6*9 + 2*3)/*flop per su3 mv-mul*/ +
-				/*kamul*/			8/*dirs*/ * (2 * 3)/*cmplx per weyl*/ * 6/*flops cmplx mul*/
-			);
-		}
-	}
-#endif
-	//master_print("nokamul=%d readFulllayout=%d sites=%zu flopaccum=%llu diff=%llu\n", nokamul, readFulllayout, sites, flopaccumulator, flopaccumulator-old);
 }
 
 
@@ -332,12 +284,27 @@ void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k) {
 	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
 	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
 
+#ifdef _GAUGE_COPY
+	if(g_update_gauge_copy) {
+		update_backward_gauge(g_gauge_field);
+	}
+#endif
+
+	//master_print("BEGIN HoppingMatrix replacement\n");
 	bgq_HoppingMatrix(ieo, targetfield, sourcefield, 0);
+	//master_print("BEGIN HoppingMatrix replacement\n");
+	//bgq_master_sync();
 }
 
 void Hopping_Matrix_nocom(const int ieo, spinor * const l, spinor * const k) {
 	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
 	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
+
+#ifdef _GAUGE_COPY
+	if(g_update_gauge_copy) {
+		update_backward_gauge(g_gauge_field);
+	}
+#endif
 
 	bgq_HoppingMatrix(ieo, targetfield, sourcefield, hm_nocom);
 }

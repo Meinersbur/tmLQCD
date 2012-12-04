@@ -115,7 +115,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_setbgqvalue_src(t1, x, y, z, TUP, BGQREF_TDOWN_WEYL, bgq_cmplxval1(weyl_tup_v0_c0));
 				bgq_setbgqvalue_src(t2, x, y, z, TUP, BGQREF_TDOWN_WEYL, bgq_cmplxval2(weyl_tup_v0_c0));
 		if (kamul) {
-			bgq_su3_weyl_cmul(weyl_tup, qka0, weyl_tup);
+			bgq_su3_weyl_cjgmul(weyl_tup, qka0, weyl_tup);
 		}
 				bgq_setdesc(BGQREF_TDOWN_KAMUL,"BGQREF_TDOWN_KAMUL");
 				bgq_setbgqvalue_src(t1, x, y, z, TUP, BGQREF_TDOWN_KAMUL, bgq_cmplxval1(weyl_tup_v0_c0));
@@ -155,7 +155,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 					bgq_setbgqvalue_src(t1, x, y, z, XDOWN, BGQREF_XUP_GAUGE, bgq_cmplxval1(gauge_xup_c00));
 					bgq_setbgqvalue_src(t2, x, y, z, XDOWN, BGQREF_XUP_GAUGE, bgq_cmplxval2(gauge_xup_c00));
 			bgq_su3_weyl_mvmul(weyl_xdown, gauge_xup, weyl_xdown);
-					bgq_setdesc(BGQREF_XUP_WEYL,"BGQREF_TUP_WEYL");
+					bgq_setdesc(BGQREF_XUP_WEYL,"BGQREF_XUP_WEYL");
 					bgq_setbgqvalue_src(t1, x, y, z, XDOWN, BGQREF_XUP_WEYL, bgq_cmplxval1(weyl_xdown_v0_c0));
 					bgq_setbgqvalue_src(t2, x, y, z, XDOWN, BGQREF_XUP_WEYL, bgq_cmplxval2(weyl_xdown_v0_c0));
 			if (kamul) {
@@ -204,7 +204,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_setbgqvalue_src(t1, x, y, z, XUP, BGQREF_XDOWN_WEYL, bgq_cmplxval1(weyl_xup_v0_c0));
 				bgq_setbgqvalue_src(t2, x, y, z, XUP, BGQREF_XDOWN_WEYL, bgq_cmplxval2(weyl_xup_v0_c0));
 		if (kamul) {
-			bgq_su3_weyl_cmul(weyl_xup, qka1, weyl_xup);
+			bgq_su3_weyl_cjgmul(weyl_xup, qka1, weyl_xup);
 		}
 				bgq_setdesc(BGQREF_XDOWN_KAMUL,"BGQREF_XDOWN_KAMUL");
 				bgq_setbgqvalue_src(t1, x, y, z, XUP, BGQREF_XDOWN_KAMUL, bgq_cmplxval1(weyl_xup_v0_c0));
@@ -273,7 +273,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 
 		bgq_su3_weyl_mvinvmul(weyl_yup, gauge_ydown, weyl_yup);
 		if (kamul) {
-			bgq_su3_weyl_cmul(weyl_yup, qka2, weyl_yup);
+			bgq_su3_weyl_cjgmul(weyl_yup, qka2, weyl_yup);
 		}
 
 		//bgq_su3_weyl_zeroload(targetptrs->d[YDOWN]);
@@ -339,7 +339,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 
 		bgq_su3_weyl_mvinvmul(weyl_zup, gauge_zdown, weyl_zup);
 		if (kamul) {
-			bgq_su3_weyl_cmul(weyl_zup, qka3, weyl_zup);
+			bgq_su3_weyl_cjgmul(weyl_zup, qka3, weyl_zup);
 		}
 
 		//bgq_su3_weyl_zeroload(targetptrs->d[ZDOWN]);

@@ -17,6 +17,7 @@
 #include "../geometry_eo.h"
 #include "../read_input.h"
 
+#include <execinfo.h>
 #include <mpi.h>
 #include <sys/stat.h>
 #include <stddef.h>
@@ -556,7 +557,7 @@ void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, tristate is
 		assert(field->sec_fullspinor_double);
 		if (!preserveData) {
 #ifndef NDEBUG
-		//memset(field->sec_fullspinor_double, 0xFF, LOCAL_VOLUME/PHYSICAL_LP * sizeof(*field->sec_fullspinor_double));
+		memset(field->sec_fullspinor_double, 0xFF, LOCAL_VOLUME/PHYSICAL_LP * sizeof(*field->sec_fullspinor_double));
 #endif
 #ifndef NVALGRIND
 		VALGRIND_MEMPOOL_FREE(field->sec_fullspinor_double, field->sec_fullspinor_double);
@@ -908,6 +909,112 @@ void bgq_savebgqref_impl() {
 }
 
 
+static void print_trace(FILE *target) {
+	/* GG */
+	if ( g_proc_id )
+	return;
+
+	void *array[50];
+	size_t size;
+	char **strings;
+	size_t i;
+
+	size = backtrace (array, 50);
+	strings = backtrace_symbols (array, size);
+
+	//printf ("Obtained %zd stack frames.\n", size);
+
+	for (i = 0; i < size; i++) {
+	fprintf (target, "%s\n", strings[i]);
+	}
+
+	free (strings);
+}
+
+
+void bgq_spinorfield_dump(bgq_weylfield_controlblock *field, char *desc) {
+	assert(field);
+
+	if (g_proc_id!=0)
+		return;
+	if (omp_get_thread_num()!=0)
+		return;
+
+	
+	static int g_bgq_dumpnr = 0;
+	int dumpnr = g_bgq_dumpnr;
+	g_bgq_dumpnr += 1;
+
+	char descSurrogate[100];
+	if (!desc) {
+		desc = "dump";
+	}
+
+
+	static char dir[100] = "";
+	if (dir[0] == '\0') {
+		int i = 0;
+		while (true) {
+			snprintf(dir, sizeof(dir)-1, "dump_%d", i);
+
+			struct stat buf;
+			if (stat(dir, &buf) != -1) {
+				i += 1;
+				continue;
+			}
+
+			mkdir(dir, S_IRWXU | S_IRWXG | S_IRWXO);
+			break;
+		}
+	}
+	
+		char filename[100];
+		int j = 0;
+		while (true) {
+			snprintf(filename, sizeof(filename)-1, "%s/spinorfield_%d_%d_%s.txt", dir, dumpnr, j, desc);
+
+			struct stat buf;
+			if (stat(filename, &buf) != -1) {
+				j += 1;
+				continue;
+			}
+
+			break;
+		}
+
+		master_print("Dumping to file %s\n", filename);
+		//mkdir(dir, S_IRWXU | S_IRWXG | S_IRWXO);
+		FILE *dfile = fopen(filename, "w");
+		fprintf(dfile, "Sequence number %d\n", dumpnr);
+		print_trace(dfile);
+		fprintf(dfile, "\n\n");
+
+		for (int z = 0; z < LOCAL_LZ; z += 1) {
+			for (int x = 0; x < LOCAL_LX; x += 1) {
+				for (int y = 0; y < LOCAL_LY; y += 1) {
+					fprintf(dfile, "x=%d y=%d z=%d: ", x,y,z);
+					for (int t = 0; t < LOCAL_LT; t += 1) {
+						if (bgq_local2isOdd(t, x, y, z) == field->isOdd) {
+							complexdouble val = bgq_spinorfield_getspinor(field, t, x, y, z).v[0].c[0];
+							fprintf(dfile, "%8f + %8fi	", creal(val), cimag(val));
+						} else {
+							fprintf(dfile, "                    	");
+						}
+					}
+					fprintf(dfile, "\n");
+				}
+			}
+		}
+
+		fclose(dfile);
+		//master_print("Cmp data written to %s and %s\n", reffilename, bgqfilename);
+}
+
+void spinorfield_dump(const spinor *field, char *desc) {
+	bgq_spinorfield_dump(bgq_translate_spinorfield(field), desc);
+}
+
+
 // not reliable!!!
 static size_t bgq_fieldpointer2offset(void *ptr) {
 	for (size_t i = 0; i < g_bgq_spinorfields_count; i+=1) {
@@ -1221,6 +1328,13 @@ static tristate tristate_combine(tristate tri1, tristate tri2) {
 }
 
 
+static tristate tristate_invert(tristate tri) {
+	if (tri==tri_unknown)
+		return tri_unknown;
+	return !tri;
+}
+
+
 void bgq_spinorfield_prepareReadWrite(bgq_weylfield_controlblock *field, tristate isOdd, bgq_spinorfield_layout layout) {
 	isOdd = tristate_combine(isOdd, field->isOdd);
 	bgq_spinorfield_prepareRead(field, isOdd,  layout&ly_weyl, (layout!=ly_legacy) && !(layout&ly_sloppy), layout&ly_sloppy, layout&ly_mul, layout==ly_legacy);
@@ -1233,7 +1347,7 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 	assert(field->has_fulllayout_double || field->has_fulllayout_float || field->has_weyllayout_double || field->has_weyllayout_float || field->has_legacy); // There must be some data to read
 	assert(acceptDouble || acceptFloat || acceptLegacy); // Accept at least something
 	assert((isOdd==tri_unknown) || (field->isOdd==tri_unknown) || (isOdd==field->isOdd));
-
+//bgq_master_sync();
 	if (isOdd == tri_unknown) {
 		isOdd = field->isOdd; // May still be unknown
 	}
@@ -1271,7 +1385,7 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 			bgq_worker_func worker = g_bgq_spinorfield_rewrite_worker_double_list[layout];
 			assert(worker);
 
-			if ((layout==ly_weyl_float) && ((void*)field->sec_fullspinor_double==(void*)field->sec_fullspinor_float)) {
+			if ((layout==ly_full_float) && ((void*)field->sec_fullspinor_double==(void*)field->sec_fullspinor_float)) {
 				// Without intervention, we're going to overwrite the data while we are reading it
 				// Solution: assign a new memory area
 				// Note that field->sec_fullspinor_float has allocated twice as much memory, so we are wasting some space here
@@ -1293,7 +1407,7 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 			bgq_worker_func worker = g_bgq_spinorfield_rewrite_worker_float_list[layout];
 			assert(worker);
 
-			if ((layout==ly_weyl_double) && ((void*)field->sec_fullspinor_double==(void*)field->sec_fullspinor_float)) {
+			if ((layout==ly_full_double) && ((void*)field->sec_fullspinor_double==(void*)field->sec_fullspinor_float)) {
 				// Without intervention, we're going to overwrite the data while we are reading it
 				// Solution: assign a new memory area
 				field->sec_fullspinor_float = malloc_aligned(LOCAL_VOLUME/PHYSICAL_LP * sizeof(*field->sec_fullspinor_float), BGQ_ALIGNMENT_L2);
@@ -1403,8 +1517,8 @@ size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr) {
 }
 
 
-//static size_t g_bgq_spinorfields_stdCount;
-//static size_t g_bgq_spinorfields_chiCount;
+
+
 
 static bool g_bgq_spinorfields_initialized = false;
 
@@ -1533,8 +1647,10 @@ void bgq_spinorfields_init(size_t std_count) {
 		return;
 	g_bgq_spinorfields_initialized = true;
 
-	bgq_spinorfields_allocate(std_count, g_spinor_field[0]);
+	bgq_weylfield_collection *collection = bgq_spinorfields_allocate(std_count, g_spinor_field[0]);
+	g_bgq_spinorfields = &collection->controlblocks[0];
 }
+
 
 
 
@@ -1793,7 +1909,7 @@ void spinorfield_linalg_wr_invert(const spinor *legacyField_out, const spinor *l
 
 	tristate isOdd = field_in->isOdd;
 	bgq_spinorfield_prepareRead(field_in, isOdd, false, false, false, false, true);
-	bgq_spinorfield_prepareWrite(field_out, !isOdd, ly_legacy, false);
+	bgq_spinorfield_prepareWrite(field_out, tristate_invert(isOdd), ly_legacy, false);
 }
 
 /* write read read */
@@ -1804,9 +1920,9 @@ void spinorfield_linalg_wrr_invert(const spinor *legacyField_out, const spinor *
 	bgq_weylfield_controlblock *field_in1 = bgq_translate_spinorfield(legacyField_in1);
 	bgq_weylfield_controlblock *field_in2 = bgq_translate_spinorfield(legacyField_in2);
 
-	tristate isOdd = tristate_combine(field_in1->isOdd, field_in2->isOdd);
+	tristate isOdd = tristate_combine(field_in1->isOdd, tristate_invert(field_in2->isOdd));
 	bgq_spinorfield_prepareRead(field_in1, isOdd, false, false, false, false, true);
-	bgq_spinorfield_prepareRead(field_in2, isOdd, false, false, false, false, true);
+	bgq_spinorfield_prepareRead(field_in2, tristate_invert(isOdd), false, false, false, false, true);
 	bgq_spinorfield_prepareWrite(field_out, !isOdd, ly_legacy, false);
 }
 

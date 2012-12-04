@@ -58,9 +58,11 @@ static inline void bgq_thread_barrier() {
 
 
 int bgq_parallel(bgq_master_func master_func, void *master_arg) {
+#ifndef NDEBUG
 	for (int i = 0; i < 64*25; i+=1)
 		space[64*25] = ' ';
 	space[64*25] = '\0';
+#endif
 	assert(!omp_in_parallel() && "This starts the parallel section, do not call it within one");
 	g_bgq_dispatch_func = NULL;
 	g_bgq_dispatch_arg = NULL;
@@ -74,7 +76,9 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 	}
 #endif
 	g_bgq_dispatch_threads = omp_get_max_threads();
+#ifdef OMP
 	omp_num_threads = 1/*omp_get_num_threads()*/; // For legacy linalg (it depends on whether nested parallelism is enabled)
+#endif
 	g_bgq_dispatch_inparallel = true;
 
 	int master_result = 0;
@@ -114,7 +118,9 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 	}
 	g_bgq_dispatch_inparallel = false;
 	g_bgq_dispatch_threads = 0;
+#ifdef OMP
 	omp_num_threads = omp_get_max_threads();
+#endif
 	return master_result;
 }
 
@@ -216,7 +222,7 @@ void bgq_master_call(bgq_worker_func func, void *arg) {
 #else
 #pragma omp flush
 #endif
-
+		// Join the worker force
 		bgq_worker();
 	} else {
 		// Not in a parallel section. Two possibilities:

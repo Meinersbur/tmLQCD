@@ -71,7 +71,7 @@ typedef struct {
 } su3_array64;
 
 static void bgq_gaugefield_worker_transferfrom(void *arg_untyped, size_t tid, size_t threads) {
-	su3 **sourcefield = (su3**) arg_untyped;
+	su3 **sourcefield = (su3**)arg_untyped;
 
 	const size_t workload = PHYSICAL_VOLUME * PHYSICAL_LP;
 	const size_t threadload = (workload + threads - 1) / threads;

@@ -297,6 +297,16 @@ typedef struct {
 		bgq_mov(dst,MAKENAME5(madd,dst,a,b,c));                                 \
 	}
 
+#define bgq_msub(dst,a,b,c)                                                    \
+	{                                                                           \
+		bgq_vector4double_decl(MAKENAME5(madd,dst,a,b,c));                      \
+		MAKENAME6(madd,dst,a,b,c,q0) = NAME2(a,q0) * NAME2(b,q0) - NAME2(c,q0); \
+		MAKENAME6(madd,dst,a,b,c,q1) = NAME2(a,q1) * NAME2(b,q1) - NAME2(c,q1); \
+		MAKENAME6(madd,dst,a,b,c,q2) = NAME2(a,q2) * NAME2(b,q2) - NAME2(c,q2); \
+		MAKENAME6(madd,dst,a,b,c,q3) = NAME2(a,q3) * NAME2(b,q3) - NAME2(c,q3); \
+		bgq_mov(dst,MAKENAME5(madd,dst,a,b,c));                                 \
+	}
+
 #define bgq_mov(dst,src) \
 	NAME2(dst,q0) = NAME2(src,q0); \
 	NAME2(dst,q1) = NAME2(src,q1); \
@@ -491,6 +501,9 @@ typedef struct {
 #define bgq_madd(dst,a,b,c) \
 	(dst) = vec_madd(a,b,c)
 
+#define bgq_msub(dst,a,b,c) \
+	(dst) = vec_msub(a,b,c)
+
 #define bgq_mov(dst,src) \
 	(dst) = (src)
 
@@ -668,6 +681,17 @@ typedef struct {
 		bgq_xmul              (MAKENAME4(cmul,dst,lhs,rhs), lhs, rhs);                              \
 		bgq_xxnpmadd          (dst                        , rhs, lhs, MAKENAME4(cmul,dst,lhs,rhs)); \
 	}
+
+
+// Conjugated lhs
+// conj(lhs) * rhs
+#define bgq_cjgmul(dst,lhs,rhs)                                                                       \
+	do {                                                                                               \
+		bgq_vector4double_decl(MAKENAME4(cjgmul,dst,lhs,rhs));                                         \
+		bgq_xmul              (MAKENAME4(cjgmul,dst,lhs,rhs), lhs, rhs);                              \
+		bgq_xxcpnmadd         (dst                          , rhs, lhs, MAKENAME4(cjgmul,dst,lhs,rhs)); \
+	} while (0)
+
 
 #define cvec_madd(a,b,c) vec_xxnpmadd(b,a,vec_xmadd(a,b,c))
 // vec_xxnpmadd(b,a,vec_xmadd(a,b,c))
@@ -1359,9 +1383,20 @@ do {\
 	bgq_cmul(NAME2(dst,c1), c, NAME2(v,c1)); \
 	bgq_cmul(NAME2(dst,c2), c, NAME2(v,c2))
 
+#define bgq_su3_cjgvmul(dst,c,v)              \
+	bgq_cjgmul(NAME2(dst,c0), c, NAME2(v,c0)); \
+	bgq_cjgmul(NAME2(dst,c1), c, NAME2(v,c1)); \
+	bgq_cjgmul(NAME2(dst,c2), c, NAME2(v,c2))
+
+
 #define bgq_su3_weyl_cmul(dst,c,weyl) \
 	bgq_su3_cvmul(NAME2(dst,v0), c, NAME2(weyl,v0)); \
 	bgq_su3_cvmul(NAME2(dst,v1), c, NAME2(weyl,v1))
+
+#define bgq_su3_weyl_cjgmul(dst,c,weyl) \
+	bgq_su3_cjgvmul(NAME2(dst,v0), c, NAME2(weyl,v0)); \
+	bgq_su3_cjgvmul(NAME2(dst,v1), c, NAME2(weyl,v1))
+
 
 #define bgq_su3_mvmul(dst,m,v)                                                      \
 	{                                                                               \

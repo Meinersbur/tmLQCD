@@ -67,7 +67,8 @@ extern su3* g_trafo;
 #endif
 #endif
 
-
+//#include "bgq/bgq_spinorfield.h"
+//#include "boundary.h"
 
 int invert_eo(spinor * const Even_new, spinor * const Odd_new, 
 	      spinor * const Even, spinor * const Odd,
@@ -80,7 +81,7 @@ int invert_eo(spinor * const Even_new, spinor * const Odd_new,
 	spinorfield_setOddness(Even_new, 0);
 	spinorfield_setOddness(Odd, 1);
 	spinorfield_setOddness(Odd_new, 1);
-
+	
   int iter = 0;
   /* here comes the inversion using even/odd preconditioning */
   if(even_odd_flag) {
@@ -124,10 +125,9 @@ int invert_eo(spinor * const Even_new, spinor * const Odd_new,
 #endif  
 #endif /* HAVE_GPU*/    
     
- 
+
     assign_mul_one_pm_imu_inv(Even_new, Even, +1., VOLUME/2);
-    
-    Hopping_Matrix(OE, g_spinor_field[DUM_DERI], Even_new); 
+    Hopping_Matrix(OE, g_spinor_field[DUM_DERI], Even_new);
     /* The sign is plus, since in Hopping_Matrix */
     /* the minus is missing                      */
     assign_mul_add_r(g_spinor_field[DUM_DERI], +1., Odd, VOLUME/2);

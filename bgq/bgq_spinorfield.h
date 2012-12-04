@@ -59,9 +59,8 @@ typedef enum {
 #define BGQ_SPINORFIELD_LAYOUT_COUNT 9
 
 
-//struct bgq_weylfield_collection;
 
-//TODO: Move to bgq_spinorfield.h
+
 typedef struct {
 	//bool isInitialized;
 	tristate isOdd;
@@ -691,7 +690,8 @@ EXTERN_INLINE bool bgq_spinorfield_isOdd(bgq_weylfield_controlblock *field) {
 
 void bgq_spinorfield_annotateOddness(bgq_weylfield_controlblock *field, bool isOdd);
 void spinorfield_setOddness(const spinor *field, int isOdd);
-
+void bgq_spinorfield_dump(bgq_weylfield_controlblock *field, char *desc);
+void spinorfield_dump(const spinor *field, char *desc);
 
 #undef EXTERN_INLINE
 #undef EXTERN_FIELD

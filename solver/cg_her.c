@@ -69,7 +69,7 @@ int cg_her(spinor * const P, spinor * const Q, const int max_iter,
   spinor ** solver_field = NULL;
   spinor * stmp;
   const int nr_sf = 3;
-
+  
   if(N == VOLUME) {
     init_solver_field(&solver_field, VOLUMEPLUSRAND, nr_sf);
   } 
@@ -88,6 +88,7 @@ int cg_her(spinor * const P, spinor * const Q, const int max_iter,
 
   /* main loop */
   for(iteration = 1; iteration <= max_iter; iteration++) {
+	//if (g_proc_id == g_stdio_proc) printf("GCR before: %g\n", square_norm(solver_field[2], N, 1));
     f(solver_field[0], solver_field[2]);
     pro = scalar_prod_r(solver_field[2], solver_field[0], N, 1);
     alpha_cg = normsq / pro;

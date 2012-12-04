@@ -161,7 +161,7 @@ static inline void NAME2(REDUCTION_NAME,worker)(void *arg_untyped, size_t tid, s
 
 #if REDUCTION_ARGFIELDS>=2
 		bgq_su3_spinor_decl(spinor2);
-		bgq_spinorfield_readSpinor(&spinor2, argfield1, isOdd, ic, readWeyllayout2, sloppy2, mul2, false);
+		bgq_spinorfield_readSpinor(&spinor2, argfield2, isOdd, ic, readWeyllayout2, sloppy2, mul2, false);
 #endif
 
 		REDUCTION_SITEREDUCEFUNC(REDUCTION_REDPTRARGS IF1ARG(, bgq_su3_spinor_vars(spinor1)) IF2ARG(, bgq_su3_spinor_vars(spinor2)) REDUCTION_EXTRAARGLIST, ic);

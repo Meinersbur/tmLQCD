@@ -130,6 +130,7 @@ void tm_sub_Hopping_Matrix(const int ieo, spinor * const l, spinor * const p, sp
 #  endif
 void tm_sub_Hopping_Matrix(const int ieo, spinor * const l, spinor * p, spinor * const k, 
 			   complex double const cfactor) {
+	spinorfield_linalg_wrr_invert(l, p, k);
 #  ifdef XLC
 #    pragma disjoint(*l, *k)
 #  endif

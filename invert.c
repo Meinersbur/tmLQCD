@@ -356,6 +356,7 @@ static int main_invert(int argc, char *argv[])
 
 
   for (j = 0; j < Nmeas; j++) {
+#if 1
     sprintf(conf_filename, "%s.%.4d", gauge_input_filename, nstore);
     if (g_cart_id == 0) {
       printf("#\n# Trying to read gauge field from file %s in %s precision.\n",
@@ -366,6 +367,10 @@ static int main_invert(int argc, char *argv[])
       fprintf(stderr, "Error %d while reading gauge field from %s\n Aborting...\n", i, conf_filename);
       exit(-2);
     }
+#else
+    start_ranlux(1, 123456);
+    random_gauge_field(1);
+#endif
 
 
     if (g_cart_id == 0) {

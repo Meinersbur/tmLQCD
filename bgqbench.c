@@ -1185,7 +1185,7 @@ static void exec_bench(int j_max, int k_max) {
 		//bgq_spinorfield_transfer(true, &g_bgq_spinorfields[k], g_spinor_field[k]);
 	}
 
-
+#if 0
 	data = malloc(2*GIBI);
 	for (size_t size = 1; size<2*GIBI; size<<=1) {
 		double duration;
@@ -1201,6 +1201,8 @@ static void exec_bench(int j_max, int k_max) {
 		omp_set_num_threads(threads);
 		bgq_parallel(&check_memzero, NULL);
 	}
+	free(data);
+#endif
 
 	checkargs_t checkargs_double = {
 	        .k_max = k_max,

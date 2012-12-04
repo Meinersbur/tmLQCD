@@ -670,6 +670,7 @@ void spinorfield_enable(const spinor *legacyField, int read, int write);
 void spinorfield_setOddness(const spinor *legacyField, int isOdd);
 void spinorfield_propagateOddness(const spinor *targetLegacyField, const spinor *sourceLegacyField);
 void spinorfield_propagateInvertedOddness(const spinor *targetLegacyField, const spinor *sourceLegacyField);
+//void spinorfield_dump(const spinor *field, char *desc);
 
 void spinorfield_linalg_r(const spinor *field_in);
 void spinorfield_linalg_u(const spinor *legacyField_inout);
