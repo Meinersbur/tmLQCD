@@ -1071,7 +1071,7 @@ static int check_linalg(void *arg_untyped) {
 
 
 	diff(g_spinor_field[g_linalgidx+2], g_spinor_field[g_linalgidx], g_spinor_field[g_linalgidx+1], VOLUME/2);
-	bgq_spinorfield_diff_double(&g_bgq_spinorfields[g_linalgidx+3], true, &g_bgq_spinorfields[g_linalgidx+0], &g_bgq_spinorfields[g_linalgidx+1]);
+	bgq_spinorfield_sub_double(&g_bgq_spinorfields[g_linalgidx+3], true, &g_bgq_spinorfields[g_linalgidx+0], &g_bgq_spinorfields[g_linalgidx+1]);
 #ifndef BGQ_COORDCHECK
 	compare = bgq_spinorfield_compare(true, &g_bgq_spinorfields[g_linalgidx+3], &g_bgq_spinorfields[g_linalgidx+2], false);
 	master_print("Compare: %g\n", compare);

@@ -27,6 +27,8 @@
  *
  ****************************************************************/
 
+#if !BGQ_REPLACE
+
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
@@ -164,4 +166,6 @@ void tm_sub_Hopping_Matrix(const int ieo, spinor * const l, spinor * p, spinor *
 #  endif
   return;
 }
+#endif
+
 #endif

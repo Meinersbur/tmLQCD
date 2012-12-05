@@ -12,13 +12,82 @@
 
 
 
-static inline void bgq_site_diff(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor1), bgq_su3_spinor_params(spinor2), ucoord ic) {
+static inline void bgq_site_sub(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor1), bgq_su3_spinor_params(spinor2), ucoord ic) {
 	bgq_su3_spinor_decl(result);
 
 	bgq_su3_vsub(result_v0, spinor1_v0, spinor2_v0);
 	bgq_su3_vsub(result_v1, spinor1_v1, spinor2_v1);
 	bgq_su3_vsub(result_v2, spinor1_v2, spinor2_v2);
 	bgq_su3_vsub(result_v3, spinor1_v3, spinor2_v3);
+
+	bgq_su3_spinor_mov(*target, result);
+}
+
+
+static inline void bgq_site_cmul_plain_sub(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor1), bgq_su3_spinor_params(spinor2), bgq_params(qc), ucoord ic) {
+	bgq_su3_spinor_decl(result);
+	bgq_su3_spinor_decl(cmul1);
+
+	// Unfortunately, there is no fused-multiply-sub for this
+	bgq_mul(cmul1_v0_c0, qc, spinor1_v0_c0);
+	bgq_mul(cmul1_v0_c1, qc, spinor1_v0_c1);
+	bgq_mul(cmul1_v0_c2, qc, spinor1_v0_c2);
+	bgq_mul(cmul1_v1_c0, qc, spinor1_v1_c0);
+	bgq_mul(cmul1_v1_c1, qc, spinor1_v1_c1);
+	bgq_mul(cmul1_v1_c2, qc, spinor1_v1_c2);
+	bgq_mul(cmul1_v2_c0, qc, spinor1_v2_c0);
+	bgq_mul(cmul1_v2_c1, qc, spinor1_v2_c1);
+	bgq_mul(cmul1_v2_c2, qc, spinor1_v2_c2);
+	bgq_mul(cmul1_v3_c0, qc, spinor1_v3_c0);
+	bgq_mul(cmul1_v3_c1, qc, spinor1_v3_c1);
+	bgq_mul(cmul1_v3_c2, qc, spinor1_v3_c2);
+
+	bgq_su3_vsub(result_v0, cmul1_v0, spinor2_v0);
+	bgq_su3_vsub(result_v1, cmul1_v1, spinor2_v1);
+	bgq_su3_vsub(result_v2, cmul1_v2, spinor2_v2);
+	bgq_su3_vsub(result_v3, cmul1_v3, spinor2_v3);
+
+	bgq_su3_spinor_mov(*target, result);
+}
+
+
+static inline void bgq_site_icjgmul_plain_sub(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor1), bgq_su3_spinor_params(spinor2), bgq_params(qc), bgq_params(qw), ucoord ic) {
+	bgq_su3_spinor_decl(result);
+	bgq_su3_spinor_decl(imul1);
+
+	assert(bgq_cmplxval1(qc) == bgq_cmplxval2(qc));
+
+	bgq_su3_cvmul(imul1_v0, qc, spinor1_v0);
+	bgq_su3_cvmul(imul1_v1, qc, spinor1_v1);
+	bgq_su3_vsub(result_v0, imul1_v0, spinor2_v0);
+	bgq_su3_vsub(result_v1, imul1_v1, spinor2_v1);
+
+#if 1
+	assert(bgq_cmplxval1(qw) == bgq_cmplxval2(qw));
+	assert(bgq_cmplxval1(qc) == -bgq_cmplxval1(qw));
+
+// re = spinor2.re + qw.re * spinor1.re + qw.im * spinor1.im
+// im = spinor2.im + qw.re * spinor1.im - qw.im * spinor1.re
+
+	bgq_xmadd(result_v2_c0, qw, spinor1_v2_c0, spinor2_v2_c0);
+	bgq_xxcpnmadd(result_v2_c0, spinor1_v2_c0, qw, result_v2_c0);
+	bgq_xmadd(result_v2_c1, qw, spinor1_v2_c1, spinor2_v2_c1);
+	bgq_xxcpnmadd(result_v2_c1, spinor1_v2_c1, qw, result_v2_c1);
+	bgq_xmadd(result_v2_c2, qw, spinor1_v2_c2, spinor2_v2_c2);
+	bgq_xxcpnmadd(result_v2_c2, spinor1_v2_c2, qw, result_v2_c2);
+
+	bgq_xmadd(result_v3_c0, qw, spinor1_v3_c0, spinor2_v3_c0);
+	bgq_xxcpnmadd(result_v3_c0, spinor1_v3_c0, qw, result_v3_c0);
+	bgq_xmadd(result_v3_c1, qw, spinor1_v3_c1, spinor2_v3_c1);
+	bgq_xxcpnmadd(result_v3_c1, spinor1_v3_c1, qw, result_v3_c1);
+	bgq_xmadd(result_v3_c2, qw, spinor1_v3_c2, spinor2_v3_c2);
+	bgq_xxcpnmadd(result_v3_c2, spinor1_v3_c2, qw, result_v3_c2);
+#else
+	bgq_su3_cjgvmul(imul1_v2, qc, spinor1_v2);
+	bgq_su3_cjgvmul(imul1_v3, qc, spinor1_v3);
+	bgq_su3_vsub(result_v2, spinor2_v2, imul1_v2);
+	bgq_su3_vsub(result_v3, spinor2_v3, imul1_v3);
+#endif
 
 	bgq_su3_spinor_mov(*target, result);
 }
@@ -106,9 +175,9 @@ static inline void bgq_site_gamma5(bgq_su3_spinor_params(*target), bgq_su3_spino
 
 
 
-#define OPERATOR_NAME bgq_spinorfield_diff
+#define OPERATOR_NAME bgq_spinorfield_sub
 #define OPERATOR_ARGFIELDS 2
-#define OPERATOR_VECSITEFUNC bgq_site_diff
+#define OPERATOR_VECSITEFUNC bgq_site_sub
 #include "bgq_operator.inc.c"
 
 #if BGQ_REPLACE
@@ -118,7 +187,7 @@ void diff(spinor * const Q, const spinor * const R, const spinor * const S, cons
 	bgq_weylfield_controlblock *sourcefield1 = bgq_translate_spinorfield(R);
 	bgq_weylfield_controlblock *sourcefield2 = bgq_translate_spinorfield(S);
 
-	bgq_spinorfield_diff_double(targetfield, tri_unknown, sourcefield1, sourcefield2);
+	bgq_spinorfield_sub_double(targetfield, tri_unknown, sourcefield1, sourcefield2);
 }
 #endif
 
@@ -292,3 +361,50 @@ void bgq_spinorfield_cmul_float(bgq_weylfield_controlblock *targetfield, tristat
 	bgq_cconst(qc, c, c);
 	bgq_spinorfield_cmul_raw_float(targetfield, isOdd, sourcefield, bgq_vars(qc));
 }
+
+
+
+#define OPERATOR_NAME bgq_spinorfield_cmul_plain_sub_raw
+#define OPERATOR_ARGFIELDS 2
+#define OPERATOR_VECSITEFUNC bgq_site_cmul_plain_sub
+#define OPERATOR_EXTRAPARMS bgq_params(qc)
+#define OPERATOR_EXTRAARGS bgq_vars(qc)
+#include "bgq_operator.inc.c"
+
+void bgq_spinorfield_cmul_plain_sub_double(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield1, bgq_weylfield_controlblock *sourcefield2, double c) {
+	bgq_vector4double_decl(qc);
+	bgq_cconst(qc, c, c);
+	bgq_spinorfield_cmul_plain_sub_raw_double(targetfield, isOdd, sourcefield1, sourcefield2,bgq_vars(qc));
+}
+
+void bgq_spinorfield_cmul_plain_sub_float(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield1, bgq_weylfield_controlblock *sourcefield2, double c) {
+	bgq_vector4double_decl(qc);
+	bgq_cconst(qc, c, c);
+	bgq_spinorfield_cmul_plain_sub_raw_float(targetfield, isOdd, sourcefield1, sourcefield2, bgq_vars(qc));
+}
+
+
+#define OPERATOR_NAME bgq_spinorfield_icjgmul_plain_sub_raw
+#define OPERATOR_ARGFIELDS 2
+#define OPERATOR_VECSITEFUNC bgq_site_icjgmul_plain_sub
+#define OPERATOR_EXTRAPARMS bgq_params(qc),bgq_params(qw)
+#define OPERATOR_EXTRAARGS bgq_vars(qc),bgq_vars(qw)
+#include "bgq_operator.inc.c"
+
+void bgq_spinorfield_icjgmul_plain_sub_double(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield1, bgq_weylfield_controlblock *sourcefield2, complex_double c) {
+	bgq_vector4double_decl(qc);
+	bgq_cconst(qc, creal(c), cimag(c));
+	bgq_vector4double_decl(qw);
+	bgq_neg(qw, qc);
+	bgq_spinorfield_icjgmul_plain_sub_raw_double(targetfield, isOdd, sourcefield1, sourcefield2, bgq_vars(qc), bgq_vars(qw));
+}
+
+void bgq_spinorfield_icjgmul_plain_sub_float(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield1, bgq_weylfield_controlblock *sourcefield2, complex_double c) {
+	bgq_vector4double_decl(qc);
+	bgq_cconst(qc, creal(c), cimag(c));
+	bgq_vector4double_decl(qw);
+	bgq_neg(qw, qc);
+	bgq_spinorfield_icjgmul_plain_sub_raw_float(targetfield, isOdd, sourcefield1, sourcefield2, bgq_vars(qc), bgq_vars(qw));
+}
+
+

@@ -229,19 +229,8 @@ static inline void REDUCTION_NAME(
 	IF2ARG(, bgq_weylfield_controlblock *argfield2)
 	REDUCTION_EXTRAPARMLIST) {
 
-	IF1ARG(
-		if (isOdd==tri_unknown)
-			isOdd = argfield1->isOdd;
-		 else
-			assert(argfield1->isOdd==tri_unknown || argfield1->isOdd==isOdd);
-	)
-
-	IF2ARG(
-		if (isOdd==tri_unknown)
-			isOdd = argfield2->isOdd;
-		 else
-			assert(argfield2->isOdd==tri_unknown || argfield2->isOdd==isOdd);
-	)
+	IF1ARG(isOdd = tristate_combine(isOdd, argfield1->isOdd);)
+	IF2ARG(isOdd = tristate_combine(isOdd, argfield2->isOdd);)
 
 #if REDUCTION_ARGFIELDS==0
 	bgq_worker_func workerfunc = NAME2(REDUCTION_NAME,worker_funcs);

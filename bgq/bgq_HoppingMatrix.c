@@ -327,3 +327,21 @@ void tm_times_Hopping_Matrix(const int ieo, spinor * const l, spinor * const k, 
 	bgq_spinorfield_cmul_double(targetfield, ieo, targetfield, cfactor);
 }
 #endif
+
+
+#if BGQ_REPLACE
+void tm_sub_Hopping_Matrix(const int ieo, spinor * const l, spinor * p, spinor * const k, complex double const cfactor) {
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
+	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
+	bgq_weylfield_controlblock *sourcefield_sub = bgq_translate_spinorfield(p);
+
+#ifdef _GAUGE_COPY
+	if(g_update_gauge_copy) {
+		update_backward_gauge(g_gauge_field);
+	}
+#endif
+
+	bgq_HoppingMatrix(ieo, targetfield, sourcefield, 0);
+	bgq_spinorfield_icjgmul_plain_sub_double(targetfield, ieo, sourcefield_sub, targetfield, cfactor);
+}
+#endif
