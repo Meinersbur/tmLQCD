@@ -121,16 +121,7 @@ void bgq_reduce_norm(bgq_params(*ks), bgq_params(*kc), bgq_su3_spinor_params(spi
 }
 
 
-#if 0
-static inline void bgq_combine_add(bgq_vectorsum_t *arg1, bgq_vectorsum_t arg2) {
-	bgq_vector4double_decl(result);
-	bgq_mov(result, arg1->sum);
 
-	bgq_add(result, result, arg2.sum);
-
-    bgq_mov(arg1->sum, result);
-}
-#endif
 
 
 static inline void bgq_combine_kahan(bgq_params(*ks1), bgq_params(*kc1), bgq_params(ks2), bgq_params(kc2)) {
@@ -227,40 +218,4 @@ double bgq_spinorfield_sqrnorm_global(tristate isOdd, bgq_weylfield_controlblock
 
 
 
-#if BGQ_REPLACE
-_Complex double scalar_prod(spinor *S, spinor *R, int N, int parallel) {
-	assert(N == LOCAL_VOLUME/2);
-	bgq_weylfield_controlblock *field1 = bgq_translate_spinorfield(S);
-	bgq_weylfield_controlblock *field2 = bgq_translate_spinorfield(R);
-
-	if (parallel)
-		return bgq_spinorfield_innerprod_global(tri_unknown, field1, field2);
-	else
-		return bgq_spinorfield_innerprod_local(tri_unknown, field1, field2);
-}
-
-
-double scalar_prod_r(spinor *S, const spinor * const R, int N, int parallel) {
-	assert(N == LOCAL_VOLUME/2);
-	bgq_weylfield_controlblock *field1 = bgq_translate_spinorfield(S);
-	bgq_weylfield_controlblock *field2 = bgq_translate_spinorfield(R);
-
-	if (parallel)
-		return bgq_spinorfield_innerprod_r_global(tri_unknown, field1, field2);
-	else
-		return bgq_spinorfield_innerprod_r_local(tri_unknown, field1, field2);
-}
-
-
-double square_norm(spinor *P, int N, int parallel) {
-	assert(N == LOCAL_VOLUME/2);
-	bgq_weylfield_controlblock *field = bgq_translate_spinorfield(P);
-
-	if (parallel)
-		return bgq_spinorfield_sqrnorm_global(tri_unknown, field);
-	else
-		return bgq_spinorfield_sqrnorm_local(tri_unknown, field);
-}
-
-#endif
 

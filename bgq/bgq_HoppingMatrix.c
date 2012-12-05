@@ -324,7 +324,7 @@ void tm_times_Hopping_Matrix(const int ieo, spinor * const l, spinor * const k, 
 #endif
 
 	bgq_HoppingMatrix(ieo, targetfield, sourcefield, 0);
-	bgq_spinorfield_cmul_double(targetfield, ieo, targetfield, cfactor);
+	bgq_spinorfield_rmul_double(targetfield, ieo, targetfield, cfactor);
 }
 #endif
 

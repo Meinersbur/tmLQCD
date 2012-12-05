@@ -17,6 +17,8 @@
  * along with tmLQCD.  If not, see <http://www.gnu.org/licenses/>.
  ***********************************************************************/
 
+#if !BGQ_REPLACE
+
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
@@ -199,3 +201,4 @@ double assign_mul_add_r_and_square(spinor * const R, const double c, const spino
 
 #endif
 
+#endif

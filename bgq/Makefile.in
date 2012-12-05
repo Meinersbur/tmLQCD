@@ -31,7 +31,7 @@ LDADD =
 COMPILE = ${CC} $(DEFS) ${INCLUDES} ${CPPFLAGS} ${CFLAGS}
 
 LIBRARIES = libbgq
-libbgq_TARGETS = bgq_workers.inc bgq_workers_double bgq_workers_float bgq_ReadWeyllayout.inc bgq_HoppingMatrixWorker.inc bgq_ComputeWeyl.inc bgq_stdreductions bgq_reduction.inc bgq_stdoperators bgq_operator.inc asm1 asm2 bgq_qpx bgq_gaugefield bgq_spinorfield bgq_comm bgq_utils bgq_field bgq_HoppingMatrix bgq_dispatch mypapi
+libbgq_TARGETS = bgq_legacy bgq_workers.inc bgq_workers_double bgq_workers_float bgq_ReadWeyllayout.inc bgq_HoppingMatrixWorker.inc bgq_ComputeWeyl.inc bgq_stdreductions bgq_reduction.inc bgq_stdoperators bgq_operator.inc asm1 asm2 bgq_qpx bgq_gaugefield bgq_spinorfield bgq_comm bgq_utils bgq_field bgq_HoppingMatrix bgq_dispatch mypapi
 libbgq_STARGETS = 
 
 libbgq_OBJECTS = $(addsuffix .o, ${libbgq_TARGETS})

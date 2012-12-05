@@ -17,6 +17,8 @@
  * along with tmLQCD.  If not, see <http://www.gnu.org/licenses/>.
  ***********************************************************************/
 
+#if !BGQ_REPLACE
+
 #include <complex.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -412,4 +414,6 @@ void assign_add_mul_r_su3vect(su3_vector * const P, su3_vector * const Q, const 
   } /* OpenMP closing brace */
 #endif
 }
+#endif
+
 #endif
