@@ -1345,7 +1345,7 @@ bgq_spinorfield_layout bgq_spinorfield_prepareRead(bgq_weylfield_controlblock *f
 	bgq_spinorfield_layout result = -1;
 	if (actionRewrite) {
 		if (isOdd==tri_unknown) {
-			master_error(1, "For rewriting, we really need to know the oddness of the field from somewhere\n");
+			master_error(1, "ERROR: For rewriting, we really need to know the oddness of the field from somewhere\n");
 		}
 		if (acceptDouble) {
 			result = ly_full_double;

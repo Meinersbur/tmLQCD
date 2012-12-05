@@ -1062,10 +1062,12 @@ static int check_linalg(void *arg_untyped) {
 	double compare;
 
 	random_spinor_field(g_spinor_field[g_linalgidx], VOLUME / 2, 0);
+	spinorfield_setOddness(g_spinor_field[g_linalgidx], false);
 	//bgq_spinorfield_transfer(true, &g_bgq_spinorfields[0], g_spinor_field[0]);
 	bgq_legacy_markcoords(true, g_spinor_field[0]);
 
 	random_spinor_field(g_spinor_field[g_linalgidx+1], VOLUME / 2, 0);
+	spinorfield_setOddness(g_spinor_field[g_linalgidx+1], false);
 	//bgq_spinorfield_transfer(true, &g_bgq_spinorfields[1], g_spinor_field[1]);
 	bgq_legacy_markcoords(true, g_spinor_field[1]);
 
@@ -1441,22 +1443,6 @@ int main(int argc, char *argv[]) {
 #endif
 
 	/* BEGIN MK */
-#if 0
-	for (int t = 0; t <= 64; t+=1) {
-		omp_set_num_threads(t);
-#pragma omp parallel
-		{
-			size_t tid = omp_get_thread_num();
-			for (int k = 0; k < 100; k+=1)
-			if (tid==0) {
-				ompbar();
-			} else {
-				ompbar2();
-			}
-		}
-	}
-#endif
-
 	assert(even_odd_flag);
 	exec_bench(j_max, k_max);
 	return 0;
