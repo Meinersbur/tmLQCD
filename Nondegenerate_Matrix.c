@@ -659,6 +659,7 @@ void mul_one_pm_itau2(spinor * const p, spinor * const q,
 }
 
 
+#if !BGQ_REPLACE
 void mul_one_minus_imubar(spinor * const l, spinor * const k) {
 	spinorfield_linalg_wr(l, k);
 #ifdef OMP
@@ -691,8 +692,10 @@ void mul_one_minus_imubar(spinor * const l, spinor * const k) {
   } /* OpenMP closing brace */
 #endif
 }
+#endif
 
 
+#if !BGQ_REPLACE
 void mul_one_plus_imubar(spinor * const l, spinor * const k){
 	spinorfield_linalg_wr(l, k);
 #ifdef OMP
@@ -727,6 +730,7 @@ void mul_one_plus_imubar(spinor * const l, spinor * const k){
 
   return;
 }
+#endif
 
 
 /*  calculates P(Q Q^dagger) for the nondegenerate case */

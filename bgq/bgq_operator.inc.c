@@ -131,7 +131,7 @@ static inline void NAME2(OPERATOR_NAME,worker)(void *arg_untyped, size_t tid, si
 		OPERATOR_VECSITEFUNC(bgq_su3_spinor_vars(&targetspinor) IF1ARG(, bgq_su3_spinor_vars(spinor1)) IF2ARG(, bgq_su3_spinor_vars(spinor2)) OPERATOR_EXTRAARGLIST, ic);
 
 		// Warning: targetsite==argfield1 is possible and the inline assembler does not have memory barriers! If there is not data dependency, the compiler might arrange the stores before the loads!
-		//asm volatile ("" : : : );
+		//REORDER_BARRIER
 		if (writeSloppy) {
 			bgq_spinorsite_float *targetsite = &targetfield->sec_fullspinor_float[ic];
 			bgq_su3_spinor_store_float(targetsite, targetspinor);

@@ -11,6 +11,10 @@
 #include "bgq_stdreductions.h"
 #include "bgq_HoppingMatrix.h"
 
+#include "../linalg_eo.h"
+#include "../tm_operators.h"
+
+
 
 double assign_mul_add_r_and_square(spinor * const R, const double c, const spinor * const S, const int N, const int parallel) {
 	assert(N == VOLUME/2);
@@ -25,7 +29,7 @@ double assign_mul_add_r_and_square(spinor * const R, const double c, const spino
 }
 
 
-_Complex double scalar_prod(spinor *S, spinor *R, int N, int parallel) {
+_Complex double scalar_prod(const spinor * const S, const spinor * const R, const int N, const int parallel) {
 	assert(N == LOCAL_VOLUME/2);
 	bgq_weylfield_controlblock *field1 = bgq_translate_spinorfield(S);
 	bgq_weylfield_controlblock *field2 = bgq_translate_spinorfield(R);
@@ -37,7 +41,7 @@ _Complex double scalar_prod(spinor *S, spinor *R, int N, int parallel) {
 }
 
 
-double scalar_prod_r(spinor *S, const spinor * const R, int N, int parallel) {
+double scalar_prod_r(const spinor * const S, const spinor * const R, const int N, const int parallel) {
 	assert(N == LOCAL_VOLUME/2);
 	bgq_weylfield_controlblock *field1 = bgq_translate_spinorfield(S);
 	bgq_weylfield_controlblock *field2 = bgq_translate_spinorfield(R);
@@ -49,7 +53,7 @@ double scalar_prod_r(spinor *S, const spinor * const R, int N, int parallel) {
 }
 
 
-double square_norm(spinor *P, int N, int parallel) {
+double square_norm(const spinor * const P, const int N, const int parallel) {
 	assert(N == LOCAL_VOLUME/2);
 	bgq_weylfield_controlblock *field = bgq_translate_spinorfield(P);
 
@@ -81,6 +85,7 @@ void assign_mul_one_pm_imu_inv(spinor * const l, spinor * const k, const double 
 	  bgq_spinorfield_imul_double(targetfield, tri_unknown, sourcefield, z, w);
 }
 
+
 void assign_mul_add_r(spinor * const R, const double c, const spinor * const S, const int N) {
 	assert(N == VOLUME/2);
 	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(R);
@@ -88,6 +93,7 @@ void assign_mul_add_r(spinor * const R, const double c, const spinor * const S, 
 
 	bgq_spinorfield_rmul_plain_add_double(targetfield, tri_unknown, targetfield, sourcefield, c);
 }
+
 
 void assign_add_mul_r(spinor * const P, spinor * const Q, const double c, const int N) {
 	assert(N == VOLUME/2);
@@ -164,7 +170,110 @@ void tm_sub_Hopping_Matrix(const int ieo, spinor * const l, spinor * p, spinor *
 	bgq_weylfield_controlblock *sourcefield_sub = bgq_translate_spinorfield(p);
 
 	bgq_HoppingMatrix(ieo, targetfield, sourcefield, 0);
-	bgq_spinorfield_icjgmul_plain_sub_double(targetfield, ieo, sourcefield_sub, targetfield, cfactor);
+	bgq_spinorfield_cmul_plain_sub_gamma5_double(targetfield, ieo, sourcefield_sub, targetfield, cfactor);
+}
+
+
+void mul_one_pm_imu_sub_mul_gamma5(spinor * const l, spinor * const k, spinor * const j, const double _sign) {
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
+	bgq_weylfield_controlblock *sourcefield1 = bgq_translate_spinorfield(k);
+	bgq_weylfield_controlblock *sourcefield2 = bgq_translate_spinorfield(j);
+
+	_Complex double z,w;
+	int ix;
+	double sign=1.;
+	spinor *r, *s, *t;
+
+	su3_vector ALIGN phi1, phi2, phi3, phi4;
+
+	if(_sign < 0.){
+		sign = -1.;
+	}
+
+	z = 1. + (sign * g_mu) * I;
+	w = conj(z);
+
+	bgq_spinorfield_cmul_plain_sub_gamma5_double(targetfield, tri_unknown, sourcefield1, sourcefield2, z);
+}
+
+
+void mul_one_pm_imu_inv(spinor * const l, const double _sign, const int N) {
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
+
+	_Complex double ALIGN z,w;
+	int ix;
+	double sign=-1.;
+	spinor *r;
+
+	su3_vector ALIGN phi1;
+
+	double ALIGN nrm = 1./(1.+g_mu*g_mu);
+
+	if(_sign < 0.){
+		sign = 1.;
+	}
+
+	z = nrm + (sign * nrm * g_mu) * I;
+	w = conj(z);
+
+	bgq_spinorfield_cjgmul_double(targetfield, tri_unknown, targetfield, z);
+}
+
+
+void assign_mul_one_pm_imu(spinor * const l, spinor * const k, const double _sign, const int N){
+	assert(N == VOLUME/2);
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
+	bgq_weylfield_controlblock *spinorfield = bgq_translate_spinorfield(k);
+
+	_Complex double z,w;
+	int ix;
+	double sign = 1.;
+	spinor *r, *s;
+
+	if(_sign < 0.){
+		sign = -1.;
+	}
+
+	z = 1. + (sign * g_mu) * I;
+	w = conj(z);
+
+	bgq_spinorfield_cjgmul_double(targetfield, tri_unknown, spinorfield, z);
+}
+
+
+void mul_r(spinor * const R, const double c, spinor * const S, const int N) {
+	assert(N == VOLUME/2);
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(R);
+	bgq_weylfield_controlblock *spinorfield = bgq_translate_spinorfield(S);
+
+	bgq_spinorfield_rmul_double(targetfield, tri_unknown, spinorfield, c);
+}
+
+
+void mul_one_minus_imubar(spinor * const l, spinor * const k) {
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
+	bgq_weylfield_controlblock *spinorfield = bgq_translate_spinorfield(k);
+
+	complex_double c = 1. - g_mubar * I;
+	bgq_spinorfield_cjgmul_double(targetfield, tri_unknown, spinorfield, c);
+}
+
+
+void mul_one_plus_imubar(spinor * const l, spinor * const k){
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
+	bgq_weylfield_controlblock *spinorfield = bgq_translate_spinorfield(k);
+
+	complex_double c = 1. + g_mubar * I;
+	bgq_spinorfield_cjgmul_double(targetfield, tri_unknown, spinorfield, c);
+}
+
+
+void add(spinor * const Q,const spinor * const R,const spinor * const S, const int N) {
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(Q);
+	bgq_weylfield_controlblock *spinorfield1 = bgq_translate_spinorfield(R);
+	bgq_weylfield_controlblock *spinorfield2 = bgq_translate_spinorfield(S);
+
+	bgq_spinorfield_add_double(targetfield, tri_unknown, spinorfield1, spinorfield2);
 }
 
 #endif

@@ -25,6 +25,8 @@
  *       
  *******************************************************************************/
 
+#if !BGQ_REPLACE
+
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
@@ -75,3 +77,5 @@ void mul_r(spinor * const R, const double c, spinor * const S, const int N){
 #endif
 
 }
+
+#endif

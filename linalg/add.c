@@ -22,6 +22,8 @@
  *     Makes the sum (*Q) = (*R) + (*S)
  *******************************************************************************/
 
+#if !BGQ_REPLACE
+
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
@@ -144,5 +146,7 @@ void add(spinor * const Q,const spinor * const R,const spinor * const S, const i
 #endif
 
 }
+
+#endif
 
 #endif

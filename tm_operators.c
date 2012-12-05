@@ -101,11 +101,13 @@ void tm_sub_H_eo_gamma5(spinor* const l, spinor * const p, spinor * const k,
 void M_full(spinor * const Even_new, spinor * const Odd_new, 
 	    spinor * const Even, spinor * const Odd) {
   /* Even sites */
+  spinorfield_setOddness(Odd, 1);
   Hopping_Matrix(EO, g_spinor_field[DUM_DERI], Odd);
   assign_mul_one_pm_imu(Even_new, Even, 1., VOLUME/2); 
   assign_add_mul_r(Even_new, g_spinor_field[DUM_DERI], -1., VOLUME/2);
 
   /* Odd sites */
+  spinorfield_setOddness(Even, 0);
   Hopping_Matrix(OE, g_spinor_field[DUM_DERI], Even);
   assign_mul_one_pm_imu(Odd_new, Odd, 1., VOLUME/2); 
   assign_add_mul_r(Odd_new, g_spinor_field[DUM_DERI], -1., VOLUME/2);
@@ -114,12 +116,14 @@ void M_full(spinor * const Even_new, spinor * const Odd_new,
 void Q_full(spinor * const Even_new, spinor * const Odd_new, 
 	    spinor * const Even, spinor * const Odd) {
   /* Even sites */
+  spinorfield_setOddness(Odd, 1);
   Hopping_Matrix(EO, g_spinor_field[DUM_DERI], Odd);
   assign_mul_one_pm_imu(Even_new, Even, 1., VOLUME/2); 
   assign_add_mul_r(Even_new, g_spinor_field[DUM_DERI], -1., VOLUME/2);
   gamma5(Even_new, Even_new, VOLUME/2);
 
   /* Odd sites */
+  spinorfield_setOddness(Even, 0);
   Hopping_Matrix(OE, g_spinor_field[DUM_DERI], Even);
   assign_mul_one_pm_imu(Odd_new, Odd, 1., VOLUME/2); 
   assign_add_mul_r(Odd_new, g_spinor_field[DUM_DERI], -1., VOLUME/2);
@@ -129,10 +133,12 @@ void Q_full(spinor * const Even_new, spinor * const Odd_new,
 void M_minus_1_timesC(spinor * const Even_new, spinor * const Odd_new, 
 		      spinor * const Even, spinor * const Odd) {
   /* Even sites */
+  spinorfield_setOddness(Odd, 1);
   Hopping_Matrix(EO, Even_new, Odd);
   mul_one_pm_imu_inv(Even_new, 1., VOLUME/2); 
 
   /* Odd sites */
+  spinorfield_setOddness(Even, 0);
   Hopping_Matrix(OE, Odd_new, Even);
   mul_one_pm_imu_inv(Odd_new, 1., VOLUME/2); 
 }
@@ -513,7 +519,7 @@ void tm_sub_H_eo_gamma5(spinor* const l, spinor * const p, spinor * const k,
  * can find comments above at the declaration 
  *
  **********************************************/
-
+#if !BGQ_REPLACE
 void mul_one_pm_imu_inv(spinor * const l, const double _sign, const int N){
 	spinorfield_enable(l, 1, 1);
 #ifdef OMP
@@ -573,6 +579,8 @@ void mul_one_pm_imu_inv(spinor * const l, const double _sign, const int N){
 #endif
 
 }
+#endif
+
 
 #if !BGQ_REPLACE
 void assign_mul_one_pm_imu_inv(spinor * const l, spinor * const k, const double _sign, const int N){
@@ -655,9 +663,9 @@ void mul_one_pm_imu(spinor * const l, const double _sign){
 #ifdef OMP
   } /* OpenMP closing brace */
 #endif
-
 }
 
+#if !BGQ_REPLACE
 void assign_mul_one_pm_imu(spinor * const l, spinor * const k, const double _sign, const int N){
 	spinorfield_linalg_wr(l, k);
 #ifdef OMP
@@ -711,6 +719,7 @@ void assign_mul_one_pm_imu(spinor * const l, spinor * const k, const double _sig
   } /* OpenMP closing brace */
 #endif
 }
+#endif
 
 void mul_one_sub_mul_gamma5(spinor * const l, spinor * const k, 
 				   spinor * const j){
@@ -745,6 +754,7 @@ void mul_one_sub_mul_gamma5(spinor * const l, spinor * const k,
 }
 
 
+#if !BGQ_REPLACE
 void mul_one_pm_imu_sub_mul_gamma5(spinor * const l, spinor * const k, 
 				   spinor * const j, const double _sign){
 	spinorfield_linalg_wrr(l, k, j);
@@ -792,6 +802,7 @@ void mul_one_pm_imu_sub_mul_gamma5(spinor * const l, spinor * const k,
   } /* OpenMP closing brace */
 #endif
 }
+#endif
 
 void mul_one_pm_imu_sub_mul(spinor * const l, spinor * const k, 
 			    spinor * const j, const double _sign, const int N){
