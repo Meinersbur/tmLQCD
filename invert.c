@@ -356,7 +356,7 @@ static int main_invert(int argc, char *argv[])
 
 
   for (j = 0; j < Nmeas; j++) {
-#if 0
+#if 1
     sprintf(conf_filename, "%s.%.4d", gauge_input_filename, nstore);
     if (g_cart_id == 0) {
       printf("#\n# Trying to read gauge field from file %s in %s precision.\n",
