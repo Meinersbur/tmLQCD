@@ -9,6 +9,7 @@
 
 #include "bgq_stdoperators.h"
 #include "bgq_stdreductions.h"
+#include "bgq_HoppingMatrix.h"
 
 
 double assign_mul_add_r_and_square(spinor * const R, const double c, const spinor * const S, const int N, const int parallel) {
@@ -122,6 +123,48 @@ void diff(spinor * const Q, const spinor * const R, const spinor * const S, cons
 	bgq_weylfield_controlblock *sourcefield2 = bgq_translate_spinorfield(S);
 
 	bgq_spinorfield_sub_double(targetfield, tri_unknown, sourcefield1, sourcefield2);
+}
+
+
+void zero_spinor_field(spinor * const k, const int N) {
+	assert(N == VOLUME/2);
+	bgq_weylfield_controlblock *field = bgq_translate_spinorfield(k);
+	bgq_spinorfield_zero(field, tri_unknown);
+}
+
+
+void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k) {
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
+	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
+
+	bgq_HoppingMatrix(ieo, targetfield, sourcefield, 0);
+}
+
+
+void Hopping_Matrix_nocom(const int ieo, spinor * const l, spinor * const k) {
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
+	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
+
+	bgq_HoppingMatrix(ieo, targetfield, sourcefield, hm_nocom);
+}
+
+
+void tm_times_Hopping_Matrix(const int ieo, spinor * const l, spinor * const k, double complex const cfactor) {
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
+	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
+
+	bgq_HoppingMatrix(ieo, targetfield, sourcefield, 0);
+	bgq_spinorfield_rmul_double(targetfield, ieo, targetfield, cfactor);
+}
+
+
+void tm_sub_Hopping_Matrix(const int ieo, spinor * const l, spinor * p, spinor * const k, complex double const cfactor) {
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
+	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
+	bgq_weylfield_controlblock *sourcefield_sub = bgq_translate_spinorfield(p);
+
+	bgq_HoppingMatrix(ieo, targetfield, sourcefield, 0);
+	bgq_spinorfield_icjgmul_plain_sub_double(targetfield, ieo, sourcefield_sub, targetfield, cfactor);
 }
 
 #endif

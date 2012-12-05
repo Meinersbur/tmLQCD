@@ -97,7 +97,6 @@ double bgq_spinorfield_compare(bool isOdd, bgq_weylfield_controlblock *bgqfield,
 }
 
 
-
 static double bgq_spinorfield_legacy_compare(bool isOdd, bgq_weylfield_controlblock *bgqfield, bgq_spinorfield_layout bgqlayout, spinor *reffield, bool silent) {
 	assert(bgqfield);
 	assert(reffield);
@@ -1776,15 +1775,6 @@ void bgq_spinorfield_zero(bgq_weylfield_controlblock *field, tristate isOdd) {
 		field->has_weyllayout_float = true;
 	}
 }
-
-
-#if BGQ_REPLACE
-void zero_spinor_field(spinor * const k, const int N) {
-	assert(N == VOLUME/2);
-	bgq_weylfield_controlblock *field = bgq_translate_spinorfield(k);
-	bgq_spinorfield_zero(field, tri_unknown);
-}
-#endif
 
 
 void bgq_spinorfield_annotateOddness(bgq_weylfield_controlblock *field, bool isOdd) {

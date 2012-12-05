@@ -2,6 +2,9 @@
 #ifndef BGQ_HOPPINGMATRIXWORKER_INC_
 #include "bgq_utils.h"
 #include "bgq_HoppingMatrix.h"
+#include "bgq_gaugefield.h"
+
+#include "../boundary.h"
 
 #include <stdbool.h>
 

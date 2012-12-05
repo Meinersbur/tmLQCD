@@ -14,8 +14,9 @@
 #include "bgq_dispatch.h"
 #include "bgq_comm.h"
 #include "bgq_workers.h"
-#include "bgq_stdoperators.h"
+#include "bgq_gaugefield.h"
 
+#include "../boundary.h"
 #include "../update_backward_gauge.h"
 
 #include <stdbool.h>
@@ -186,6 +187,13 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	bgq_spinorfield_prepareWrite(targetfield, isOdd, floatprecision ? ly_weyl_float : ly_weyl_double, targetfield==spinorfield);
 
 
+#ifdef _GAUGE_COPY
+	if(g_update_gauge_copy) {
+		update_backward_gauge(g_gauge_field);
+	}
+#endif
+
+
 	// 0. Expect data from other neighbor node
 	if (!nocomm) {
 		bgq_comm_recv(nospi, floatprecision, targetfield);
@@ -279,69 +287,3 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	/* Done by funcs calling readWeyllayout */
 }
 
-
-#if BGQ_REPLACE
-void Hopping_Matrix(const int ieo, spinor * const l, spinor * const k) {
-	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
-	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
-
-#ifdef _GAUGE_COPY
-	if(g_update_gauge_copy) {
-		update_backward_gauge(g_gauge_field);
-	}
-#endif
-
-	//master_print("BEGIN HoppingMatrix replacement\n");
-	bgq_HoppingMatrix(ieo, targetfield, sourcefield, 0);
-	//master_print("BEGIN HoppingMatrix replacement\n");
-	//bgq_master_sync();
-}
-
-void Hopping_Matrix_nocom(const int ieo, spinor * const l, spinor * const k) {
-	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
-	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
-
-#ifdef _GAUGE_COPY
-	if(g_update_gauge_copy) {
-		update_backward_gauge(g_gauge_field);
-	}
-#endif
-
-	bgq_HoppingMatrix(ieo, targetfield, sourcefield, hm_nocom);
-}
-#endif
-
-
-#if BGQ_REPLACE
-void tm_times_Hopping_Matrix(const int ieo, spinor * const l, spinor * const k, double complex const cfactor) {
-	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
-	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
-
-#ifdef _GAUGE_COPY
-	if(g_update_gauge_copy) {
-		update_backward_gauge(g_gauge_field);
-	}
-#endif
-
-	bgq_HoppingMatrix(ieo, targetfield, sourcefield, 0);
-	bgq_spinorfield_rmul_double(targetfield, ieo, targetfield, cfactor);
-}
-#endif
-
-
-#if BGQ_REPLACE
-void tm_sub_Hopping_Matrix(const int ieo, spinor * const l, spinor * p, spinor * const k, complex double const cfactor) {
-	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(l);
-	bgq_weylfield_controlblock *sourcefield = bgq_translate_spinorfield(k);
-	bgq_weylfield_controlblock *sourcefield_sub = bgq_translate_spinorfield(p);
-
-#ifdef _GAUGE_COPY
-	if(g_update_gauge_copy) {
-		update_backward_gauge(g_gauge_field);
-	}
-#endif
-
-	bgq_HoppingMatrix(ieo, targetfield, sourcefield, 0);
-	bgq_spinorfield_icjgmul_plain_sub_double(targetfield, ieo, sourcefield_sub, targetfield, cfactor);
-}
-#endif
