@@ -39,13 +39,13 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 	const size_t end = min_sizet(ic_end, begin+threadload);
 
 	if (!noprefetchstream) {
-		bgq_prefetch_forward(&g_bgq_gaugefield_fromCollapsed[isOdd][begin]);
+		bgq_prefetch_forward(&g_bgq_gaugefield_fromCollapsed[isOdd_src][begin]);
 		if (readFulllayout) {
 			bgq_prefetch_forward(&spinorfield->BGQ_SEC_FULLLAYOUT[begin]);
 		} else {
 			bgq_prefetch_forward(&spinorfield->BGQ_SEC_WEYLLAYOUT[begin]);
 		}
-		bgq_prefetch_forward(&targetfield->BGQ_SENDPTR[begin]);
+		bgq_prefetch_forward(&targetfield->BGQ_SENDPTR[isOdd_dst][begin]);
 	}
 
 	bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd_src][begin];
