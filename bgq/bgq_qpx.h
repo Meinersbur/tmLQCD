@@ -118,7 +118,7 @@ typedef struct {
 	double NAME2(name,q3)
 
 #define bgq_lda_double(dst,offset,addr)                                 \
-	assert( (((size_t)addr) + offset) % 32 == 0);                \
+	assert( (((uintptr_t)addr) + offset) % 32 == 0);                \
 	NAME2(dst,q0) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 0); \
 	NAME2(dst,q1) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 1); \
 	NAME2(dst,q2) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 2); \
@@ -126,7 +126,7 @@ typedef struct {
 //TODO: setting the 5 least significant bits of addr+offset to zero
 
 #define bgq_lda_float(dst,offset,addr)                                 \
-	assert( (((size_t)addr) + offset) % 16 == 0);                \
+	assert( (((uintptr_t)addr) + offset) % 16 == 0);                \
 	NAME2(dst,q0) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 0); \
 	NAME2(dst,q1) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 1); \
 	NAME2(dst,q2) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 2); \
@@ -393,7 +393,11 @@ typedef struct {
 	(addr) = (void*)((char*)(addr) + (offset)); \
 	bgq_st2a_float(data,0,addr)
 
-
+#define bgq_dcbz(addr,offset) \
+	do { \
+		assert(((((uintptr_t)(addr)+(offset)))&(BGQ_ALIGNMENT_L1-1)) == 0); \
+		memset((void*)(((uintptr_t)(addr) + (offset) + BGQ_ALIGNMENT_L1-1)&~(BGQ_ALIGNMENT_L1-1)), 0x00, 64); \
+	} while (0)
 
 
 #define bgq_dcbt(addr,offset)
@@ -1915,6 +1919,7 @@ do { \
 
 
 #define bgq_su3_spinor_zeroload NAME2(bgq_su3_spinor_zeroload,PRECISION)
+#if BGQ_QPX
 #define bgq_su3_spinor_zeroload_double(addr) \
 	do { \
 		void *ptr = (addr); \
@@ -1934,8 +1939,8 @@ do { \
 		); \
 	} while (0)
 	// 384 bytes
-#if 0
-#define bgq_su3_spinor_zeroload_double(addr) \
+#else
+#define bgq_su3_spinor_zeroload_double(addr)     \
 	do { \
 		void *ptr = (addr); \
 		bgq_l1_zero(ptr); \
@@ -1944,16 +1949,10 @@ do { \
 		bgq_dcbz(ptr, 192); \
 		bgq_dcbz(ptr, 256); \
 		bgq_dcbz(ptr, 320); \
-	while (0)
+	} while (0)
 	// 384 bytes
 #endif
-#if 0
-#define bgq_su3_spinor_zeroload_double(addr) \
-	bgq_l1_zero((char*)(addr) +   0);    \
-	bgq_l1_zero((char*)(addr) + 128);    \
-	bgq_l1_zero((char*)(addr) + 256)
-	// 384
-#endif
+
 
 #if BGQ_QPX
 #define bgq_su3_spinor_zeroload_float(addr)
@@ -2209,6 +2208,7 @@ EXTERN_INLINE uint64_t bgq_wcycles() {
 #define BGQ_VECTORSIZE NAME2(BGQ_VECTORSIZE,PRECISION)
 #define BGQ_VECTORSIZE_double 32
 #define BGQ_VECTORSIZE_float 16
+
 
 
 #undef EXTERN_INLINE

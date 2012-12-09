@@ -1029,7 +1029,7 @@ static int check_hopmat(void *arg_untyped) {
 
 	if (doSave)
 		bgq_savebgqref();
-	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[2*k_max], &g_bgq_spinorfields[k+k_max], false);
+	double compare_even = bgq_spinorfield_compare(false, &g_bgq_spinorfields[2*k_max], &g_bgq_spinorfields[k+k_max], true);
 #ifndef BGQ_COORDCHECK
 	assert(compare_even < 0.01);
 #endif
@@ -1044,7 +1044,7 @@ static int check_hopmat(void *arg_untyped) {
 	bgq_HoppingMatrix(true, &g_bgq_spinorfields[2*k_max+1], &g_bgq_spinorfields[k+k_max], hmflags);
 	HoppingMatrix_switch(true, g_spinor_field[k], g_spinor_field[k+k_max], hmflags);
 
-	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[2*k_max+1], &g_bgq_spinorfields[k], false);
+	double compare_odd = bgq_spinorfield_compare(true, &g_bgq_spinorfields[2*k_max+1], &g_bgq_spinorfields[k], true);
 #ifndef BGQ_COORDCHECK
 	assert(compare_odd < 0.01);
 #endif
@@ -1064,25 +1064,25 @@ static int check_linalg(void *arg_untyped) {
 	random_spinor_field(g_spinor_field[g_linalgidx], VOLUME / 2, 0);
 	spinorfield_setOddness(g_spinor_field[g_linalgidx], false);
 	//bgq_spinorfield_transfer(true, &g_bgq_spinorfields[0], g_spinor_field[0]);
-	bgq_legacy_markcoords(true, g_spinor_field[0]);
+	//bgq_legacy_markcoords(true, g_spinor_field[0]);
 
 	random_spinor_field(g_spinor_field[g_linalgidx+1], VOLUME / 2, 0);
 	spinorfield_setOddness(g_spinor_field[g_linalgidx+1], false);
 	//bgq_spinorfield_transfer(true, &g_bgq_spinorfields[1], g_spinor_field[1]);
-	bgq_legacy_markcoords(true, g_spinor_field[1]);
+	//bgq_legacy_markcoords(true, g_spinor_field[1]);
 
 
 	diff(g_spinor_field[g_linalgidx+2], g_spinor_field[g_linalgidx], g_spinor_field[g_linalgidx+1], VOLUME/2);
-	bgq_spinorfield_sub_double(&g_bgq_spinorfields[g_linalgidx+3], true, &g_bgq_spinorfields[g_linalgidx+0], &g_bgq_spinorfields[g_linalgidx+1]);
+	bgq_spinorfield_sub_double(&g_bgq_spinorfields[g_linalgidx+3], false, &g_bgq_spinorfields[g_linalgidx+0], &g_bgq_spinorfields[g_linalgidx+1]);
 #ifndef BGQ_COORDCHECK
-	compare = bgq_spinorfield_compare(true, &g_bgq_spinorfields[g_linalgidx+3], &g_bgq_spinorfields[g_linalgidx+2], false);
+	compare = bgq_spinorfield_compare(false, &g_bgq_spinorfields[g_linalgidx+3], &g_bgq_spinorfields[g_linalgidx+2], true);
 	master_print("Compare: %g\n", compare);
 	assert(compare < 0.01);
 #endif
 
 
 	double norm_ref = square_norm(g_spinor_field[g_linalgidx+1], VOLUME/2, true);
-	double norm_bgq = bgq_spinorfield_sqrnorm_global(true, &g_bgq_spinorfields[g_linalgidx+1]);
+	double norm_bgq = bgq_spinorfield_sqrnorm_global(false, &g_bgq_spinorfields[g_linalgidx+1]);
 	double norm_ref2 = square_norm(g_spinor_field[g_linalgidx+1], VOLUME/2, true);
 	compare = fabs(norm_bgq - norm_ref);
 	assert(compare < 0.01);
@@ -1176,9 +1176,14 @@ static void exec_bench(int j_max, int k_max) {
 	master_print("VOLUME=%d PHYSICAL_VOLUME=%zu PHYSICAL_BODY=%zu PHYSICAL_SURFACE=%zu\n", VOLUME, PHYSICAL_VOLUME, PHYSICAL_BODY, PHYSICAL_SURFACE);
 	master_print("Surface-to-volume ratio (the lower the better): %g%%\n", 100.0 * PHYSICAL_SURFACE / PHYSICAL_VOLUME);
 
-	for (int k = 0; k < k_max; k += 1) {
-		//bgq_spinorfield_setup(&g_bgq_spinorfields[k],       true,  false, true, false, true, false);
-		//bgq_spinorfield_setup(&g_bgq_spinorfields[k+k_max], false, false, true, false, true, false);
+	// Ensure all fields have been allocated
+	for (int k = 0; k <= 2*k_max+1; k += 1) {
+		for (size_t isOdd = 0; isOdd <= 1; isOdd+=1) {
+			bgq_spinorfield_prepareWrite(&g_bgq_spinorfields[k], isOdd, ly_full_double, false);
+			bgq_spinorfield_prepareWrite(&g_bgq_spinorfields[k], isOdd, ly_full_float, false);
+			bgq_spinorfield_prepareWrite(&g_bgq_spinorfields[k], isOdd, ly_weyl_double, false);
+			bgq_spinorfield_prepareWrite(&g_bgq_spinorfields[k], isOdd, ly_weyl_float, false);
+		}
 	}
 
 	for (int k = 0; k < k_max; k += 1) {

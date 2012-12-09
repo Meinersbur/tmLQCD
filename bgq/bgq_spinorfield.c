@@ -603,6 +603,7 @@ void bgq_spinorfield_enableLayout(bgq_weylfield_controlblock *field, tristate is
 		break;
 	default:
 		assert(!"Not yet implemented");
+		break;
 	}
 }
 
