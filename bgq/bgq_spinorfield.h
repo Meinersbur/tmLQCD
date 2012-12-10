@@ -560,8 +560,81 @@ bgq_weyl_vec_float *bgq_section_baseptr_float(bgq_weylfield_controlblock *field,
 
 
 
+EXTERN_INLINE void bgq_spinorfield_streamSpinor(bgq_weylfield_controlblock *field, tristate isOdd, ucoord ic_begin, bool readWeyllayout, bool sloppy, bool mul, bool legacy) {
+	if (legacy) {
+		// No prefetch for legacy field
+	} else if (readWeyllayout) {
+		if (sloppy) {
+			assert(field->sec_collapsed_float);
+			bgq_prefetch_forward(&field->sec_collapsed_float[ic_begin]);
+		} else {
+			assert(field->sec_collapsed_double);
+			bgq_prefetch_forward(&field->sec_collapsed_double[ic_begin]);
+		}
+	} else {
+		if (sloppy) {
+			assert(field->sec_fullspinor_float);
+			bgq_prefetch_forward(&field->sec_fullspinor_float[ic_begin]);
+		} else {
+			assert(field->sec_fullspinor_double);
+			bgq_prefetch_forward(&field->sec_fullspinor_double[ic_begin]);
+		}
+	}
+}
+
+
+EXTERN_INLINE void bgq_spinorfield_prefetchSpinor(bgq_weylfield_controlblock *field, tristate isOdd, ucoord ic, bool readWeyllayout, bool sloppy, bool mul, bool legacy) {
+	if (legacy) {
+		// No prefetch for legacy field
+	} else if (readWeyllayout) {
+		if (sloppy) {
+			assert(field->sec_collapsed_float);
+			// Prefetch only first element; the next ones should be prefetched by the reading function
+			bgq_su3_weyl_prefetch_float(&field->sec_collapsed_float[ic].d[0]);
+		} else {
+			assert(field->sec_collapsed_double);
+			// Prefetch only first element; the next ones should be prefetched by the reading function
+			bgq_su3_weyl_prefetch_float(&field->sec_collapsed_double[ic].d[0]);
+		}
+	} else {
+		if (sloppy) {
+			assert(field->sec_fullspinor_float);
+			bgq_su3_spinor_prefetch_float(&field->sec_fullspinor_float[ic]);
+		} else {
+			assert(field->sec_fullspinor_double);
+			bgq_su3_spinor_prefetch_float(&field->sec_fullspinor_double[ic]);
+		}
+	}
+}
+
+
+EXTERN_INLINE void bgq_spinorfield_prefetchNextSpinor(bgq_weylfield_controlblock *field, tristate isOdd, ucoord ic, bool readWeyllayout, bool sloppy, bool mul, bool legacy) {
+	if (legacy) {
+		// No prefetch for legacy field
+	} else if (readWeyllayout) {
+		if (sloppy) {
+			assert(field->sec_collapsed_float);
+			// Prefetch only first element; the next ones should be prefetched by the reading function
+			bgq_su3_weyl_prefetch_float(&field->sec_collapsed_float[ic+1].d[0]);
+		} else {
+			assert(field->sec_collapsed_double);
+			// Prefetch only first element; the next ones should be prefetched by the reading function
+			bgq_su3_weyl_prefetch_float(&field->sec_collapsed_double[ic+1].d[0]);
+		}
+	} else {
+		if (sloppy) {
+			assert(field->sec_fullspinor_float);
+			bgq_su3_spinornext_prefetch_float(&field->sec_fullspinor_float[ic]);
+		} else {
+			assert(field->sec_fullspinor_double);
+			bgq_su3_spinornext_prefetch_float(&field->sec_fullspinor_double[ic]);
+		}
+	}
+}
+
+
 #define bgq_spinorfield_readSpinor(target, field, isOdd, ic, readWeyllayout, sloppy, mul, legacy) bgq_spinorfield_readSpinor_raw(bgq_su3_spinor_vars(target), field, isOdd, ic, readWeyllayout, sloppy, mul, legacy)
-EXTERN_INLINE void bgq_spinorfield_readSpinor_raw(bgq_su3_spinor_params(*target), bgq_weylfield_controlblock *field, bool isOdd, ucoord ic, bool readWeyllayout, bool sloppy, bool mul, bool legacy) {
+EXTERN_INLINE void bgq_spinorfield_readSpinor_raw(bgq_su3_spinor_params(*target), bgq_weylfield_controlblock *field, tristate isOdd, ucoord ic, bool readWeyllayout, bool sloppy, bool mul, bool legacy) {
 	assert(field);
 	//assert(field->isInitialized);
 
@@ -577,6 +650,7 @@ EXTERN_INLINE void bgq_spinorfield_readSpinor_raw(bgq_su3_spinor_params(*target)
 
 	bgq_su3_spinor_decl(spinor);
 	if (legacy) {
+		assert(isOdd != tri_unknown);
 		int i1_eosub = bgq_collapsed2eosub(isOdd, ic, 0);
 		spinor *addr1 = &field->legacy_field[i1_eosub];
 		bgq_vector4double_decl(left0);

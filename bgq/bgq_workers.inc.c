@@ -773,6 +773,8 @@ static inline void bgq_spinorfield_rewrite_worker(void *arg_untyped, size_t tid,
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = tid*threadload;
 	const size_t end = min_sizet(workload, begin+threadload);
+
+	bgq_spinorfield_streamSpinor(field, isOdd, begin, weyllayout, sloppy, mul, isLegacy);
 	for (ucoord ic = begin; ic < end; ic+=1) {
 #ifndef NDEBUG
 		ucoord ih = bgq_collapsed2halfvolume(field->isOdd, ic);
@@ -786,6 +788,7 @@ static inline void bgq_spinorfield_rewrite_worker(void *arg_untyped, size_t tid,
 
 		bgq_su3_spinor_decl(spinor);
 		bgq_spinorfield_readSpinor(&spinor, field, isOdd, ic, weyllayout, sloppy, mul, isLegacy);
+		bgq_spinorfield_prefetchNextSpinor(field, isOdd, ic, weyllayout, sloppy, mul, isLegacy);
 
 		bgq_spinor_vec *fulladdr = &field->BGQ_SEC_FULLLAYOUT[ic];
 		bgq_su3_spinor_store(fulladdr, spinor);

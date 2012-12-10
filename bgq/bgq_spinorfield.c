@@ -1208,6 +1208,8 @@ static inline void bgq_copyToLegacy_worker(void *arg_untyped, size_t tid, size_t
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = tid*threadload;
 	const size_t end = min_sizet(workload, begin+threadload);
+
+	bgq_spinorfield_streamSpinor(field, isOdd, begin, weyllayout, sloppy, mul, isLegacy);
 	for (ucoord ic = begin; ic<end; ic+=1) {
 #ifndef NDEBUG
 		ucoord t1 = bgq_collapsed2t1(isOdd, ic);
@@ -1220,6 +1222,7 @@ static inline void bgq_copyToLegacy_worker(void *arg_untyped, size_t tid, size_t
 		bgq_su3_spinor_decl(spinor);
 		bgq_spinorfield_readSpinor(&spinor, field, isOdd, ic, weyllayout, sloppy, mul, isLegacy);
 				bgq_spinorqpx_expect(spinor,t1,t2,x,y,z);
+		bgq_spinorfield_prefetchNextSpinor(field, isOdd, ic, weyllayout, sloppy, mul, isLegacy);
 
 		int eosub1 = bgq_collapsed2eosub(isOdd, ic, 0);
 		assert(bgq_eosub2collapsed(isOdd, eosub1) == ic);
