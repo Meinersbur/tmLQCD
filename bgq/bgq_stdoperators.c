@@ -20,6 +20,7 @@ static inline void bgq_site_rmul_plain_sub(bgq_su3_spinor_params(*target), bgq_s
 	bgq_su3_spinor_decl(rmul1);
 
 	// Unfortunately, there is no fused-multiply-sub for this
+	//NOTE: there is, and the compiler combines them automatically!
 	bgq_mul(rmul1_v0_c0, qr, spinor1_v0_c0);
 	bgq_mul(rmul1_v0_c1, qr, spinor1_v0_c1);
 	bgq_mul(rmul1_v0_c2, qr, spinor1_v0_c2);

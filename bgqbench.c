@@ -438,7 +438,7 @@ static int benchmark_master(void *argptr) {
 
 	for (int i = 0; i < iterations; i += 1) {
 		//master_print("Starting iteration %d of %d\n", j+1, iterations);
-		bool isWarmup = (i <= warmups-1);
+		bool isWarmup = (i < warmups);
 		int j = i - warmups;
 		bool isPapi = !isWarmup && (i >= iterations - MYPAPI_SETS);
 		int papiSet = i - (iterations - MYPAPI_SETS);
