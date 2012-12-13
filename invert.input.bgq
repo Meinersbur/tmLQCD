@@ -1,0 +1,38 @@
+# $Id$
+# example input file for invert
+# requires a 4^4 gauge configuration conf.0000
+
+T=48
+L=24
+
+DebugLevel = 5
+InitialStoreCounter = 0
+Measurements = 1
+2kappamu = 0.05
+kappa = 0.177
+BCAngleT = 1.
+GaugeConfigInputFile = /homea/hch02/hch02dd/gauge/48x24_petrov_conf
+InitialStoreCounter = 800
+UseEvenOdd = yes
+
+SourceType = Volume
+ReadSource = no
+NoSamples = 12
+
+BeginOperator TMWILSON
+  2kappaMu = 0.05
+  kappa = 0.177
+  UseEvenOdd = yes
+  Solver = CG
+  SolverPrecision = 1.e-14
+  MaxSolverIterations = 1000
+  AddDownPropagator = yes
+EndOperator
+
+BeginOperator DBTMWILSON
+  2KappaMubar = 0.139
+  2KappaEpsbar = 0.15
+  kappa = 0.177
+  Solver = CG
+  SolverPrecision = 1.e-12
+EndOperator

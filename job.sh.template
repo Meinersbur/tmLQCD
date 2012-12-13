@@ -1,6 +1,6 @@
 #! /usr/bin/bash
 
-make -j bgqbench
+make bgqbench benchmark invert hmc_tm -j32
 if [ "$?" -ne "0" ]; then
   echo "Make failed, not submitting job"
   exit 1

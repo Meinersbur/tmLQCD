@@ -70,6 +70,9 @@
 #include "phmc.h"
 #include "mpi_init.h"
 
+#include "bgq/bgq_spinorfield.h"
+#include <assert.h>
+
 #ifdef PARALLELT
 #  define SLICE (LX*LY*LZ/2)
 #elif defined PARALLELXT
@@ -88,7 +91,7 @@
 
 int check_xchange();
 
-int main(int argc,char *argv[])
+static int main_benchmark(int argc,char *argv[])
 {
   int j,j_max,k,k_max = 1;
 #ifdef HAVE_LIBLEMON
@@ -260,6 +263,16 @@ int main(int argc,char *argv[])
 #if (defined MPI && !(defined _USE_SHMEM))
   check_xchange(); 
 #endif
+
+// BEGIN MK
+	assert(even_odd_flag);
+	bgq_indices_init();
+	bgq_comm_mpi_init();
+	bgq_comm_spi_init();
+	bgq_initbgqref();
+	bgq_spinorfields_init();
+	bgq_gaugefield_init();
+// END MK
 
   start_ranlux(1, 123456);
   random_gauge_field(reproduce_randomnumber_flag);
@@ -443,4 +456,9 @@ int main(int argc,char *argv[])
   free_spinor_field();
   free_moment_field();
   return(0);
+}
+
+
+int main(int argc, char *argv[]) {
+	return bgq_parallel_mainlike(&main_benchmark, argc, argv);
 }
