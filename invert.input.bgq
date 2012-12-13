@@ -2,8 +2,8 @@
 # example input file for invert
 # requires a 4^4 gauge configuration conf.0000
 
-T=48
-L=24
+T=64
+L=32
 
 DebugLevel = 5
 InitialStoreCounter = 0
@@ -11,8 +11,8 @@ Measurements = 1
 2kappamu = 0.05
 kappa = 0.177
 BCAngleT = 1.
-GaugeConfigInputFile = /homea/hch02/hch02dd/gauge/48x24_petrov_conf
-InitialStoreCounter = 800
+GaugeConfigInputFile = /homea/hch02/hch02d/gauge/64x32_gilbert_conf
+InitialStoreCounter = 6460
 UseEvenOdd = yes
 
 SourceType = Volume

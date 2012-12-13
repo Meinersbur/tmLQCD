@@ -91,7 +91,7 @@ SUBDIRS = ${USESUBDIRS}
 # delete the default suffix rules
 .SUFFIXES:
 
-all: Makefile all-recursive dep hmc_tm invert 
+all: Makefile all-recursive dep hmc_tm invert benchmark bgqbench 
 
 #ifneq (,$(findstring lapack,${LIBS}))
 #all: Makefile all-recursive dep hmc_tm invert

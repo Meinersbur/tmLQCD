@@ -33,6 +33,8 @@
 #include "phmc.h"
 #include "chebyshev_polynomial_nd.h"
 
+#include "bgq/bgq_spinorfield.h"
+
 
 
 #define PI 3.141592653589793
@@ -99,7 +101,7 @@ void QdaggerQ_poly(spinor *R_s, spinor *R_c, double *c, int n,
          *aux3c_=NULL, *aux3c=NULL;
 
 
-#if ( defined SSE || defined SSE2 )
+#if 0
    svs_  = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
    svs   = (spinor *)(((unsigned long int)(svs_)+ALIGN_BASE)&~ALIGN_BASE);
    ds_   = calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
@@ -125,30 +127,20 @@ void QdaggerQ_poly(spinor *R_s, spinor *R_c, double *c, int n,
    aux3c_= calloc(VOLUMEPLUSRAND+1, sizeof(spinor));
    aux3c = (spinor *)(((unsigned long int)(aux3c_)+ALIGN_BASE)&~ALIGN_BASE);
 #else
-   svs_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
-   svs = svs_;
-   ds_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
-   ds = ds_;
-   dds_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
-   dds = dds_;
-   auxs_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
-   auxs = auxs_;
-   aux2s_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
-   aux2s = aux2s_;
-   aux3s_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
-   aux3s = aux3s_;
-   svc_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
-   svc = svc_;
-   dc_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
-   dc = dc_;
-   ddc_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
-   ddc = ddc_;
-   auxc_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
-   auxc = auxc_;
-   aux2c_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
-   aux2c = aux2c_;
-   aux3c_=calloc(VOLUMEPLUSRAND, sizeof(spinor));
-   aux3c = aux3c_;
+   spinor *mem = malloc_aligned(12 * VOLUMEPLUSRAND/2 * sizeof(spinor), BGQ_ALIGNMENT_L2);
+   svs = &mem[0 * VOLUMEPLUSRAND/2];
+   ds = &mem[1 * VOLUMEPLUSRAND/2];
+   dds = &mem[2 * VOLUMEPLUSRAND/2];
+   auxs = &mem[3 * VOLUMEPLUSRAND/2];
+   aux2s = &mem[4 * VOLUMEPLUSRAND/2];
+   aux3s = &mem[5 * VOLUMEPLUSRAND/2];
+   svc = &mem[6 * VOLUMEPLUSRAND/2];
+   dc = &mem[7 * VOLUMEPLUSRAND/2];
+   ddc = &mem[8 * VOLUMEPLUSRAND/2];
+   auxc = &mem[9 * VOLUMEPLUSRAND/2];
+   aux2c = &mem[10 * VOLUMEPLUSRAND/2];
+   aux3c = &mem[11 * VOLUMEPLUSRAND/2];
+   bgq_weylfield_collection *col = bgq_spinorfields_allocate(12, mem, VOLUMEPLUSRAND/2);
 #endif
 
 
@@ -217,19 +209,8 @@ void QdaggerQ_poly(spinor *R_s, spinor *R_c, double *c, int n,
    */
 
     
-   free(svs_);  
-   free(ds_);   
-   free(dds_);  
-   free(auxs_); 
-   free(aux2s_);
-   free(aux3s_);
-   free(svc_);  
-   free(dc_);   
-   free(ddc_);  
-   free(auxc_); 
-   free(aux2c_);
-   free(aux3c_);
-   
+   bgq_spinorfields_free(col);
+   free(mem);
 }
   
 
@@ -283,7 +264,7 @@ void degree_of_polynomial_nd(const int degree_of_p){
   }
 
 
-#if ( defined SSE || defined SSE2 || defined SSE3)
+#if 0
   ss_   = calloc(VOLUMEPLUSRAND/2+1, sizeof(spinor));
   auxs_ = calloc(VOLUMEPLUSRAND/2+1, sizeof(spinor));
   aux2s_= calloc(VOLUMEPLUSRAND/2+1, sizeof(spinor));
@@ -299,12 +280,14 @@ void degree_of_polynomial_nd(const int degree_of_p){
   aux2c = (spinor *)(((unsigned long int)(aux2c_)+ALIGN_BASE)&~ALIGN_BASE);
   
 #else
-  ss   =calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
-  auxs =calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
-  aux2s=calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
-  sc   =calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
-  auxc =calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
-  aux2c=calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
+  spinor *mem = malloc_aligned(6 * VOLUMEPLUSRAND/2 * sizeof(spinor), BGQ_ALIGNMENT_L2);
+  ss   = &mem[0 * VOLUMEPLUSRAND/2];
+  auxs = &mem[1 * VOLUMEPLUSRAND/2];
+  aux2s= &mem[2 * VOLUMEPLUSRAND/2];
+  sc   = &mem[3 * VOLUMEPLUSRAND/2];
+  auxc = &mem[4 * VOLUMEPLUSRAND/2];
+  aux2c= &mem[5 * VOLUMEPLUSRAND/2];
+  bgq_weylfield_collection *col = bgq_spinorfields_allocate(6, mem, VOLUMEPLUSRAND/2);
 #endif
   
   
@@ -353,7 +336,7 @@ void degree_of_polynomial_nd(const int degree_of_p){
   }
   /* RECALL THAT WE NEED AN EVEN DEGREE !!!! */
 
-#if ( defined SSE || defined SSE2 || defined SSE3)
+#if 0
    free(ss_);   
    free(auxs_); 
    free(aux2s_);
@@ -361,12 +344,8 @@ void degree_of_polynomial_nd(const int degree_of_p){
    free(auxc_); 
    free(aux2c_);
 #else
-   free(ss);   
-   free(auxs); 
-   free(aux2s);
-   free(sc);   
-   free(auxc); 
-   free(aux2c);
+   bgq_spinorfields_free(col);
+   free(mem);
 #endif
 
 }

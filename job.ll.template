@@ -68,21 +68,23 @@ export XLSMPOPTS="procs=${PROCS}"
 
 ln -f -s ${LOADL_STEP_OUT} lqtmlqcd.out 
 
+echo ==phmc==================================================================================
+runjob --ranks-per-node 1 --env-all : ./hmc_tm -f phmc.input.bgq 
 echo ==hmc_tm==================================================================================
-runjob --ranks-per-node 1 --env-all : ./hmc_tm -f hmc.input.bgq 
+#runjob --ranks-per-node 1 --env-all : ./hmc_tm -f hmc.input.bgq 
 echo ==invert==================================================================================
-runjob --ranks-per-node 1 --env-all : ./invert -f invert.input.bgq
+#runjob --ranks-per-node 1 --env-all : ./invert -f invert.input.bgq
 echo ==benchmark==================================================================================
-runjob --ranks-per-node 1 --env-all : ./benchmark -f ${INPUT_FILE_MEDIUM} 
+#runjob --ranks-per-node 1 --env-all : ./benchmark  
 
 echo ==TINY==================================================================================
-runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
+#runjob -np 1 --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
 echo ==SMALL=================================================================================
-runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_SMALL} 
+#runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_SMALL} 
 echo ==MEDIUM================================================================================
 runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_MEDIUM} 
 echo ==BIG===================================================================================
-runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_BIG} 
+#runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_BIG} 
 echo ========================================================================================
 
 

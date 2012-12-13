@@ -1670,6 +1670,8 @@ bgq_weylfield_controlblock *bgq_translate_spinorfield(const spinor *legacy_field
 		assert(result!=NULL);
 		return result;
 	}
+
+	assert(false);
 	return NULL;
 }
 
