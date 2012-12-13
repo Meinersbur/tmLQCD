@@ -70,6 +70,9 @@
 #include "phmc.h"
 #include "mpi_init.h"
 
+#include "bgq/bgq_dispatch.h"
+#include "bgq/bgq_gaugefield.h"
+#include "bgq/bgq_comm.h"
 #include "bgq/bgq_spinorfield.h"
 #include <assert.h>
 

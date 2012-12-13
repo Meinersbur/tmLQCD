@@ -62,14 +62,13 @@ static inline void bgq_site_rmul_plain_sub(bgq_su3_spinor_params(*target), bgq_s
 
 #ifndef OPERATOR_NAME
 // Make this .inc.c file compilable as stand-alone
-#define OPERATOR_NAME bgq_operator
-#define OPERATOR_ARGFIELDS 1
-#define OPERATOR_EXTRAPARMS bgq_params(qz),bgq_params(qw)
-#define OPERATOR_EXTRAARGS bgq_vars(qz),bgq_vars(qw)
-#define OPERATOR_VECSITEFUNC vecsitefunc_raw
+#define OPERATOR_NAME bgq_spinorfield_rmul_plain_sub_raw
+#define OPERATOR_ARGFIELDS 2
+#define OPERATOR_VECSITEFUNC bgq_site_rmul_plain_sub
+#define OPERATOR_EXTRAPARMS bgq_params(qr)
+#define OPERATOR_EXTRAARGS bgq_vars(qr)
 
-static inline void vecsitefunc_raw(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor1), bgq_params(qz),bgq_params(qw), ucoord ic) {
-}
+
 #endif
 
 
