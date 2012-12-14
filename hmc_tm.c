@@ -422,15 +422,6 @@ int main_hmc(int argc,char *argv[]) {
 		init_phmc();
 	}
 
-
-// BEGIN MK
-	if (g_running_phmc) {
-		bgq_spinorfields_allocate(20, g_chi_up_spinor_field[0], VOLUMEPLUSRAND / 2);
-		bgq_spinorfields_allocate(20, g_chi_dn_spinor_field[0], VOLUMEPLUSRAND / 2);
-	}
-// END MK
-
-
 	zero_spinor_field(g_spinor_field[DUM_DERI+4],VOLUME/2);
 	zero_spinor_field(g_spinor_field[DUM_DERI+5],VOLUME/2);
 	zero_spinor_field(g_spinor_field[DUM_DERI+6],VOLUME/2);

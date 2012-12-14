@@ -40,6 +40,8 @@
 #include "linalg_eo.h"
 #include "Nondegenerate_Matrix.h"
 
+#include "bgq/bgq_spinorfield.h"
+
 
 void mul_one_minus_imubar(spinor * const l, spinor * const k);
 /******************************************
@@ -436,7 +438,7 @@ void Q_Qdagger_ND_BI(bispinor * const bisp_l, bispinor * const bisp_k){
   static spinor *k_strange, *k_charm;
   static spinor *l_strange, *l_charm;
 
-#if ( defined SSE || defined SSE2 || defined SSE3)
+#if 0
   static spinor *k_strange_, *k_charm_;
   static spinor *l_strange_, *l_charm_;
   if(memalloc == 0) {
@@ -454,11 +456,12 @@ void Q_Qdagger_ND_BI(bispinor * const bisp_l, bispinor * const bisp_k){
 #else
   if(memalloc == 0) {
     memalloc = 1;
-    k_strange  = (spinor*)calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
-    k_charm    = (spinor*)calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
+    k_strange  = malloc_aligned(4 * VOLUMEPLUSRAND/2 * sizeof(spinor), BGQ_ALIGNMENT_L2);
+    k_charm    = &k_strange[1 * VOLUMEPLUSRAND/2];
     
-    l_strange  = (spinor*)calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
-    l_charm    = (spinor*)calloc(VOLUMEPLUSRAND/2, sizeof(spinor));
+    l_strange  = &k_strange[2 * VOLUMEPLUSRAND/2];
+    l_charm    = &k_strange[3 * VOLUMEPLUSRAND/2];
+    bgq_spinorfields_allocate(4, k_strange, VOLUMEPLUSRAND/2);
   }
 #endif
 

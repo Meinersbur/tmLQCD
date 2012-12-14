@@ -28,6 +28,8 @@
 #include "sse.h"
 #include "init_chi_spinor_field.h"
 
+#include "bgq/bgq_spinorfield.h"
+
 spinor * sp_up = NULL;
 spinor * sp_dn = NULL;
 
@@ -46,6 +48,7 @@ int init_chi_spinor_field(const int V, const int nr) {
       errno = 0;
       return(1);
     }
+
     if((void*)(g_chi_up_spinor_field = malloc(nr*sizeof(spinor*))) == NULL) {
       printf ("malloc errno : %d\n",errno); 
       errno = 0;
@@ -68,11 +71,14 @@ int init_chi_spinor_field(const int V, const int nr) {
     g_chi_up_spinor_field[0] = (spinor*)(((unsigned long int)(sp_up)+31)&~31);
     g_chi_dn_spinor_field[0] = (spinor*)(((unsigned long int)(sp_dn)+31)&~31);
 #endif
-    
+
     for(i = 1; i < nr; i++){
       g_chi_up_spinor_field[i] = g_chi_up_spinor_field[i-1]+V;
       g_chi_dn_spinor_field[i] = g_chi_dn_spinor_field[i-1]+V;
     }
+
+    bgq_spinorfields_allocate(nr, g_chi_up_spinor_field[0], V);
+    bgq_spinorfields_allocate(nr, g_chi_dn_spinor_field[0], V);
   }
   return(0);
 }

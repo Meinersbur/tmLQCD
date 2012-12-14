@@ -159,14 +159,17 @@ void ndpoly_heatbath(const int id, hamiltonian_field_t * const hf) {
 
   (*mnl).energy0 = 0.;
   random_spinor_field(g_chi_up_spinor_field[0], VOLUME/2, (*mnl).rngrepro);
+  spinorfield_setOddness(g_chi_up_spinor_field[0], 0);
   (*mnl).energy0 = square_norm(g_chi_up_spinor_field[0], VOLUME/2, 1);
 
   if(g_epsbar!=0.0 || phmc_exact_poly == 0){
     random_spinor_field(g_chi_dn_spinor_field[0], VOLUME/2, (*mnl).rngrepro);
+    spinorfield_setOddness(g_chi_dn_spinor_field[0], 1);
      (*mnl).energy0 += square_norm(g_chi_dn_spinor_field[0], VOLUME/2, 1);
   } 
   else {
     zero_spinor_field(g_chi_dn_spinor_field[0], VOLUME/2);
+    spinorfield_setOddness(g_chi_dn_spinor_field[0], 1);
   }
 
   if((g_proc_id == g_stdio_proc) && (g_debug_level > 2)) {

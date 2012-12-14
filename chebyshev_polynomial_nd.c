@@ -148,9 +148,13 @@ void QdaggerQ_poly(spinor *R_s, spinor *R_c, double *c, int n,
    fact2=-2*(phmc_cheb_evmax+phmc_cheb_evmin)/(phmc_cheb_evmax-phmc_cheb_evmin);
 
    zero_spinor_field(&ds[0],VOLUME/2);
+   spinorfield_setOddness(&ds[0], 0);
    zero_spinor_field(&dds[0],VOLUME/2); 
+   spinorfield_setOddness(&dds[0], 0);
    zero_spinor_field(&dc[0],VOLUME/2);
+   spinorfield_setOddness(&dc[0], 1);
    zero_spinor_field(&ddc[0],VOLUME/2); 
+   spinorfield_setOddness(&ddc[0], 1);
 
    /*   sub_low_ev(&aux3[0], &S[0]);  */
    assign(&aux3s[0], &S_s[0],VOLUME/2);  
@@ -294,7 +298,9 @@ void degree_of_polynomial_nd(const int degree_of_p){
   chebyshev_coefs(phmc_cheb_evmin, phmc_cheb_evmax, phmc_dop_cheby_coef, phmc_dop_n_cheby, -0.5);
 
   random_spinor_field(ss,VOLUME/2, 1);
+  spinorfield_setOddness(ss, 0);
   random_spinor_field(sc,VOLUME/2, 1);
+  spinorfield_setOddness(sc, 1);
 
   if((g_proc_id == g_stdio_proc) && (g_debug_level > 0)){
     printf("NDPOLY MD Polynomial: EVmin = %e  EVmax = %e  \n", phmc_cheb_evmin, phmc_cheb_evmax);
