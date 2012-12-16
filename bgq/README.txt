@@ -80,6 +80,8 @@ A specific layout can be requested using the function bgq_spinorfield_prepareWri
 
 "even_odd_flag" must be defined. Non-even/odd spinor fields are not supported.
 
+For HoppingMatrix, there another arrangement of the gauge field is required, which is handled like _GAUGE_COPY. It is always kept in double precesion, even if single precision is chosen.
+
 
 Local Lattice Constraints
 -------------------------

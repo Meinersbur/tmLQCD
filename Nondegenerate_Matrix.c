@@ -41,6 +41,7 @@
 #include "Nondegenerate_Matrix.h"
 
 #include "bgq/bgq_spinorfield.h"
+#include "bgq/bgq_stdoperators.h"
 
 
 void mul_one_minus_imubar(spinor * const l, spinor * const k);
@@ -369,8 +370,18 @@ void Q_tau1_min_cconst_ND(spinor * const l_strange, spinor * const l_charm,
 
   /************ loop over all lattice sites ************/
 
-  spinorfield_linalg_wr(l_strange, k_strange);
-  spinorfield_linalg_wr(l_charm, k_charm);
+
+#if 0
+  bgq_weylfield_controlblock *strange_target = bgq_translate_spinorfield(l_strange);
+  bgq_weylfield_controlblock *strange_source = bgq_translate_spinorfield(k_strange);
+  bgq_spinorfield_cmul_plain_add_double(strange_target, true, strange_source, strange_target, -z);
+
+  bgq_weylfield_controlblock *charm_target = bgq_translate_spinorfield(l_strange);
+  bgq_weylfield_controlblock *charm_source = bgq_translate_spinorfield(k_strange);
+  bgq_spinorfield_cmul_plain_add_double(charm_target, true, charm_source, charm_target, -z);
+#else
+  spinorfield_linalg_ur(l_strange, k_strange);
+  spinorfield_linalg_ur(l_charm, k_charm);
 #ifdef OMP
 #pragma omp parallel for private(r) private(s) private(phi1) private(ix)
 #endif
@@ -400,6 +411,7 @@ void Q_tau1_min_cconst_ND(spinor * const l_strange, spinor * const l_charm,
     _complex_times_vector(phi1, z, s->s3);
     _vector_sub_assign(r->s3, phi1);    
   }
+#endif
 
   /* Finally, we multiply by the constant  phmc_Cpol  */
   /* which renders the polynomial in monomials  */

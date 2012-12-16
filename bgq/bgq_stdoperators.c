@@ -402,3 +402,74 @@ void bgq_spinorfield_cjgmul_float(bgq_weylfield_controlblock *targetfield, trist
 
 
 
+static inline void bgq_site_rmul_rmul_add(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor1), bgq_su3_spinor_params(spinor2), bgq_params(qr1), bgq_params(qr2), ucoord ic) {
+	// The compiler will join this to FMA-instructions
+	bgq_su3_spinor_decl(rmul1);
+	bgq_su3_spinor_mul(rmul1, qr1, spinor1);
+
+	bgq_su3_spinor_decl(rmul2);
+	bgq_su3_spinor_mul(rmul2, qr2, spinor2);
+
+	bgq_su3_spinor_decl(result);
+	bgq_su3_spinor_add(result, rmul1, rmul2);
+
+	bgq_su3_spinor_mov(*target, result);
+}
+
+#define OPERATOR_NAME bgq_spinorfield_rmul_rmul_add_raw
+#define OPERATOR_ARGFIELDS 2
+#define OPERATOR_VECSITEFUNC bgq_site_rmul_rmul_add
+#define OPERATOR_EXTRAPARMS bgq_params(qr1), bgq_params(qr2)
+#define OPERATOR_EXTRAARGS bgq_vars(qr1), bgq_vars(qr2)
+#include "bgq_operator.inc.c"
+
+
+void bgq_spinorfield_rmul_rmul_add_double(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield1, bgq_weylfield_controlblock *sourcefield2, double r1, double r2) {
+	bgq_vector4double_decl(qr1);
+	bgq_cconst(qr1, r1, r1);
+	bgq_vector4double_decl(qr2);
+	bgq_cconst(qr2, r2, r2);
+	bgq_spinorfield_rmul_rmul_add_raw_double(targetfield, isOdd, sourcefield1, sourcefield2, bgq_vars(qr1), bgq_vars(qr2));
+}
+
+void bgq_spinorfield_rmul_rmul_add_float(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield1, bgq_weylfield_controlblock *sourcefield2, double r1, double r2) {
+	bgq_vector4double_decl(qr1);
+	bgq_cconst(qr1, r1, r1);
+	bgq_vector4double_decl(qr2);
+	bgq_cconst(qr2, r2, r2);
+	bgq_spinorfield_rmul_rmul_add_raw_float(targetfield, isOdd, sourcefield1, sourcefield2, bgq_vars(qr1), bgq_vars(qr2));
+}
+
+
+
+
+
+static inline void bgq_site_cmul_plain_add(bgq_su3_spinor_params(*target), bgq_su3_spinor_params(spinor1), bgq_su3_spinor_params(spinor2), bgq_params(qc), ucoord ic) {
+	bgq_su3_spinor_decl(result);
+
+	bgq_su3_cvmadd(result_v0, qc, spinor1_v0, spinor2_v0);
+	bgq_su3_cvmadd(result_v1, qc, spinor1_v1, spinor2_v1);
+	bgq_su3_cvmadd(result_v2, qc, spinor1_v2, spinor2_v2);
+	bgq_su3_cvmadd(result_v3, qc, spinor1_v3, spinor2_v3);
+
+	bgq_su3_spinor_mov(*target, result);
+}
+
+#define OPERATOR_NAME bgq_spinorfield_cmul_plain_add_raw
+#define OPERATOR_ARGFIELDS 2
+#define OPERATOR_VECSITEFUNC bgq_site_cmul_plain_add
+#define OPERATOR_EXTRAPARMS bgq_params(qc)
+#define OPERATOR_EXTRAARGS bgq_vars(qc)
+#include "bgq_operator.inc.c"
+
+void bgq_spinorfield_cmul_plain_add_double(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield1, bgq_weylfield_controlblock *sourcefield2, complex_double c) {
+	bgq_vector4double_decl(qc);
+	bgq_cconst(qc, creal(c), cimag(c));
+	bgq_spinorfield_cmul_plain_add_raw_double(targetfield, isOdd, sourcefield1, sourcefield2, bgq_vars(qc));
+}
+
+void bgq_spinorfield_cmul_plain_add_float(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield1, bgq_weylfield_controlblock *sourcefield2, complex_double c) {
+	bgq_vector4double_decl(qc);
+	bgq_cconst(qc, creal(c), cimag(c));
+	bgq_spinorfield_cmul_plain_add_raw_float(targetfield, isOdd, sourcefield1, sourcefield2, bgq_vars(qc));
+}

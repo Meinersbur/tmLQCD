@@ -35,4 +35,10 @@ void bgq_spinorfield_gamma5_float(bgq_weylfield_controlblock *targetfield, trist
 void bgq_spinorfield_cjgmul_double(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield, complex_double c);
 void bgq_spinorfield_cjgmul_float(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield, complex_double c);
 
+void bgq_spinorfield_rmul_rmul_add_double(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield1, bgq_weylfield_controlblock *sourcefield2, double r1, double r2);
+void bgq_spinorfield_rmul_rmul_add_float(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield1, bgq_weylfield_controlblock *sourcefield2, double r1, double r2);
+
+void bgq_spinorfield_cmul_plain_add_double(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield1, bgq_weylfield_controlblock *sourcefield2, complex_double c1);
+void bgq_spinorfield_cmul_plain_add_float(bgq_weylfield_controlblock *targetfield, tristate isOdd, bgq_weylfield_controlblock *sourcefield1, bgq_weylfield_controlblock *sourcefield2, complex_double c1);
+
 #endif /* BGQ_STDOPERATORS_H_ */

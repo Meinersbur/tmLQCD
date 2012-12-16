@@ -276,5 +276,17 @@ void add(spinor * const Q,const spinor * const R,const spinor * const S, const i
 	bgq_spinorfield_add_double(targetfield, tri_unknown, spinorfield1, spinorfield2);
 }
 
-#endif
 
+void assign_mul_add_mul_add_mul_add_mul_r(spinor * const R, spinor * const S, spinor * const U, spinor * const V,
+					  const double c1, const double c2, const double c3, const double c4, const int N) {
+	bgq_weylfield_controlblock *targetfield = bgq_translate_spinorfield(R);
+	bgq_weylfield_controlblock *spinorfield1 = bgq_translate_spinorfield(S);
+	bgq_weylfield_controlblock *spinorfield2 = bgq_translate_spinorfield(U);
+	bgq_weylfield_controlblock *spinorfield3 = bgq_translate_spinorfield(V);
+
+	bgq_spinorfield_rmul_rmul_add_double(targetfield, tri_unknown,  spinorfield1, targetfield, c2, c1);
+	bgq_spinorfield_rmul_plain_add_double(targetfield, tri_unknown, spinorfield2, targetfield, c3);
+	bgq_spinorfield_rmul_plain_add_double(targetfield, tri_unknown, spinorfield3, targetfield, c4);
+}
+
+#endif

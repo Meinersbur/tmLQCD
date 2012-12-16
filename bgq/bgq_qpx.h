@@ -1382,10 +1382,25 @@ do {\
 	bgq_isub(NAME2(dst,c1), NAME2(v1,c1), NAME2(v2,c1)); \
 	bgq_isub(NAME2(dst,c2), NAME2(v1,c2), NAME2(v2,c2))
 
+#define bgq_su3_vmul(dst,r,v) \
+	do { \
+		bgq_mul(NAME2(dst,c0), r, NAME2(v,c0)); \
+		bgq_mul(NAME2(dst,c1), r, NAME2(v,c1)); \
+		bgq_mul(NAME2(dst,c2), r, NAME2(v,c2)); \
+	} while (0)
+
 #define bgq_su3_cvmul(dst,c,v)              \
 	bgq_cmul(NAME2(dst,c0), c, NAME2(v,c0)); \
 	bgq_cmul(NAME2(dst,c1), c, NAME2(v,c1)); \
 	bgq_cmul(NAME2(dst,c2), c, NAME2(v,c2))
+
+
+#define bgq_su3_cvmadd(dst,c,v,vadd)              \
+	do { \
+		bgq_cmadd(NAME2(dst,c0), c, NAME2(v,c0), NAME2(vadd,c0)); \
+		bgq_cmadd(NAME2(dst,c1), c, NAME2(v,c1), NAME2(vadd,c0)); \
+		bgq_cmadd(NAME2(dst,c2), c, NAME2(v,c2), NAME2(vadd,c0)); \
+	} while (0)
 
 #define bgq_su3_cjgvmul(dst,c,v)              \
 	bgq_cjgmul(NAME2(dst,c0), c, NAME2(v,c0)); \
@@ -1400,6 +1415,23 @@ do {\
 #define bgq_su3_weyl_cjgmul(dst,c,weyl) \
 	bgq_su3_cjgvmul(NAME2(dst,v0), c, NAME2(weyl,v0)); \
 	bgq_su3_cjgvmul(NAME2(dst,v1), c, NAME2(weyl,v1))
+
+
+#define bgq_su3_spinor_mul(dst,r,spinor) \
+	do { \
+		bgq_su3_vmul(NAME2(dst,v0),r,NAME2(spinor,v0)); \
+		bgq_su3_vmul(NAME2(dst,v1),r,NAME2(spinor,v1)); \
+		bgq_su3_vmul(NAME2(dst,v2),r,NAME2(spinor,v2)); \
+		bgq_su3_vmul(NAME2(dst,v3),r,NAME2(spinor,v3)); \
+	} while (0)
+
+#define bgq_su3_spinor_add(dst,lhs,rhs) \
+	do { \
+		bgq_su3_vadd(NAME2(dst,v0),NAME2(lhs,v0),NAME2(rhs,v0)); \
+		bgq_su3_vadd(NAME2(dst,v1),NAME2(lhs,v1),NAME2(rhs,v1)); \
+		bgq_su3_vadd(NAME2(dst,v2),NAME2(lhs,v2),NAME2(rhs,v2)); \
+		bgq_su3_vadd(NAME2(dst,v3),NAME2(lhs,v3),NAME2(rhs,v3)); \
+	} while (0)
 
 
 #define bgq_su3_mvmul(dst,m,v)                                                      \

@@ -402,7 +402,7 @@ void deriv_Sb(const int ieo, spinor * const l, spinor * const k,
 
 void deriv_Sb(const int ieo, spinor * const l, spinor * const k, 
 	      hamiltonian_field_t * const hf, const double factor) {
-	spinorfield_linalg_wr_invert(l, k);
+	spinorfield_linalg_rr(l, k);
 
 #ifdef _GAUGE_COPY
   if(g_update_gauge_copy) {

@@ -26,6 +26,8 @@
  *
  *******************************************************************************/
 
+#if !BGQ_REPLACE
+
 #ifdef HAVE_CONFIG_H
 # include<config.h>
 #endif
@@ -82,3 +84,5 @@ void assign_mul_add_mul_add_mul_add_mul_r(spinor * const R, spinor * const S, sp
   } /* OpenMP closing brace */
 #endif
 }
+
+#endif
