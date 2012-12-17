@@ -2541,10 +2541,11 @@ void Hopping_Matrix(int ieo, spinor * const l/*0..VOLUME/2-1*/, spinor * const k
   ioff2 = (VOLUME+RAND)/2-ioff;
   /**************** loop over all lattice sites ****************/
 
-  for (icx = ioff; icx < (VOLUME/2 + ioff); icx++){
-    ix=g_eo2lexic[icx];
+  for (icx/*eo*/ = ioff; icx < (VOLUME/2 + ioff); icx++){
+    ix/*lexic*/=g_eo2lexic[icx];
 
-    r=l+(icx-ioff);
+    int i_eosub = icx-ioff;
+    r/*physical*/=l+i_eosub;
 
 
 	const int t = g_coord[ix][0];
