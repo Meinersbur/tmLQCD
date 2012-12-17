@@ -1437,6 +1437,7 @@ static bgq_weylfield_collection *g_bgq_spinorfield_collection_unused = NULL;
 
 bgq_weylfield_collection *bgq_spinorfields_allocate(size_t count, spinor *legacyFields, size_t fieldLength) {
 	bgq_spinorfields_init();
+	assert(fieldLength >= VOLUME/2);
 
 	bgq_weylfield_collection *result;
 	size_t nInitialized = 0;

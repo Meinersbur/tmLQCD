@@ -48,18 +48,14 @@ int init_solver_field(spinor *** const solver_field, const int V, const int nr) 
     return(1);
   }
 #else
-  if((void*)((*solver_field)[nr] = (spinor*)calloc(nr*V+1, sizeof(spinor))) == NULL) {
-    printf ("malloc errno in init_solver_field: %d\n",errno); 
-    errno = 0;
-    return(1);
-  }
+  (*solver_field)[nr] = malloc_aligned(nr*V*sizeof(spinor), BGQ_ALIGNMENT_L2);
 #endif
 
   /* now cut in pieces and distribute to solver_field[0]-solver_field[nr-1] */
 #if ( defined SSE || defined SSE2 || defined SSE3)
   (*solver_field)[0] = (spinor*)(((unsigned long int)((*solver_field)[nr])+ALIGN_BASE)&~ALIGN_BASE);
 #else
-  (*solver_field)[0] = (spinor*)(((unsigned long int)((*solver_field)[nr])+31)&~31);
+  (*solver_field)[0] = (*solver_field)[nr];
 #endif
   for(i = 1; i < nr; i++){
     (*solver_field)[i] = (*solver_field)[i-1]+V;
