@@ -76,6 +76,7 @@ Some notable build system issues were:
 - Executables are always linked which may take a lot of time if Link-Time Optimization is enabled. The issue was that some .PHONY targets are in the dependency lists.
 - GIT-VERSION-GEN has not been called when something changes. If called, it's called eveytime if the git version did not change because the timestamp of git_hash.h is not updated
 - Non-consistent use of CPPFLAGS, CFLAGS, DEPFLAGS, LDFLAGS, LIBS
+- AC_FUNC_MALLOC may change all calls to malloc to calls to rpl_malloc, which must be defined somewhere
 
 
 Implementation Notes
