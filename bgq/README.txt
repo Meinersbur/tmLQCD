@@ -14,10 +14,12 @@ Showcase performance per node (204000 machine peak, 159120 theoretical limit, 13
 87119 MFlop/s (12x10x10x12 local lattice, 64 threads, without communication, double precision, 1320 Flop/stencil)
 99642 MFlop/s (12x10x10x12 local lattice, 64 threads, without communication, single precision, 1320 Flop/stencil)
 
+75978 MFlop/s (12x10x10x12 local lattice, 48 threads,  4x4x4x1=64 nodes, double precision, 1608 Flop/stencil)
+90163 MFlop/s (12x10x10x12 local lattice, 48 threads,  4x4x4x1=64 nodes, single precision, 1608 Flop/stencil)
+
 [tmLQCD_official_450]
 60113 MFlop/s (12x10x10x12 local lattice, 64 threads, 4x4x2x1=32 nodes, benchmark.c)
 114404 MFlop/s  (12x10x10x12 local lattice, 64 threads, 4x4x2x1=32 nodes, benchmark.c, Communication switched off)
-
 
 [tmLQCD_official_415]
 50387 MFlop/s (12x10x8x8 local lattice, 64 threads, 4x4x2x1=32 nodes, double precision, 1608 Flop/stencil)
@@ -30,6 +32,21 @@ Showcase performance per node (204000 machine peak, 159120 theoretical limit, 13
 [tmLQCD_official_379]
 18175 MFlop/s (8x16x2x4 local lattice, 64 threads, 4x4x4x1=64 nodes, double precision, 1608 Flop/stencil)
 60758 MFlop/s (8x16x2x4 local lattice, 64 threads, no communication, double precision, 1608 Flop/stencil)
+
+[tmLQCD_official_465]
+50440 MFlop/s (12x8x8x8 local lattice, 64 threads, 4x4x2x1=32 nodes, double precision, 1608 Flop/stencil)
+92730 MFlop/s (12x8x8x8 local lattice, 64 threads, no communication, double precision, 1608 Flop/stencil)
+
+[tmLQCD_official_469]
+23286 MFlop/s (24x4x4x4 local lattice, 64 threads, 4x4x2x1=32 nodes, double precision, 1608 Flop/stencil)
+53938 MFlop/s (24x4x4x4 local lattice, 64 threads, no communication, double precision, 1608 Flop/stencil)
+
+[tmLQCD_official_474]
+65293 MFlop/s (12x10x10x12 local lattice, 64 threads, 4x4x4x1=64 nodes, EDCBAT mapping, double precision, 1608 Flop/stencil)
+
+[tmLQCD_official_476]
+75359 MFlop/s (12x10x10x12 local lattice, 48 threads, 4x4x4x1=64 nodes, double precision, 1608 Flop/stencil)
+87737 MFlop/s (12x10x10x12 local lattice, 64 threads, 4x4x4x1=64 nodes, single precision, 1608 Flop/stencil)
 
 
 Best performance is reached with square big local lattices, but whose working set still fits into the L2 cache. This limit is at about 12x10x10x12. For bigger local lattices, kernel performance drops by 74%.
@@ -136,9 +153,11 @@ Legacy Operators
 
 Not all field functions have been translated to use the new layout. For the remaining, bgq_translate_spinorfield can be used to get the bgq_weylfield_controlblock that corresponds to a legacy field. Use bgq_weylfield_controlblock.legacy_field for the other direction.
 
-To be sure that the legacy field is up-to-date, spinorfield_enable must be called before accessing it.
+To be sure that the legacy field is up-to-date, spinorfield_enable must be called before accessing it. This will copy the field data into the expected location, therefore involves a performance penalty.
 
 Field operatores that have been disabled using #if !BGQ_REPLACE, and their replacement resides in bgq/bgq_legacy.c . This effectively leaves the files empty and the compiler might warn about it.
+
+Notably, deriv_Sb has not been replaced.
 
 
 Error-Checking
@@ -153,4 +172,35 @@ Freeing Resources
 None of the resource allocated are ever freed. This is due to the nature of the application possibly needing the resources until it finishes, i.e. when the OS will free everything anyways.
 
 However some fields, noteably those used by solvers, are allocated and freed at when they are no more needed. These fields are put into a pool to be reused when fields are allocated again. This saves runtime because pointer locations need to be set up for HoppingMatrix.
+
+
+Asynchronous Communication
+--------------------------
+
+Communication overlaps with the processing of sites that do not need any data from neighbor nodes. In addition, communication is not required to finish before
+- Field field result is used in some field operator OR
+- Another communication is triggered that needs the communication buffers
+
+Therefore communication can be hidded even more if, after HoppingMatrix has been called, a linalg operator on a different field should be called. E.g. 
+HoppingMatrix(EO, targetfield, source)
+add(temp, source, anothersource)
+dosomething(targetfield)
+
+
+More Optimization Possibilities
+-------------------------------
+
+If the working set does not fit into the L2 cache, a full spinor optimization will be faster.
+
+The prefetching depth (dcbt) has not been fine-tuned.
+
+Currently tm_times_Hopping_Matrix is split up into to operations, using in a single loop is probably faster. More generally, any field could be annotated with a factor to multiply with on the fly. This, however, will again increase the number of combinations of fields layouts the operators must implement. tm_sub_Hopping_Matrix is probably not worth doing this because it reads another stream which the hardware is unable to track (i.e. 4 prefetch streams or more).
+
+
+bgqbench
+--------
+
+There is a new benchmarking program bgqbench.c especially designed to compare the execution speed of HoppingMatrix. It shows the speed with various number of threads and options, like double/single precision, SPI/MPI/no communication and prefetching modes.
+
+Set BGQ_REPLACE=0 such that it can show the error compared to the legacy implementation.
 
