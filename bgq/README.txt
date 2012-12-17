@@ -15,7 +15,7 @@ Showcase performance per node (204000 machine peak, 159120 theoretical limit, 13
 99642 MFlop/s (12x10x10x12 local lattice, 64 threads, without communication, single precision, 1320 Flop/stencil)
 
 75978 MFlop/s (12x10x10x12 local lattice, 48 threads,  4x4x4x1=64 nodes, double precision, 1608 Flop/stencil)
-90163 MFlop/s (12x10x10x12 local lattice, 48 threads,  4x4x4x1=64 nodes, single precision, 1608 Flop/stencil)
+90163 MFlop/s (12x10x10x12 local lattice, 64 threads,  4x4x4x1=64 nodes, single precision, 1608 Flop/stencil)
 
 [tmLQCD_official_450]
 60113 MFlop/s (12x10x10x12 local lattice, 64 threads, 4x4x2x1=32 nodes, benchmark.c)
