@@ -165,6 +165,11 @@ int main_hmc(int argc,char *argv[]) {
   g_proc_id = 0;
 #endif
 
+  if (g_proc_id == 0) {
+    fprintf(stderr, "MK_Static memusage:\n");
+    print_memusage(); // MK
+  }
+
 
   while ((c = getopt(argc, argv, "h?vVf:o:")) != -1) {
     switch (c) {
@@ -408,6 +413,11 @@ int main_hmc(int argc,char *argv[]) {
 
 
 // BEGIN MK
+  if (g_proc_id == 0) {
+    fprintf(stderr, "MK_init memusage:\n");
+    print_memusage(); // MK
+  }
+
 	assert(even_odd_flag);
 	bgq_indices_init();
 	bgq_comm_mpi_init();
@@ -415,6 +425,11 @@ int main_hmc(int argc,char *argv[]) {
 	bgq_initbgqref();
 	bgq_spinorfields_init();
 	bgq_gaugefield_init();
+
+	if (g_proc_id == 0) {
+		fprintf(stderr, "MK_BGQ memusage:\n");
+		print_memusage(); // MK
+	}
 // END MK
 
 
@@ -466,6 +481,11 @@ int main_hmc(int argc,char *argv[]) {
     }
     fprintf(countfile, "\n");
     fclose(countfile);
+  }
+
+  if (g_proc_id == 0) {
+    fprintf(stderr, "MK_Loop memusage:\n");
+    print_memusage(); // MK
   }
 
   /* Loop for measurements */
@@ -582,6 +602,11 @@ int main_hmc(int argc,char *argv[]) {
     trajectory_counter++;
   } /* end of loop over trajectories */
 
+  if (g_proc_id == 0) {
+    fprintf(stderr, "MK_Done memusage:\n");
+    print_memusage(); // MK
+  }
+
   if(g_proc_id == 0 && Nmeas != 0) {
     printf("# Acceptance rate was %3.2f percent, %d out of %d trajectories accepted.\n", 100.*(double)Rate/(double)Nmeas, Rate, Nmeas);
     fflush(stdout);
@@ -605,6 +630,11 @@ int main_hmc(int argc,char *argv[]) {
   if(g_running_phmc) {
     free_bispinor_field();
     free_chi_spinor_field();
+  }
+
+  if (g_proc_id == 0) {
+    fprintf(stderr, "MK_Exit memusage:\n");
+    print_memusage(); // MK
   }
 
   return(0);

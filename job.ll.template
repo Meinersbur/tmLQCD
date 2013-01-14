@@ -8,8 +8,8 @@
 #@ notification = error
 #@ notify_user = juqueen@meinersbur.de
 #@ job_type = bluegene
-##@ bg_size = 32
-#@ bg_shape = 1x1x1x1
+#@ bg_size = 32
+##@ bg_shape = 1x1x1x1
 #@ bg_connectivity = TORUS
 #@ queue
 
@@ -50,10 +50,10 @@ LZ=64
 
 INPUT_FILE_PHMC=hmc_tm.input_phmc.${LOADL_STEP_ID}
 cat > ${INPUT_FILE_PHMC} <<+EOF
-T=256
-LX=128
-LY=128
-LZ=128
+T=16
+LX=16
+LY=16
+LZ=16
 
 OMPNumThreads = 64
 DebugLevel = 1

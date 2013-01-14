@@ -69,9 +69,11 @@ int init_spinor_field(const int V, const int nr) {
     g_spinor_field[i] = g_spinor_field[i-1]+V;
   }
 
+//#if BGQ_REPLACE
   assert(!g_bgq_spinorfields);
   bgq_weylfield_collection *collection = bgq_spinorfields_allocate(nr, g_spinor_field[0], V);
   g_bgq_spinorfields = collection->controlblocks;
+//#endif
   return(0);
 }
 
