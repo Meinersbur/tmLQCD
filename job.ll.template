@@ -8,8 +8,8 @@
 #@ notification = error
 #@ notify_user = juqueen@meinersbur.de
 #@ job_type = bluegene
-#@ bg_size = 32
-##@ bg_shape = 1x1x1x1
+##@ bg_size = 32
+#@ bg_shape = 1x1x1x1
 #@ bg_connectivity = TORUS
 #@ queue
 
@@ -17,9 +17,9 @@ echo DEPART : `date`
 
 INPUT_FILE_TINY=benchmark.input_tiny.${LOADL_STEP_ID} 
 cat > ${INPUT_FILE_TINY} <<+EOF
-T=16
-LX=16
-LY=8
+T=8
+LX=4
+LY=4
 LZ=4
 +EOF
 
@@ -27,8 +27,8 @@ INPUT_FILE_SMALL=benchmark.input_small.${LOADL_STEP_ID}
 cat > ${INPUT_FILE_SMALL} <<+EOF
 T=48
 LX=40
-LY=20
-LZ=4
+LY=40
+LZ=24
 +EOF
 
 INPUT_FILE_MEDIUM=benchmark.input_medium.${LOADL_STEP_ID} 
@@ -48,6 +48,123 @@ LZ=64
 +EOF
 
 
+INPUT_FILE_PHMC=hmc_tm.input_phmc.${LOADL_STEP_ID}
+cat > ${INPUT_FILE_PHMC} <<+EOF
+T=256
+LX=128
+LY=128
+LZ=128
+
+OMPNumThreads = 64
+DebugLevel = 1
+
+Measurements = 1
+#startCondition = continue
+startCondition = hot
+#startCondition = cold
+
+## Olivier + Gregorio suggestion
+Kappa = 0.156364
+2KappaMu = 0.00035963719
+2KappaMubar  = 0.03752736
+2KappaEpsbar = 0.043312828
+
+BCAngleT = 1.
+BCGstabMaxIter = 0
+CGMaxIter = 15000
+GaugeConfigInputFile = conf.t192c96.0000
+NSave = 1
+ThetaT = 1.
+
+UseEvenOdd = yes
+UseRelativePrecision = yes
+GaugeConfigReadPrecision = 64
+
+SplittedPropagator = yes
+PropagatorType = DiracFermion_Source_Sink_Pairs
+
+ReversibilityCheck = yes
+ReversibilityCheckIntervall = 1
+
+InitialStoreCounter = readin
+
+BeginMonomial GAUGE
+  Type = Iwasaki
+  beta = 2.10
+  Timescale = 0
+EndMonomial
+
+BeginMonomial DET
+  Timescale = 1
+  2KappaMu = 0.04
+  Kappa = 0.156364
+  AcceptancePrecision = 1.e-20
+  ForcePrecision = 1.e-12
+  Name = det
+  solver = CG
+  CSGHistory = 0
+  CSGHistory2 = 0
+EndMonomial
+
+BeginMonomial DETRATIO
+  Timescale = 2
+  Kappa = 0.156364
+  Kappa2 = 0.156364
+  2KappaMu = 0.004
+  2KappaMu2 = 0.04
+  AcceptancePrecision = 1.e-20
+  ForcePrecision = 1.e-14
+  solver = CG
+  CSGHistory = 0
+  CSGHistory2 = 0
+  Name = detratio1
+  MaxSolverIterations = 15000
+EndMonomial
+
+BeginMonomial DETRATIO
+  Timescale = 3
+  Kappa = 0.156364
+  Kappa2 = 0.156364
+  2KappaMu = 0.00035963719
+  2KappaMu2 = 0.004
+  AcceptancePrecision = 1.e-22
+  ForcePrecision = 1.e-14
+  solver = CG
+  CSGHistory = 0
+  CSGHistory2 = 0
+  Name = detratio2
+  MaxSolverIterations = 25000
+EndMonomial
+
+BeginMonomial NDPOLY
+  Timescale = 2
+  StildeMin = 0.0002
+  StildeMax = 10.0
+  PrecisionPtilde = 1.e-08
+  DegreeOfMDPolynomial = 150
+  PrecisionHfinal = 1.e-12
+  ComputeEVFreq = 1
+  ComputeOnlyEVs=no
+EndMonomial
+
+BeginIntegrator
+  Type0 = 2MN
+  Type1 = 2MN
+  Type2 = 2MN
+  Type3 = 2MN
+  IntegrationSteps0 = 1
+  IntegrationSteps1 = 2
+  IntegrationSteps2 = 3
+  IntegrationSteps3 = 14
+  tau = 1.0
+  Lambda0 = 0.20
+  Lambda1 = 0.20
+  Lambda2 = 0.20
+  Lambda3 = 0.20
+  NumberOfTimescales = 4
+EndIntegrator
++EOF
+
 
 
 export OMP_NUM_THREADS=64
@@ -64,27 +181,29 @@ PROCS=0,4,8,12,16,20,24,28,32,36,40,44,48,52,56,60,2,6,10,14,18,22,26,30,34,38,4
 export XLSMPOPTS="procs=${PROCS}"
 #export BG_THREADLAYOUT=1 # breadth-first
 #export BG_THREADLAYOUT=2 # depth-first
+
+#MAPPING="--mapping EDCBAT"
+MAPPING="--mapping ABCDET"
+
 #env
 
-ln -f -s ${LOADL_STEP_OUT} lqtmlqcd.out 
+ln -f -s ${LOADL_STEP_OUT} lqtmlqcd.out
 
 echo ==phmc==================================================================================
-runjob --ranks-per-node 1 --env-all : ./hmc_tm -f phmc.input.bgq 
+runjob --ranks-per-node 1 --env-all ${MAPPING} : ./hmc_tm -f ${INPUT_FILE_PHMC}
 echo ==hmc_tm==================================================================================
-#runjob --ranks-per-node 1 --env-all : ./hmc_tm -f hmc.input.bgq 
+#runjob --ranks-per-node 1 --env-all ${MAPPING} : ./hmc_tm -f hmc.input.bgq 
 echo ==invert==================================================================================
-#runjob --ranks-per-node 1 --env-all : ./invert -f invert.input.bgq
+#runjob --ranks-per-node 1 --env-all ${MAPPING} : ./invert -f invert.input.bgq
 echo ==benchmark==================================================================================
-#runjob --ranks-per-node 1 --env-all : ./benchmark  
+#runjob --ranks-per-node 1 --env-all ${MAPPING} : ./benchmark  
 
 echo ==TINY==================================================================================
-#runjob -np 1 --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_TINY} 
+#runjob --np 1 --ranks-per-node 1 --env-all ${MAPPING} : ./bgqbench -f ${INPUT_FILE_TINY}
 echo ==SMALL=================================================================================
-#runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_SMALL} 
+#runjob --ranks-per-node 1 --env-all ${MAPPING} : ./bgqbench -f ${INPUT_FILE_SMALL}
 echo ==MEDIUM================================================================================
-runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_MEDIUM} 
+#runjob --ranks-per-node 1 --env-all ${MAPPING} : ./bgqbench -f ${INPUT_FILE_MEDIUM} 
 echo ==BIG===================================================================================
-#runjob --ranks-per-node 1 --env-all : ./bgqbench -f ${INPUT_FILE_BIG} 
+#runjob --ranks-per-node 1 --env-all ${MAPPING} : ./bgqbench -f ${INPUT_FILE_BIG} 
 echo ========================================================================================
-
-

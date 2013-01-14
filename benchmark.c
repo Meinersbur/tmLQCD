@@ -463,5 +463,9 @@ static int main_benchmark(int argc,char *argv[])
 
 
 int main(int argc, char *argv[]) {
+#if BGQ_REPLACE
 	return bgq_parallel_mainlike(&main_benchmark, argc, argv);
+#else
+	main_benchmark(argc, argv);
+#endif
 }

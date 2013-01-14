@@ -85,8 +85,12 @@ int bgq_parallel(bgq_master_func master_func, void *master_arg) {
 	// We use OpenMP only to start the threads
 	// Overhead of using OpenMP is too large
 #pragma omp parallel
-	{
+	{   //*((char*)NULL)=0;
 		size_t tid = omp_get_thread_num(); // Or
+		if (tid == 0) {
+			//int threads = omp_get_num_threads();
+			//master_print("Entered parallel control with %d threads\n", threads);
+		}
 
 		// Start workers
 		if (tid != 0) {
@@ -136,7 +140,7 @@ void bgq_worker() {
 
 
 	//assert((tid != 0) && "This function is for non-master threads only");
-//size_t count = 0;
+	//size_t count = 0;
 	while (true) {
 		// Wait until every thread did its work
 		// This doesn't need to be a barrier, waiting for submission of some work from the master is ok too
@@ -177,7 +181,7 @@ void bgq_worker() {
 			//printf("%*sCALL: tid=%u seq=%u\n", (int)tid*20, "",(int)tid, (int)g_bgq_dispatch_seq);
 			assert(g_bgq_dispatch_func);
 			void *arg = g_bgq_dispatch_arg;
-			g_bgq_dispatch_func(arg, tid, threads); //TODO: Shuffle tid to load-balance work?
+			g_bgq_dispatch_func(arg, tid, threads); //TODO: Shuffle tid to loadbalance work?
 		}
 
 		if (tid==0) {
