@@ -400,7 +400,7 @@ int invert_eo(spinor * const Even_new, spinor * const Odd_new,
 
 	if(g_prec_sequence_d_dagger_d[2] != 0.0){
 	  alpha = g_prec_sequence_d_dagger_d[2];
-	  spinorPrecondition(g_spinor_field[DUM_DERI+1],g_spinor_field[DUM_DERI+1],ws,T,L,alpha,0,1);
+	  spinorPrecondition(g_spinor_field[DUM_DERI+1],g_spinor_field[DUM_DERI+1],ws,T,LX,LY,LZ,alpha,0,1);
 	}
 
 	iter = cg_her(g_spinor_field[DUM_DERI], g_spinor_field[DUM_DERI+1], max_iter, precision, 
@@ -408,7 +408,7 @@ int invert_eo(spinor * const Even_new, spinor * const Odd_new,
 
 	if(g_prec_sequence_d_dagger_d[0] != 0.0){
 	  alpha = g_prec_sequence_d_dagger_d[0];
-	  spinorPrecondition(g_spinor_field[DUM_DERI],g_spinor_field[DUM_DERI],ws,T,L,alpha,0,1);
+	  spinorPrecondition(g_spinor_field[DUM_DERI],g_spinor_field[DUM_DERI],ws,T,LX,LY,LZ,alpha,0,1);
 	}
 
       } else {
@@ -425,7 +425,7 @@ int invert_eo(spinor * const Even_new, spinor * const Odd_new,
 	static _Complex double alpha = 0.0;
 	if(g_prec_sequence_d_dagger_d[1] != 0.0){
 	  alpha = g_prec_sequence_d_dagger_d[1];
-	  spinorPrecondition(g_spinor_field[DUM_DERI+1],g_spinor_field[DUM_DERI+1],ws,T,L,alpha,0,1);
+	  spinorPrecondition(g_spinor_field[DUM_DERI+1],g_spinor_field[DUM_DERI+1],ws,T,LX,LY,LZ,alpha,0,1);
 	}
       }
 #endif

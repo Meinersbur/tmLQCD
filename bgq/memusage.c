@@ -10,23 +10,28 @@
 #include <spi/bgp_SPI.h>
 #endif
 
-#if BGQ
-#include <process.h>
-#include <location.h>
-#include <personality.h>
+#if 1
+#include <kernel/process.h>
+#include <kernel/location.h>
+#include <kernel/memory.h>
+//#include <kernel/personality.h>
 #endif
 
 #include "global.h"
 #include <string.h>
 
-#ifdef BGQ
+#include <stdio.h>
+#include <malloc.h>
+
+
+#if 1
 /* returns memory per core in MBytes */
 unsigned bg_coreMB()
 {
     unsigned procMB, coreMB;
-    static _BGP_Personality_t mybgp;
-    Kernel_GetPersonality(&mybgp, sizeof(_BGP_Personality_t));
-    procMB = BGP_Personality_DDRSizeMB(&mybgp);
+    static Personality_t mybgp;
+    Kernel_GetPersonality(&mybgp, sizeof(Personality_t));
+    //procMB = BGP_Personality_DDRSizeMB(&mybgp);
     coreMB = procMB/Kernel_ProcessCount();
     return coreMB;
 }
@@ -46,7 +51,7 @@ void print_memusage()
     if (g_proc_id != 0)
         return;
 
-#if BGQ
+#if 1
     {
         unsigned memPerCore = bg_coreMB();
         fprintf(stderr, "MK_Memory available per Core:  %10ld MB\n", memPerCore);
@@ -64,7 +69,8 @@ void print_memusage()
     {
         fprintf(stderr, "MK_User time used:             %10ld,%6ld secs\n", (long)(usage.ru_utime.tv_sec), (long)(usage.ru_utime.tv_usec));
         fprintf(stderr, "MK_System time used:           %10ld,%6ld secs\n", (long)(usage.ru_stime.tv_sec), (long)(usage.ru_stime.tv_usec));
-        fprintf(stderr, "MK_Maximum resident set size:  %10ld MB\n", (long)usage.ru_maxrss / 1024);
+        fprintf(stderr, "MK_Maximum resident set size:  %10ld KB\n", usage.ru_maxrss);
+        fprintf(stderr, "MK_Signals                     %dl\n", usage.ru_nsignals);
 #if 0
         fprintf(stderr, "MK_Integral shared memory size:%10ld MB\n", (long)(usage.ru_ixrss) / 1024);
         fprintf(stderr, "MK_Integral unshared data size:%10ld MB\n", (long)(usage.ru_idrss) / 1024);
@@ -82,34 +88,67 @@ void print_memusage()
 #endif
     }
 
-#ifdef BGQ
+#if 1
     {
-        unsigned int memory_size = 0;
-        Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAP, &memory_size);
-        fprintf(stderr, "MK_Memory size HEAP:           %10ld MB\n", (long)memory_size / (1024 * 1024));
+        unsigned long memory_size = 0;
+        //Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAP, &memory_size);
+        //fprintf(stderr, "MK_Memory size HEAP:           %10ld MB\n", (long)memory_size / (1024 * 1024));
 
-        Kernel_GetMemorySize(KERNEL_MEMSIZE_STACK, &memory_size);
-        fprintf(stderr, "MK_Memory size STACK:          %10ld MB\n", (long)memory_size / (1024 * 1024));
+        //Kernel_GetMemorySize(KERNEL_MEMSIZE_STACK, &memory_size);
+        //fprintf(stderr, "MK_Memory size STACK:          %10ld MB\n", (long)memory_size / (1024 * 1024));
 
-        Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &memory_size);
-        fprintf(stderr, "MK_Memory available HEAP:      %10ld MB\n", (long)memory_size / (1024 * 1024));
+        //Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &memory_size);
+        //fprintf(stderr, "MK_Memory available HEAP:      %10ld MB\n", (long)memory_size / (1024 * 1024));
 
-        Kernel_GetMemorySize(KERNEL_MEMSIZE_STACKAVAIL, &memory_size);
-        fprintf(stderr, "MK_Memory available STACK:     %10ld MB\n", (long)memory_size / (1024 * 1024));
+        //Kernel_GetMemorySize(KERNEL_MEMSIZE_STACKAVAIL, &memory_size);
+        //fprintf(stderr, "MK_Memory available STACK:     %10ld MB\n", (long)memory_size / (1024 * 1024));
 
         Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPMAX, &memory_size);
         fprintf(stderr, "MK_Maximum memory HEAP:        %10ld MB\n", (long)memory_size / (1024 * 1024));
 
-        Kernel_GetMemorySize(KERNEL_MEMSIZE_GUARD, &memory_size);
-        fprintf(stderr, "MK_Heap guardpage:             %10ld MB\n", (long)memory_size / (1024 * 1024));
+        //Kernel_GetMemorySize(KERNEL_MEMSIZE_GUARD, &memory_size);
+        //fprintf(stderr, "MK_Heap guardpage:             %10ld MB\n", (long)memory_size / (1024 * 1024));
 
-        Kernel_GetMemorySize(KERNEL_MEMSIZE_SHARED, &memory_size);
-        fprintf(stderr, "MK_Shared memory:              %10ld MB\n", (long)memory_size / (1024 * 1024));
+        //Kernel_GetMemorySize(KERNEL_MEMSIZE_SHARED, &memory_size);
+        //fprintf(stderr, "MK_Shared memory:              %10ld MB\n", (long)memory_size / (1024 * 1024));
 
 #if 0
         Kernel_GetMemorySize(KERNEL_MEMSIZE_PERSIST, &memory_size);
         fprintf(stderr, "MK_Persistent memory:          %10ld MB\n", (long)memory_size / (1024 * 1024));
 #endif
+
+
+        uint64_t shared, persist, heapavail, stackavail, stack, heap, guard, mmap;
+        Kernel_GetMemorySize(KERNEL_MEMSIZE_SHARED, &shared);
+        Kernel_GetMemorySize(KERNEL_MEMSIZE_PERSIST, &persist);
+        Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &heapavail);
+        Kernel_GetMemorySize(KERNEL_MEMSIZE_STACKAVAIL, &stackavail);
+        Kernel_GetMemorySize(KERNEL_MEMSIZE_STACK, &stack);
+        Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAP, &heap);
+        Kernel_GetMemorySize(KERNEL_MEMSIZE_GUARD, &guard);
+        Kernel_GetMemorySize(KERNEL_MEMSIZE_MMAP, &mmap);
+
+        fprintf(stderr, "MK_Allocated heap: %.2f MB, avail. heap: %.2f MB\n", (double)heap/(1024*1024), (double)heapavail/(1024*1024));
+        fprintf(stderr, "MK_Allocated stack: %.2f MB, avail. stack: %.2f MB\n", (double)stack/(1024*1024), (double)stackavail/(1024*1024));
+        fprintf(stderr, "MK_Memory: shared: %.2f MB, persist: %.2f MB, guard: %.2f MB, mmap: %.2f MB\n", (double)shared/(1024*1024), (double)persist/(1024*1024), (double)guard/(1024*1024), (double)mmap/(1024*1024));
+
+
+        struct mallinfo m;
+        m = mallinfo();
+
+        unsigned int arena = m.arena;          /* size to sbrk */
+        fprintf(stderr, "MK_arena = %d \n", arena);
+
+        unsigned int uordblks = m.uordblks;     /* chunks in use, in bytes */
+        fprintf(stderr, "MK_uordblks = %d \n", uordblks);
+
+        unsigned int hblkhd = m.hblkhd;         /* mmap memory in bytes */
+        fprintf(stderr, "MK_hblkhd = %d \n", hblkhd);
+
+        unsigned int total_heap = uordblks + hblkhd;
+        fprintf(stderr, "MK_total_heap = %d \n", total_heap);
+
+        fflush(stderr);
     }
 #endif
 

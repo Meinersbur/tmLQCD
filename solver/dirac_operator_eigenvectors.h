@@ -10,7 +10,7 @@
 #include "linalg/lapack.h"
 
 /* some macros for 4d loops */
-#define FORXYZT(t,x,y,z,tt,ll) for(t=0;t<tt;t++){ for(x=0;x<ll;x++){ for(y=0;y<ll;y++){ for(z=0;z<ll;z++){ 
+#define FORXYZT(t,x,y,z,tt,lx,ly,lz) for(t=0;t<tt;t++){ for(x=0;x<lx;x++){ for(y=0;y<ly;y++){ for(z=0;z<lz;z++){
 #define ENDFORXYZT }}}}
 
 /* define pi if it wasnt */
@@ -107,14 +107,14 @@ void spinorPrecWS_Free(spinorPrecWS *ws);
  *@param tt,ll time and spacial extend
  */
 void spinorStructEigenvecDtm(spinor *fv,double mu,int epsilon,int k,int color,int rawp[4],int tt,int ll);
-void spinorStructEigenvecQtm(spinor *fv,double kappa,double mu,int epsilon,int k,int color,int rawp[4],int tt,int ll);
+void spinorStructEigenvecQtm(spinor *fv,double kappa,double mu,int epsilon,int k,int color,int rawp[4],int tt,int lx,int ly,int lz);
 
 
 /**
  * the su3 variant pack the different eigenvectors into the color components of the given spinor
  */
-void spinorStructEigenvecDtmSu3Vector(spinor *fv,double mu,int epsilon,int k,int store_color,int rawp[4],int tt,int ll);
-void spinorStructEigenvecQtmSu3Vector(spinor *fv,double kappa,double mu,int epsilon,int k,int store_color,int rawp[4],int tt,int ll);
+void spinorStructEigenvecDtmSu3Vector(spinor *fv,double mu,int epsilon,int k,int store_color,int rawp[4],int tt,int lx,int ly,int lz);
+void spinorStructEigenvecQtmSu3Vector(spinor *fv,double kappa,double mu,int epsilon,int k,int store_color,int rawp[4],int tt,int lx,int ly,int lz);
 
 
 /* calculate a complete treelevel eigenvector for the Wilson-Twisted-Mass Operator */
@@ -124,7 +124,7 @@ void eigenvector_Dtm(spinor *two_spinor,double mu,int epsilon,int k,int color,in
  * the fanction performing the actual precondition 
  * this function applies the desired treelevel Dirac operator with an arbitrary (_Complex double) exponent to the given spinor
  */
-void spinorPrecondition(spinor *spinor_out,const spinor* spinor_in,spinorPrecWS* ws,int tt,int ll,const _Complex double alpha,unsigned int dagger,unsigned int autofft);
+void spinorPrecondition(spinor *spinor_out,const spinor* spinor_in,spinorPrecWS* ws,int tt,int lx,int ly,int lz,const _Complex double alpha,unsigned int dagger,unsigned int autofft);
 
 /**
  * creates a plane wave representation in momentum or space time domain depending on 

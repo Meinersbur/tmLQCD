@@ -417,7 +417,7 @@ int main_hmc(int argc,char *argv[]) {
     fprintf(stderr, "MK_init memusage:\n");
     print_memusage(); // MK
   }
-
+#if BGQ_REPLACE
 	assert(even_odd_flag);
 	bgq_indices_init();
 	bgq_comm_mpi_init();
@@ -430,8 +430,8 @@ int main_hmc(int argc,char *argv[]) {
 		fprintf(stderr, "MK_BGQ memusage:\n");
 		print_memusage(); // MK
 	}
+#endif
 // END MK
-
 
 	if(g_running_phmc) {
 		init_phmc();

@@ -4,12 +4,12 @@
 #@ error  = $(job_name).$(jobid).out
 #@ output = $(job_name).$(jobid).out
 #@ environment = COPY_ALL;
-#@ wall_clock_limit = 00:30:00
+#@ wall_clock_limit = 05:00:00
 #@ notification = error
 #@ notify_user = juqueen@meinersbur.de
 #@ job_type = bluegene
-#@ bg_size = 32
-##@ bg_shape = 1x1x1x1
+#@ bg_size = 4096
+##@ bg_shape = 1x1x1x2
 #@ bg_connectivity = TORUS
 #@ queue
 
@@ -50,10 +50,20 @@ LZ=64
 
 INPUT_FILE_PHMC=hmc_tm.input_phmc.${LOADL_STEP_ID}
 cat > ${INPUT_FILE_PHMC} <<+EOF
-T=16
-LX=16
-LY=16
-LZ=16
+T=256
+#NrTProcs=8
+
+LX=128
+NrXProcs=8
+
+LY=128
+NrYProcs=8
+
+LZ=128
+NrZProcs=8
+
+#bg_size=2048 (4 midplanes)
+#local lattice=32 x 16 x 16 x 32 = 2^(5+4+4+4) = 2^17
 
 OMPNumThreads = 64
 DebugLevel = 1
