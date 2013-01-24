@@ -136,8 +136,8 @@ void bgq_spinorfields_init(void);
 bgq_weylfield_collection *bgq_spinorfields_allocate(size_t count, spinor *legacyFields, size_t fieldLength);
 void bgq_spinorfields_free(bgq_weylfield_collection *collection);
 
-size_t bgq_pointer2offset_raw(bgq_weylfield_controlblock *field, void *ptr, bool check);
-size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, void *ptr);
+size_t bgq_pointer2offset_raw(bgq_weylfield_controlblock *field, bgq_spinorfield_layout layout, void *ptr, bool check);
+size_t bgq_pointer2offset(bgq_weylfield_controlblock *field, bgq_spinorfield_layout layout, void *ptr);
 
 
 

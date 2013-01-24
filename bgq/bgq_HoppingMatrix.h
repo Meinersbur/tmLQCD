@@ -37,7 +37,7 @@ typedef struct {
 	bool noprefetchstream;
 } bgq_HoppingMatrix_workload;
 
-void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work,  bool nokamul, bgq_spinorfield_layout layout);
+void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work,  bool nokamul, bgq_spinorfield_layout layout, bgq_spinorfield_layout targetlayout);
 
 
 #undef EXTERN_INLINE

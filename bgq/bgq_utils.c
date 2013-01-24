@@ -5,7 +5,7 @@
  *      Author: meinersbur
  */
 
-
+#define _XOPEN_SOURCE 600
 #define BGQ_UTILS_C_
 #include "bgq_utils.h"
 
@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
+#include <malloc.h>
 
 void *malloc_aligned(size_t size, size_t alignment) {
 	void *result = NULL;

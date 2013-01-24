@@ -944,8 +944,9 @@ static void benchmark_hopmat(bgq_hmflags flags, int k, int k_max) {
 static void benchmark_hopmatkernel(bgq_hmflags flags, int k, int k_max) {
 	bool floppyprecision = flags & hm_floatprecision;
 
+	bgq_spinorfield_layout targetlayout = floppyprecision ? ly_weyl_float : ly_weyl_double;
 	bgq_spinorfield_layout layout = bgq_spinorfield_prepareRead(&g_bgq_spinorfields[k], true, true, !floppyprecision, floppyprecision, false, false);
-	bgq_spinorfield_prepareWrite(&g_bgq_spinorfields[k+k_max], false, floppyprecision ? ly_weyl_float : ly_weyl_double, false);
+	bgq_spinorfield_prepareWrite(&g_bgq_spinorfields[k+k_max], false, targetlayout, false);
 
 	bgq_master_sync();
 	static bgq_HoppingMatrix_workload work;
@@ -956,7 +957,7 @@ static void benchmark_hopmatkernel(bgq_hmflags flags, int k, int k_max) {
 	work.ic_begin = 0;
 	work.ic_end = PHYSICAL_VOLUME;
 	work.noprefetchstream = flags & hm_noprefetchstream;
-	bgq_HoppingMatrix_work(&work, flags & hm_nokamul, layout);
+	bgq_HoppingMatrix_work(&work, flags & hm_nokamul, layout, targetlayout);
 }
 
 typedef struct {
@@ -1072,7 +1073,7 @@ static int check_linalg(void *arg_untyped) {
 	//bgq_legacy_markcoords(true, g_spinor_field[1]);
 
 
-	diff(g_spinor_field[g_linalgidx+2], g_spinor_field[g_linalgidx], g_spinor_field[g_linalgidx+1], VOLUME/2);
+	diff(g_spinor_field[g_linalgidx+2], g_spinor_field[g_linalgidx+0], g_spinor_field[g_linalgidx+1], VOLUME/2);
 	bgq_spinorfield_sub_double(&g_bgq_spinorfields[g_linalgidx+3], false, &g_bgq_spinorfields[g_linalgidx+0], &g_bgq_spinorfields[g_linalgidx+1]);
 #ifndef BGQ_COORDCHECK
 	compare = bgq_spinorfield_compare(false, &g_bgq_spinorfields[g_linalgidx+3], &g_bgq_spinorfields[g_linalgidx+2], true);
@@ -1086,7 +1087,7 @@ static int check_linalg(void *arg_untyped) {
 	double norm_ref2 = square_norm(g_spinor_field[g_linalgidx+1], VOLUME/2, true);
 	compare = fabs(norm_bgq - norm_ref);
 	assert(compare < 0.01);
-
+	assert(fabs(norm_ref - norm_ref2) < 0.01);
 
 	return 0;
 }

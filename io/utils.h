@@ -19,6 +19,11 @@
 
 #ifndef _UTILS_H
 #define _UTILS_H
+#define __USE_BSD 1
+#define _BSD_SOURCE 1
+#include <endian.h>
+#if __BYTE_ORDER
+#endif
 
 #ifdef HAVE_CONFIG_H
 # include<config.h>
@@ -26,7 +31,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <endian.h>
+
 #include <string.h>
 
 #include "su3.h"

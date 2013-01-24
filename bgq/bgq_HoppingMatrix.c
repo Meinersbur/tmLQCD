@@ -35,6 +35,19 @@ static void bgq_HoppingMatrix_nokamul_worker_readFulllayout_double(void *arg, si
 #include "bgq_HoppingMatrixWorker.inc.c"
 #undef PRECISION
 }
+
+static void bgq_HoppingMatrix_nokamul_worker_readFulllayout_writeFulllayout_double(void *arg, size_t tid, size_t threads) {
+	bool const kamul = false;
+	bool const readFulllayout = true;
+
+#define PRECISION double
+#define WRITE_FULLLAYOUT 1
+#define BGQ_HOPPINGMATRIXWORKER_INC_ 1
+#include "bgq_HoppingMatrixWorker.inc.c"
+#undef PRECISION
+#undef WRITE_FULLLAYOUT
+}
+
 static void bgq_HoppingMatrix_nokamul_worker_readFulllayout_float(void *arg, size_t tid, size_t threads) {
 	//bgq_HoppingMatrix_worker(arg,tid,threads,false,true);
 
@@ -114,7 +127,7 @@ static void bgq_HoppingMatrix_kamul_worker_readWeyllayout_float(void *arg, size_
 }
 
 
-void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work,  bool nokamul, bgq_spinorfield_layout layout) {
+void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work,  bool nokamul, bgq_spinorfield_layout layout, bgq_spinorfield_layout targetlayout) {
 	assert(work);
 	size_t sites = work->ic_end - work->ic_begin;
 	uint64_t old = flopaccumulator;
@@ -123,7 +136,12 @@ void bgq_HoppingMatrix_work(bgq_HoppingMatrix_workload *work,  bool nokamul, bgq
 	if (nokamul) {
 		switch (layout) {
 		case ly_full_double:
-			func = &bgq_HoppingMatrix_nokamul_worker_readFulllayout_double;
+			if (targetlayout == ly_weyl_double)
+				func = &bgq_HoppingMatrix_nokamul_worker_readFulllayout_double;
+			else if (targetlayout == ly_full_double)
+				func = &bgq_HoppingMatrix_nokamul_worker_readFulllayout_writeFulllayout_double;
+			else
+				master_error(1, "Combination not supported");
 			break;
 		case ly_full_float:
 			func = &bgq_HoppingMatrix_nokamul_worker_readFulllayout_float;
@@ -182,9 +200,21 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 	bool nospi = opts & hm_nospi;
 	bool noprefetchstream = opts & hm_noprefetchstream;
 	bool floatprecision = opts & hm_floatprecision;
+	bool forcefull = opts & hm_forcefull;
+	bool forceweyl = opts & hm_forceweyl;
+	assert(!forcefull || !forceweyl);
+
+	bool useWeylOutput;
+	if (forcefull)
+		useWeylOutput = false;
+	else if (forceweyl)
+		useWeylOutput = true;
+	else
+		useWeylOutput = (LOCAL_VOLUME > (12*12*12*12));
 
 	bgq_spinorfield_layout layout = bgq_spinorfield_prepareRead(spinorfield, !isOdd, true, !floatprecision, floatprecision, false, false);
-	bgq_spinorfield_prepareWrite(targetfield, isOdd, floatprecision ? ly_weyl_float : ly_weyl_double, targetfield==spinorfield);
+	bgq_spinorfield_layout targetlayout = useWeylOutput ? (floatprecision ? ly_weyl_float : ly_weyl_double) : (floatprecision ? ly_full_float : ly_full_double);
+	bgq_spinorfield_prepareWrite(targetfield, isOdd, targetlayout, targetfield==spinorfield);
 
 
 	if(g_update_gauge_copy) {
@@ -210,7 +240,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 		work_surface.ic_begin = bgq_surface2collapsed(0);
 		work_surface.ic_end = bgq_surface2collapsed(PHYSICAL_SURFACE-1)+1;
 		work_surface.noprefetchstream = noprefetchstream;
-		bgq_HoppingMatrix_work(&work_surface, nokamul, layout);
+		bgq_HoppingMatrix_work(&work_surface, nokamul, layout, targetlayout);
 	}
 
 
@@ -230,9 +260,8 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 // 2. Start communication
 	if ((PHYSICAL_SURFACE > 0) && !nocomm) {
 		bgq_master_sync(); // Wait for threads to finish surface before sending it
-		//TODO: ensure there are no other communications pending
+		bgq_comm_wait(); // ensure there are no other communications pending
 		bgq_comm_send();
-		//targetfield->waitingForRecv = true;
 		if (!nodatamove) {
 			targetfield->pendingDatamove = true;
 		}
@@ -258,7 +287,7 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 		work_body.ic_begin = bgq_body2collapsed(0);
 		work_body.ic_end = bgq_body2collapsed(PHYSICAL_BODY-1)+1;
 		work_body.noprefetchstream = noprefetchstream;
-		bgq_HoppingMatrix_work(&work_body, nokamul, layout);
+		bgq_HoppingMatrix_work(&work_body, nokamul, layout, targetlayout);
 		if (!COMM_T && !nodatamove) {
 			// Copy the data from HALO_T into the required locations
 			bgq_master_sync();

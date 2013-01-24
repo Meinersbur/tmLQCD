@@ -9,30 +9,67 @@
 #include <stdbool.h>
 
 #define PRECISION double
-
+#define WRITE_FULLLAYOUT_BODY 1
+#define WRITE_FULLLAYOUT_SURFACE 0
+#define WRITE_WEYLLAOUT 0
 
 void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul, bool readFulllayout)
 #endif
 
 {
-	bgq_HoppingMatrix_workload *work = arg;
-	bool isOdd_src = work->isOdd_src;
-	bool isOdd_dst = work->isOdd_dst;
-	bgq_weylfield_controlblock * restrict spinorfield = work->spinorfield;
-	bgq_weylfield_controlblock * restrict targetfield = work->targetfield;
-	ucoord ic_begin = work->ic_begin;
-	ucoord ic_end = work->ic_end;
-	bool noprefetchstream = work->noprefetchstream;
+bgq_HoppingMatrix_workload *work = arg;
+bool isOdd_src = work->isOdd_src;
+bool isOdd_dst = work->isOdd_dst;
+bgq_weylfield_controlblock * restrict spinorfield = work->spinorfield;
+bgq_weylfield_controlblock * restrict targetfield = work->targetfield;
+ucoord ic_begin = work->ic_begin;
+ucoord ic_end = work->ic_end;
+bool noprefetchstream = work->noprefetchstream;
 
-	bgq_vector4double_decl(qka0);
-	bgq_complxval_splat(qka0,ka0);
-	bgq_vector4double_decl(qka1);
-	bgq_complxval_splat(qka1,ka1);
-	bgq_vector4double_decl(qka2);
-	bgq_complxval_splat(qka2,ka2);
-	bgq_vector4double_decl(qka3);
-	bgq_complxval_splat(qka3,ka3);
+bgq_vector4double_decl(qka0);
+bgq_complxval_splat(qka0,ka0);
+bgq_vector4double_decl(qka1);
+bgq_complxval_splat(qka1,ka1);
+bgq_vector4double_decl(qka2);
+bgq_complxval_splat(qka2,ka2);
+bgq_vector4double_decl(qka3);
+bgq_complxval_splat(qka3,ka3);
 
+//#define WRITE_FULLLAYOUT_BODY 1
+#if WRITE_FULLLAYOUT_BODY
+
+	const size_t workload = ic_end - ic_begin;
+	const size_t threadload = (workload+threads-1)/threads;
+	const size_t begin = ic_begin + tid*threadload;
+	const size_t end = min_sizet(ic_end, begin+threadload);
+
+	bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed_dst[isOdd_src];
+	gaugesite = (bgq_gaugesite*)(((uint8_t*)gaugesite)-32);
+
+	for (ucoord ic_dst_begin = begin; ic_dst_begin<end; ) {
+		assert(readFulllayout);
+		ucoord z_dst = bgq_collapsed2z(isOdd_dst, ic_dst_begin);
+		ucoord ic_dst_end = ic_dst_begin + PHYSICAL_LZ - z_dst;
+
+		for (ucoord ic_dst = ic_dst_begin; ic_dst<ic_dst_end; ic_dst+=1) {
+			ucoord t1_dst = bgq_collapsed2t1(isOdd_dst, ic_dst);
+			ucoord t2_dst = bgq_collapsed2t2(isOdd_dst, ic_dst);
+			ucoord tv_dst = bgq_collapsed2tv(isOdd_dst, ic_dst);
+			ucoord x_dst = bgq_collapsed2x(isOdd_dst, ic_dst);
+			ucoord y_dst = bgq_collapsed2y(isOdd_dst, ic_dst);
+			z_dst = bgq_collapsed2z(isOdd_dst, ic_dst);
+
+			bgq_spinor_vec *target = &targetfield->BGQ_SEC_FULLLAYOUT[ic_dst];
+
+			#define GETSPINORFIELDPTR(DIRECTION, direction) (&spinorfield->BGQ_SEC_FULLLAYOUT[bgq_direction_move_collapsed(isOdd_dst, ic_dst, DIRECTION)])
+			#define BGQ_HOPPINGMATRIXSTENCIL_INC_ 1
+			#include "bgq_HoppingMatrixStencil.inc.c"
+			#undef GETSPINORFIELDPTR
+		}
+		ic_dst_begin = ic_dst_end;
+	}
+
+#else
 	const size_t workload = ic_end - ic_begin;
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = ic_begin + tid*threadload;
@@ -48,7 +85,7 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 		bgq_prefetch_forward(&targetfield->BGQ_SENDPTR[isOdd_dst][begin]);
 	}
 
-	bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed[isOdd_src][begin];
+	bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed_src[isOdd_src][begin];
 	gaugesite = (bgq_gaugesite*)(((uint8_t*)gaugesite)-32);
 	bgq_weylsite *weylsite = &spinorfield->BGQ_SEC_WEYLLAYOUT[begin];
 	weylsite = (bgq_weylsite*)(((uint8_t*)weylsite) - BGQ_VECTORSIZE);
@@ -90,7 +127,8 @@ void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul,
 			#include "bgq_ComputeWeyl.inc.c"
 		}
 	}
+
+#endif
+
 }
-
-
 #undef BGQ_HOPPINGMATRIXWORKER_INC_

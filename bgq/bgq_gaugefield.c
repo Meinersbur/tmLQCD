@@ -22,7 +22,8 @@ void bgq_gaugefield_init() {
 
 	bgq_indices_init();
 	for (size_t isOdd = false; isOdd <= true; isOdd += 1) {
-		g_bgq_gaugefield_fromCollapsed[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromCollapsed[isOdd]), BGQ_ALIGNMENT_L2);
+		g_bgq_gaugefield_fromCollapsed_src[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromCollapsed_src[isOdd]), BGQ_ALIGNMENT_L2);
+		g_bgq_gaugefield_fromCollapsed_dst[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_bgq_gaugefield_fromCollapsed_dst[isOdd]), BGQ_ALIGNMENT_L2);
 	}
 }
 
@@ -103,6 +104,7 @@ static void bgq_gaugefield_worker_transferfrom(void *arg_untyped, size_t tid, si
 				ucoord y_dst = y_src;
 				ucoord z_dst = z_src;
 				bgq_direction_move_local(&t_dst, &x_dst, &y_dst, &z_dst, d_src);
+				ucoord ic_dst = bgq_local2collapsed(t_dst, x_dst, y_dst, z_dst);
 
 				scoord t = t_src;
 				scoord x = x_src;
@@ -142,10 +144,13 @@ static void bgq_gaugefield_worker_transferfrom(void *arg_untyped, size_t tid, si
 				for (size_t i = 0; i < 3; i += 1) {
 					for (size_t l = 0; l < 3; l += 1) {
 						COMPLEX_PRECISION val = m->c[i][l];
-						g_bgq_gaugefield_fromCollapsed[isOdd][ic_src].su3[d_dst].c[i][l][k_src] = val;
+						//TODO: We may multiply with ka0,ka1,ka2,ka3 here instead of inside HoppingMatrix
+						g_bgq_gaugefield_fromCollapsed_src[isOdd][ic_src].su3[d_dst].c[i][l][k_src] = val;
+						g_bgq_gaugefield_fromCollapsed_dst[isOdd][ic_dst].su3[d_dst].c[i][l][k_src] = val;
 					}
 				}
-				bgq_gaugeveck_written(&g_bgq_gaugefield_fromCollapsed[isOdd][ic_src].su3[d_dst], k_src, t_src, x_src, y_src, z_src, d_dst, true);
+				bgq_gaugeveck_written(&g_bgq_gaugefield_fromCollapsed_src[isOdd][ic_src].su3[d_dst], k_src, t_src, x_src, y_src, z_src, d_dst, true);
+				bgq_gaugeveck_written(&g_bgq_gaugefield_fromCollapsed_dst[isOdd][ic_dst].su3[d_dst], k_src, t_src, x_src, y_src, z_src, d_dst, true);
 			}
 		}
 	}

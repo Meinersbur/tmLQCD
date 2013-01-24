@@ -47,18 +47,22 @@
 
 #define PRECISION_COMPLEX_SIZEOF (2*PRECISION_SIZEOF)
 
+#define PRECISION_WEYLLAYOUT_double ly_weyl_double
+#define PRECISION_WEYLLAYOUT_float ly_weyl_float
+#define PRECISION_WEYLLAYOUT NAME2(PRECISION_WEYLLAYOUT,PRECISION)
+
 typedef struct {
 	bool isOdd;
 	bgq_weylfield_controlblock *field;
 	bgq_hmflags opts;
 } bgq_unvectorize_workload;
-
+#if 0
 typedef struct {
 	bool isOdd;
 	bgq_weylfield_controlblock *field;
 	spinor *target;
 } bgq_copyToLegacy_workload;
-
+#endif
 typedef struct {
 	bool isOdd;
 	spinor *source;
@@ -67,8 +71,12 @@ typedef struct {
 
 typedef struct {
 	bgq_weylfield_controlblock *field;
+	bgq_spinor_vec_double *target_double;
+	bgq_spinor_vec_float *target_float;
+	spinor *target_legacy;
 	bool isOdd;
 } bgq_spinorfield_rewrite_work;
+#define BGQ_TARGETFIELD NAME2(target,PRECISION)
 
 void bgq_HoppingMatrix_unvectorize_double(void *arg_untyped, size_t tid, size_t threads);
 void bgq_HoppingMatrix_unvectorize_float(void *arg_untyped, size_t tid, size_t threads);
@@ -92,11 +100,6 @@ void bgq_copyToLegacy_worker_weyllayout_double(void *arg_untyped, size_t tid, si
 void bgq_copyToLegacy_worker_weyllayout_float(void *arg_untyped, size_t tid, size_t threads);
 #define bgq_copyToLegacy_worker_weyllayout NAME2(bgq_copyToLegacy_worker_weyllayout,PRECISION)
 #endif
-
-
-void bgq_copyFromLegacy_worker_double(void *arg_untyped, size_t tid, size_t threads);
-void bgq_copyFromLegacy_worker_float(void *arg_untyped, size_t tid, size_t threads);
-#define bgq_copyFromLegacy_worker NAME2(bgq_copyFromLegacy_worker,PRECISION)
 
 extern bgq_worker_func g_bgq_spinorfield_rewrite_worker_double_list[BGQ_SPINORFIELD_LAYOUT_COUNT];
 extern bgq_worker_func g_bgq_spinorfield_rewrite_worker_float_list[BGQ_SPINORFIELD_LAYOUT_COUNT];

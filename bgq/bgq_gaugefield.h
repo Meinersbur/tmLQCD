@@ -41,10 +41,8 @@ typedef struct {
 } bgq_gaugeeodir;
 typedef bgq_gaugeeodir (*bgq_gaugefield);
 
-EXTERN_FIELD bgq_gaugesite *g_bgq_gaugefield_fromCollapsed[PHYSICAL_LP];
-EXTERN_FIELD bgq_gaugesite *g_bgq_gaugefield_fromHalfvolume[PHYSICAL_LP]; //deprecated //TODO: Remove, not needed
-EXTERN_FIELD bgq_gaugesite *g_bgq_gaugefield_fromSurface[PHYSICAL_LP];//deprecated
-EXTERN_FIELD bgq_gaugesite *g_bgq_gaugefield_fromBody[PHYSICAL_LP];//deprecated
+EXTERN_FIELD bgq_gaugesite *g_bgq_gaugefield_fromCollapsed_src[PHYSICAL_LP];
+EXTERN_FIELD bgq_gaugesite *g_bgq_gaugefield_fromCollapsed_dst[PHYSICAL_LP];
 
 void bgq_gaugefield_init();
 void bgq_gaugefield_transferfrom(su3 **sourcefield);

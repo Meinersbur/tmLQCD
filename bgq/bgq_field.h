@@ -507,7 +507,9 @@ typedef enum {
 	hm_nodistribute = 1 << 15,
 	hm_nodatamove = 1 << 16,
 	hm_nospi = 1 << 17,
-	hm_floatprecision = 1 << 18
+	hm_floatprecision = 1 << 18,
+	hm_forcefull = 1 << 19,
+	hm_forceweyl = 1 << 20
 } bgq_hmflags;
 
 
@@ -756,7 +758,7 @@ EXTERN_INLINE ucoord bgq_halfvolume2t(bool isOdd, ucoord ih, ucoord k) {
 	ucoord x = bgq_halfvolume2x(ih);
 	ucoord y = bgq_halfvolume2y(ih);
 	ucoord z = bgq_halfvolume2z(ih);
-	ucoord t = bgq_physical2t(isOdd, tv, x,y,z,k);
+	ucoord t = bgq_physical2t(isOdd, tv, x, y, z, k);
 	return t;
 }
 #if 0
@@ -849,12 +851,20 @@ EXTERN_INLINE size_t bgq_local2volume(size_t t, size_t x, size_t y, size_t z) {
 	return bgq_halfvolume2volume(isOdd, ih, k);
 }
 
-EXTERN_INLINE size_t bgq_halfvolume2collapsed(bool isOdd, size_t ih) {
+EXTERN_INLINE ucoord bgq_halfvolume2collapsed(bool isOdd, ucoord ih) {
 	assert(g_bgq_indices_initialized);
 	assert(0 <= ih && ih < PHYSICAL_VOLUME);
 	ucoord ic = g_bgq_halfvolume2collapsed[isOdd][ih];
 	assert(0 <= ic && ic < PHYSICAL_VOLUME);
 	return ic;
+}
+EXTERN_INLINE ucoord bgq_physical2collapsed(bool isOdd, ucoord tv, ucoord x, ucoord y, ucoord z) {
+	assert(0 <= tv && tv < PHYSICAL_LTV);
+	assert(0 <= x && x < PHYSICAL_LX);
+	assert(0 <= y && y < PHYSICAL_LY);
+	assert(0 <= z && z < PHYSICAL_LZ);
+	ucoord ih = bgq_physical2halfvolume(tv, x, y, z);
+	return bgq_halfvolume2collapsed(isOdd, ih);
 }
 
 EXTERN_INLINE bool bgq_collapsed2isSurface(size_t ic) {
@@ -921,6 +931,11 @@ EXTERN_INLINE ucoord bgq_local2collapsed(ucoord t, ucoord x, ucoord y, ucoord z)
 	return bgq_halfvolume2collapsed(isOdd, ih);
 }
 
+EXTERN_INLINE ucoord bgq_collapsed2tv(bool isOdd, ucoord ic) {
+	assert(0 <= ic && ic < PHYSICAL_VOLUME);
+	ucoord ih = bgq_collapsed2halfvolume(isOdd, ic);
+	return bgq_halfvolume2tv(ih);
+}
 EXTERN_INLINE ucoord bgq_collapsed2t(bool isOdd, ucoord ic, ucoord k) {
 	assert(0 <= ic && ic < PHYSICAL_VOLUME);
 	assert(0 <= k && k < PHYSICAL_LK);
@@ -1211,6 +1226,16 @@ EXTERN_INLINE void bgq_direction_move_physical(bool isOdd, ucoord *tv, ucoord *x
 		*z = (*z + 1) % LOCAL_LZ;
 		break;
 	}
+}
+
+EXTERN_INLINE ucoord bgq_direction_move_collapsed(bool isOdd, ucoord ic, bgq_direction d) {
+	assert(0 <= ic && ic < PHYSICAL_VOLUME);
+	ucoord tv = bgq_collapsed2tv(isOdd, ic);
+	ucoord x = bgq_collapsed2tv(isOdd, ic);
+	ucoord y = bgq_collapsed2tv(isOdd, ic);
+	ucoord z = bgq_collapsed2tv(isOdd, ic);
+	bgq_direction_move_physical(isOdd, &tv, &x, &y, &z, d);
+	return bgq_physical2collapsed(isOdd, tv, x, y, z);
 }
 
 
