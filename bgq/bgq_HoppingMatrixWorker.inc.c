@@ -131,7 +131,7 @@ if (writeFulllayout) {
 	const size_t end = min_sizet(ic_end, begin+threadload);
 
 	if (!noprefetchstream) {
-		bgq_prefetch_forward(&g_bgq_gaugefield_fromCollapsed[isOdd_src][begin]);
+		bgq_prefetch_forward(&g_bgq_gaugefield_fromCollapsed_src[isOdd_src][begin]);
 		if (readFulllayout) {
 			bgq_prefetch_forward(&spinorfield->BGQ_SEC_FULLLAYOUT[begin]);
 		} else {

@@ -569,7 +569,7 @@ typedef struct {
 #define bgq_qvstfsxa(data,addr,offset) \
 	asm ("qvstfsxa %[v4d],%[ptr],%[off]  \n" : : [ptr]  "b" (addr), [v4d] "v" (data), [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
 #define bgq_qvstfsuxa(data,addr,offset) \
-	assert(((uintptr_t)(data) + (uintptr_t)(offset)) % 16 == 0);
+	assert(((uintptr_t)(data) + (uintptr_t)(offset)) % 16 == 0); \
 	asm ("qvstfsuxa %[v4d],%[ptr],%[off]  \n" : [ptr] "+b" (addr) : [v4d] "v" (data), [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
 
 
@@ -1057,7 +1057,7 @@ typedef struct {
 #define bgq_su3_weyl_load_nonvec_double(dest, addr) \
 	do { \
 		bgq_weyl_nonvec_double *ptr = (addr); \
-		bgq_ld2a_double(NAME3(dest,v0,c0), ptr, 0); \
+		bgq_ld2a_double(NAME3(dest,v0,c0), 0, ptr); \
 		bgq_qvlfcduxa(NAME3(dest,v0,c1), ptr, 16); \
 		bgq_qvlfcduxa(NAME3(dest,v0,c2), ptr, 16); \
 		bgq_qvlfcduxa(NAME3(dest,v1,c0), ptr, 16); \

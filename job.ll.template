@@ -200,7 +200,7 @@ MAPPING="--mapping ABCDET"
 ln -f -s ${LOADL_STEP_OUT} lqtmlqcd.out
 
 echo ==phmc==================================================================================
-runjob --ranks-per-node 1 --env-all ${MAPPING} : ./hmc_tm -f ${INPUT_FILE_PHMC}
+#runjob --ranks-per-node 1 --env-all ${MAPPING} : ./hmc_tm -f ${INPUT_FILE_PHMC}
 echo ==hmc_tm==================================================================================
 #runjob --ranks-per-node 1 --env-all ${MAPPING} : ./hmc_tm -f hmc.input.bgq 
 echo ==invert==================================================================================
@@ -211,9 +211,9 @@ echo ==benchmark================================================================
 echo ==TINY==================================================================================
 #runjob --np 1 --ranks-per-node 1 --env-all ${MAPPING} : ./bgqbench -f ${INPUT_FILE_TINY}
 echo ==SMALL=================================================================================
-#runjob --ranks-per-node 1 --env-all ${MAPPING} : ./bgqbench -f ${INPUT_FILE_SMALL}
+runjob --ranks-per-node 1 --env-all ${MAPPING} : ./bgqbench -f ${INPUT_FILE_SMALL}
 echo ==MEDIUM================================================================================
-#runjob --ranks-per-node 1 --env-all ${MAPPING} : ./bgqbench -f ${INPUT_FILE_MEDIUM} 
+runjob --ranks-per-node 1 --env-all ${MAPPING} : ./bgqbench -f ${INPUT_FILE_MEDIUM} 
 echo ==BIG===================================================================================
-#runjob --ranks-per-node 1 --env-all ${MAPPING} : ./bgqbench -f ${INPUT_FILE_BIG} 
+runjob --ranks-per-node 1 --env-all ${MAPPING} : ./bgqbench -f ${INPUT_FILE_BIG} 
 echo ========================================================================================
