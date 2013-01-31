@@ -65,7 +65,9 @@ void update_backward_gauge(su3 ** const gf) {
   } /* OpenMP closing brace */
 #endif
 
+#if BGQ_REPLACE
   bgq_gaugefield_transferfrom(gf);
+#endif
   g_update_gauge_copy = 0;
   return;
 }
@@ -127,7 +129,9 @@ void update_backward_gauge(su3 ** const gf) {
   } /* OpenMP closing brace */
 #endif
 
+#if BGQ_REPLACE
   bgq_gaugefield_transferfrom(gf);
+#endif
   g_update_gauge_copy = 0;
   return;
 }
