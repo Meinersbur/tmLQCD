@@ -11,6 +11,7 @@
 #include "bgq_field.h"
 #include "bgq_utils.h"
 #include "bgq_qpx.h"
+#include "bgq_su3.h"
 
 #include <stdbool.h>
 
@@ -25,18 +26,6 @@
 #endif
 
 
-typedef struct {
-	COMPLEX_PRECISION c[3];
-} bgq_su3vector;
-
-typedef struct {
-	bgq_su3vector v[4];
-} bgq_spinor;
-typedef bgq_spinor bgq_spinor_nonvec;
-
-typedef struct {
-	COMPLEX_PRECISION s[2][3]; // 96 byte
-} bgq_weyl_nonvec;
 
 
 typedef enum {
@@ -61,7 +50,7 @@ typedef enum {
 
 
 
-typedef struct {
+typedef struct bgq_weylfield_controlblock {
 	//bool isInitialized;
 	tristate isOdd;
 	//bool ptr_isOdd;
@@ -71,6 +60,9 @@ typedef struct {
 	//bool waitingForRecvNoSPI;
 	bgq_hmflags hmflags;
 	bool pendingDatamove;
+	struct bgq_weylfield_controlblock *pendingSourcefield;
+	bgq_spinorfield_layout pendingSourceLayout;
+	bgq_spinorfield_layout pendingTargetLayout;
 	//bool hasFullspinorData;
 	//bool isFulllayoutSloppy;
 
@@ -122,6 +114,8 @@ typedef struct {
 
 EXTERN_FIELD bgq_weylfield_controlblock *g_bgq_spinorfields EXTERN_INIT(NULL);
 
+EXTERN_FIELD uint32_t (*g_spinorfield_collapsedSrc2collapsedDst[PHYSICAL_LP])[PHYSICAL_LD]; //TODO: deprecated?
+
 typedef struct bgq_weylfield_collection {
 	const spinor *legacy_base;
 	size_t fieldsize;
@@ -162,8 +156,8 @@ EXTERN_INLINE bgq_weyl_vec_double bgq_weyl_fromqpx_raw(bgq_su3_weyl_params(weyl)
 
 
 #define bgq_weyl_fromqpxk(arg,k) bgq_weyl_fromqpxk_raw(bgq_su3_weyl_vars(arg), k)
-EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_fromqpxk_raw(bgq_su3_weyl_params(weyl), ucoord k) {
-	bgq_weyl_nonvec result;
+EXTERN_INLINE bgq_weyl_nonvec_double bgq_weyl_fromqpxk_raw(bgq_su3_weyl_params(weyl), ucoord k) {
+	bgq_weyl_nonvec_double result;
 	result.s[0][0] = bgq_cmplxval(weyl_v0_c0,k);
 	result.s[0][1] = bgq_cmplxval(weyl_v0_c1,k);
 	result.s[0][2] = bgq_cmplxval(weyl_v0_c2,k);
@@ -174,10 +168,104 @@ EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_fromqpxk_raw(bgq_su3_weyl_params(weyl), u
 }
 
 
+#define bgq_weyl_toqpxk(dest,k,src) bgq_weyl_toqpxk_raw(bgq_su3_weyl_vars(&dest),k,src)
+EXTERN_INLINE void bgq_weyl_toqpxk_raw(bgq_su3_weyl_params(*dest), ucoord k, bgq_weyl_nonvec_double *source) {
+	switch (k) {
+	case 0:
+		*bgq_elem0(dest_v0_c0) = creal(source->s[0][0]);
+		*bgq_elem1(dest_v0_c0) = cimag(source->s[0][0]);
+		*bgq_elem0(dest_v0_c1) = creal(source->s[0][1]);
+		*bgq_elem1(dest_v0_c1) = cimag(source->s[0][1]);
+		*bgq_elem0(dest_v0_c2) = creal(source->s[0][2]);
+		*bgq_elem1(dest_v0_c2) = cimag(source->s[0][2]);
+		*bgq_elem0(dest_v1_c0) = creal(source->s[1][0]);
+		*bgq_elem1(dest_v1_c0) = cimag(source->s[1][0]);
+		*bgq_elem0(dest_v1_c1) = creal(source->s[1][1]);
+		*bgq_elem1(dest_v1_c1) = cimag(source->s[1][1]);
+		*bgq_elem0(dest_v1_c2) = creal(source->s[1][2]);
+		*bgq_elem1(dest_v1_c2) = cimag(source->s[1][2]);
+		break;
+	case 1:
+		*bgq_elem2(dest_v0_c0) = creal(source->s[0][0]);
+		*bgq_elem3(dest_v0_c0) = cimag(source->s[0][0]);
+		*bgq_elem2(dest_v0_c1) = creal(source->s[0][1]);
+		*bgq_elem3(dest_v0_c1) = cimag(source->s[0][1]);
+		*bgq_elem2(dest_v0_c2) = creal(source->s[0][2]);
+		*bgq_elem3(dest_v0_c2) = cimag(source->s[0][2]);
+		*bgq_elem2(dest_v1_c0) = creal(source->s[1][0]);
+		*bgq_elem3(dest_v1_c0) = cimag(source->s[1][0]);
+		*bgq_elem2(dest_v1_c1) = creal(source->s[1][1]);
+		*bgq_elem3(dest_v1_c1) = cimag(source->s[1][1]);
+		*bgq_elem2(dest_v1_c2) = creal(source->s[1][2]);
+		*bgq_elem3(dest_v1_c2) = cimag(source->s[1][2]);
+		break;
+	}
+}
 
-EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_extractvec(bgq_weyl_vec_double weylvec, size_t k) {
+
+#define bgq_spinor_toqpxk(dest,k,src) bgq_spinor_toqpxk_raw(bgq_su3_spinor_vars(&dest),k,src)
+EXTERN_INLINE void bgq_spinor_toqpxk_raw(bgq_su3_spinor_params(*dest), ucoord k, bgq_spinor_nonvec *source) {
+	switch (k) {
+	case 0:
+		*bgq_elem0(dest_v0_c0) = creal(source->v[0].c[0]);
+		*bgq_elem1(dest_v0_c0) = cimag(source->v[0].c[0]);
+		*bgq_elem0(dest_v0_c1) = creal(source->v[0].c[1]);
+		*bgq_elem1(dest_v0_c1) = cimag(source->v[0].c[1]);
+		*bgq_elem0(dest_v0_c2) = creal(source->v[0].c[2]);
+		*bgq_elem1(dest_v0_c2) = cimag(source->v[0].c[2]);
+		*bgq_elem0(dest_v1_c0) = creal(source->v[1].c[0]);
+		*bgq_elem1(dest_v1_c0) = cimag(source->v[1].c[0]);
+		*bgq_elem0(dest_v1_c1) = creal(source->v[1].c[1]);
+		*bgq_elem1(dest_v1_c1) = cimag(source->v[1].c[1]);
+		*bgq_elem0(dest_v1_c2) = creal(source->v[1].c[2]);
+		*bgq_elem1(dest_v1_c2) = cimag(source->v[1].c[2]);
+		*bgq_elem0(dest_v2_c0) = creal(source->v[2].c[0]);
+		*bgq_elem1(dest_v2_c0) = cimag(source->v[2].c[0]);
+		*bgq_elem0(dest_v2_c1) = creal(source->v[2].c[1]);
+		*bgq_elem1(dest_v2_c1) = cimag(source->v[2].c[1]);
+		*bgq_elem0(dest_v2_c2) = creal(source->v[2].c[2]);
+		*bgq_elem1(dest_v2_c2) = cimag(source->v[2].c[2]);
+		*bgq_elem0(dest_v3_c0) = creal(source->v[3].c[0]);
+		*bgq_elem1(dest_v3_c0) = cimag(source->v[3].c[0]);
+		*bgq_elem0(dest_v3_c1) = creal(source->v[3].c[1]);
+		*bgq_elem1(dest_v3_c1) = cimag(source->v[3].c[1]);
+		*bgq_elem0(dest_v3_c2) = creal(source->v[3].c[2]);
+		*bgq_elem1(dest_v3_c2) = cimag(source->v[3].c[2]);
+		break;
+	case 1:
+		*bgq_elem2(dest_v0_c0) = creal(source->v[0].c[0]);
+		*bgq_elem3(dest_v0_c0) = cimag(source->v[0].c[0]);
+		*bgq_elem2(dest_v0_c1) = creal(source->v[0].c[1]);
+		*bgq_elem3(dest_v0_c1) = cimag(source->v[0].c[1]);
+		*bgq_elem2(dest_v0_c2) = creal(source->v[0].c[2]);
+		*bgq_elem3(dest_v0_c2) = cimag(source->v[0].c[2]);
+		*bgq_elem2(dest_v1_c0) = creal(source->v[1].c[0]);
+		*bgq_elem3(dest_v1_c0) = cimag(source->v[1].c[0]);
+		*bgq_elem2(dest_v1_c1) = creal(source->v[1].c[1]);
+		*bgq_elem3(dest_v1_c1) = cimag(source->v[1].c[1]);
+		*bgq_elem2(dest_v1_c2) = creal(source->v[1].c[2]);
+		*bgq_elem3(dest_v1_c2) = cimag(source->v[1].c[2]);
+		*bgq_elem2(dest_v2_c0) = creal(source->v[2].c[0]);
+		*bgq_elem3(dest_v2_c0) = cimag(source->v[2].c[0]);
+		*bgq_elem2(dest_v2_c1) = creal(source->v[2].c[1]);
+		*bgq_elem3(dest_v2_c1) = cimag(source->v[2].c[1]);
+		*bgq_elem2(dest_v2_c2) = creal(source->v[2].c[2]);
+		*bgq_elem3(dest_v2_c2) = cimag(source->v[2].c[2]);
+		*bgq_elem2(dest_v3_c0) = creal(source->v[3].c[0]);
+		*bgq_elem3(dest_v3_c0) = cimag(source->v[3].c[0]);
+		*bgq_elem2(dest_v3_c1) = creal(source->v[3].c[1]);
+		*bgq_elem3(dest_v3_c1) = cimag(source->v[3].c[1]);
+		*bgq_elem2(dest_v3_c2) = creal(source->v[3].c[2]);
+		*bgq_elem3(dest_v3_c2) = cimag(source->v[3].c[2]);
+		break;
+	}
+}
+
+
+
+EXTERN_INLINE bgq_weyl_nonvec_double bgq_weyl_extractvec(bgq_weyl_vec_double weylvec, size_t k) {
 	assert(0 <= k && k < PHYSICAL_LK);
-	bgq_weyl_nonvec result;
+	bgq_weyl_nonvec_double result;
 	for (size_t v = 0; v < 2; v+=1) {
 		for (size_t c = 0; c < 3; c+=1) {
 			result.s[v][c] = weylvec.s[v][c][k];
@@ -251,7 +339,7 @@ EXTERN_INLINE bgq_spinor bgq_spinor_fromvec_float(bgq_spinor_vec_float spinorvec
 
 
 #define bgq_weyl_extractfromqpxvec(weyl, k) bgq_weyl_extractfromqpxvec_raw(bgq_su3_weyl_vars(weyl),k)
-EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_extractfromqpxvec_raw(bgq_su3_weyl_params(weyl), size_t k) {
+EXTERN_INLINE bgq_weyl_nonvec_double bgq_weyl_extractfromqpxvec_raw(bgq_su3_weyl_params(weyl), size_t k) {
 	bgq_weyl_vec_double vec = bgq_weyl_fromqpx(weyl);
 	return bgq_weyl_extractvec(vec,k);
 }
@@ -359,8 +447,29 @@ EXTERN_INLINE void bgq_spinorqpxk_expect_raw(bgq_su3_spinor_params(spinor),ucoor
 	bgq_spinor_expect(bgq_spinor_fromqpx(spinor,k),t,x,y,z);
 }
 
+#ifdef BGQ_COORDCHECK
+#define bgq_spinorqpxk_direxpect(spinor,k,t,x,y,z,d) bgq_spinorqpxk_direxpect_raw(bgq_su3_spinor_vars(spinor),k,t,x,y,z,d)
+#else
+#define bgq_spinorqpxk_direxpect(spinor,k,t,x,y,z,d)
+#endif
+EXTERN_INLINE void bgq_spinorqpxk_direxpect_raw(bgq_su3_spinor_params(spinor),ucoord k,ucoord t,ucoord x,ucoord y,ucoord z,bgq_direction d) {
+	bgq_direction_move_local(&t,&x,&y,&z,d);
+	bgq_spinor_expect(bgq_spinor_fromqpx(spinor,k),t,x,y,z);
+}
 
-void bgq_weyl_expect(bgq_weyl_nonvec weyl, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
+
+#ifdef BGQ_COORDCHECK
+#define bgq_spinorqpx_direxpect(spinor,t1,t2,x,y,z,d) bgq_spinorqpx_direxpect_raw(bgq_su3_spinor_vars(spinor),t1,t2,x,y,z,d)
+#else
+#define bgq_spinorqpx_direxpect(spinor,t1,t2,x,y,z,d)
+#endif
+EXTERN_INLINE void bgq_spinorqpx_direxpect_raw(bgq_su3_spinor_params(spinor),ucoord t1,ucoord t2,ucoord x,ucoord y,ucoord z,bgq_direction d) {
+	bgq_spinorqpxk_direxpect(spinor,0,t1,x,y,z,d);
+	bgq_spinorqpxk_direxpect(spinor,1,t2,x,y,z,d);
+}
+
+
+void bgq_weyl_expect(bgq_weyl_nonvec_double weyl, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
 
 #ifdef BGQ_COORDCHECK
 #define bgq_weylqpx_expect(weyl,t1,t2,x,y,z,d,isSrc) bgq_weylqpx_expect_raw(bgq_su3_weyl_vars(weyl),t1,t2,x,y,z,d,isSrc)
@@ -398,9 +507,9 @@ EXTERN_INLINE void bgq_weylqpxk_expect_raw(bgq_su3_weyl_params(weyl), ucoord k, 
 #endif
 
 
-EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_fromvec(bgq_weyl_vec_double weylvec, ucoord k) {
+EXTERN_INLINE bgq_weyl_nonvec_double bgq_weyl_fromvec(bgq_weyl_vec_double weylvec, ucoord k) {
 	assert(0 <= k && k < PHYSICAL_LK);
-	bgq_weyl_nonvec result;
+	bgq_weyl_nonvec_double result;
 	for (size_t v = 0; v < 2; v += 1) {
 		for (size_t c = 0; c < 3; c += 1) {
 			result.s[v][c] = weylvec.s[v][c][k];
@@ -410,7 +519,7 @@ EXTERN_INLINE bgq_weyl_nonvec bgq_weyl_fromvec(bgq_weyl_vec_double weylvec, ucoo
 }
 
 
-void bgq_weyl_expect(bgq_weyl_nonvec weyl, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
+void bgq_weyl_expect(bgq_weyl_nonvec_double weyl, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
 
 EXTERN_INLINE void bgq_weylvec_expect(bgq_weyl_vec_double weyl, ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 #ifdef BGQ_COORDCHECK
@@ -428,7 +537,38 @@ void bgq_weylveck_written_double(bgq_weyl_vec_double *targetweyl, ucoord k, ucoo
 void bgq_weylveck_written_float(bgq_weyl_vec_float *targetweyl, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
 
 
-#define bgq_weylvec_written NAME2(bgq_weylvec_written,PRECISION)
+bgq_weyl_nonvec_double bgq_weyl_coord_encode(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc);
+bgq_spinor_nonvec bgq_spinor_coord_encode(scoord t, scoord x, scoord y, scoord z);
+
+#ifdef BGQ_COORDCHECK
+#define bgq_weylqpx_written(weyl,t1_src,t2_src,x_src,y_src,z_src,d_dst) bgq_weylqpx_written_impl(bgq_su3_weyl_vars(&weyl), t1_src, t2_src, x_src, y_src, z_src, d_dst)
+#else
+#define bgq_weylqpx_written(weyl,t1_src,t2_src,x_src,y_src,z_src,d_dst)
+#endif
+EXTERN_INLINE void bgq_weylqpx_written_impl(bgq_su3_weyl_params(*weyl), ucoord t1_src, ucoord t2_src, ucoord x_src, ucoord y_src, ucoord z_src, bgq_direction d_dst) {
+	bgq_weyl_nonvec_double coord1 = bgq_weyl_coord_encode(t1_src,x_src,y_src,z_src,bgq_direction_revert(d_dst),true);
+	bgq_weyl_toqpxk(*weyl, 0, &coord1);
+	bgq_weyl_nonvec_double coord2 = bgq_weyl_coord_encode(t2_src,x_src,y_src,z_src,bgq_direction_revert(d_dst),true);
+	bgq_weyl_toqpxk(*weyl, 1, &coord2);
+}
+
+
+
+#ifdef BGQ_COORDCHECK
+#define bgq_spinorqpx_written(spinor,t1,t2,x,y,z) bgq_spinorqpx_written_impl(bgq_su3_spinor_vars(&spinor),t1,t2,x,y,z)
+#else
+#define bgq_spinorqpx_written(spinor,t1,t2,x,y,zt)
+#endif
+EXTERN_INLINE void bgq_spinorqpx_written_impl(bgq_su3_spinor_params(*spinor), ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z) {
+	bgq_spinor_nonvec coord1 = bgq_spinor_coord_encode(t1,x,y,z);
+	bgq_spinor_toqpxk(*spinor, 0, &coord1);
+	bgq_spinor_nonvec coord2 = bgq_spinor_coord_encode(t2,x,y,z);
+	bgq_spinor_toqpxk(*spinor, 1, &coord2);
+}
+
+
+
+
 
 #ifdef BGQ_COORDCHECK
 #define bgq_weylvec_written_double(targetweyl, t1, t2, x, y, z, d, isSrc) bgq_weylvec_written_impl_double(targetweyl, t1, t2, x, y, z, d, isSrc)
@@ -453,6 +593,7 @@ EXTERN_INLINE void bgq_weylvec_written_impl_float(bgq_weyl_vec_float *targetweyl
 void bgq_spinorveck_written_double(bgq_spinorsite_double *targetspinor, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z);
 void bgq_spinorveck_written_float(bgq_spinorsite_float *targetspinor, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z);
 
+#define bgq_weylvec_written NAME2(bgq_weylvec_written,PRECISION)
 #ifdef BGQ_COORDCHECK
 #define bgq_spinorvec_written_double(target, t1, t2, x, y, z) bgq_spinorvec_written_impl_double(target, t1, t2, x, y, z)
 #else
@@ -490,6 +631,7 @@ typedef enum {
 	BGQREF_TUP_WEYL,
 	BGQREF_TUP_KAMUL,
 
+	BGQREF_XUP_SOURCE,
 	BGQREF_XUP,
 	BGQREF_XUP_GAUGE,
 	BGQREF_XUP_WEYL,
@@ -506,6 +648,7 @@ typedef enum {
 
 
 	BGQREF_TUP_RECV,
+	BGQREF_TUP_ACCUM,
 
 	BGQREF_TDOWN_RECV,
 	BGQREF_TDOWN_ACCUM,

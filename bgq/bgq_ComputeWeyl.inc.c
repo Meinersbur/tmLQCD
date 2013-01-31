@@ -12,7 +12,7 @@
 
 #define PRECISION double
 
-void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, bgq_gaugesite *gaugesite, bgq_su3_spinor_params(spinor), bgq_params(qka0), bgq_params(qka1), bgq_params(qka2), bgq_params(qka3), ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bool kamul)
+void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, bgq_gaugesite *gaugesite, bgq_su3_spinor_params(spinor), bgq_params(qka0), bgq_params(qka1), bgq_params(qka2), bgq_params(qka3), ucoord t1, ucoord t2, ucoord x, ucoord y, ucoord z, bool gaugemul, bool kamul)
 #endif
 
 #ifndef BGQ_COMPUTEWEYL_INSERTPREFETCH
@@ -46,25 +46,27 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_setbgqvalue_src(t1, x, y, z, TDOWN, BGQREF_TUP, bgq_cmplxval1(weyl_tdown_v0_c0));
 				bgq_setbgqvalue_src(t2, x, y, z, TDOWN, BGQREF_TUP, bgq_cmplxval2(weyl_tdown_v0_c0));
 
-		bgq_su3_mdecl(gauge_tup);
-		bgq_qvlfduxa(gauge_tup_c00, gaugesite, 32);
-		bgq_qvlfduxa(gauge_tup_c01, gaugesite, 32);
-		bgq_qvlfduxa(gauge_tup_c02, gaugesite, 32);
-		bgq_qvlfduxa(gauge_tup_c10, gaugesite, 32);
-		bgq_qvlfduxa(gauge_tup_c11, gaugesite, 32);
-		bgq_qvlfduxa(gauge_tup_c12, gaugesite, 32);
-		bgq_qvlfduxa(gauge_tup_c20, gaugesite, 32);
-		bgq_qvlfduxa(gauge_tup_c21, gaugesite, 32);
-		bgq_qvlfduxa(gauge_tup_c22, gaugesite, 32);
-				bgq_gaugeqpx_expect(gauge_tup, t1, t2, x, y, z, TUP, true);
-				bgq_setdesc(BGQREF_TUP_GAUGE, "BGQREF_TUP_GAUGE");
-				bgq_setbgqvalue_src(t1, x, y, z, TDOWN, BGQREF_TUP_GAUGE, bgq_cmplxval1(gauge_tup_c00));
-				bgq_setbgqvalue_src(t2, x, y, z, TDOWN, BGQREF_TUP_GAUGE, bgq_cmplxval2(gauge_tup_c00));
+		if (gaugemul) {
+			bgq_su3_mdecl(gauge_tup);
+			bgq_qvlfduxa(gauge_tup_c00, gaugesite, 32);
+			bgq_qvlfduxa(gauge_tup_c01, gaugesite, 32);
+			bgq_qvlfduxa(gauge_tup_c02, gaugesite, 32);
+			bgq_qvlfduxa(gauge_tup_c10, gaugesite, 32);
+			bgq_qvlfduxa(gauge_tup_c11, gaugesite, 32);
+			bgq_qvlfduxa(gauge_tup_c12, gaugesite, 32);
+			bgq_qvlfduxa(gauge_tup_c20, gaugesite, 32);
+			bgq_qvlfduxa(gauge_tup_c21, gaugesite, 32);
+			bgq_qvlfduxa(gauge_tup_c22, gaugesite, 32);
+					bgq_gaugeqpx_expect(gauge_tup, t1, t2, x, y, z, TUP, true);
+					bgq_setdesc(BGQREF_TUP_GAUGE, "BGQREF_TUP_GAUGE");
+					bgq_setbgqvalue_src(t1, x, y, z, TDOWN, BGQREF_TUP_GAUGE, bgq_cmplxval1(gauge_tup_c00));
+					bgq_setbgqvalue_src(t2, x, y, z, TDOWN, BGQREF_TUP_GAUGE, bgq_cmplxval2(gauge_tup_c00));
 
-		bgq_su3_weyl_mvmul(weyl_tdown, gauge_tup, weyl_tdown);
-				bgq_setdesc(BGQREF_TUP_WEYL,"BGQREF_TUP_WEYL");
-				bgq_setbgqvalue_src(t1, x, y, z, TDOWN, BGQREF_TUP_WEYL, bgq_cmplxval1(weyl_tdown_v0_c0));
-				bgq_setbgqvalue_src(t2, x, y, z, TDOWN, BGQREF_TUP_WEYL, bgq_cmplxval2(weyl_tdown_v0_c0));
+			bgq_su3_weyl_mvmul(weyl_tdown, gauge_tup, weyl_tdown);
+					bgq_setdesc(BGQREF_TUP_WEYL,"BGQREF_TUP_WEYL");
+					bgq_setbgqvalue_src(t1, x, y, z, TDOWN, BGQREF_TUP_WEYL, bgq_cmplxval1(weyl_tdown_v0_c0));
+					bgq_setbgqvalue_src(t2, x, y, z, TDOWN, BGQREF_TUP_WEYL, bgq_cmplxval2(weyl_tdown_v0_c0));
+		}
 		if (kamul) {
 			bgq_su3_weyl_cmul(weyl_tdown, qka0, weyl_tdown);
 		}
@@ -95,6 +97,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_setbgqvalue_src(t1, x, y, z, TUP, BGQREF_TDOWN, bgq_cmplxval1(weyl_tup_v0_c2));
 				bgq_setbgqvalue_src(t2, x, y, z, TUP, BGQREF_TDOWN, bgq_cmplxval2(weyl_tup_v0_c2));
 
+				if (gaugemul) {
 		bgq_su3_mdecl(gauge_tdown);
 		bgq_qvlfduxa(gauge_tdown_c00, gaugesite, 32);
 		bgq_qvlfduxa(gauge_tdown_c01, gaugesite, 32);
@@ -114,6 +117,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_setdesc(BGQREF_TDOWN_WEYL,"BGQREF_TDOWN_WEYL");
 				bgq_setbgqvalue_src(t1, x, y, z, TUP, BGQREF_TDOWN_WEYL, bgq_cmplxval1(weyl_tup_v0_c0));
 				bgq_setbgqvalue_src(t2, x, y, z, TUP, BGQREF_TDOWN_WEYL, bgq_cmplxval2(weyl_tup_v0_c0));
+				}
 		if (kamul) {
 			bgq_su3_weyl_cjgmul(weyl_tup, qka0, weyl_tup);
 		}
@@ -140,6 +144,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 					bgq_setbgqvalue_src(t1, x, y, z, XDOWN, BGQREF_XUP, bgq_cmplxval1(weyl_xdown_v0_c0));
 					bgq_setbgqvalue_src(t2, x, y, z, XDOWN, BGQREF_XUP, bgq_cmplxval2(weyl_xdown_v0_c0));
 
+					if (gaugemul) {
 			bgq_su3_mdecl(gauge_xup);
 			bgq_qvlfduxa(gauge_xup_c00, gaugesite, 32);
 			bgq_qvlfduxa(gauge_xup_c01, gaugesite, 32);
@@ -158,6 +163,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 					bgq_setdesc(BGQREF_XUP_WEYL,"BGQREF_XUP_WEYL");
 					bgq_setbgqvalue_src(t1, x, y, z, XDOWN, BGQREF_XUP_WEYL, bgq_cmplxval1(weyl_xdown_v0_c0));
 					bgq_setbgqvalue_src(t2, x, y, z, XDOWN, BGQREF_XUP_WEYL, bgq_cmplxval2(weyl_xdown_v0_c0));
+					}
 			if (kamul) {
 				bgq_su3_weyl_cmul(weyl_xdown, qka1, weyl_xdown);
 			}
@@ -184,6 +190,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_setbgqvalue_src(t1, x, y, z, XUP, BGQREF_XDOWN, bgq_cmplxval1(weyl_xup_v0_c0));
 				bgq_setbgqvalue_src(t2, x, y, z, XUP, BGQREF_XDOWN, bgq_cmplxval2(weyl_xup_v0_c0));
 
+				if (gaugemul) {
 		bgq_su3_mdecl(gauge_xdown);
 		bgq_qvlfduxa(gauge_xdown_c00, gaugesite, 32);
 		bgq_qvlfduxa(gauge_xdown_c01, gaugesite, 32);
@@ -203,6 +210,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_setdesc(BGQREF_XDOWN_WEYL, "BGQREF_XDOWN_WEYL");
 				bgq_setbgqvalue_src(t1, x, y, z, XUP, BGQREF_XDOWN_WEYL, bgq_cmplxval1(weyl_xup_v0_c0));
 				bgq_setbgqvalue_src(t2, x, y, z, XUP, BGQREF_XDOWN_WEYL, bgq_cmplxval2(weyl_xup_v0_c0));
+				}
 		if (kamul) {
 			bgq_su3_weyl_cjgmul(weyl_xup, qka1, weyl_xup);
 		}
@@ -226,6 +234,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		bgq_su3_weyl_decl(weyl_ydown);
 		bgq_su3_reduce_weyl_yup(weyl_ydown, spinor);
 
+		if (gaugemul) {
 		bgq_su3_mdecl(gauge_yup);
 		bgq_qvlfduxa(gauge_yup_c00, gaugesite, 32);
 		bgq_qvlfduxa(gauge_yup_c01, gaugesite, 32);
@@ -239,6 +248,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_gaugeqpx_expect(gauge_yup, t1, t2, x, y, z, YUP, true);
 
 		bgq_su3_weyl_mvmul(weyl_ydown, gauge_yup, weyl_ydown);
+		}
 		if (kamul) {
 			bgq_su3_weyl_cmul(weyl_ydown, qka2, weyl_ydown);
 		}
@@ -259,6 +269,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		bgq_su3_weyl_decl(weyl_yup);
 		bgq_su3_reduce_weyl_ydown(weyl_yup, spinor);
 
+		if (gaugemul) {
 		bgq_su3_mdecl(gauge_ydown);
 		bgq_qvlfduxa(gauge_ydown_c00, gaugesite, 32);
 		bgq_qvlfduxa(gauge_ydown_c01, gaugesite, 32);
@@ -272,6 +283,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_gaugeqpx_expect(gauge_ydown, t1, t2, x, y, z, YDOWN, true);
 
 		bgq_su3_weyl_mvinvmul(weyl_yup, gauge_ydown, weyl_yup);
+		}
 		if (kamul) {
 			bgq_su3_weyl_cjgmul(weyl_yup, qka2, weyl_yup);
 		}
@@ -292,6 +304,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 			bgq_su3_weyl_decl(weyl_zdown);
 			bgq_su3_reduce_weyl_zup(weyl_zdown, spinor);
 
+			if (gaugemul) {
 			bgq_su3_mdecl(gauge_zup);
 			bgq_qvlfduxa(gauge_zup_c00, gaugesite, 32);
 			bgq_qvlfduxa(gauge_zup_c01, gaugesite, 32);
@@ -305,6 +318,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 					bgq_gaugeqpx_expect(gauge_zup, t1, t2, x, y, z, ZUP, true);
 
 			bgq_su3_weyl_mvmul(weyl_zdown, gauge_zup, weyl_zdown);
+			}
 			if (kamul) {
 				bgq_su3_weyl_cmul(weyl_zdown, qka3, weyl_zdown);
 			}
@@ -325,6 +339,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 		bgq_su3_weyl_decl(weyl_zup);
 		bgq_su3_reduce_weyl_zdown(weyl_zup, spinor);
 
+		if (gaugemul) {
 		bgq_su3_mdecl(gauge_zdown);
 		bgq_qvlfduxa(gauge_zdown_c00, gaugesite, 32);
 		bgq_qvlfduxa(gauge_zdown_c01, gaugesite, 32);
@@ -338,6 +353,7 @@ void bgq_HoppingMatrix_compute_storeWeyllayout_raw(bgq_weyl_ptr_t *targetptrs, b
 				bgq_gaugeqpx_expect(gauge_zdown, t1, t2, x, y, z, ZDOWN, true);
 
 		bgq_su3_weyl_mvinvmul(weyl_zup, gauge_zdown, weyl_zup);
+		}
 		if (kamul) {
 			bgq_su3_weyl_cjgmul(weyl_zup, qka3, weyl_zup);
 		}

@@ -13,6 +13,8 @@
 #include "bgq_qpx.h"
 #include "bgq_utils.h"
 #include "bgq_dispatch.h"
+#include "bgq_HoppingMatrix.h"
+#include "bgq_gaugefield.h"
 
 #ifndef BGQ_WORKERS_INC_
 #define PRECISION double
@@ -732,9 +734,166 @@ static inline void bgq_spinorfield_rewrite_worker(void *arg_untyped, size_t tid,
 		bgq_spinorfield_prefetchNextSpinor(field, isOdd, ic, weyllayout, sloppy, mul, isLegacy);
 
 		bgq_spinor_vec *fulladdr = &target[ic];
+				bgq_spinorqpx_written(spinor, t1, t2, x, y, z);
 		bgq_su3_spinor_store(fulladdr, spinor);
 	}
 }
 
 
 BGQ_SPINORFIELD_GENWORKER(bgq_spinorfield_rewrite_worker)
+
+
+
+
+
+
+
+void bgq_spinorfield_hmfull_writeToSendbuf(void *arg, size_t tid, size_t threads) {
+	bgq_HoppingMatrix_workload *work = arg;
+	bool isOdd_src = work->isOdd_src;
+	bool isOdd_dst = work->isOdd_dst;
+	bgq_weylfield_controlblock * restrict spinorfield = work->spinorfield;
+	bgq_weylfield_controlblock * restrict targetfield = work->targetfield;
+	ucoord ic_begin = work->ic_begin;
+	ucoord ic_end = work->ic_end;
+	bool noprefetchstream = work->noprefetchstream;
+
+	size_t offset_comm = bgq_weyl_section_offset(sec_comm);
+	size_t index_comm = bgq_offset2index(offset_comm);
+
+	const size_t workload = PHYSICAL_SURFACE;
+	const size_t threadload = (workload+threads-1)/threads;
+	const size_t begin = tid*threadload;
+	const size_t end = min_sizet(workload, begin+threadload);
+	for (ucoord ic_src = begin; ic_src < end; ic_src+=1) {
+#ifndef NDEBUG
+		ucoord t1_src = bgq_collapsed2t1(isOdd_src, ic_src);
+		ucoord t2_src = bgq_collapsed2t2(isOdd_src, ic_src);
+		ucoord x_src = bgq_collapsed2x(isOdd_src, ic_src);
+		ucoord y_src = bgq_collapsed2y(isOdd_src, ic_src);
+		ucoord z_src = bgq_collapsed2z(isOdd_src, ic_src);
+#endif
+
+		bgq_su3_spinor_decl(spinor);
+		bgq_spinorfield_readSpinor(&spinor, spinorfield, isOdd_src, ic_src, false, PRECISION_ISSLOPPY, false, false);
+		// TODO: We may split this into 8 independent loops without conditionals
+
+		if (COMM_T && bgq_direction_isCrossingBorder_collapsed(isOdd_src, ic_src, TDOWN)) {
+					bgq_setbgqvalue_src(t1_src, x_src, y_src, z_src, TDOWN, BGQREF_TUP_SOURCE, bgq_cmplxval1(spinor_v0_c0));
+			size_t weylidx_tup = g_bgq_collapsed2sendidx[isOdd_src][ic_src][TUP];
+			assert(weylidx_tup < 0xFEFEFEFEFEFEFEFEull);
+			bgq_weyl_nonvec *weylptr_tup = &g_bgq_sec_send_unvectorized[TDOWN][weylidx_tup];
+			bgq_su3_weyl_decl(weyl_tup);
+			bgq_su3_reduce_weyl_tup(weyl_tup, spinor);
+					bgq_weylqpx_written(weyl_tup, t1_src,t2_src,x_src,y_src,z_src,TUP);
+			bgq_su3_weyl_left_nonvecstore(weylptr_tup, weyl_tup);
+		}
+
+
+		if (COMM_T && bgq_direction_isCrossingBorder_collapsed(isOdd_src, ic_src, TUP)) {
+					bgq_setbgqvalue_src(t1_src, x_src, y_src, z_src, TUP, BGQREF_TDOWN_SOURCE, bgq_cmplxval2(spinor_v0_c0));
+			size_t weylidx_tdown = g_bgq_collapsed2sendidx[isOdd_src][ic_src][TDOWN];
+			assert(weylidx_tdown < 0xFEFEFEFEFEFEFEFEull);
+			bgq_weyl_nonvec *weylptr_tdown = &g_bgq_sec_send_unvectorized[TUP][weylidx_tdown];
+			bgq_su3_weyl_decl(weyl_tdown);
+			bgq_su3_reduce_weyl_tdown(weyl_tdown, spinor);
+					bgq_weylqpx_written(weyl_tdown, t1_src,t2_src,x_src,y_src,z_src,TDOWN);
+			bgq_su3_weyl_right_nonvecstore(weylptr_tdown, weyl_tdown);
+		}
+
+
+		if (COMM_X && bgq_direction_isCrossingBorder_collapsed(isOdd_src, ic_src, XDOWN)) {
+					bgq_setbgqvalue_src(t1_src, x_src, y_src, z_src, XDOWN, BGQREF_XUP_SOURCE, bgq_cmplxval1(spinor_v0_c0));
+					bgq_setbgqvalue_src(t2_src, x_src, y_src, z_src, XDOWN, BGQREF_XUP_SOURCE, bgq_cmplxval1(spinor_v0_c0));
+			size_t weylidx_xup = g_bgq_collapsed2sendidx[isOdd_src][ic_src][XUP];
+			assert(weylidx_xup < 0xFEFEFEFEFEFEFEFEull);
+			bgq_weyl_vec *weylptr_xup = &g_bgq_sec_send[XDOWN][weylidx_xup];
+			bgq_su3_weyl_decl(weyl_xup);
+			bgq_su3_reduce_weyl_xup(weyl_xup, spinor);
+			bgq_su3_weyl_store(weylptr_xup, weyl_xup);
+					bgq_weylvec_written(weylptr_xup, t1_src, t2_src, x_src, y_src, z_src, XDOWN, true);
+		}
+
+
+		if (COMM_X && bgq_direction_isCrossingBorder_collapsed(isOdd_src, ic_src, XUP)) {
+			size_t weylidx_xdown = g_bgq_collapsed2sendidx[isOdd_src][ic_src][XDOWN];
+			assert(weylidx_xdown < 0xFEFEFEFEFEFEFEFEull);
+			bgq_weyl_vec *weylptr_xdown = &g_bgq_sec_send[XUP][weylidx_xdown];
+			bgq_su3_weyl_decl(weyl_xdown);
+			bgq_su3_reduce_weyl_xdown(weyl_xdown, spinor);
+			bgq_su3_weyl_store(weylptr_xdown, weyl_xdown);
+					bgq_weylvec_written(weylptr_xdown, t1_src, t2_src, x_src, y_src, z_src, XUP, true);
+		}
+
+
+		if (COMM_Y && bgq_direction_isCrossingBorder_collapsed(isOdd_src, ic_src, YDOWN)) {
+			size_t weylidx_yup = g_bgq_collapsed2sendidx[isOdd_src][ic_src][YUP];
+			assert(weylidx_yup < 0xFEFEFEFEFEFEFEFEull);
+			bgq_weyl_vec *weylptr_yup = &g_bgq_sec_send[YDOWN][weylidx_yup];
+			bgq_su3_weyl_decl(weyl_yup);
+			bgq_su3_reduce_weyl_yup(weyl_yup, spinor);
+			bgq_su3_weyl_store(weylptr_yup, weyl_yup);
+					bgq_weylvec_written(weylptr_yup, t1_src, t2_src, x_src, y_src, z_src, YDOWN, true);
+		}
+
+
+		if (COMM_Y && bgq_direction_isCrossingBorder_collapsed(isOdd_src, ic_src, YUP)) {
+			size_t weylidx_ydown = g_bgq_collapsed2sendidx[isOdd_src][ic_src][YDOWN];
+			assert(weylidx_ydown < 0xFEFEFEFEFEFEFEFEull);
+			bgq_weyl_vec *weylptr_ydown = &g_bgq_sec_send[YUP][weylidx_ydown];
+			bgq_su3_weyl_decl(weyl_ydown);
+			bgq_su3_reduce_weyl_ydown(weyl_ydown, spinor);
+			bgq_su3_weyl_store(weylptr_ydown, weyl_ydown);
+					bgq_weylvec_written(weylptr_ydown, t1_src, t2_src, x_src, y_src, z_src, YUP, true);
+		}
+
+
+		if (COMM_Z && bgq_direction_isCrossingBorder_collapsed(isOdd_src, ic_src, ZDOWN)) {
+			size_t weylidx_zup = g_bgq_collapsed2sendidx[isOdd_src][ic_src][ZUP];
+			assert(weylidx_zup < 0xFEFEFEFEFEFEFEFEull);
+			bgq_weyl_vec *weylptr_zup = &g_bgq_sec_send[ZDOWN][weylidx_zup];
+			bgq_su3_weyl_decl(weyl_zup);
+			bgq_su3_reduce_weyl_zup(weyl_zup, spinor);
+			bgq_su3_weyl_store(weylptr_zup, weyl_zup);
+					bgq_weylvec_written(weylptr_zup, t1_src, t2_src, x_src, y_src, z_src, ZDOWN, true);
+		}
+
+
+		if (COMM_Z && bgq_direction_isCrossingBorder_collapsed(isOdd_src, ic_src, ZUP)) {
+			size_t weylidx_zdown = g_bgq_collapsed2sendidx[isOdd_src][ic_src][ZDOWN];
+			assert(weylidx_zdown < 0xFEFEFEFEFEFEFEFEull);
+			bgq_weyl_vec *weylptr_zdown = &g_bgq_sec_send[ZUP][weylidx_zdown];
+			bgq_su3_weyl_decl(weyl_zdown);
+			bgq_su3_reduce_weyl_zdown(weyl_zdown, spinor);
+			bgq_su3_weyl_store(weylptr_zdown, weyl_zdown);
+					bgq_weylvec_written(weylptr_zdown, t1_src, t2_src, x_src, y_src, z_src, ZUP, true);
+		}
+
+	}
+#if 0
+	const size_t workload = COMM_T*2*PHYSICAL_LTV + COMM_X*2*PHYSICAL_LX + COMM_Y*2*PHYSICAL_LY + COMM_Z*2*PHYSICAL_LZ;
+	const size_t threadload = (workload+threads-1)/threads;
+	const size_t begin = tid*threadload;
+	const size_t end = min_sizet(workload, begin+threadload);
+	for (size_t i = begin; i < end; ) {
+		WORKLOAD_DECL(i, workload);
+
+		if ( WORKLOAD_SECTION(COMM_T*2*PHYSICAL_LTV) ) {
+
+		} else if (WORKLOAD_SECTION(COMM_X*2*PHYSICAL_LX) ) {
+			bool isUp = WORKLOAD_TILE(2);
+			ucoord ic = WORKLOAD_PARAM(PHYSICAL_LX);
+
+		} else if (WORKLOAD_SECTION(COMM_Y*2*PHYSICAL_LY)) {
+
+		} else if (WORKLOAD_SECTION(COMM_Y*2*PHYSICAL_LY)) {
+
+		} else {
+			UNREACHABLE
+		}
+		WORKLOAD_CHECK;
+	}
+#endif
+}
+
+

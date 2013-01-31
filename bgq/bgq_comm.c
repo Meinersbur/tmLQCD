@@ -11,6 +11,7 @@
 #include "bgq_field.h"
 #include "bgq_dispatch.h"
 #include "bgq_workers.h"
+#include "bgq_HoppingMatrix.h"
 
 #ifdef SPI
 #include "../DirectPut.h"
@@ -151,6 +152,7 @@ static int bgq_direction2rank(bgq_direction d) {
 		return g_nb_z_dn;
 	default:
 		UNREACHABLE
+		break;
 	}
 	return -1;
 }
@@ -298,6 +300,7 @@ static void bgq_comm_test(bool nospi, bool sloppy) {
 }
 
 
+
 static bool g_bgq_comm_common_initialized = false;
 static void bgq_comm_common_init(void) {
 	if (g_bgq_comm_common_initialized)
@@ -311,7 +314,7 @@ static void bgq_comm_common_init(void) {
 		uint8_t *bufend = buf + commbufsize;
 		g_bgq_sec_comm = buf;
 		g_bgq_sec_comm_float = buf + commbufsize;
-		for (bgq_direction d = 0; d < PHYSICAL_LD; d += 1) {
+		for (size_t d = 0; d < PHYSICAL_LD; d += 1) {
 			bgq_dimension dim = bgq_direction2dimension(d);
 
 			bgq_weylfield_section sec_send = bgq_direction2section(d, true);
@@ -328,6 +331,13 @@ static void bgq_comm_common_init(void) {
 			assert((uintptr_t)g_bgq_sec_send_double[d] % BGQ_ALIGNMENT_L2 == 0);
 			assert((uintptr_t)g_bgq_sec_recv_double[d] % BGQ_ALIGNMENT_L2 == 0);
 		}
+
+		for (bgq_direction d = TUP; d <= TDOWN; d += 1) {
+			g_bgq_sec_send_unvectorized_double[d] = (bgq_weyl_nonvec_double*)g_bgq_sec_send_double[d];
+			g_bgq_sec_send_unvectorized_float[d] = (bgq_weyl_nonvec_float*)g_bgq_sec_send_float[d];
+			g_bgq_sec_recv_unvectorized_double[d] = (bgq_weyl_nonvec_double*)g_bgq_sec_recv_double[d];
+			g_bgq_sec_recv_unvectorized_float[d] = (bgq_weyl_nonvec_float*)g_bgq_sec_recv_float[d];
+		}
 	}
 
 	if (BGQ_UNVECTORIZE || !COMM_T) {
@@ -338,6 +348,83 @@ static void bgq_comm_common_init(void) {
 		//g_bgq_sec_vrecv_tup = malloc_aligned(PHYSICAL_HALO_T,BGQ_ALIGNMENT_L2);
 		//g_bgq_sec_vrecv_tdown = malloc_aligned(PHYSICAL_HALO_T,BGQ_ALIGNMENT_L2);
 	}
+
+#if 0
+	for (size_t isOdd = false; isOdd <= true; isOdd+=1) {
+		g_bgq_comm_collapsed2weylsendidx[isOdd] = malloc_aligned(PHYSICAL_SURFACE * sizeof(*g_bgq_comm_collapsed2weylsendidx[isOdd]), BGQ_ALIGNMENT_L2);
+		memset(g_bgq_comm_collapsed2weylsendidx[isOdd], 0xFF, PHYSICAL_SURFACE * sizeof(*g_bgq_comm_collapsed2weylsendidx[isOdd]));
+		g_bgq_comm_collapsed2weylrecvidx[isOdd] = malloc_aligned(PHYSICAL_SURFACE * sizeof(*g_bgq_comm_collapsed2weylrecvidx[isOdd]), BGQ_ALIGNMENT_L2);
+		memset(g_bgq_comm_collapsed2weylrecvidx[isOdd], 0xFF, PHYSICAL_SURFACE * sizeof(*g_bgq_comm_collapsed2weylrecvidx[isOdd]));
+	}
+	for (size_t isOdd_src = false; isOdd_src <= true; isOdd_src+=1) {
+		bool isOdd_dst = !isOdd_src;
+		for (ucoord ic_src = 0; ic_src < PHYSICAL_SURFACE; ic_src+=1) {
+			for (size_t d_dst = TUP; d_dst <= ZDOWN; d_dst+=1) {
+				bgq_direction d_src = bgq_direction_revert(d_dst);
+				ucoord ic_dst = bgq_direction_move_collapsed(isOdd_src, ic_src, d_src);
+				size_t indexsend = g_bgq_collapsed2indexsend[isOdd_dst][ic_src].d[d_dst];
+				size_t offsetsend = bgq_index2offset(indexsend);
+				bgq_weylfield_section secSend = bgq_sectionOfOffset(offsetsend);
+				size_t secoffset = bgq_weyl_section_offset(secSend);
+				size_t secindex = bgq_offset2index(secoffset);
+				assert(indexsend >= secindex);
+				size_t relindex = indexsend - secindex;
+
+				switch (secSend) {
+				case sec_send_tup:
+				case sec_send_tdown:
+				case sec_send_xup:
+				case sec_send_xdown:
+				case sec_send_yup:
+				case sec_send_ydown:
+				case sec_send_zup:
+				case sec_send_zdown:
+					break;
+				case sec_temp_tup:
+					break;
+				case sec_temp_tdown:
+					break;
+				default:
+					continue;
+				}
+
+				assert(0 <= ic_src && ic_src < PHYSICAL_SURFACE);
+				g_bgq_comm_collapsed2weylsendidx[isOdd_src][ic_src][d_dst] = relindex;
+				assert(0 <= ic_dst && ic_dst < PHYSICAL_SURFACE);
+				g_bgq_comm_collapsed2weylrecvidx[isOdd_dst][ic_dst][d_dst] = relindex;
+			}
+		}
+	}
+#endif
+#if 0
+	for (size_t isOdd = false; isOdd <= true; isOdd+=1) {
+		g_comm_collapsed2sendbufptr_unvectorized_double[isOdd] = malloc(PHYSICAL_SURFACE * sizeof(*g_comm_collapsed2sendbufptr_unvectorized_double[isOdd]));
+		g_comm_collapsed2sendbufptr_unvectorized_float[isOdd] = malloc(PHYSICAL_SURFACE * sizeof(*g_comm_collapsed2sendbufptr_unvectorized_float[isOdd]));
+	}
+	for (size_t isOdd_src = false; isOdd_src <= true; isOdd_src+=1) {
+		bool isOdd_dst = !isOdd_src;
+		for (ucoord ic_src = 0; ic_src < PHYSICAL_SURFACE; ic_src+=1) {
+			size_t idx = g_comm_collapsed2weylsiteidx[isOdd_src][ic_src][TUP];
+
+			g_comm_collapsed2sendbufptr_unvectorized_double[isOdd_src][ic_src].d_tup = &((*bgq_weyl_nonvec_double*)g_bgq_sec_send_double[TDOWN])[idx];
+			g_comm_collapsed2sendbufptr_unvectorized_double[isOdd_src][ic_src].d_tdown = &((*bgq_weyl_nonvec_double*)g_bgq_sec_send_double[TUP])[idx];
+			g_comm_collapsed2sendbufptr_unvectorized_double[isOdd_src][ic_src].d_xup = &g_bgq_sec_send_double[XDOWN][idx];
+			g_comm_collapsed2sendbufptr_unvectorized_double[isOdd_src][ic_src].d_xdown = &g_bgq_sec_send_double[XUP][idx];
+			g_comm_collapsed2sendbufptr_unvectorized_double[isOdd_src][ic_src].d_yup = &g_bgq_sec_send_double[YDOWN][idx];
+			g_comm_collapsed2sendbufptr_unvectorized_double[isOdd_src][ic_src].d_ydown = &g_bgq_sec_send_double[YUP][idx];
+			g_comm_collapsed2sendbufptr_unvectorized_double[isOdd_src][ic_src].d_zup = &g_bgq_sec_send_double[ZDOWN][idx];
+			g_comm_collapsed2sendbufptr_unvectorized_double[isOdd_src][ic_src].d_zdown = &g_bgq_sec_send_double[ZUP][idx];
+			g_comm_collapsed2sendbufptr_unvectorized_float[isOdd_src][ic_src].d_tup = &((*bgq_weyl_nonvec_float*)g_bgq_sec_send_float[TDOWN])[idx];
+			g_comm_collapsed2sendbufptr_unvectorized_float[isOdd_src][ic_src].d_tdown = &((*bgq_weyl_nonvec_float*)g_bgq_sec_send_float[TUP])[idx];
+			g_comm_collapsed2sendbufptr_unvectorized_float[isOdd_src][ic_src].d_xup = &g_bgq_sec_send_float[XDOWN][idx];
+			g_comm_collapsed2sendbufptr_unvectorized_float[isOdd_src][ic_src].d_xdown = &g_bgq_sec_send_float[XUP][idx];
+			g_comm_collapsed2sendbufptr_unvectorized_float[isOdd_src][ic_src].d_yup = &g_bgq_sec_send_float[YDOWN][idx];
+			g_comm_collapsed2sendbufptr_unvectorized_float[isOdd_src][ic_src].d_ydown = &g_bgq_sec_send_float[YUP][idx];
+			g_comm_collapsed2sendbufptr_unvectorized_float[isOdd_src][ic_src].d_zup = &g_bgq_sec_send_float[ZDOWN][idx];
+			g_comm_collapsed2sendbufptr_unvectorized_float[isOdd_src][ic_src].d_zdown = &g_bgq_sec_send_float[ZUP][idx];
+		}
+	}
+#endif
 }
 
 
@@ -600,16 +687,36 @@ static void bgq_comm_datamove_field(bgq_weylfield_controlblock *targetfield) {
 
 	// 5. Move received to correct location, so the communication buffers can be reused
 	if (targetfield->pendingDatamove) {
-		bgq_master_sync();
-		static bgq_work_datamove work;
-		work.spinorfield = targetfield;
-		work.opts = targetfield->hmflags;
-		assert(targetfield->has_weyllayout_float + targetfield->has_weyllayout_double == 1);
-		if (targetfield->has_weyllayout_float)
-			bgq_master_call(&bgq_HoppingMatrix_worker_datamove_float, &work);
-		if (targetfield->has_weyllayout_double)
-			bgq_master_call(&bgq_HoppingMatrix_worker_datamove_double, &work);
+		bgq_weylfield_controlblock *sourcefield = targetfield->pendingSourcefield;
 		targetfield->pendingDatamove = false;
+		sourcefield->pendingDatamove = false;
+
+		if (targetfield->pendingTargetLayout & ly_weyl) {
+			bgq_master_sync();
+			static bgq_work_datamove work;
+			work.spinorfield = targetfield;
+			work.opts = targetfield->hmflags;
+			assert(targetfield->has_weyllayout_float + targetfield->has_weyllayout_double == 1);
+			if (targetfield->has_weyllayout_float)
+				bgq_master_call(&bgq_HoppingMatrix_worker_datamove_float, &work);
+			if (targetfield->has_weyllayout_double)
+				bgq_master_call(&bgq_HoppingMatrix_worker_datamove_double, &work);
+		} else {
+			bgq_spinorfield_layout layout = bgq_spinorfield_prepareRead(sourcefield, tri_unknown, false, !(targetfield->pendingSourceLayout&ly_sloppy), targetfield->pendingSourceLayout&ly_sloppy, false, false);
+			assert(layout == targetfield->pendingSourceLayout);
+
+			bgq_master_sync();
+			static bgq_HoppingMatrix_workload work_surface;
+			work_surface.isOdd_src = sourcefield->isOdd;
+			work_surface.isOdd_dst = targetfield->isOdd;
+			work_surface.targetfield = targetfield;
+			work_surface.spinorfield = sourcefield;
+			work_surface.ic_begin = 0;
+			work_surface.ic_end = PHYSICAL_SURFACE;
+			work_surface.noprefetchstream = targetfield->hmflags & hm_noprefetchstream;
+			bgq_HoppingMatrix_work(&work_surface, targetfield->hmflags & hm_nokamul, targetfield->pendingSourceLayout, targetfield->pendingTargetLayout);
+		}
+
 	}
 }
 

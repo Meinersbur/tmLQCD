@@ -25,6 +25,7 @@
 #include <valgrind/memcheck.h>
 #endif
 #include <math.h>
+#include <limits.h>
 
 
 typedef struct {
@@ -176,7 +177,7 @@ static double bgq_spinorfield_legacy_compare(bool isOdd, bgq_weylfield_controlbl
 }
 
 
-void bgq_weyl_expect(bgq_weyl_nonvec weyl, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
+void bgq_weyl_expect(bgq_weyl_nonvec_double weyl, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 	size_t t_global = bgq_local2global_t(t);
 	size_t x_global = bgq_local2global_x(x);
 	size_t y_global = bgq_local2global_y(y);
@@ -235,11 +236,18 @@ static bgq_weyl_vec_float *bgq_index2pointer_float(bgq_weylfield_controlblock *f
 }
 
 
-static bgq_spinor_nonvec bgq_spinor_coord_encode(scoord t, scoord x, scoord y, scoord z) {
+bgq_spinor_nonvec bgq_spinor_coord_encode(scoord t, scoord x, scoord y, scoord z) {
 	ucoord t_global = bgq_local2global_t(t);
 	ucoord x_global = bgq_local2global_x(x);
 	ucoord y_global = bgq_local2global_y(y);
 	ucoord z_global = bgq_local2global_z(z);
+
+	if (t==0 && x==0 && y==0 && z==0) {
+		int a = 0;
+	}
+	if (t==1 && x==0 && y==0 && z==0) {
+		int b = 0;
+	}
 
 	bgq_spinor_nonvec result = {{{{0}}}};
 	result.v[0].c[0] = t_global;
@@ -287,7 +295,7 @@ void bgq_spinorveck_written_float(bgq_spinorsite_float *targetspinor, ucoord k, 
 #endif
 }
 
-static bgq_weyl_nonvec bgq_weyl_coord_encode(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
+bgq_weyl_nonvec_double bgq_weyl_coord_encode(ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 	ucoord t_global = bgq_local2global_t(t);
 	ucoord x_global = bgq_local2global_x(x);
 	ucoord y_global = bgq_local2global_y(y);
@@ -297,7 +305,11 @@ static bgq_weyl_nonvec bgq_weyl_coord_encode(ucoord t, ucoord x, ucoord y, ucoor
 		d = bgq_direction_revert(d);
 	}
 
-	bgq_weyl_nonvec result = {{{0}}};
+	if (t_global==0 && x_global==0 && y_global==0 && z_global==0) {
+		int a = 0;
+	}
+
+	bgq_weyl_nonvec_double result = {{{0}}};
 	result.s[0][0] = t_global;
 	result.s[0][1] = x_global;
 	result.s[0][2] = y_global;
@@ -308,7 +320,7 @@ static bgq_weyl_nonvec bgq_weyl_coord_encode(ucoord t, ucoord x, ucoord y, ucoor
 }
 
 
-static void bgq_weylveck_write_double(bgq_weyl_vec_double *target, ucoord k, bgq_weyl_nonvec data) {
+static void bgq_weylveck_write_double(bgq_weyl_vec_double *target, ucoord k, bgq_weyl_nonvec_double data) {
 	for (ucoord i = 0; i < 2; i += 1) {
 		for (ucoord l = 0; l < 3; l += 1) {
 			target->s[i][l][k] = data.s[i][l];
@@ -317,7 +329,7 @@ static void bgq_weylveck_write_double(bgq_weyl_vec_double *target, ucoord k, bgq
 }
 
 
-static void bgq_weylveck_write_float(bgq_weyl_vec_float *target, ucoord k, bgq_weyl_nonvec data) {
+static void bgq_weylveck_write_float(bgq_weyl_vec_float *target, ucoord k, bgq_weyl_nonvec_double data) {
 	for (ucoord i = 0; i < 2; i += 1) {
 		for (ucoord l = 0; l < 3; l += 1) {
 			target->s[i][l][k] = data.s[i][l];
@@ -328,7 +340,7 @@ static void bgq_weylveck_write_float(bgq_weyl_vec_float *target, ucoord k, bgq_w
 #define bgq_weylveck_written NAME2(bgq_weylveck_written,PRECISION)
 void bgq_weylveck_written_double(bgq_weyl_vec_double *targetweyl, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 #ifdef BGQ_COORDCHECK
-	bgq_weyl_nonvec coord = bgq_weyl_coord_encode(t,x,y,z,d,isSrc);
+	bgq_weyl_nonvec_double coord = bgq_weyl_coord_encode(t,x,y,z,d,isSrc);
 	bgq_weylveck_write_double(targetweyl, k, coord);
 #endif
 }
@@ -336,7 +348,7 @@ void bgq_weylveck_written_double(bgq_weyl_vec_double *targetweyl, ucoord k, ucoo
 
 void bgq_weylveck_written_float(bgq_weyl_vec_float *targetweyl, ucoord k, ucoord t, ucoord x, ucoord y, ucoord z, bgq_direction d, bool isSrc) {
 #ifdef BGQ_COORDCHECK
-	bgq_weyl_nonvec coord = bgq_weyl_coord_encode(t,x,y,z,d,isSrc);
+	bgq_weyl_nonvec_double coord = bgq_weyl_coord_encode(t,x,y,z,d,isSrc);
 	bgq_weylveck_write_float(targetweyl, k, coord);
 #endif
 }
@@ -753,15 +765,6 @@ void bgq_setrefvalue_impl(int t, int x, int y, int z, bgqref idx, complexdouble 
 
 
 void bgq_setbgqvalue_impl(int t, int x, int y, int z, bgqref idx, complex_double val) {
-	if (idx==BGQREF_TUP && t==0 && x==0 && y==0 && z==0) {
-		int a = 0;
-	}
-	if (val == 0) {
-		if (val == 1) {
-			//assert(false);
-		}
-	}
-
 	if (t < 0)
 		t = 0;
 	if (t >= LOCAL_LT)
@@ -1255,11 +1258,11 @@ void bgq_spinorfield_prepareWrite(bgq_weylfield_controlblock *field, tristate is
 		// Ensure any communication has finished before messing up with fields
 		// Empty communication buffer so they can be reused
 		bgq_comm_wait();
-	}
-	else if (field->pendingDatamove) {
+	} else if (field->pendingDatamove) {
 		// This is a bit strange; actually it means that the result of a HoppingMatrix call has not been used
 		bgq_comm_wait();
 	}
+
 
 #ifndef NDEBUG
 	// Some debugging code in workers (especially the datamove inside bgq_comm_wait() called above) needs to know whether the float or double field is currently active
@@ -1662,8 +1665,38 @@ void bgq_spinorfields_init(void) {
 		return;
 	g_bgq_spinorfields_initialized = true;
 
-	//bgq_weylfield_collection *collection = bgq_spinorfields_allocate(std_count, g_spinor_field[0], VOLUMEPLUSRAND/2);
-	//g_bgq_spinorfields = &collection->controlblocks[0];
+
+	for (size_t isOdd = 0; isOdd <= 1; isOdd+=1) {
+		g_spinorfield_collapsedSrc2collapsedDst[isOdd] = malloc_aligned(PHYSICAL_VOLUME * sizeof(*g_spinorfield_collapsedSrc2collapsedDst[isOdd]), BGQ_ALIGNMENT_L2);
+	}
+	for (size_t isOdd_src = 0; isOdd_src <= 1; isOdd_src+=1) {
+		bool isOdd_dst = false;
+
+		for (ucoord ic_src = 0; ic_src<PHYSICAL_VOLUME; ic_src+=1) {
+			for (size_t d_src = 0; d_src <= ZDOWN; d_src+=1) {
+				bgq_direction d_dst = bgq_direction_revert(d_src);
+
+				ucoord tv_src = bgq_collapsed2tv(isOdd_src, ic_src);
+				ucoord x_src = bgq_collapsed2x(isOdd_src, ic_src);
+				ucoord y_src = bgq_collapsed2y(isOdd_src, ic_src);
+				ucoord z_src = bgq_collapsed2z(isOdd_src, ic_src);
+
+				if (bgq_direction_isCrossingBorder_physical(isOdd_src, tv_src ,x_src,y_src,z_src,d_src)) {
+					g_spinorfield_collapsedSrc2collapsedDst[isOdd_src][ic_src][d_src] = UINT32_MAX;
+				} else {
+					ucoord tv_dst = tv_src;
+					ucoord x_dst = x_src;
+					ucoord y_dst = y_src;
+					ucoord z_dst = z_src;
+					bgq_direction_move_physical(isOdd_src, &tv_dst, &x_dst, &y_dst, &z_dst, d_src);
+					ucoord ic_dst = bgq_physical2collapsed(isOdd_dst, tv_dst, x_dst, y_dst, z_dst);
+
+					assert(ic_dst < UINT32_MAX);
+					g_spinorfield_collapsedSrc2collapsedDst[isOdd_src][ic_src][d_src] = ic_dst;
+				}
+			}
+		}
+	}
 }
 
 

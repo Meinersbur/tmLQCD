@@ -589,6 +589,9 @@ static bgq_hmflags flags[] = {
 		(DEFOPTS | hm_nocom                               | hm_nodatamove),
 		(DEFOPTS | hm_nocom                               | hm_nodatamove | hm_floatprecision),
         DEFOPTS,
+        DEFOPTS | hm_forcefull,
+        DEFOPTS | hm_forcefull | hm_floatprecision,
+        DEFOPTS | hm_forceweyl,
 		DEFOPTS | hm_nospi,
 		DEFOPTS | hm_nooverlap,
 		DEFOPTS | hm_nocom,
@@ -611,6 +614,9 @@ static char* flags_desc[] = {
 		"volonly dbl",
 		"volonly sgl",
 		"nokamul",
+		"fullspinor",
+		"fullspinor sgl",
+		"halfspinor",
 		"nokamul MPI",
 		"+nooverlap",
 		"+nocomm",
@@ -1004,8 +1010,8 @@ static int check_hopmat(void *arg_untyped) {
 		}
 	}
 
-	bgq_HoppingMatrix(false, &g_bgq_spinorfields[2*k_max], &g_bgq_spinorfields[k], hmflags);
-	HoppingMatrix_switch(false, g_spinor_field[k+k_max], g_spinor_field[k], hmflags);
+	bgq_HoppingMatrix(false, &g_bgq_spinorfields[/*2*/2*k_max], &g_bgq_spinorfields[/*0*/k], hmflags);
+	HoppingMatrix_switch(false, g_spinor_field[/*1*/k+k_max], g_spinor_field[/*0*/k], hmflags);
 #ifdef BGQ_COORDCHECK
 	bgq_legacy_markcoords(false, g_spinor_field[k+k_max]);
 #endif
@@ -1215,7 +1221,7 @@ static void exec_bench(int j_max, int k_max) {
 	checkargs_t checkargs_double = {
 	        .k_max = k_max,
 	        .opts = 0,
-	        .doSave = false
+	        .doSave = true
 	};
 	bgq_parallel(&check_linalg, &checkargs_double);
 	master_print("Double: ");

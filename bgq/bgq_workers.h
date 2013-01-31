@@ -37,16 +37,6 @@
 	};
 
 
-#define PRECISION_ISSLOPPY_double false
-#define PRECISION_ISSLOPPY_float true
-#define PRECISION_ISSLOPPY NAME2(PRECISION_ISSLOPPY,PRECISION)
-
-#define PRECISION_SIZEOF_double 8
-#define PRECISION_SIZEOF_float 4
-#define PRECISION_SIZEOF NAME2(PRECISION_SIZEOF,PRECISION)
-
-#define PRECISION_COMPLEX_SIZEOF (2*PRECISION_SIZEOF)
-
 #define PRECISION_WEYLLAYOUT_double ly_weyl_double
 #define PRECISION_WEYLLAYOUT_float ly_weyl_float
 #define PRECISION_WEYLLAYOUT NAME2(PRECISION_WEYLLAYOUT,PRECISION)
@@ -104,5 +94,9 @@ void bgq_copyToLegacy_worker_weyllayout_float(void *arg_untyped, size_t tid, siz
 extern bgq_worker_func g_bgq_spinorfield_rewrite_worker_double_list[BGQ_SPINORFIELD_LAYOUT_COUNT];
 extern bgq_worker_func g_bgq_spinorfield_rewrite_worker_float_list[BGQ_SPINORFIELD_LAYOUT_COUNT];
 #define bgq_spinorfield_rewrite_worker NAME2(bgq_spinorfield_rewrite_worker,PRECISION)
+
+void bgq_spinorfield_hmfull_writeToSendbuf_double(void *arg_untyped, size_t tid, size_t threads);
+void bgq_spinorfield_hmfull_writeToSendbuf_float(void *arg_untyped, size_t tid, size_t threads);
+#define bgq_spinorfield_hmfull_writeToSendbuf NAME2(bgq_spinorfield_hmfull_writeToSendbuf,PRECISION)
 
 #endif /* BGQ_WORKERS_H_ */

@@ -1,19 +1,26 @@
 
+#define HALOCONDITION_TUP (HALO_T && t2_dst==LOCAL_LT-1) /* ??? */
+#define HALOCONDITION_TDOWN (HALO_T && t1_dst==0) /* ??? */
+#define HALOCONDITION_XUP (HALO_X && x_dst==LOCAL_LX-1)
+#define HALOCONDITION_XDOWN (HALO_X && x_dst==0)
+#define HALOCONDITION_YUP (HALO_Y && y_dst==LOCAL_LY-1)
+#define HALOCONDITION_YDOWN (HALO_Y && y_dst==0)
+#define HALOCONDITION_ZUP (HALO_Z && z_dst==LOCAL_LZ-1)
+#define HALOCONDITION_ZDOWN (HALO_Z && z_dst==0)
+
 #ifndef BGQ_HOPPINGMATRIXWORKER_INC_
 #include "bgq_utils.h"
 #include "bgq_HoppingMatrix.h"
 #include "bgq_gaugefield.h"
+#include "bgq_comm.h"
 
 #include "../boundary.h"
 
 #include <stdbool.h>
 
 #define PRECISION double
-#define WRITE_FULLLAYOUT_BODY 1
-#define WRITE_FULLLAYOUT_SURFACE 0
-#define WRITE_WEYLLAOUT 0
 
-void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul, bool readFulllayout)
+void bgq_HoppingMatrix_worker(void *arg, size_t tid, size_t threads, bool kamul, bool readFulllayout, bool writeFulllayout)
 #endif
 
 {
@@ -26,6 +33,9 @@ ucoord ic_begin = work->ic_begin;
 ucoord ic_end = work->ic_end;
 bool noprefetchstream = work->noprefetchstream;
 
+assert(spinorfield->isOdd == isOdd_src);
+assert(targetfield->isOdd == isOdd_dst);
+
 bgq_vector4double_decl(qka0);
 bgq_complxval_splat(qka0,ka0);
 bgq_vector4double_decl(qka1);
@@ -35,41 +45,86 @@ bgq_complxval_splat(qka2,ka2);
 bgq_vector4double_decl(qka3);
 bgq_complxval_splat(qka3,ka3);
 
-//#define WRITE_FULLLAYOUT_BODY 1
-#if WRITE_FULLLAYOUT_BODY
+if (writeFulllayout) {
+	assert(readFulllayout);
+	const ucoord workload = ic_end - ic_begin;
+	const ucoord threadload = (workload+threads-1)/threads;
+	const ucoord begin = ic_begin + tid*threadload;
+	const ucoord end = min_sizet(ic_end, begin+threadload);
 
-	const size_t workload = ic_end - ic_begin;
-	const size_t threadload = (workload+threads-1)/threads;
-	const size_t begin = ic_begin + tid*threadload;
-	const size_t end = min_sizet(ic_end, begin+threadload);
-
-	bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed_dst[isOdd_src];
+	bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed_dst[isOdd_dst][begin];
+#ifndef NDEBUG
+	if (begin < end) {
+		ucoord t1_dst = bgq_collapsed2t1(isOdd_dst, begin);
+		ucoord t2_dst = bgq_collapsed2t2(isOdd_dst, begin);
+		ucoord tv_dst = bgq_collapsed2tv(isOdd_dst, begin);
+		ucoord x_dst = bgq_collapsed2x(isOdd_dst, begin);
+		ucoord y_dst = bgq_collapsed2y(isOdd_dst, begin);
+		ucoord z_dst = bgq_collapsed2z(isOdd_dst, begin);
+		bgq_su3_mdecl(gauge);
+		bgq_su3_matrix_load_double(gauge, gaugesite);
+		bgq_gaugeqpx_expect(gauge, t1_dst, t2_dst, x_dst, y_dst, z_dst, TUP, false);
+	}
+#endif
 	gaugesite = (bgq_gaugesite*)(((uint8_t*)gaugesite)-32);
 
-	for (ucoord ic_dst_begin = begin; ic_dst_begin<end; ) {
-		assert(readFulllayout);
-		ucoord z_dst = bgq_collapsed2z(isOdd_dst, ic_dst_begin);
-		ucoord ic_dst_end = ic_dst_begin + PHYSICAL_LZ - z_dst;
+	for (ucoord ic_dst = begin; ic_dst<end; ic_dst+=1) {
+#ifndef NDEBUG
+		ucoord t1_dst = bgq_collapsed2t1(isOdd_dst, ic_dst);
+		ucoord t2_dst = bgq_collapsed2t2(isOdd_dst, ic_dst);
+		ucoord tv_dst = bgq_collapsed2tv(isOdd_dst, ic_dst);
+		ucoord x_dst = bgq_collapsed2x(isOdd_dst, ic_dst);
+		ucoord y_dst = bgq_collapsed2y(isOdd_dst, ic_dst);
+		ucoord z_dst = bgq_collapsed2z(isOdd_dst, ic_dst);
+#endif
 
-		for (ucoord ic_dst = ic_dst_begin; ic_dst<ic_dst_end; ic_dst+=1) {
-			ucoord t1_dst = bgq_collapsed2t1(isOdd_dst, ic_dst);
-			ucoord t2_dst = bgq_collapsed2t2(isOdd_dst, ic_dst);
-			ucoord tv_dst = bgq_collapsed2tv(isOdd_dst, ic_dst);
-			ucoord x_dst = bgq_collapsed2x(isOdd_dst, ic_dst);
-			ucoord y_dst = bgq_collapsed2y(isOdd_dst, ic_dst);
-			z_dst = bgq_collapsed2z(isOdd_dst, ic_dst);
-
-			bgq_spinor_vec *target = &targetfield->BGQ_SEC_FULLLAYOUT[ic_dst];
-
-			#define GETSPINORFIELDPTR(DIRECTION, direction) (&spinorfield->BGQ_SEC_FULLLAYOUT[bgq_direction_move_collapsed(isOdd_dst, ic_dst, DIRECTION)])
-			#define BGQ_HOPPINGMATRIXSTENCIL_INC_ 1
-			#include "bgq_HoppingMatrixStencil.inc.c"
-			#undef GETSPINORFIELDPTR
-		}
-		ic_dst_begin = ic_dst_end;
+		bgq_spinor_vec *target = &targetfield->BGQ_SEC_FULLLAYOUT[ic_dst];
+		const bool gaugemul = true;
+		#define BGQ_HOPPINGMATRIXSTENCIL_INC_ 1
+		#include "bgq_HoppingMatrixStencil.inc.c"
 	}
 
-#else
+
+#if 0
+	for (ucoord ic_next = begin; ic_next<end; ) {
+		if (bgq_collapsed2isSurface(ic_next)) {
+			const ucoord begin_surface = ic_next;
+			const ucoord end_surface = min_sizet(end, PHYSICAL_SURFACE);
+
+			for (ucoord ic_dst = begin_surface; ic_dst < end_surface; ic_dst+=1) {
+				assert(bgq_collapsed2isSurface(ic_dst));
+			}
+			ic_next = end_surface;
+		} else if (bgq_collapsed2isOuter(ic_next)) {
+			const ucoord begin_outer = ic_next;
+			const ucoord end_outer = min_sizet(end, PHYSICAL_OUTER);
+
+			for (ucoord ic_dst = begin_outer; ic_dst < end_outer; ic_dst+=1) {
+				assert(bgq_collapsed2isOuterBody(ic_dst));
+			}
+			ic_next = end_outer;
+		} else {
+			const ucoord begin_inner = ic_next;
+			const ucoord end_inner = end;
+
+			for (ucoord ic_inner = begin_inner; ic_inner < end_inner; ) {
+				const ucoord begin_line = ic_inner;
+				ucoord z_dst = bgq_collapsed2z(isOdd_dst, begin_line);
+				const ucoord end_line = min_sizet(end_inner, begin_line + (PHYSICAL_LZ - z_dst - 1));
+
+				for (ucoord ic_dst = begin_line; ic_dst < end_line; ic_dst+=1) {
+					assert(bgq_collapsed2isInnerBody(ic_dst));
+
+				}
+				ic_inner = end_line;
+			}
+			ic_next = end_inner;
+		}
+	}
+#endif
+
+
+} else {
 	const size_t workload = ic_end - ic_begin;
 	const size_t threadload = (workload+threads-1)/threads;
 	const size_t begin = ic_begin + tid*threadload;
@@ -85,6 +140,7 @@ bgq_complxval_splat(qka3,ka3);
 		bgq_prefetch_forward(&targetfield->BGQ_SENDPTR[isOdd_dst][begin]);
 	}
 
+	const bool gaugemul = true;
 	bgq_gaugesite *gaugesite = &g_bgq_gaugefield_fromCollapsed_src[isOdd_src][begin];
 	gaugesite = (bgq_gaugesite*)(((uint8_t*)gaugesite)-32);
 	bgq_weylsite *weylsite = &spinorfield->BGQ_SEC_WEYLLAYOUT[begin];
@@ -128,7 +184,6 @@ bgq_complxval_splat(qka3,ka3);
 		}
 	}
 
-#endif
-
+}
 }
 #undef BGQ_HOPPINGMATRIXWORKER_INC_

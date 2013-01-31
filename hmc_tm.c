@@ -140,7 +140,7 @@ int main_hmc(int argc,char *argv[]) {
 #pragma pomp inst begin(main)
 #endif
 
-#if (defined SSE || defined SSE2 || SSE3)
+#if (defined SSE || defined SSE2 || defined SSE3)
   signal(SIGILL,&catch_ill_inst);
 #endif
 

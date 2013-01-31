@@ -34,6 +34,15 @@
 
 
 
+#define PRECISION_ISSLOPPY_double false
+#define PRECISION_ISSLOPPY_float true
+#define PRECISION_ISSLOPPY NAME2(PRECISION_ISSLOPPY,PRECISION)
+
+#define PRECISION_SIZEOF_double 8
+#define PRECISION_SIZEOF_float 4
+#define PRECISION_SIZEOF NAME2(PRECISION_SIZEOF,PRECISION)
+
+#define PRECISION_COMPLEX_SIZEOF (2*PRECISION_SIZEOF)
 
 
 
@@ -118,36 +127,36 @@ typedef struct {
 	double NAME2(name,q3)
 
 #define bgq_lda_double(dst,offset,addr)                                 \
-	assert( (((uintptr_t)addr) + offset) % 32 == 0);                \
-	NAME2(dst,q0) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 0); \
-	NAME2(dst,q1) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 1); \
-	NAME2(dst,q2) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 2); \
-	NAME2(dst,q3) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 3)
+	assert( (((uintptr_t)addr) + (uintptr_t)(offset)) % 32 == 0);                \
+	NAME2(dst,q0) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (uintptr_t)(offset), 0); \
+	NAME2(dst,q1) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (uintptr_t)(offset), 1); \
+	NAME2(dst,q2) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (uintptr_t)(offset), 2); \
+	NAME2(dst,q3) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (uintptr_t)(offset), 3)
 //TODO: setting the 5 least significant bits of addr+offset to zero
 
 #define bgq_lda_float(dst,offset,addr)                                 \
-	assert( (((uintptr_t)addr) + offset) % 16 == 0);                \
-	NAME2(dst,q0) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 0); \
-	NAME2(dst,q1) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 1); \
-	NAME2(dst,q2) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 2); \
-	NAME2(dst,q3) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 3)
+	assert( (((uintptr_t)addr) + (uintptr_t)offset) % 16 == 0);                \
+	NAME2(dst,q0) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (uintptr_t)(offset), 0); \
+	NAME2(dst,q1) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (uintptr_t)(offset), 1); \
+	NAME2(dst,q2) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (uintptr_t)(offset), 2); \
+	NAME2(dst,q3) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (uintptr_t)(offset), 3)
 
 #define bgq_ld2a_double(dst,offset,addr)                                      \
-	assert( (((uintptr_t)(addr)) + (offset)) % 16 == 0);                          \
-	NAME2(dst,q0) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 0); \
-	NAME2(dst,q1) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 1); \
+	assert( (((uintptr_t)(addr)) + (uintptr_t)(offset)) % 16 == 0);                          \
+	NAME2(dst,q0) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (uintptr_t)(offset), 0); \
+	NAME2(dst,q1) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (uintptr_t)(offset), 1); \
 	NAME2(dst,q2) = NAME2(dst,q0);                                             \
 	NAME2(dst,q3) = NAME2(dst,q1)
 
 #define bgq_ld2a_leftonly_double(dst,offset,addr)                                      \
-	assert( (((uintptr_t)(addr)) + (offset)) % 16 == 0);                          \
-	NAME2(dst,q0) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 0); \
-	NAME2(dst,q1) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (offset), 1)
+	assert( (((uintptr_t)(addr)) + (uintptr_t)(offset)) % 16 == 0);                          \
+	NAME2(dst,q0) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (uintptr_t)(offset), 0); \
+	NAME2(dst,q1) = BGQ_VECTOR4DOUBLE_SUBSCRIPT((char*)(addr) + (uintptr_t)(offset), 1)
 
 #define bgq_ld2a_float(dst,offset,addr) \
-	assert( (((uintptr_t)(addr)) + (offset)) % 8 == 0);                         \
-	NAME2(dst,q0) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 0); \
-	NAME2(dst,q1) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (offset), 1); \
+	assert( (((uintptr_t)(addr)) + (uintptr_t)(offset)) % 8 == 0);                         \
+	NAME2(dst,q0) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (uintptr_t)(offset), 0); \
+	NAME2(dst,q1) = BGQ_VECTOR4FLOAT_SUBSCRIPT((char*)(addr) + (uintptr_t)(offset), 1); \
 	NAME2(dst,q2) = NAME2(dst,q0);                                           \
 	NAME2(dst,q3) = NAME2(dst,q1)
 
@@ -233,6 +242,16 @@ typedef struct {
 		bgq_mov(dst,MAKENAME4(mul,dst,lhs,rhs));                       \
 	}
 
+#define bgq_merge(dst,a01_to01,b01_to23) \
+	{                                       \
+		bgq_vector4double_decl(MAKENAME4(merge,dst,a01_to01,b01_to23));      \
+		MAKENAME5(merge,dst,a01_to01,b01_to23,q0) = NAME2(a01_to01,q0);      \
+		MAKENAME5(merge,dst,a01_to01,b01_to23,q1) = NAME2(a01_to01,q1);      \
+		MAKENAME5(merge,dst,a01_to01,b01_to23,q2) = NAME2(b01_to23,q0);      \
+		MAKENAME5(merge,dst,a01_to01,b01_to23,q3) = NAME2(b01_to23,q1);      \
+		bgq_mov(dst,MAKENAME4(merge,dst,a01_to01,b01_to23));                   \
+	}
+
 #define bgq_merge2(dst,a23_to01,b01_to23) \
 	{                                       \
 		bgq_vector4double_decl(MAKENAME4(merge2,dst,a23_to01,b01_to23));      \
@@ -243,7 +262,7 @@ typedef struct {
 		bgq_mov(dst,MAKENAME4(merge2,dst,a23_to01,b01_to23));                   \
 	}
 
-// returns the left complex part of both arguments, i.e.
+// returns the left complex parts of both arguments, i.e.
 // (a_q0 a_q1 b_q0 b_q1)
 #define bgq_lmerge(dst, a01_to01, b01_to23) \
 	do {                                     \
@@ -255,7 +274,7 @@ typedef struct {
 		bgq_mov(dst,tmp);                    \
 	} while (0)
 
-// returns the right complex part of both arguments, i.e.
+// returns the right complex parts of both arguments, i.e.
 // (a_q2 a_q3 b_q2 b_q3)
 #define bgq_rmerge(dst, a23_to01, b23_to23) \
 	do {                                     \
@@ -375,13 +394,13 @@ typedef struct {
 
 #define bgq_qvlfcsuxa(dst,addr,offset) \
 	do { \
-		(addr) = (void*)((char*)(addr) + (offset)); \
+		(addr) = (void*)((uintptr_t)(addr) + (uintptr_t)(offset)); \
 		bgq_ld2a_float(dst,0,addr); \
 	} while (0)
 
 #define bgq_qvlfcduxa(dst,addr,offset) \
 	do { \
-		(addr) = (void*)((char*)(addr) + (offset)); \
+		(addr) = (void*)((uintptr_t)(addr) + (uintptr_t)(offset)); \
 		bgq_ld2a_double(dst,0,addr); \
 	} while (0)
 
@@ -480,8 +499,14 @@ typedef struct {
 #define bgq_isub(dst,lhs,rhs) \
 	bgq_xxcpnmadd(dst,rhs,(vector4double)(1),lhs)
 
+// returns the first complex from the first argument and the second complex form the second argument
+// (a_q2 a_q3 b_q2 b_q3)
+#define bgq_merge(dst, a01_to01, b23_to23) \
+	(dst) = vec_perm(a01_to01, b23_to23, vec_gpci(00167))
+
 // returns the middle part of both arguments concatenated, i.e.
 // a_q0 a_q1 (a_q2 a_q3 b_q0 b_q1) b_q2 b_q3
+// This is the most efficient of the merges
 #define bgq_merge2(dst, a23_to01, b01_to23) \
 	asm ("qvaligni %[qrt],%[qra],%[qrb],2" : [qrt] "=v" (dst) : [qra] "v" (a23_to01), [qrb] "v" (b01_to23))
 //	(dst) = vec_perm(a23_to01, b01_to23, vec_gpci(02345))
@@ -544,6 +569,7 @@ typedef struct {
 #define bgq_qvstfsxa(data,addr,offset) \
 	asm ("qvstfsxa %[v4d],%[ptr],%[off]  \n" : : [ptr]  "b" (addr), [v4d] "v" (data), [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
 #define bgq_qvstfsuxa(data,addr,offset) \
+	assert(((uintptr_t)(data) + (uintptr_t)(offset)) % 16 == 0);
 	asm ("qvstfsuxa %[v4d],%[ptr],%[off]  \n" : [ptr] "+b" (addr) : [v4d] "v" (data), [off] "r" (offset) ) /* no memory clobber, so pay attention! (i.e. do not read from the memory location written here) */
 
 
@@ -1027,6 +1053,31 @@ typedef struct {
 	bgq_ld2a_float(NAME3(dest,v1,c1),  64+8, addr);        \
 	bgq_ld2a_float(NAME3(dest,v1,c2),  80+8, addr)
 
+#define bgq_su3_weyl_load_nonvec NAME2(bgq_su3_weyl_load_nonvec,PRECISION)
+#define bgq_su3_weyl_load_nonvec_double(dest, addr) \
+	do { \
+		bgq_weyl_nonvec_double *ptr = (addr); \
+		bgq_ld2a_double(NAME3(dest,v0,c0), ptr, 0); \
+		bgq_qvlfcduxa(NAME3(dest,v0,c1), ptr, 16); \
+		bgq_qvlfcduxa(NAME3(dest,v0,c2), ptr, 16); \
+		bgq_qvlfcduxa(NAME3(dest,v1,c0), ptr, 16); \
+		bgq_qvlfcduxa(NAME3(dest,v1,c1), ptr, 16); \
+		bgq_qvlfcduxa(NAME3(dest,v1,c2), ptr, 16); \
+	} while (0)
+	// 6*16 Bytes = 96 Bytes
+
+#define bgq_su3_weyl_load_nonvec_float(dest, addr) \
+	do { \
+		bgq_weyl_nonvec_float *ptr = (addr); \
+		bgq_ld2a_float(NAME3(dest,v0,c0), 0, ptr); \
+		bgq_qvlfcsuxa(NAME3(dest,v0,c1), ptr, 8); \
+		bgq_qvlfcsuxa(NAME3(dest,v0,c2), ptr, 8); \
+		bgq_qvlfcsuxa(NAME3(dest,v1,c0), ptr, 8); \
+		bgq_qvlfcsuxa(NAME3(dest,v1,c1), ptr, 8); \
+		bgq_qvlfcsuxa(NAME3(dest,v1,c2), ptr, 8); \
+	} while (0)
+	// 6*8 Bytes = 48 Bytes
+
 #define bgq_su3_matrix_valgen(dst) \
 	do { \
 		bgq_valgen(NAME2(dst,c00)); \
@@ -1286,7 +1337,8 @@ do {\
 	bgq_sta_float(NAME3(src,v1,c2),  80, addr)
 #endif
 
-#define bgq_su3_weyl_left_store_double(addr,src) \
+#define bgq_su3_weyl_left_nonvecstore NAME2(bgq_su3_weyl_left_nonvecstore,PRECISION)
+#define bgq_su3_weyl_left_nonvecstore_double(addr,src) \
 	do { \
 		void *ptr = (addr); \
 		bgq_st2a_double(NAME3(src,v0,c0), 0, ptr); \
@@ -1297,8 +1349,21 @@ do {\
 		bgq_qvstfcduxa(NAME3(src,v1,c2), ptr, 16); \
 	} while (0)
 	// 2*3*2*8 = 96 byte
+#define bgq_su3_weyl_left_nonvecstore_float(addr,src) \
+	do { \
+		void *ptr = (addr); \
+		bgq_st2a_float(NAME3(src,v0,c0), 0, ptr); \
+		bgq_qvstfcsuxa(NAME3(src,v0,c1), ptr, 8); \
+		bgq_qvstfcsuxa(NAME3(src,v0,c2), ptr, 8); \
+		bgq_qvstfcsuxa(NAME3(src,v1,c0), ptr, 8); \
+		bgq_qvstfcsuxa(NAME3(src,v1,c1), ptr, 8); \
+		bgq_qvstfcsuxa(NAME3(src,v1,c2), ptr, 8); \
+	} while (0)
+	// 2*3*2*4 = 48 byte
 
-#define bgq_su3_weyl_right_store_double(addr,src) \
+
+#define bgq_su3_weyl_right_nonvecstore NAME2(bgq_su3_weyl_right_nonvecstore,PRECISION)
+#define bgq_su3_weyl_right_nonvecstore_double(addr,src) \
 	do { \
 		void *ptr = (addr); \
 		bgq_vector4double_decl(right0); \
@@ -1311,7 +1376,22 @@ do {\
 		bgq_qvstfduxa(right1, ptr, 32); \
 		bgq_qvstfduxa(right2, ptr, 32); \
 	} while (0)
-// 96 byte
+	// 96 byte
+#define bgq_su3_weyl_right_nonvecstore_float(addr,src) \
+	do { \
+		void *ptr = (addr); \
+		bgq_vector4double_decl(right0); \
+		bgq_vector4double_decl(right1); \
+		bgq_vector4double_decl(right2); \
+		bgq_rmerge(right0, NAME3(src,v0,c0), NAME3(src,v0,c1)); \
+		bgq_rmerge(right1, NAME3(src,v0,c2), NAME3(src,v1,c0)); \
+		bgq_rmerge(right2, NAME3(src,v1,c1), NAME3(src,v1,c2)); \
+		bgq_sta_float(right0, 0, ptr); \
+		bgq_qvstfsuxa(right1, ptr, 16); \
+		bgq_qvstfsuxa(right2, ptr, 16); \
+	} while (0)
+	// 48 byte
+
 
 #define bgq_su3_spinor_merge(dst,a,b)         \
 	bgq_su3_vmerge(dst##_v0, a##_v0, b##_v0); \
@@ -1484,6 +1564,7 @@ do {\
 	bgq_su3_vmov(NAME2(dst,v1),NAME2(src,v1))
 
 
+// Projections, directions are d_dst
 #define bgq_su3_reduce_weyl_tup(weyl, spinor) \
 	bgq_su3_vadd(NAME2(weyl,v0), NAME2(spinor,v0), NAME2(spinor,v2)); \
 	bgq_su3_vadd(NAME2(weyl,v1), NAME2(spinor,v1), NAME2(spinor,v3))
