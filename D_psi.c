@@ -1237,10 +1237,10 @@ void D_psi_prec(spinor * const P, spinor * const Q){
   static _Complex double alpha = -1.0;
 
   alpha = -0.5;
-  spinorPrecondition(P,Q,ws,T,L,alpha,0,1);
+  spinorPrecondition(P,Q,ws,T,LX,LY,LZ,alpha,0,1);
   D_psi(g_spinor_field[DUM_MATRIX],P);
   alpha = -0.5;
-  spinorPrecondition(P,g_spinor_field[DUM_MATRIX],ws,T,L,alpha,0,1);
+  spinorPrecondition(P,g_spinor_field[DUM_MATRIX],ws,T,LX,LY,LZ,alpha,0,1);
 }
 
 /* apply the Dirac operator to the block local spinor field s */

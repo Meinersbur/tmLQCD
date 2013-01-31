@@ -246,7 +246,11 @@ void bgq_HoppingMatrix(bool isOdd, bgq_weylfield_controlblock *targetfield, bgq_
 
 
 	if(g_update_gauge_copy) {
+#if BGQ_REPLACE
 		update_backward_gauge(g_gauge_field);
+#else
+		bgq_gaugefield_transferfrom(g_gauge_field);
+#endif
 	}
 
 

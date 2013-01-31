@@ -185,6 +185,7 @@ int update_tm(double *plaquette_energy, double *rectangle_energy,
   accept = (!acctest | (expmdh > yy[0]));
   if(g_proc_id == 0) {
     fprintf(stdout, "# Trajectory is %saccepted.\n", (accept ? "" : "not "));
+    print_memusage();
   }
   /* Here a reversibility test is performed */
   /* The trajectory is integrated back      */

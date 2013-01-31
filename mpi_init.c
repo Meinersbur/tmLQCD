@@ -293,7 +293,7 @@ void tmlqcd_mpi_init(int argc,char *argv[]) {
   g_nproc_z = dims[3];
 
   if( (g_nproc_t < 1 || g_nproc_x < 1 || g_nproc_y < 1 || g_nproc_z < 1) ||
-      (LX%g_nproc_x != 0 || LY%g_nproc_y != 0 || LZ%g_nproc_z != 0 || T_global%g_nproc_t != 0) ) {
+      (LX_global%g_nproc_x != 0 || LY_global%g_nproc_y != 0 || LZ_global%g_nproc_z != 0 || T_global%g_nproc_t != 0) ) {
     if(g_proc_id == 0) {
       fprintf(stderr, "The lattice cannot be properly mapped on the processor grid\n");
       fprintf(stderr, "Please check your number of processors and the Nr?Procs input variables\n");
@@ -310,9 +310,9 @@ void tmlqcd_mpi_init(int argc,char *argv[]) {
   N_PROC_Y = g_nproc_y;
   N_PROC_Z = g_nproc_z;
   T = T_global/g_nproc_t;
-  LX = LX/g_nproc_x;
-  LY = LY/g_nproc_y;
-  LZ = LZ/g_nproc_z;
+  LX = LX_global/g_nproc_x;
+  LY = LY_global/g_nproc_y;
+  LZ = LZ_global/g_nproc_z;
   VOLUME = (T*LX*LY*LZ);
   SPACEVOLUME = VOLUME/T;
 #    ifdef _USE_TSPLITPAR
@@ -742,6 +742,9 @@ void tmlqcd_mpi_init(int argc,char *argv[]) {
 
 #  ifndef FIXEDVOLUME
   T = T_global;
+  LX = LX_global;
+  LY = LY_global;
+  LZ = LZ_global;
   VOLUME = (T*LX*LY*LZ);
   SPACEVOLUME = VOLUME/T;
 #    ifdef _USE_TSPLITPAR

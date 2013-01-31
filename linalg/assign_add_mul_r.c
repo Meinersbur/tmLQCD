@@ -93,7 +93,7 @@ void assign_add_mul_r(spinor * const P, spinor * const Q, const double c, const 
 #elif (defined BGQ && defined XLC)
 
 void assign_add_mul_r(spinor * const R, spinor * const S, const double c, const int N) {
-	spinorfield_linalg_ur(P, S);
+	spinorfield_linalg_ur(R, S);
 #ifdef OMP
 #pragma omp parallel
   {

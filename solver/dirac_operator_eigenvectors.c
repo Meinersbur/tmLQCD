@@ -127,12 +127,12 @@ int cyclicDiff(int a,int b, int period){
   }
 }
 
-void calcPmuLattice(const int *praw,double *p_mu,int tt,int ll){
+static void calcPmuLattice(const int *praw,double *p_mu,int tt,int lx,int ly,int lz){
   p_mu[0]=M_PI/(double)tt*(2.*(double)praw[0]+1.);
-  p_mu[1]=p_mu[2]=p_mu[3]=2*M_PI/(double)ll;
-  p_mu[1]*=(double)praw[1];
-  p_mu[2]*=(double)praw[2];
-  p_mu[3]*=(double)praw[3];
+  //p_mu[1]=p_mu[2]=p_mu[3]=2*M_PI/(double)ll;
+  p_mu[1]=2*M_PI*(double)praw[1]/(double)lx;
+  p_mu[2]=2*M_PI*(double)praw[2]/(double)ly;
+  p_mu[3]=2*M_PI*(double)praw[3]/(double)lz;
 
   p_mu[0]=sin(p_mu[0]);
   p_mu[1]=sin(p_mu[1]);
@@ -140,7 +140,7 @@ void calcPmuLattice(const int *praw,double *p_mu,int tt,int ll){
   p_mu[3]=sin(p_mu[3]);
 }
 
-double calcPmuLatticeSq(const int *praw,int tt,int ll){
+static double calcPmuLatticeSq(const int *praw,int tt,int lx, int ly, int lz){
   return sin(M_PI/(double)tt*(2.*(double)praw[0]+1.))*
          sin(M_PI/(double)tt*(2.*(double)praw[0]+1.))+
 
@@ -156,7 +156,7 @@ double calcPmuLatticeSq(const int *praw,int tt,int ll){
 
 
 
-void calcPmuLatticeTilde(const int *praw,double *p_mu_t,int tt,int ll/* ,unsigned int aperiodic */){
+static void calcPmuLatticeTilde(const int *praw,double *p_mu_t,int tt,int lx,int ly,int lz/* ,unsigned int aperiodic */){
   int i;
 /*   if(aperiodic) */
     p_mu_t[0]=M_PI/(double)(2*tt)*(2.*(double)praw[0]+1.);
@@ -164,17 +164,17 @@ void calcPmuLatticeTilde(const int *praw,double *p_mu_t,int tt,int ll/* ,unsigne
 /*     p_mu_t[0]=M_PI/(double)tt*(double)praw[0]; */
 
 
-  p_mu_t[1]=p_mu_t[2]=p_mu_t[3]=M_PI/(double)ll;
-  p_mu_t[1]*=(double)praw[1];
-  p_mu_t[2]*=(double)praw[2];
-  p_mu_t[3]*=(double)praw[3];
+  //p_mu_t[1]=p_mu_t[2]=p_mu_t[3]=M_PI/(double)ll;
+  p_mu_t[1]=M_PI*(double)praw[1]/(double)lx;
+  p_mu_t[2]=M_PI*(double)praw[2]/(double)ly;
+  p_mu_t[3]=M_PI*(double)praw[3]/(double)lz;
 
   for(i=0;i<4;i++){
     p_mu_t[i]=2*sin(p_mu_t[i]);
   }
 }
 
-double calcPmuLatticeTildeSq(const int *praw,int tt,int ll){
+static double calcPmuLatticeTildeSq(const int *praw,int tt,int lx, int ly, int lz){
   return 4*(
 	    sin(M_PI/(double)(2*tt)*(2.*(double)praw[0]+1.))*
 	    sin(M_PI/(double)(2*tt)*(2.*(double)praw[0]+1.))+
@@ -190,7 +190,7 @@ double calcPmuLatticeTildeSq(const int *praw,int tt,int ll){
 }
 
 
-_Complex double calcDtmEvalue(const int *praw,double kappa,double mu,int tt,int ll,double sign){
+static _Complex double calcDtmEvalue(const int *praw,double kappa,double mu,int tt,int lx,int ly,int lz,double sign){
 
   static double p_mu[4];
   static double p_mu_t[4];
@@ -198,10 +198,10 @@ _Complex double calcDtmEvalue(const int *praw,double kappa,double mu,int tt,int 
   _Complex double lambda;
 
 
-  calcPmuLattice(praw,p_mu,tt,ll);
+  calcPmuLattice(praw,p_mu,tt,lx,ly,lz);
   psq=p_mu[0]*p_mu[0]+p_mu[1]*p_mu[1]+p_mu[2]*p_mu[2]+p_mu[3]*p_mu[3];
 
-  calcPmuLatticeTilde(praw,p_mu_t,tt,ll);
+  calcPmuLatticeTilde(praw,p_mu_t,tt,lx,ly,lz);
   psq_tilde=p_mu_t[0]*p_mu_t[0]+p_mu_t[1]*p_mu_t[1]+p_mu_t[2]*p_mu_t[2]+p_mu_t[3]*p_mu_t[3];
 
   lambda = (0.5 / kappa - 4 + 0.5 * psq_tilde) + (sign * sqrt(mu * mu + psq)) * I;
@@ -209,7 +209,7 @@ _Complex double calcDtmEvalue(const int *praw,double kappa,double mu,int tt,int 
 
 }
 
-_Complex double calcDovEvalue(const int *praw,double kappa,double rho,int tt,int ll,double sign){
+static _Complex double calcDovEvalue(const int *praw,double kappa,double rho,int tt,int lx,int ly, int lz,double sign){
 
   static double p_mu[4];
   static double p_mu_t[4];
@@ -217,10 +217,10 @@ _Complex double calcDovEvalue(const int *praw,double kappa,double rho,int tt,int
   _Complex double lambda;
   double denominator;
 
-  calcPmuLattice(praw,p_mu,tt,ll);
+  calcPmuLattice(praw,p_mu,tt,lx,ly,lz);
   psq=p_mu[0]*p_mu[0]+p_mu[1]*p_mu[1]+p_mu[2]*p_mu[2]+p_mu[3]*p_mu[3];
 
-  calcPmuLatticeTilde(praw,p_mu_t,tt,ll);
+  calcPmuLatticeTilde(praw,p_mu_t,tt,lx,ly,lz);
   psq_tilde=p_mu_t[0]*p_mu_t[0]+p_mu_t[1]*p_mu_t[1]+p_mu_t[2]*p_mu_t[2]+p_mu_t[3]*p_mu_t[3];
 
 
@@ -236,16 +236,16 @@ _Complex double calcDovEvalue(const int *praw,double kappa,double rho,int tt,int
 }
 
 
-_Complex double calcQtmEvalue(const int *praw,double kappa,double mu,int tt,int ll,double sign/* =1.0 */){
+static _Complex double calcQtmEvalue(const int *praw,double kappa,double mu,int tt,int lx,int ly,int lz,double sign/* =1.0 */){
   static double p_mu[4];
   static double p_mu_t[4];
   double psq,psq_tilde,M_wilson;
   _Complex double lambda;
 
-  calcPmuLattice(praw,p_mu,tt,ll);
+  calcPmuLattice(praw,p_mu,tt,lx,ly,lz);
   psq=p_mu[0]*p_mu[0]+p_mu[1]*p_mu[1]+p_mu[2]*p_mu[2]+p_mu[3]*p_mu[3];
 
-  calcPmuLatticeTilde(praw,p_mu_t,tt,ll);
+  calcPmuLatticeTilde(praw,p_mu_t,tt,lx,ly,lz);
   psq_tilde=p_mu_t[0]*p_mu_t[0]+p_mu_t[1]*p_mu_t[1]+p_mu_t[2]*p_mu_t[2]+p_mu_t[3]*p_mu_t[3];
 
   M_wilson=((0.5/kappa-4.)+0.5*psq_tilde);
@@ -255,7 +255,7 @@ _Complex double calcQtmEvalue(const int *praw,double kappa,double mu,int tt,int 
 
 }
 
-_Complex double calcDDaggerDtmEvalue(const int *praw,double kappa,double mu,int tt,int ll)
+static _Complex double calcDDaggerDtmEvalue(const int *praw,double kappa,double mu,int tt,int lx, int ly, int lz)
 {
   static double p_mu[4];
   static double p_mu_t[4];
@@ -263,10 +263,10 @@ _Complex double calcDDaggerDtmEvalue(const int *praw,double kappa,double mu,int 
   _Complex double lambda;
   double psq_tilde,psq;
 
-  calcPmuLattice(praw,p_mu,tt,ll);
+  calcPmuLattice(praw,p_mu,tt,lx,ly,lz);
   psq=p_mu[0]*p_mu[0]+p_mu[1]*p_mu[1]+p_mu[2]*p_mu[2]+p_mu[3]*p_mu[3];
 
-  calcPmuLatticeTilde(praw,p_mu_t,tt,ll);
+  calcPmuLatticeTilde(praw,p_mu_t,tt,lx,ly,lz);
   psq_tilde=p_mu_t[0]*p_mu_t[0]+p_mu_t[1]*p_mu_t[1]+p_mu_t[2]*p_mu_t[2]+p_mu_t[3]*p_mu_t[3];
 
   M_wilson=((0.5/kappa-4.)+0.5*psq_tilde);
@@ -277,21 +277,21 @@ _Complex double calcDDaggerDtmEvalue(const int *praw,double kappa,double mu,int 
 }
 
 
-_Complex double calcDDaggerDovEvalue(const int *praw,double kappa,double rho,int tt,int ll){
+static _Complex double calcDDaggerDovEvalue(const int *praw,double kappa,double rho,int tt,int lx,int ly,int lz){
   static double p_mu[4];
   static double p_mu_t[4];
   _Complex double lambda;
   double abslam,diff;
   double u,v;
 
-  calcPmuLattice(praw,p_mu,tt,ll);
+  calcPmuLattice(praw,p_mu,tt,lx,ly,lz);
   v=p_mu[0]*p_mu[0]+p_mu[1]*p_mu[1]+p_mu[2]*p_mu[2]+p_mu[3]*p_mu[3];
 
-  calcPmuLatticeTilde(praw,p_mu_t,tt,ll);
+  calcPmuLatticeTilde(praw,p_mu_t,tt,lx,ly,lz);
   u=p_mu_t[0]*p_mu_t[0]+p_mu_t[1]*p_mu_t[1]+p_mu_t[2]*p_mu_t[2]+p_mu_t[3]*p_mu_t[3];
   u=u*0.5-rho;
 
-  lambda = calcDovEvalue(praw, kappa, rho, tt, ll, 1.);
+  lambda = calcDovEvalue(praw, kappa, rho, tt, lx,ly,lz, 1.);
   abslam = lambda * conj(lambda);
 
   lambda = (2. * (u / sqrt(u * u + v) + 1.) * rho * rho);
@@ -364,16 +364,16 @@ void spinorPrecWS_RecalcDDaggerDEvs(spinorPrecWS *ws,double kappa,double mu){
 
   if(ws->m_op==PRECWS_D_DAGGER_D){
 
-    FORXYZT(rawp[0],rawp[1],rawp[2],rawp[3],T,L);
+    FORXYZT(rawp[0],rawp[1],rawp[2],rawp[3],T,LX,LY,LZ);
 
     index= Index(rawp[0],rawp[1],rawp[2],rawp[3]);
     
     if(ws->useCorrectionFunc==1){
-      pmuSq=calcPmuLatticeSq(rawp,T,LX);
-      pmuTildeSq=calcPmuLatticeTildeSq(rawp,T,LX);
+      pmuSq=calcPmuLatticeSq(rawp,T,LX,LY,LZ);
+      pmuTildeSq=calcPmuLatticeTildeSq(rawp,T,LX,LY,LZ);
       lambda = (spinorPrecWS_evalCorrectionFunction(ws,pmuSq,pmuTildeSq));
     } else {
-      lambda=calcDDaggerDtmEvalue(rawp,kappa,mu,T,L);
+      lambda=calcDDaggerDtmEvalue(rawp,kappa,mu,T,LX,LY,LZ);
     }
 
     lambda *= twokappa;
@@ -461,35 +461,35 @@ void spinorPrecWS_Init(spinorPrecWS *ws, double kappa,double mu,double rho,tm_op
   averageLambda = 0.0;
 
 
-  FORXYZT(rawp[0],rawp[1],rawp[2],rawp[3],T,L);
+  FORXYZT(rawp[0],rawp[1],rawp[2],rawp[3],T,LX,LY,LZ);
 
   index= Index(rawp[0],rawp[1],rawp[2],rawp[3]);
   
       
 
   if(op==PRECWS_DTM)
-    lambda=calcDtmEvalue(rawp,kappa,mu,T,L,epsilon[0]);
+    lambda=calcDtmEvalue(rawp,kappa,mu,T,LX,LY,LZ,epsilon[0]);
   else if(op==PRECWS_DOV)
-    lambda=calcDovEvalue(rawp,g_kappa,rho,T,L,epsilon[0]);
+    lambda=calcDovEvalue(rawp,g_kappa,rho,T,LX,LY,LZ,epsilon[0]);
   else if(op==PRECWS_QTM)
-    lambda=calcQtmEvalue(rawp,kappa,mu,T,L,epsilon[0]);
+    lambda=calcQtmEvalue(rawp,kappa,mu,T,LX,LY,LZ,epsilon[0]);
   else  if(ws->m_op==PRECWS_D_DAGGER_D){
     ws->precExpo[0]=-0.25;
     ws->precExpo[1]=-0.5;
     ws->precExpo[2]=-0.25;
     if(ws->useCorrectionFunc==1){
-      pmuSq=calcPmuLatticeSq(rawp,T,LX);
-      pmuTildeSq=calcPmuLatticeTildeSq(rawp,T,LX);
+      pmuSq=calcPmuLatticeSq(rawp,T,LX,LY,LZ);
+      pmuTildeSq=calcPmuLatticeTildeSq(rawp,T,LX,LY,LZ);
       lambda = (spinorPrecWS_evalCorrectionFunction(ws,pmuSq,pmuTildeSq));
     } else {
-      lambda=calcDDaggerDtmEvalue(rawp,kappa,mu,T,L);
+      lambda=calcDDaggerDtmEvalue(rawp,kappa,mu,T,LX,LY,LZ);
     }
 
     /* in this case an extra factor of 2kappa is needed as we apply the dirac operator two times */
     lambda *= twokappa;
 
   } else  if(ws->m_op==PRECWS_DOV_DAGGER_DOV){
-    lambda=calcDDaggerDovEvalue(rawp,kappa,rho,T,L);
+    lambda=calcDDaggerDovEvalue(rawp,kappa,rho,T,LX,LY,LZ);
   }
 
   if(op!=PRECWS_DOV && op!=PRECWS_DOV_DAGGER_DOV){ /* overlap operator eigevalue routine does it itself */
@@ -527,11 +527,11 @@ void spinorPrecWS_Init(spinorPrecWS *ws, double kappa,double mu,double rho,tm_op
 
 
     if(op==PRECWS_DTM || op==PRECWS_DOV){
-      spinorStructEigenvecDtmSu3Vector(up_plus,mu,epsilon[0],k[0],0,rawp,T,LX);
-      spinorStructEigenvecDtmSu3Vector(up_plus,mu,epsilon[3],k[3],1,rawp,T,LX);
+      spinorStructEigenvecDtmSu3Vector(up_plus,mu,epsilon[0],k[0],0,rawp,T,LX,LY,LZ);
+      spinorStructEigenvecDtmSu3Vector(up_plus,mu,epsilon[3],k[3],1,rawp,T,LX,LY,LZ);
     } else if(op==PRECWS_QTM) {
-      spinorStructEigenvecQtmSu3Vector(up_plus,kappa,mu,epsilon[0],k[0],0,rawp,T,LX);
-      spinorStructEigenvecQtmSu3Vector(up_plus,kappa,mu,epsilon[3],k[3],1,rawp,T,LX);
+      spinorStructEigenvecQtmSu3Vector(up_plus,kappa,mu,epsilon[0],k[0],0,rawp,T,LX,LY,LZ);
+      spinorStructEigenvecQtmSu3Vector(up_plus,kappa,mu,epsilon[3],k[3],1,rawp,T,LX,LY,LZ);
     }
 
   }
@@ -780,7 +780,7 @@ void planeWave(spinor *spinor,int k,int rawp[4],int tt,int ll,unsigned int momsp
 
 
 
-void spinorPrecondition(spinor *spinor_out,const spinor *spinor_in,spinorPrecWS* ws,int tt,int ll,const _Complex double alpha,unsigned int dagger,unsigned int autofft){
+void spinorPrecondition(spinor *spinor_out,const spinor *spinor_in,spinorPrecWS* ws,int tt,int lx,int ly,int lz,const _Complex double alpha,unsigned int dagger,unsigned int autofft){
 	spinorfield_enable(spinor_in, 1, 0);
 	spinorfield_enable(spinor_out, 0, 1);
 	spinorfield_propagateOddness(spinor_out, spinor_in);
@@ -825,7 +825,7 @@ void spinorPrecondition(spinor *spinor_out,const spinor *spinor_in,spinorPrecWS*
     /*     printf("projection is inplace \n"); */
 
 
-    FORXYZT(rawp[0],rawp[1],rawp[2],rawp[3],tt,LX);
+    FORXYZT(rawp[0],rawp[1],rawp[2],rawp[3],tt,LX,LY,LZ);
 
     index=Index(rawp[0],rawp[1],rawp[2],rawp[3]);
       
@@ -886,7 +886,7 @@ void spinorPrecondition(spinor *spinor_out,const spinor *spinor_in,spinorPrecWS*
   } else if(projectionInplace==0) {
     printf("projection is out of place \n");
     fflush(stdout);
-    FORXYZT(rawp[0],rawp[1],rawp[2],rawp[3],tt,LX);
+    FORXYZT(rawp[0],rawp[1],rawp[2],rawp[3],tt,LX,LY,LZ);
 
 
     index=Index(rawp[0],rawp[1],rawp[2],rawp[3]);
@@ -977,7 +977,7 @@ void spinorStructEigenvecDtm(spinor *fv,double mu,int epsilon,int k,int color,in
   int index;
   double *fv_=(double*)fv;
 
-  calcPmuLattice(rawp,p_mu,tt,LX);
+  calcPmuLattice(rawp,p_mu,tt,LX,LY,LZ);
 
   psq=p_mu[0]*p_mu[0]+
     p_mu[1]*p_mu[1]+
@@ -1040,7 +1040,7 @@ void spinorStructEigenvecDtm(spinor *fv,double mu,int epsilon,int k,int color,in
 }
 
 
-void spinorStructEigenvecDtmSu3Vector(spinor *fv, double mu, int epsilon, int k, int store_color, int rawp[4], int tt, int ll)
+void spinorStructEigenvecDtmSu3Vector(spinor *fv, double mu, int epsilon, int k, int store_color, int rawp[4], int tt, int lx,int ly,int lz)
 {
   double q[8];
   double p_mu[4];
@@ -1048,7 +1048,7 @@ void spinorStructEigenvecDtmSu3Vector(spinor *fv, double mu, int epsilon, int k,
   double psq;
   double beta,norm_factor;
 
-  calcPmuLattice(rawp,p_mu,tt,LX);
+  calcPmuLattice(rawp,p_mu,tt,LX,LY,LZ);
 
   psq=p_mu[0] * p_mu[0]+ p_mu[1] * p_mu[1] + p_mu[2] * p_mu[2] + p_mu[3] * p_mu[3];
 
@@ -1122,7 +1122,7 @@ void spinorStructEigenvecDtmSu3Vector(spinor *fv, double mu, int epsilon, int k,
 
 }
 
-void spinorStructEigenvecQtm(spinor *fv,double kappa,double mu,int epsilon,int k,int color,int rawp[4],int tt,int ll){
+void spinorStructEigenvecQtm(spinor *fv,double kappa,double mu,int epsilon,int k,int color,int rawp[4],int tt,int lx,int ly,int lz){
   double q[8];
   double p_mu[4];
   double p_mu_t[4];
@@ -1130,13 +1130,13 @@ void spinorStructEigenvecQtm(spinor *fv,double kappa,double mu,int epsilon,int k
   double *fv_=(double*)fv;
   int index;
 
-  calcPmuLattice(rawp,p_mu,tt,ll);
+  calcPmuLattice(rawp,p_mu,tt,lx,ly,lz);
   psq=p_mu[0]*p_mu[0]+
     p_mu[1]*p_mu[1]+
     p_mu[2]*p_mu[2]+
     p_mu[3]*p_mu[3];
 
-  calcPmuLatticeTilde(rawp,p_mu_t,tt,ll);
+  calcPmuLatticeTilde(rawp,p_mu_t,tt,lx,ly,lz);
   psq_tilde=p_mu_t[0]*p_mu_t[0]+p_mu_t[1]*p_mu_t[1]+p_mu_t[2]*p_mu_t[2]+p_mu_t[3]*p_mu_t[3];
 
   makeQuaternionAsSu2(q,p_mu,1/* dagger ? */, 1 /* gamma_0 convention */);
@@ -1201,19 +1201,19 @@ void spinorStructEigenvecQtm(spinor *fv,double kappa,double mu,int epsilon,int k
 }
 
 
-void spinorStructEigenvecQtmSu3Vector(spinor *fv,double kappa,double mu,int epsilon,int k,int store_color,int rawp[4],int tt,int ll){
+void spinorStructEigenvecQtmSu3Vector(spinor *fv,double kappa,double mu,int epsilon,int k,int store_color,int rawp[4],int tt,int lx,int ly,int lz){
   double q[8];
   double p_mu[4];
   double p_mu_t[4];
   double psq,psq_tilde,M_wilson,prefactor,beta,norm_factor,swap_dummy;
 
-  calcPmuLattice(rawp,p_mu,tt,ll);
+  calcPmuLattice(rawp,p_mu,tt,lx,ly,lz);
   psq=p_mu[0]*p_mu[0]+
     p_mu[1]*p_mu[1]+
     p_mu[2]*p_mu[2]+
     p_mu[3]*p_mu[3];
 
-  calcPmuLatticeTilde(rawp,p_mu_t,tt,ll);
+  calcPmuLatticeTilde(rawp,p_mu_t,tt,lx,ly,lz);
   psq_tilde=p_mu_t[0]*p_mu_t[0]+p_mu_t[1]*p_mu_t[1]+p_mu_t[2]*p_mu_t[2]+p_mu_t[3]*p_mu_t[3];
 
   makeQuaternionAsSu2(q,p_mu,1/* dagger ? */, 1 /* gamma_0 convention */);
@@ -1649,8 +1649,8 @@ int * makeEqualPmuMap(int n){
   for(rawp[1]=0;rawp[1]<LX;rawp[1]++){
   for(rawp[2]=0;rawp[2]<LY;rawp[2]++){
   for(rawp[3]=0;rawp[3]<LZ;rawp[3]++){
-    pmuSq=calcPmuLatticeSq(rawp,T,LX);
-    pmuTSq=calcPmuLatticeTildeSq(rawp,T,LX);
+    pmuSq=calcPmuLatticeSq(rawp,T,LX,LY,LZ);
+    pmuTSq=calcPmuLatticeTildeSq(rawp,T,LX,LY,LZ);
     iPmu=(int)floor(pmuSq/divSPmu);
     iPmuT=(int)floor(pmuTSq/divSPmuT);
 /*     if(iPmu>=12 ) fprintf(stderr, "Errorr!!!!!!!!!!!! Pmu  Index out of bounds : to large\n"); */
@@ -1708,8 +1708,8 @@ int * makeEqualPmuMap(int n){
     rawp[3]=(int)(r[3]*(double)LZ);
 
     /* calculate squared lattice momenta */
-    pmuSq=calcPmuLatticeSq(rawp,T,L);
-    pmuTSq=calcPmuLatticeTildeSq(rawp,T,L);
+    pmuSq=calcPmuLatticeSq(rawp,T,LX,LY,LZ);
+    pmuTSq=calcPmuLatticeTildeSq(rawp,T,LX,LY,LZ);
 
 /*     printf("pmuSq %f pmuTSq %f \n" , pmuSq, pmuTSq);  */
 
@@ -1786,8 +1786,8 @@ void printRawPMap(int *rawps,int n){
 
 
   for(i=0;i<n;i++){
-    pmuSq=calcPmuLatticeSq(rawps+4*i,T,LX);
-    pmuTSq=calcPmuLatticeTildeSq(rawps+4*i,T,LX);
+    pmuSq=calcPmuLatticeSq(rawps+4*i,T,LX,LY,LZ);
+    pmuTSq=calcPmuLatticeTildeSq(rawps+4*i,T,LX,LY,LZ);
     iPmu=(int)floor(pmuSq/divSPmu);
     iPmuT=(int)floor(pmuTSq/divSPmuT);
     fflush(stderr);
@@ -1927,8 +1927,8 @@ void fitPrecParams(const int op_id){
     printf("printing NOT preconditioned matrix element\n");
     avg=calcMatrixElement(g_spinor_field[0],g_spinor_field[1],matrix,rawp,rawp2,op_noprec,1,3);
 
-    fitData[i*3+0]=calcPmuLatticeSq(rawp,T,L);
-    fitData[i*3+1]=calcPmuLatticeTildeSq(rawp,T,L);
+    fitData[i*3+0]=calcPmuLatticeSq(rawp,T,LX,LY,LZ);
+    fitData[i*3+1]=calcPmuLatticeTildeSq(rawp,T,LX,LY,LZ);
     fitData[i*3+2]=creal(avg);
 
     printf( "avg = %e + i %e \n" , creal(avg),cimag(avg));

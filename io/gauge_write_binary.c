@@ -59,7 +59,7 @@ int write_binary_gauge_data(LemonWriter * lemonwriter, const int prec, DML_Check
     for(z = 0; z < LZ; z++) {
       for(y = 0; y < LY; y++) {
         for(x = 0; x < LX; x++) {
-          rank = (DML_SiteRank) ((((tG + t)*L + zG + z)*L + yG + y)*L + xG + x);
+          rank = (DML_SiteRank) ((((tG + t)*LZ_global + zG + z)*LY_global + yG + y)*LX_global + xG + x);
           memcpy(&tmp3[0], &g_gauge_field[ g_ipt[t][x][y][z] ][1], sizeof(su3));
           memcpy(&tmp3[1], &g_gauge_field[ g_ipt[t][x][y][z] ][2], sizeof(su3));
           memcpy(&tmp3[2], &g_gauge_field[ g_ipt[t][x][y][z] ][3], sizeof(su3));

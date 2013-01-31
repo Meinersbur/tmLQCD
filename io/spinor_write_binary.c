@@ -55,7 +55,7 @@ int write_binary_spinor_data(spinor * const s, spinor * const r,
     for(z = 0; z < LZ; z++) {
       for(y = 0; y < LY; y++) {
         for(x = 0; x < LX; x++) {
-          rank = (DML_SiteRank) ((((tG + t)*L + zG + z)*L + yG + y)*L + xG + x);
+          rank = (DML_SiteRank) ((((tG + t)*LZ_global + zG + z)*LY_global + yG + y)*LX_global + xG + x);
           i = g_lexic2eosub[g_ipt[t][x][y][z]];
           if ((z  + zG + y  + yG +
                x  + xG + t + tG) % 2 == 0)
@@ -288,7 +288,7 @@ int write_binary_spinor_data_l(spinor * const s,
     for(z = 0; z < LZ; z++) {
       for(y = 0; y < LY; y++) {
         for(x = 0; x < LX; x++) {
-          rank = (DML_SiteRank) ((((tG + t)*L + zG + z)*L + yG + y)*L + xG + x);
+          rank = (DML_SiteRank) ((((tG + t)*LZ_global + zG + z)*LY_global + yG + y)*LX_global	 + xG + x);
           i = g_ipt[t][x][y][z];
 
           if (prec == 32)

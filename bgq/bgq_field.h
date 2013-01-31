@@ -46,9 +46,9 @@ Logically, it is a torus, therefore (t+i*GLOBAL_LT)==t (mod GLOBAL_LT) for every
 */
 
 #define GLOBAL_LT ((ucoord)T_global)
-#define GLOBAL_LX ((ucoord)LX*(ucoord)N_PROC_X)
-#define GLOBAL_LY ((ucoord)LY*(ucoord)N_PROC_Y)
-#define GLOBAL_LZ ((ucoord)LZ*(ucoord)N_PROC_Z)
+#define GLOBAL_LX ((ucoord)LX_global)
+#define GLOBAL_LY ((ucoord)LY_global)
+#define GLOBAL_LZ ((ucoord)LZ_global)
 #define GLOBAL_VOLUME (GLOBAL_LT*GLOBAL_LX*GLOBAL_LY*GLOBAL_LZ)
 
 

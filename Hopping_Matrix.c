@@ -78,7 +78,6 @@
 
 #if defined _USE_HALFSPINOR
 #  include "operator/halfspinor_hopping.h"
-wertwert
 #  if ((defined SSE2)||(defined SSE3))
 #    include "sse.h"
 

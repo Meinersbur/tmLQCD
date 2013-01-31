@@ -77,9 +77,9 @@ EXTERN int g_relative_precision_flag;
 EXTERN int g_debug_level;
 EXTERN int g_disable_IO_checks;
 
-EXTERN int T_global;
+EXTERN int T_global, LX_global, LY_global, LZ_global;
 #ifndef FIXEDVOLUME
-EXTERN int T, L, LX, LY, LZ, VOLUME, BODY, SURFACE;
+EXTERN int T, /*L,*/ LX, LY, LZ, VOLUME, BODY, SURFACE;
 EXTERN int N_PROC_T, N_PROC_X, N_PROC_Y, N_PROC_Z;
 EXTERN int RAND, EDGES, VOLUMEPLUSRAND;
 EXTERN int TEOSLICE;

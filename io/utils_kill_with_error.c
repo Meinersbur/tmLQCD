@@ -4,6 +4,7 @@ void kill_with_error(LIME_FILE *fh, int const rank, char const *error)
 {
   if (error != NULL)
   {
+	fflush(stderr);
     fprintf(stderr, "KILL_WITH_ERROR on node %d: %s", rank, error);
     fflush(stderr);
   }

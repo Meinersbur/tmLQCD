@@ -38,7 +38,7 @@ ZT [0-9(10)(11)]
 IDXEX ("-"{DIGIT}+)
 SIGN ("+"|"-")
 FLT {SIGN}?{DIGIT}+(".")?{DIGIT}*(e("-"|"+")?{DIGIT}+)?
-FILENAME [a-zA-Z0-9_".""-""/"][a-zA-z0-9"."_"-""/"]+
+FILENAME [a-zA-Z0-9_".""-""/"][a-zA-Z0-9"."_"-""/"]+
 NAME [a-zA-Z0-9_]+
 CSTR \"[a-zA-Z0-9\-\._]+\"
 TYPE [0-9A-Z]+
@@ -1436,25 +1436,25 @@ static inline void rmQuotes(char *str){
 }
 <LL>{DIGIT}+                  {
 #ifndef FIXEDVOLUME
-  L = atoi(yytext);
+  LX_global = LY_global = LZ_global = atoi(yytext);
   if(myverbose!=0) printf("L =%s\n", yytext);
 #endif
 }
 <LLX>{DIGIT}+                  {
 #ifndef FIXEDVOLUME
-  LX = atoi(yytext);
+  LX_global = atoi(yytext);
   if(myverbose!=0) printf("LX =%s\n", yytext);
 #endif
 }
 <LLY>{DIGIT}+                  {
 #ifndef FIXEDVOLUME
-  LY = atoi(yytext);
+  LY_global = atoi(yytext);
   if(myverbose!=0) printf("LY =%s\n", yytext);
 #endif
 }
 <LLZ>{DIGIT}+                  {
 #ifndef FIXEDVOLUME
-  LZ = atoi(yytext);
+  LZ_global = atoi(yytext);
   if(myverbose!=0) printf("LZ =%s\n", yytext);
 #endif
 }
@@ -1980,10 +1980,9 @@ int read_input(char * conf_file){
   reread = 0;
 #ifndef FIXEDVOLUME
   T_global = _default_T_global;
-  L = _default_L;
-  LX = _default_LX;
-  LY = _default_LY;
-  LZ = _default_LZ;
+  LX_global = _default_LX;
+  LY_global = _default_LY;
+  LZ_global = _default_LZ;
   g_Tbsf = _default_g_Tbsf;
   N_PROC_X = _default_N_PROC_X;
   N_PROC_Y = _default_N_PROC_Y;
@@ -2102,18 +2101,7 @@ int read_input(char * conf_file){
   }
   yyout = fopen("/dev/null", "w");
 
-  parse_config();  
-#ifndef FIXEDVOLUME
-  if(LX == 0) {
-    LX = L;
-  }
-  if(LY == 0) {
-    LY = L;
-  }
-  if(LZ == 0) {
-    LZ = L;
-  }
-#endif
+  parse_config();
 
   if(PropInfo.format == -1) PropInfo.format = SourceInfo.format;
   g_rgi_C0 = 1. - 8.*g_rgi_C1;
@@ -2139,7 +2127,7 @@ int read_input(char * conf_file){
 
 int reread_input(char * conf_file){
 #ifndef FIXEDVOLUME
-  int tt=T, ll=L, lx = LX, ly = LY, lz = LZ, 
+  int tt=T, /*ll=L,*/ lx = LX, ly = LY, lz = LZ, 
       np=N_PROC_X, npy = N_PROC_Y;
 #endif
   int nst=nstore;
@@ -2165,7 +2153,7 @@ int reread_input(char * conf_file){
 
 #ifndef FIXEDVOLUME
   T = tt;
-  L = ll;
+  /*L = ll;*/
   LX = lx;
   LY = ly;
   LZ = lz;

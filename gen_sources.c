@@ -107,10 +107,10 @@ int main(int argc,char *argv[]) {
   while ((c = getopt(argc, argv, "h?NCpOEdao:L:T:n:t:s:S:P:")) != -1) {
     switch (c) {
     case 'L':
-      L = atoi(optarg);
-      LX = L;
-      LY = L;
-      LZ = L;
+      int L = atoi(optarg);
+      LX_global = LX = L;
+      LY_global = LY = L;
+      LZ_global = LZ = L;
       break;
     case 'T':
       T = atoi(optarg);

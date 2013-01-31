@@ -375,7 +375,7 @@ void Q_pm_psi_prec(spinor * const l, spinor * const k)
   if(g_prec_sequence_d_dagger_d[0]!=0.0)
   {
     alpha = g_prec_sequence_d_dagger_d[0];
-    spinorPrecondition(l,k,ws,T,L,alpha,0,1);
+    spinorPrecondition(l,k,ws,T,LX,LY,LZ,alpha,0,1);
   } 
   else
     assign(l,k,VOLUME);
@@ -388,7 +388,7 @@ void Q_pm_psi_prec(spinor * const l, spinor * const k)
   if(g_prec_sequence_d_dagger_d[1]!=0.0)
   {
     alpha = g_prec_sequence_d_dagger_d[1];
-    spinorPrecondition(l,l,ws,T,L,alpha,0,1);
+    spinorPrecondition(l,l,ws,T,LX,LY,LZ,alpha,0,1);
   }
 
   D_psi(g_spinor_field[DUM_MATRIX], l);
@@ -397,7 +397,7 @@ void Q_pm_psi_prec(spinor * const l, spinor * const k)
   if(g_prec_sequence_d_dagger_d[2]!=0.0)
   {
     alpha = g_prec_sequence_d_dagger_d[2]; 
-    spinorPrecondition(l,l,ws,T,L,alpha,0,1);
+    spinorPrecondition(l,l,ws,T,LX,LY,LZ,alpha,0,1);
   }
 
 }
