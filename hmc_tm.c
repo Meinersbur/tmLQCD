@@ -85,6 +85,7 @@
 #include "bgq/bgq_comm.h"
 #include "bgq/bgq_gaugefield.h"
 #include "bgq/bgq_dispatch.h"
+#include "bgq/memusage.h"
 #include <assert.h>
 
 

@@ -10,7 +10,7 @@
 #include <spi/bgp_SPI.h>
 #endif
 
-#if 1
+#ifdef BGQ
 #include <kernel/process.h>
 #include <kernel/location.h>
 #include <kernel/memory.h>
@@ -24,7 +24,7 @@
 #include <malloc.h>
 
 
-#if 1
+#if defined(BGQ) || defined(BGP)
 /* returns memory per core in MBytes */
 unsigned bg_coreMB()
 {
@@ -51,7 +51,7 @@ void print_memusage()
     if (g_proc_id != 0)
         return;
 
-#if 1
+#if defined(BGQ) || defined(BGP)
     {
         unsigned memPerCore = bg_coreMB();
         fprintf(stderr, "MK_Memory available per Core:  %10ld MB\n", memPerCore);
@@ -61,7 +61,7 @@ void print_memusage()
     struct rusage usage;
     memset(&usage, 0, sizeof(usage));
     int returncode = 0;
-    if (returncode = getrusage(RUSAGE_SELF, &usage))
+    if ((returncode = getrusage(RUSAGE_SELF, &usage)))
     {
         fprintf(stderr, "MK_getrusage error; return code %d\n", returncode);
     }
@@ -70,7 +70,7 @@ void print_memusage()
         fprintf(stderr, "MK_User time used:             %10ld,%6ld secs\n", (long)(usage.ru_utime.tv_sec), (long)(usage.ru_utime.tv_usec));
         fprintf(stderr, "MK_System time used:           %10ld,%6ld secs\n", (long)(usage.ru_stime.tv_sec), (long)(usage.ru_stime.tv_usec));
         fprintf(stderr, "MK_Maximum resident set size:  %10ld KB\n", usage.ru_maxrss);
-        fprintf(stderr, "MK_Signals                     %dl\n", usage.ru_nsignals);
+        fprintf(stderr, "MK_Signals                     %ld\n", usage.ru_nsignals);
 #if 0
         fprintf(stderr, "MK_Integral shared memory size:%10ld MB\n", (long)(usage.ru_ixrss) / 1024);
         fprintf(stderr, "MK_Integral unshared data size:%10ld MB\n", (long)(usage.ru_idrss) / 1024);
@@ -88,7 +88,7 @@ void print_memusage()
 #endif
     }
 
-#if 1
+#if defined(BGP) || defined(BGQ)
     {
         unsigned long memory_size = 0;
         //Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAP, &memory_size);
@@ -118,6 +118,7 @@ void print_memusage()
 #endif
 
 
+#ifdef BGQ
         uint64_t shared, persist, heapavail, stackavail, stack, heap, guard, mmap;
         Kernel_GetMemorySize(KERNEL_MEMSIZE_SHARED, &shared);
         Kernel_GetMemorySize(KERNEL_MEMSIZE_PERSIST, &persist);
@@ -131,7 +132,7 @@ void print_memusage()
         fprintf(stderr, "MK_Allocated heap: %.2f MB, avail. heap: %.2f MB\n", (double)heap/(1024*1024), (double)heapavail/(1024*1024));
         fprintf(stderr, "MK_Allocated stack: %.2f MB, avail. stack: %.2f MB\n", (double)stack/(1024*1024), (double)stackavail/(1024*1024));
         fprintf(stderr, "MK_Memory: shared: %.2f MB, persist: %.2f MB, guard: %.2f MB, mmap: %.2f MB\n", (double)shared/(1024*1024), (double)persist/(1024*1024), (double)guard/(1024*1024), (double)mmap/(1024*1024));
-
+#endif
 
         struct mallinfo m;
         m = mallinfo();
